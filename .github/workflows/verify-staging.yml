@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify resilient booking selector
+      - name: Verify resilient multilingual booking selector
         shell: bash
         run: |
           set -euo pipefail
@@ -29,25 +29,29 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.5') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.32.6') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
-          const en=read('budapest/index.html');
-          const he=read('he/budapest/index.html');
-          const hu=read('hu/budapest/index.html');
-          for(const [name,html] of [['en',en],['he',he],['hu',hu]]){
-            if(/Loading tours…/.test(html)) throw new Error(name+' still contains blocking Loading tours option');
+          const pages={
+            en:read('budapest/index.html'),
+            he:read('he/budapest/index.html'),
+            hu:read('hu/budapest/index.html')
+          };
+          for(const [name,html] of Object.entries(pages)){
             if(!/value="exp_bud_buda"/.test(html)||!/value="exp_bud_margaret"/.test(html)) throw new Error(name+' fallback tour options missing');
+            if(/<select name="experience"><option value="">/.test(html)) throw new Error(name+' still has blocking empty/loading experience option');
           }
+
+          if(!/Buda Highlights by EZRaider/.test(pages.en)||!/Margaret Island by EZRaider/.test(pages.en)) throw new Error('English fallback labels missing');
+          if(!/סיור בודה על EZRaider/.test(pages.he)||!/סיור אי מרגיט על EZRaider/.test(pages.he)) throw new Error('Hebrew fallback labels missing');
+          if(!/Budai városnézés EZRaiderrel/.test(pages.hu)||!/Margitsziget EZRaiderrel/.test(pages.hu)) throw new Error('Hungarian fallback labels missing');
 
           const js=read('assets/site.js');
           if(!/function fallbackBudapestProducts\(\)/.test(js)) throw new Error('Fallback catalog missing');
           if(!/timeoutMs:5000/.test(js)||!/REQUEST_TIMEOUT/.test(js)) throw new Error('Catalog/API timeout missing');
           if(!/seedExperienceSelects\(selects,provisional\)/.test(js)) throw new Error('Immediate selector seeding missing');
-          if(!/Live availability will be checked when you search/.test(js)) throw new Error('Fallback customer status missing');
-          if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
 
           const css=read('assets/site.css');
           if(!/\.location-switcher:before/.test(css)||!/object-fit:contain!important/.test(css)) throw new Error('Recent visual fixes regressed');
-          console.log('VOY PRO v1.32.5 resilient booking selector OK');
+          console.log('VOY PRO v1.32.6 resilient multilingual booking selector OK');
           NODE

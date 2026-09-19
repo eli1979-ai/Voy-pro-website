@@ -2,13 +2,13 @@
 
 Staging deployment repository for the VOY PRO website.
 
-Current staged release: **v1.32.5**.
+Current staged release: **v1.32.6**.
 
-v1.32.5 hardens the Budapest booking selector:
-- Buda and Margaret are present in the HTML immediately, so the tour selector is usable even before the live catalog responds.
-- The live API request now has a timeout instead of leaving customers on “Loading tours…” indefinitely.
-- If the catalog request fails or is slow, the booking form keeps the known Budapest tour choices and checks live availability when the customer searches.
-- A later live catalog response preserves the customer’s current tour selection.
-- The v1.32.4 brand/location lockup and full-photo presentation remain active.
+v1.32.6 fixes the Budapest booking selector across English, Hebrew and Hungarian:
+- Buda and Margaret are embedded directly in the booking form HTML in every Budapest locale.
+- The selector no longer depends on a language-specific “Loading tours…” placeholder.
+- The live catalog is still requested in the background, with a timeout and a safe known-tour fallback.
+- The user’s selected tour is preserved if live catalog data arrives later.
+- v1.32.4 branding/location polish and the full-photo presentation remain active.
 
 Production booking is not enabled by this staging repository.
