@@ -33,7 +33,7 @@ const replacements=[
  ["' · team check':' · csapatellenőrzés'", "' · confirmation':' · megerősítés'"],
  ["t(' · team check',' · נדרש אישור צוות')", "t(' · confirmation',' · נדרש אישור')"],
  ["'This booking needs support.':'Ehhez a foglaláshoz egy gyors csapatellenőrzés szükséges.'", "'This booking needs a quick confirmation.':'Ehhez a foglaláshoz gyors megerősítés szükséges.'"],
- ["t('This booking needs support.','ההזמנה הזו דורשת סיוע.')", "t('This booking neds a quick confirmation.'ההזמנה הזו דורשת אישור קצר.')"],
+ ["t('This booking needs support.','ההזמנה הזו דורשת סיוע.')", "t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.')"],
  ["'This group needs a quick availability check from our local team.':'Ehhez a csoporthoz egy gyors elérhetőségi ellenőrzés szükséges a helyi csapattól.'", "'This group needs a quick availability confirmation.':'Ehhez a csoporthoz gyors elérhetőségi megerősítés szükséges.'"],
  ["t('This group needs a quick availability check from our local team.','הקבוצה דורשת אישור צוות/כלי נוסף.')", "t('This group needs a quick availability confirmation.','לקבוצה הזו נדרש אישור זמינות קצר.')"],
  ["t('Request confirmation','בקשת אישור צוות')", "t('Request confirmation','בקשת אישור')"],
