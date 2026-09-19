@@ -42,7 +42,7 @@ jobs:
           const he=fs.readFileSync('dist/he/budapest/index.html','utf8');
           const hu=fs.readFileSync('dist/hu/budapest/index.html','utf8');
           if(!/<html[^>]*lang="en"/.test(en)||!/>Tours</.test(en)||/>סיורים</.test(en)) throw new Error('English locale integrity failed');
-          if(!/<html[^>]*lang="he"[^>]*dir="rtl"/.test(he)||!/>סיורים</.test(he)) throw new Error('Hebrew locale integrity failed');
+          if(!/<html\b(?=[^>]*lang="he")(?=[^>]*dir="rtl")[^>]*>/.test(he)||!/>סיורים</.test(he)) throw new Error('Hebrew locale integrity failed');
           if(!/<html[^>]*lang="hu"/.test(hu)||!/>Túrák</.test(hu)||/>סיורים</.test(hu)) throw new Error('Hungarian locale integrity failed');
           if(!/\/img\/gallery\//.test(en)||!/\/img\/gallery\//.test(he)||!/\/img\/gallery\//.test(hu)) throw new Error('Budapest real photography missing');
           const all=en+he+hu;
