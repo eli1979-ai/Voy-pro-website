@@ -45,3 +45,32 @@ jobs:
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
           console.log('VOY PRO v1.32.7 WhatsApp and booking progression OK');
           NODE
+
+      - name: Smoke public booking API from website origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(node - <<'NODE'
+          const fs=require('fs');
+          const txt=fs.readFileSync('dist/assets/runtime-config.js','utf8');
+          const api=(txt.match(/apiRoot:'([^']+)'/)||[])[1];
+          const key=(txt.match(/clientKey:'([^']+)'/)||[])[1];
+          if(!api||!key) throw new Error('runtime booking config missing');
+          console.log('API_ROOT='+JSON.stringify(api));
+          console.log('CLIENT_KEY='+JSON.stringify(key));
+          NODE
+          )"
+          ORIGIN='https://voy-pro-staging.vercel.app'
+
+          code="$(curl -sS -o /tmp/preflight.out -D /tmp/preflight.headers -w '%{http_code}' -X OPTIONS "$API_ROOT/experiences"             -H "Origin: $ORIGIN"             -H 'Access-Control-Request-Method: GET'             -H 'Access-Control-Request-Headers: x-voy-client-key')"
+          test "$code" = "204"
+          grep -qi "^access-control-allow-origin: $ORIGIN" /tmp/preflight.headers
+
+          code="$(curl -sS -o /tmp/experiences.json -w '%{http_code}' "$API_ROOT/experiences"             -H "Origin: $ORIGIN"             -H "x-voy-client-key: $CLIENT_KEY")"
+          test "$code" = "200"
+          node -e "const x=require('/tmp/experiences.json'); if(!Array.isArray(x)||!x.some(v=>v.id==='exp_bud_buda')) process.exit(1)"
+
+          DATE="$(TZ=Europe/Budapest date -d '+1 day' +%F)"
+          code="$(curl -sS -o /tmp/availability.json -w '%{http_code}'             "$API_ROOT/experiences/exp_bud_buda/availability?date=$DATE&riders_16_plus=1&child_passengers_3_15=0&baby_passengers_1_2=0&is_private=false&guide_language=en"             -H "Origin: $ORIGIN"             -H "x-voy-client-key: $CLIENT_KEY")"
+          test "$code" = "200"
+          node -e "const x=require('/tmp/availability.json'); if(!Array.isArray(x.slots)) process.exit(1); console.log('availability slots:',x.slots.length)"
