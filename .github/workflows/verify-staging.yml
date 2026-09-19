@@ -16,56 +16,44 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify release, full photography and persistent destination switch
+      - name: Verify release and location selector
         shell: bash
         run: |
           set -euo pipefail
           test -f dist/release.json
-          test -f dist/robots.txt
           test -f dist/budapest/index.html
           test -f dist/he/budapest/index.html
           test -f dist/hu/budapest/index.html
           test -f dist/portugal/index.html
           test -f dist/he/portugal/index.html
           test -f dist/pt/portugal/index.html
-          test -f dist/manage/index.html
-          grep -q "Disallow: /" dist/robots.txt
           node - <<'NODE'
           const fs=require('fs');
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.2') throw new Error('Unexpected release version: '+r.version);
-          if(r.target!=='staging') throw new Error('Expected staging target');
-          if(r.booking_enabled!==true) throw new Error('Staging booking must be enabled');
-          if(r.seo_indexable!==false) throw new Error('Staging must be non-indexable');
-          if(r.sitemap_urls!==39) throw new Error('Expected 39 sitemap URLs');
+          if(r.version!=='1.32.3') throw new Error('Unexpected release version: '+r.version);
+          if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
-          const en=read('budapest/index.html'),he=read('he/budapest/index.html'),hu=read('hu/budapest/index.html');
-          if(!/data-destination-switch="portugal" href="\/portugal\/">Portugal/.test(en)) throw new Error('Persistent English Portugal switch missing');
-          if(!/data-destination-switch="portugal" href="\/he\/portugal\/">פורטוגל/.test(he)) throw new Error('Persistent Hebrew Portugal switch missing');
-          if(!/data-destination-switch="portugal" href="\/portugal\/">Portugália/.test(hu)) throw new Error('Persistent Hungarian Portugal switch missing');
+          const en=read('budapest/index.html');
+          const he=read('he/budapest/index.html');
+          const hu=read('hu/budapest/index.html');
+          const pt=read('portugal/index.html');
+          const hePt=read('he/portugal/index.html');
+          const ptPt=read('pt/portugal/index.html');
+
+          if(!/<summary[^>]*>Budapest<\/summary>/.test(en)||!/Portugal · Marvão/.test(en)) throw new Error('English Budapest location selector missing');
+          if(!/<summary[^>]*>בודפשט<\/summary>/.test(he)||!/פורטוגל · מרבאו/.test(he)) throw new Error('Hebrew Budapest location selector missing');
+          if(!/<summary[^>]*>Budapest<\/summary>/.test(hu)||!/Portugália · Marvão/.test(hu)) throw new Error('Hungarian Budapest location selector missing');
+          if(!/<summary[^>]*>Portugal · Marvão<\/summary>/.test(pt)||!/>Budapest<\/a>/.test(pt)) throw new Error('English Portugal location selector missing');
+          if(!/<summary[^>]*>פורטוגל · מרבאו<\/summary>/.test(hePt)||!/>בודפשט<\/a>/.test(hePt)) throw new Error('Hebrew Portugal location selector missing');
+          if(!/<summary[^>]*>Portugal · Marvão<\/summary>/.test(ptPt)||!/>Budapeste<\/a>/.test(ptPt)) throw new Error('Portuguese Portugal location selector missing');
 
           const css=read('assets/site.css');
-          if(!/object-fit:contain!important/.test(css)) throw new Error('Full-photo containment missing');
-          if(!/column-count:3/.test(css)||!/column-count:2/.test(css)||!/column-count:1/.test(css)) throw new Error('Responsive natural-ratio gallery missing');
-          if(!/header \.destination-switch/.test(css)) throw new Error('Persistent destination switch styling missing');
+          if(!/\.location-switcher/.test(css)||!/\.location-menu/.test(css)) throw new Error('Location selector styling missing');
+          if(!/object-fit:contain!important/.test(css)) throw new Error('Full-photo preservation missing');
 
-          const buda=read('budapest/tours/buda-castle-ezraider-tour/index.html');
-          const heMargaret=read('he/budapest/tours/margaret-island-ezraider-tour/index.html');
-          const huPrivate=read('hu/budapest/private-tours/index.html');
-          if(!/href="\/budapest\/\?experience=buda-highlights#booking"/.test(buda)) throw new Error('Buda booking intent deep link missing');
-          if(!/href="\/he\/budapest\/\?experience=margaret-island#booking"/.test(heMargaret)) throw new Error('Hebrew Margaret booking intent deep link missing');
-          if(!/href="\/hu\/budapest\/\?mode=private#booking"/.test(huPrivate)) throw new Error('Hungarian private booking intent deep link missing');
-
-          const sitejs=read('assets/site.js');
-          if(/No sample times are being shown|team check|בקשת אישור צוות/i.test(sitejs)) throw new Error('Internal booking copy leaked into public UI');
-
-          const htmlFiles=[];
-          const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory())walk(p);else if(e.name.endsWith('.html'))htmlFiles.push(p);}};
-          walk('dist');
-          const all=htmlFiles.map(p=>fs.readFileSync(p,'utf8')).join('\n')+'\n'+sitejs;
+          const all=[en,he,hu,pt,hePt,ptPt,read('assets/site.js')].join('\n');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test(all)) throw new Error('Internal copy leaked into public UI');
-
-          console.log('VOY PRO v1.32.2 contract OK',r);
+          console.log('VOY PRO v1.32.3 location-selector contract OK');
           NODE

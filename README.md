@@ -2,13 +2,13 @@
 
 Staging deployment repository for the VOY PRO website.
 
-Current staged release: **v1.32.2**.
+Current staged release: **v1.32.3**.
 
-v1.32.2 improves the two remaining presentation issues:
-- Budapest photography is no longer forced through destructive crop frames. Hero and gallery images preserve their full aspect ratio so the EZRaider chassis and wheels remain visible.
-- The gallery uses a responsive natural-ratio column layout (3 / 2 / 1 columns) rather than fixed-height crop boxes.
-- Portugal is now a persistent destination switch beside the VOY PRO brand, independent of the crowded main navigation, and remains visible on desktop and mobile.
-- The switch is localized as Portugal / פורטוגל / Portugália.
-- v1.32 locale integrity, booking-intent deep links and customer-copy QA remain active.
+v1.32.3 replaces the separate Portugal button with a clear location selector beside the VOY PRO brand:
+- Budapest pages show **Budapest ▾** and allow switching to **Portugal · Marvão**.
+- Portugal pages show **Portugal · Marvão ▾** and allow switching back to Budapest.
+- Labels are localized for English, Hebrew, Hungarian and Portuguese.
+- The selector is implemented with native `details/summary` for simple keyboard/mobile behavior.
+- The full-photo presentation from v1.32.2 remains active.
 
 Production booking is not enabled by this staging repository.
