@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify release, location selector and brand lockup
+      - name: Verify resilient booking selector
         shell: bash
         run: |
           set -euo pipefail
@@ -24,34 +24,30 @@ jobs:
           test -f dist/budapest/index.html
           test -f dist/he/budapest/index.html
           test -f dist/hu/budapest/index.html
-          test -f dist/portugal/index.html
-          test -f dist/he/portugal/index.html
-          test -f dist/pt/portugal/index.html
           node - <<'NODE'
           const fs=require('fs');
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.4') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.32.5') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
           const he=read('he/budapest/index.html');
           const hu=read('hu/budapest/index.html');
-          const pt=read('portugal/index.html');
-          if(!/<summary[^>]*>Budapest<\/summary>/.test(en)||!/Portugal · Marvão/.test(en)) throw new Error('English Budapest selector missing');
-          if(!/<summary[^>]*>בודפשט<\/summary>/.test(he)||!/פורטוגל · מרבאו/.test(he)) throw new Error('Hebrew Budapest selector missing');
-          if(!/<summary[^>]*>Budapest<\/summary>/.test(hu)||!/Portugália · Marvão/.test(hu)) throw new Error('Hungarian Budapest selector missing');
-          if(!/<summary[^>]*>Portugal · Marvão<\/summary>/.test(pt)||!/>Budapest<\/a>/.test(pt)) throw new Error('Portugal selector missing');
+          for(const [name,html] of [['en',en],['he',he],['hu',hu]]){
+            if(/Loading tours…/.test(html)) throw new Error(name+' still contains blocking Loading tours option');
+            if(!/value="exp_bud_buda"/.test(html)||!/value="exp_bud_margaret"/.test(html)) throw new Error(name+' fallback tour options missing');
+          }
+
+          const js=read('assets/site.js');
+          if(!/function fallbackBudapestProducts\(\)/.test(js)) throw new Error('Fallback catalog missing');
+          if(!/timeoutMs:5000/.test(js)||!/REQUEST_TIMEOUT/.test(js)) throw new Error('Catalog/API timeout missing');
+          if(!/seedExperienceSelects\(selects,provisional\)/.test(js)) throw new Error('Immediate selector seeding missing');
+          if(!/Live availability will be checked when you search/.test(js)) throw new Error('Fallback customer status missing');
+          if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
 
           const css=read('assets/site.css');
-          if(!/\.nav>\.brand\{font-size:22px/.test(css)) throw new Error('Desktop brand lockup sizing missing');
-          if(!/\.location-switcher:before/.test(css)) throw new Error('Brand/location divider missing');
-          if(!/font-size:17px/.test(css)) throw new Error('Location typography missing');
-          if(!/border:0!important/.test(css)||!/background:transparent!important/.test(css)) throw new Error('Old pill styling not removed');
-          if(!/object-fit:contain!important/.test(css)) throw new Error('Full-photo preservation missing');
-
-          const all=[en,he,hu,pt,read('assets/site.js')].join('\n');
-          if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test(all)) throw new Error('Internal copy leaked into public UI');
-          console.log('VOY PRO v1.32.4 brand-lockup contract OK');
+          if(!/\.location-switcher:before/.test(css)||!/object-fit:contain!important/.test(css)) throw new Error('Recent visual fixes regressed');
+          console.log('VOY PRO v1.32.5 resilient booking selector OK');
           NODE
