@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify release, locales, photos and critical routes
+      - name: Verify release, locales, shared UI and booking intent
         shell: bash
         run: |
           set -euo pipefail
@@ -32,23 +32,47 @@ jobs:
           grep -q "Disallow: /" dist/robots.txt
           node - <<'NODE'
           const fs=require('fs');
+          const path=require('path');
           const r=JSON.parse(fs.readFileSync('dist/release.json','utf8'));
-          if(r.version!=='1.31.1') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.32.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging') throw new Error('Expected staging target');
           if(r.booking_enabled!==true) throw new Error('Staging booking must be enabled');
           if(r.seo_indexable!==false) throw new Error('Staging must be non-indexable');
           if(r.sitemap_urls!==39) throw new Error('Expected 39 sitemap URLs');
-          const en=fs.readFileSync('dist/budapest/index.html','utf8');
-          const he=fs.readFileSync('dist/he/budapest/index.html','utf8');
-          const hu=fs.readFileSync('dist/hu/budapest/index.html','utf8');
+
+          const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
+          const en=read('budapest/index.html');
+          const he=read('he/budapest/index.html');
+          const hu=read('hu/budapest/index.html');
           if(!/<html[^>]*lang="en"/.test(en)||!/>Tours</.test(en)||/>סיורים</.test(en)) throw new Error('English locale integrity failed');
           if(!/<html\b(?=[^>]*lang="he")(?=[^>]*dir="rtl")[^>]*>/.test(he)||!/>סיורים</.test(he)) throw new Error('Hebrew locale integrity failed');
           if(!/<html[^>]*lang="hu"/.test(hu)||!/>Túrák</.test(hu)||/>סיורים</.test(hu)) throw new Error('Hungarian locale integrity failed');
           if(!/\/img\/gallery\//.test(en)||!/\/img\/gallery\//.test(he)||!/\/img\/gallery\//.test(hu)) throw new Error('Budapest real photography missing');
-          const manage=fs.readFileSync('dist/manage/index.html','utf8');
+
+          const buda=read('budapest/tours/buda-castle-ezraider-tour/index.html');
+          const heMargaret=read('he/budapest/tours/margaret-island-ezraider-tour/index.html');
+          const huPrivate=read('hu/budapest/private-tours/index.html');
+          if(!/href="\/budapest\/\?experience=buda-highlights#booking"/.test(buda)) throw new Error('Buda booking intent deep link missing');
+          if(!/href="\/he\/budapest\/\?experience=margaret-island#booking"/.test(heMargaret)) throw new Error('Hebrew Margaret booking intent deep link missing');
+          if(!/href="\/hu\/budapest\/\?mode=private#booking"/.test(huPrivate)) throw new Error('Hungarian private booking intent deep link missing');
+          if(!/>Extended Buda \+ Margaret</.test(en)||!/>בודה \+ מרגיט</.test(he)||!/>Buda \+ Margitsziget</.test(hu)) throw new Error('Shared Budapest footer/header consistency failed');
+
+          const pt=read('pt/portugal/index.html');
+          if(!/<html[^>]*lang="pt"/.test(pt)||!/>Passeios</.test(pt)||!/>Parceiro local</.test(pt)) throw new Error('Portuguese locale integrity failed');
+
+          const manage=read('manage/index.html');
           if(!/VOY_MANAGE_LOCALE/.test(manage)||!/>VOY PRO<\/h1>/.test(manage)||/>Loading booking…</.test(manage)) throw new Error('Manage first-paint locale guard missing');
           if(!/VOY PRO budapesti túra/.test(manage)||!/סיור VOY PRO בבודפשט/.test(manage)) throw new Error('Manage localized fallback missing');
-          const all=en+he+hu;
-          if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול/i.test(all)) throw new Error('Internal copy leaked into public UI');
-          console.log('Release and locale contract OK',r);
+
+          const sitejs=read('assets/site.js');
+          if(!/qs\.get\('mode'\)==='private'/.test(sitejs)) throw new Error('Private URL mode restoration missing');
+          if(/No sample times are being shown|team check|בקשת אישור צוות/i.test(sitejs)) throw new Error('Internal booking copy leaked into public UI');
+
+          const htmlFiles=[];
+          const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory())walk(p);else if(e.name.endsWith('.html'))htmlFiles.push(p);}};
+          walk('dist');
+          const all=htmlFiles.map(p=>fs.readFileSync(p,'utf8')).join('\n')+'\n'+sitejs;
+          if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test(all)) throw new Error('Internal copy leaked into public UI');
+
+          console.log('VOY PRO v1.32 stabilization contract OK',r);
           NODE
