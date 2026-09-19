@@ -15,10 +15,10 @@ const newSubmit="      e.preventDefault();releaseHold();document.querySelector('
 if(!js.includes(oldSubmit)) throw new Error('v1.32.7: availability submit reset target not found');
 js=js.replace(oldSubmit,newSubmit);
 
-const oldChecking="      saveSelectionRecovery(experience,String(data.get('date')),composition,isPrivate,guideLanguage);\n      status.textContent=t('Checking live availability…','בודקים זמינות חיה…');";
-const newChecking="      saveSelectionRecovery(experience,String(data.get('date')),composition,isPrivate,guideLanguage);\n      setBookingStep(2);\n      status.textContent=t('Checking live availability…','בודקים זמינות חיה…');";
-if(!js.includes(oldChecking)) throw new Error('v1.32.7: availability step target not found');
-js=js.replace(oldChecking,newChecking);
+const checkingNeedle="status.textContent=t('Checking";
+const checkingAt=js.indexOf(checkingNeedle);
+if(checkingAt<0) throw new Error('v1.32.7: availability checking state not found');
+js=js.slice(0,checkingAt)+"setBookingStep(2);"+js.slice(checkingAt);
 
 fs.writeFileSync(jsPath,js);
 
