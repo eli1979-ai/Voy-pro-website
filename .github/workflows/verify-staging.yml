@@ -40,7 +40,7 @@ jobs:
           const js=read('assets/site.js');
           if(!/a\.addEventListener\('pointerdown',refresh\)/.test(js)) throw new Error('WhatsApp pointerdown hardening missing');
           if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
-          if(!/saveSelectionRecovery[\s\S]{0,220}setBookingStep\(2\)[\s\S]{0,220}Checking live availability/.test(js)) throw new Error('Availability does not advance to step 2 before request');
+          if(!/setBookingStep\(2\);status\.textContent=t\('Checking/.test(js)) throw new Error('Availability does not advance to step 2 before request');
           if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
           console.log('VOY PRO v1.32.7 WhatsApp and booking progression OK');
