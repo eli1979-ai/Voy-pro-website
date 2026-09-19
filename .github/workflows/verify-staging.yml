@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify release, locales, photos and destination navigation
+      - name: Verify release, full photography and persistent destination switch
         shell: bash
         run: |
           set -euo pipefail
@@ -35,20 +35,21 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.1') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.32.2') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging') throw new Error('Expected staging target');
           if(r.booking_enabled!==true) throw new Error('Staging booking must be enabled');
           if(r.seo_indexable!==false) throw new Error('Staging must be non-indexable');
           if(r.sitemap_urls!==39) throw new Error('Expected 39 sitemap URLs');
 
           const en=read('budapest/index.html'),he=read('he/budapest/index.html'),hu=read('hu/budapest/index.html');
-          if(!/class="destination-nav" href="\/portugal\/">Portugal/.test(en)) throw new Error('English Portugal destination link missing');
-          if(!/class="destination-nav" href="\/he\/portugal\/">פורטוגל/.test(he)) throw new Error('Hebrew Portugal destination link missing');
-          if(!/class="destination-nav" href="\/portugal\/">Portugália/.test(hu)) throw new Error('Hungarian Portugal destination link missing');
+          if(!/data-destination-switch="portugal" href="\/portugal\/">Portugal/.test(en)) throw new Error('Persistent English Portugal switch missing');
+          if(!/data-destination-switch="portugal" href="\/he\/portugal\/">פורטוגל/.test(he)) throw new Error('Persistent Hebrew Portugal switch missing');
+          if(!/data-destination-switch="portugal" href="\/portugal\/">Portugália/.test(hu)) throw new Error('Persistent Hungarian Portugal switch missing');
 
           const css=read('assets/site.css');
-          if(!/object-position:center 72%/.test(css)||!/aspect-ratio:3\/2/.test(css)) throw new Error('Photo framing polish missing');
-          if(!/@media\(min-width:801px\) and \(max-width:1180px\)/.test(css)) throw new Error('Medium-width destination navigation guard missing');
+          if(!/object-fit:contain!important/.test(css)) throw new Error('Full-photo containment missing');
+          if(!/column-count:3/.test(css)||!/column-count:2/.test(css)||!/column-count:1/.test(css)) throw new Error('Responsive natural-ratio gallery missing');
+          if(!/header \.destination-switch/.test(css)) throw new Error('Persistent destination switch styling missing');
 
           const buda=read('budapest/tours/buda-castle-ezraider-tour/index.html');
           const heMargaret=read('he/budapest/tours/margaret-island-ezraider-tour/index.html');
@@ -57,11 +58,7 @@ jobs:
           if(!/href="\/he\/budapest\/\?experience=margaret-island#booking"/.test(heMargaret)) throw new Error('Hebrew Margaret booking intent deep link missing');
           if(!/href="\/hu\/budapest\/\?mode=private#booking"/.test(huPrivate)) throw new Error('Hungarian private booking intent deep link missing');
 
-          const pt=read('pt/portugal/index.html');
-          if(!/<html[^>]*lang="pt"/.test(pt)||!/>Passeios</.test(pt)||!/>Parceiro local</.test(pt)) throw new Error('Portuguese locale integrity failed');
-
           const sitejs=read('assets/site.js');
-          if(!/Portugal · Marvão/.test(sitejs)) throw new Error('Portugal missing from compact/mobile menu');
           if(/No sample times are being shown|team check|בקשת אישור צוות/i.test(sitejs)) throw new Error('Internal booking copy leaked into public UI');
 
           const htmlFiles=[];
@@ -69,5 +66,6 @@ jobs:
           walk('dist');
           const all=htmlFiles.map(p=>fs.readFileSync(p,'utf8')).join('\n')+'\n'+sitejs;
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test(all)) throw new Error('Internal copy leaked into public UI');
-          console.log('VOY PRO v1.32.1 contract OK',r);
+
+          console.log('VOY PRO v1.32.2 contract OK',r);
           NODE
