@@ -3,6 +3,6 @@
   "version": "1.31.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tar -xzf artifact/site-v1.31-staging.tgz -C dist"
+    "build": "rm -rf dist site.tgz site.tgz.b64 && mkdir -p dist && cat .deploy-v131/c* > site.tgz.b64 && base64 -d site.tgz.b64 > site.tgz && tar -xzf site.tgz -C dist"
   }
 }

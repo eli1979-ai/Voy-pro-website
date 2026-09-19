@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify release contract and critical routes
+      - name: Verify release, locales, photos and critical routes
         shell: bash
         run: |
           set -euo pipefail
@@ -24,18 +24,28 @@ jobs:
           test -f dist/robots.txt
           test -f dist/budapest/index.html
           test -f dist/he/budapest/index.html
+          test -f dist/hu/budapest/index.html
           test -f dist/portugal/index.html
           test -f dist/he/portugal/index.html
           test -f dist/pt/portugal/index.html
           test -f dist/manage/index.html
           grep -q "Disallow: /" dist/robots.txt
           node - <<'NODE'
-          const fs = require('fs');
-          const r = JSON.parse(fs.readFileSync('dist/release.json','utf8'));
-          if (r.version !== '1.28.0') throw new Error('Unexpected release version: '+r.version);
-          if (r.target !== 'staging') throw new Error('Expected staging target');
-          if (r.booking_enabled !== true) throw new Error('Staging booking must be enabled');
-          if (r.seo_indexable !== false) throw new Error('Staging must be non-indexable');
-          if (r.sitemap_urls !== 27) throw new Error('Expected 27 sitemap URLs');
-          console.log('Release contract OK', r);
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('dist/release.json','utf8'));
+          if(r.version!=='1.31.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.target!=='staging') throw new Error('Expected staging target');
+          if(r.booking_enabled!==true) throw new Error('Staging booking must be enabled');
+          if(r.seo_indexable!==false) throw new Error('Staging must be non-indexable');
+          if(r.sitemap_urls!==39) throw new Error('Expected 39 sitemap URLs');
+          const en=fs.readFileSync('dist/budapest/index.html','utf8');
+          const he=fs.readFileSync('dist/he/budapest/index.html','utf8');
+          const hu=fs.readFileSync('dist/hu/budapest/index.html','utf8');
+          if(!/<html[^>]*lang="en"/.test(en)||!/>Tours</.test(en)||/>סיורים</.test(en)) throw new Error('English locale integrity failed');
+          if(!/<html[^>]*lang="he"[^>]*dir="rtl"/.test(he)||!/>סיורים</.test(he)) throw new Error('Hebrew locale integrity failed');
+          if(!/<html[^>]*lang="hu"/.test(hu)||!/>Túrák</.test(hu)||/>סיורים</.test(hu)) throw new Error('Hungarian locale integrity failed');
+          if(!/\/img\/gallery\//.test(en)||!/\/img\/gallery\//.test(he)||!/\/img\/gallery\//.test(hu)) throw new Error('Budapest real photography missing');
+          const all=en+he+hu;
+          if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול/i.test(all)) throw new Error('Internal copy leaked into public UI');
+          console.log('Release and locale contract OK',r);
           NODE
