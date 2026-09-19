@@ -2,13 +2,14 @@
 
 Staging deployment repository for the VOY PRO website.
 
-Current staged release: **v1.32.8**.
+Current staged release: **v1.32.9**.
 
-v1.32.8 restores the full customer-side JavaScript flow and strengthens regression protection:
-- The malformed bilingual browser-script line that prevented all site JavaScript from executing has been fixed.
-- The build now runs a real JavaScript syntax check and fails if `site.js` is invalid.
-- WhatsApp opens with prefilled tour context again and now also carries referral context when present: source/medium, campaign, and `ref`/affiliate code.
-- Tour/date/group submission no longer resets to Step 1 while availability is checked.
-- CI now performs a live public-booking smoke test from the website origin: CORS preflight, experiences, and availability.
+v1.32.9 extends the working Budapest booking flow:
+- the WhatsApp button shown after a confirmed booking now opens a booking-specific message with the booking reference, tour, date/time, party, guide language, payment method, total, and existing referral attribution;
+- the checkout reads live payment capabilities from EZRaider OS;
+- when Stripe is enabled in the backend, a **Pay now by card** option appears automatically alongside card/cash on arrival;
+- selecting Pay now starts a provider-backed secure checkout and redirects only after the backend has created the pending booking/payment session;
+- the option stays hidden while no real online-card provider is configured, so staging never presents a fake payment method;
+- JavaScript syntax checking and live CORS/catalog/availability API smoke tests remain mandatory.
 
-Production booking is not enabled by this staging repository.
+Automatic email and WhatsApp booking confirmations are queued by EZRaider OS after a booking becomes confirmed/paid. Delivery activates only when the real email and Meta WhatsApp provider credentials are configured.

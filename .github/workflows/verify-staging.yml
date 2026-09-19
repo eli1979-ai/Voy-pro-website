@@ -16,7 +16,7 @@ jobs:
           node-version: '22'
       - name: Build reviewed staging artifact
         run: npm run build
-      - name: Verify WhatsApp and booking progression
+      - name: Verify booking confirmation and pay-now UI
         shell: bash
         run: |
           set -euo pipefail
@@ -25,7 +25,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.8') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.32.9') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -39,12 +39,15 @@ jobs:
 
           const js=read('assets/site.js');
           if(!/a\.addEventListener\('pointerdown',refresh\)/.test(js)) throw new Error('WhatsApp pointerdown hardening missing');
-          if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
-          if(!/setBookingStep\(2\);status\.textContent=t\('Checking/.test(js)) throw new Error('Availability does not advance to step 2 before request');
-          if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
           if(!/Source:/.test(js)||!/Campaign:/.test(js)||!/Referral:/.test(js)) throw new Error('WhatsApp referral attribution missing');
+          if(!/booking_confirmation/.test(js)||!/Booking reference:/.test(js)) throw new Error('Confirmed-booking WhatsApp context missing');
+          if(!/payment_method/.test(js)||!/Total:/.test(js)) throw new Error('Booking payment details missing from WhatsApp');
+          if(!/\/payments\/capabilities/.test(js)||!/pay_now_card/.test(js)) throw new Error('Pay-now capability UI missing');
+          if(!/\/payments\/intents/.test(js)||!/checkout_url/.test(js)) throw new Error('Stripe redirect flow missing');
+          if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
+          if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
-          console.log('VOY PRO v1.32.8 WhatsApp and booking progression OK');
+          console.log('VOY PRO v1.32.9 booking confirmation + pay-now UI OK');
           NODE
 
       - name: Smoke public booking API from website origin
@@ -63,15 +66,29 @@ jobs:
           )"
           ORIGIN='https://voy-pro-staging.vercel.app'
 
-          code="$(curl -sS -o /tmp/preflight.out -D /tmp/preflight.headers -w '%{http_code}' -X OPTIONS "$API_ROOT/experiences"             -H "Origin: $ORIGIN"             -H 'Access-Control-Request-Method: GET'             -H 'Access-Control-Request-Headers: x-voy-client-key')"
+          code="$(curl -sS -o /tmp/preflight.out -D /tmp/preflight.headers -w '%{http_code}' -X OPTIONS "$API_ROOT/experiences" \
+            -H "Origin: $ORIGIN" \
+            -H 'Access-Control-Request-Method: GET' \
+            -H 'Access-Control-Request-Headers: x-voy-client-key')"
           test "$code" = "204"
           grep -qi "^access-control-allow-origin: $ORIGIN" /tmp/preflight.headers
 
-          code="$(curl -sS -o /tmp/experiences.json -w '%{http_code}' "$API_ROOT/experiences"             -H "Origin: $ORIGIN"             -H "x-voy-client-key: $CLIENT_KEY")"
+          code="$(curl -sS -o /tmp/experiences.json -w '%{http_code}' "$API_ROOT/experiences" \
+            -H "Origin: $ORIGIN" \
+            -H "x-voy-client-key: $CLIENT_KEY")"
           test "$code" = "200"
           node -e "const x=require('/tmp/experiences.json'); if(!Array.isArray(x)||!x.some(v=>v.id==='exp_bud_buda')) process.exit(1)"
 
           DATE="$(TZ=Europe/Budapest date -d '+1 day' +%F)"
-          code="$(curl -sS -o /tmp/availability.json -w '%{http_code}'             "$API_ROOT/experiences/exp_bud_buda/availability?date=$DATE&riders_16_plus=1&child_passengers_3_15=0&baby_passengers_1_2=0&is_private=false&guide_language=en"             -H "Origin: $ORIGIN"             -H "x-voy-client-key: $CLIENT_KEY")"
+          code="$(curl -sS -o /tmp/availability.json -w '%{http_code}' \
+            "$API_ROOT/experiences/exp_bud_buda/availability?date=$DATE&riders_16_plus=1&child_passengers_3_15=0&baby_passengers_1_2=0&is_private=false&guide_language=en" \
+            -H "Origin: $ORIGIN" \
+            -H "x-voy-client-key: $CLIENT_KEY")"
           test "$code" = "200"
           node -e "const x=require('/tmp/availability.json'); if(!Array.isArray(x.slots)) process.exit(1); console.log('availability slots:',x.slots.length)"
+
+          code="$(curl -sS -o /tmp/payment-capabilities.json -w '%{http_code}' "$API_ROOT/payments/capabilities" \
+            -H "Origin: $ORIGIN" \
+            -H "x-voy-client-key: $CLIENT_KEY")"
+          test "$code" = "200"
+          node -e "const x=require('/tmp/payment-capabilities.json'); if(typeof x.online_card!=='boolean') process.exit(1); console.log('online card enabled:',x.online_card)"
