@@ -1,0 +1,8 @@
+{
+  "name": "voy-pro-website-v2",
+  "version": "1.28.0",
+  "private": true,
+  "scripts": {
+    "build": "cat .deploy-parts/c* > site.tgz.b64 && base64 -d site.tgz.b64 > site.tgz && tar -xzf site.tgz"
+  }
+}
