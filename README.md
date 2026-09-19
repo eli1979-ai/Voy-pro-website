@@ -2,12 +2,13 @@
 
 Staging deployment repository for the VOY PRO website.
 
-Current staged release: **v1.32.7**.
+Current staged release: **v1.32.8**.
 
-v1.32.7 fixes two customer-facing booking regressions:
-- WhatsApp links now have a real wa.me fallback in the HTML and are refreshed before click, instead of relying on changing a # link at the last moment.
-- Submitting tour/date/group no longer resets the wizard to Step 1. Once the inputs validate, the UI advances to Step 2 while live availability is checked.
-- The resilient Buda/Margaret selector and API timeout from v1.32.5–v1.32.6 remain active.
-- A matching backend fix allows browser CORS preflight from configured public-booking origins while keeping the real API request protected by the client key.
+v1.32.8 restores the full customer-side JavaScript flow and strengthens regression protection:
+- The malformed bilingual browser-script line that prevented all site JavaScript from executing has been fixed.
+- The build now runs a real JavaScript syntax check and fails if `site.js` is invalid.
+- WhatsApp opens with prefilled tour context again and now also carries referral context when present: source/medium, campaign, and `ref`/affiliate code.
+- Tour/date/group submission no longer resets to Step 1 while availability is checked.
+- CI now performs a live public-booking smoke test from the website origin: CORS preflight, experiences, and availability.
 
 Production booking is not enabled by this staging repository.

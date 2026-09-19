@@ -25,7 +25,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.7') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.32.8') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -42,8 +42,9 @@ jobs:
           if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
           if(!/setBookingStep\(2\);status\.textContent=t\('Checking/.test(js)) throw new Error('Availability does not advance to step 2 before request');
           if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
+          if(!/Source:/.test(js)||!/Campaign:/.test(js)||!/Referral:/.test(js)) throw new Error('WhatsApp referral attribution missing');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
-          console.log('VOY PRO v1.32.7 WhatsApp and booking progression OK');
+          console.log('VOY PRO v1.32.8 WhatsApp and booking progression OK');
           NODE
 
       - name: Smoke public booking API from website origin

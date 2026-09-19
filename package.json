@@ -1,8 +1,8 @@
 {
   "name": "voy-pro-website-v2",
-  "version": "1.32.7",
+  "version": "1.32.8",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist site.tgz site.tgz.b64 && mkdir -p dist && cat .deploy-v131/c* > site.tgz.b64 && base64 -d site.tgz.b64 > site.tgz && tar -xzf site.tgz -C dist && cp overrides/manage-v1.31.1.html dist/manage/index.html && node overrides/apply-v1.32.mjs && node overrides/apply-v1.32.1.mjs && node overrides/apply-v1.32.2.mjs && node overrides/apply-v1.32.3.mjs && node overrides/apply-v1.32.4.mjs && node overrides/apply-v1.32.5.mjs && node overrides/apply-v1.32.6.mjs && node overrides/apply-v1.32.7.mjs && node --check dist/assets/site.js"
+    "build": "rm -rf dist site.tgz site.tgz.b64 && mkdir -p dist && cat .deploy-v131/c* > site.tgz.b64 && base64 -d site.tgz.b64 > site.tgz && tar -xzf site.tgz -C dist && cp overrides/manage-v1.31.1.html dist/manage/index.html && node overrides/apply-v1.32.mjs && node overrides/apply-v1.32.1.mjs && node overrides/apply-v1.32.2.mjs && node overrides/apply-v1.32.3.mjs && node overrides/apply-v1.32.4.mjs && node overrides/apply-v1.32.5.mjs && node overrides/apply-v1.32.6.mjs && node overrides/apply-v1.32.7.mjs && node overrides/apply-v1.32.8.mjs && node --check dist/assets/site.js"
   }
 }
