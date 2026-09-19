@@ -32,11 +32,30 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Pull staging project settings
-        run: vercel pull --yes --environment=preview --token="${{ secrets.VERCEL_TOKEN }}"
+      - name: Build reviewed staging artifact
+        run: npm run build
 
-      - name: Build locally
-        run: vercel build --token="${{ secrets.VERCEL_TOKEN }}"
+      - name: Create Vercel Build Output API artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .vercel
+          mkdir -p .vercel/output/static
+          cp -a dist/. .vercel/output/static/
+          cat > .vercel/project.json <<EOF
+          {"orgId":"$VERCEL_ORG_ID","projectId":"$VERCEL_PROJECT_ID"}
+          EOF
+          cat > .vercel/output/config.json <<'EOF'
+          {
+            "version": 3,
+            "routes": [
+              {"src": "^/$", "status": 307, "headers": {"Location": "/budapest/"}},
+              {"src": "/manage/(.*)", "headers": {"X-Robots-Tag": "noindex, nofollow", "Cache-Control": "private, no-store, max-age=0"}},
+              {"src": "/(.*)", "headers": {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "X-Frame-Options": "DENY", "Permissions-Policy": "camera=(), microphone=(), geolocation=(), usb=()", "Cross-Origin-Opener-Policy": "same-origin"}, "continue": true},
+              {"handle": "filesystem"}
+            ]
+          }
+          EOF
 
       - name: Deploy prebuilt artifact
         id: deploy
@@ -52,6 +71,9 @@ jobs:
         run: |
           URL="${{ steps.deploy.outputs.url }}"
           curl --fail --silent --show-error "$URL/release.json" | tee /tmp/release.json
+          curl --fail --silent --show-error "$URL/budapest/" >/tmp/budapest.html
+          curl --fail --silent --show-error "$URL/he/portugal/" >/tmp/portugal-he.html
+          curl --fail --silent --show-error "$URL/pt/portugal/" >/tmp/portugal-pt.html
           node - <<'NODE'
           const fs = require('fs');
           const r = JSON.parse(fs.readFileSync('/tmp/release.json','utf8'));
