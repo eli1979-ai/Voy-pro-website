@@ -1,11 +1,11 @@
 {
   "app": "voy-pro-website-v2",
-  "version": "1.33.1",
+  "version": "1.34.0",
   "target": "staging",
   "built_at": "2026-09-19T18:49:21.798Z",
   "booking_enabled": true,
   "seo_indexable": false,
   "sitemap_urls": 39,
-  "based_on": "1.33.0",
+  "based_on": "1.33.1",
   "build_model": "consolidated-source"
 }

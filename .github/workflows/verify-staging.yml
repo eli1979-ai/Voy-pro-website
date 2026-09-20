@@ -27,7 +27,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.33.1') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.34.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -53,9 +53,25 @@ jobs:
           if(!/החל מ־€70/.test(he)||!/€120/.test(he)) throw new Error('Hebrew fallback pricing missing');
           if(!/€70-tól/.test(hu)||!/€120/.test(hu)) throw new Error('Hungarian fallback pricing missing');
           if(!/data-mobile-language-row/.test(js)||!/consent-open/.test(js)) throw new Error('Mobile navigation/consent hardening missing');
+          if(!/optimizeHomeConversion/.test(js)||!/enhanceBookingFormLayout/.test(js)||!/smartDefault/.test(js)) throw new Error('Conversion funnel runtime missing');
+          for(const [name,html] of Object.entries({en,he,hu})){
+            const picker=html.indexOf('class="section tour-picker"'), booking=html.indexOf('class="section booking"'), gallery=html.indexOf('photo-gallery-section');
+            if(!(picker>=0&&booking>picker&&gallery>booking)) throw new Error(name+' homepage conversion order regressed');
+          }
           const css=read('assets/site.css');
           if(!/header \.language-picker\{display:none!important\}/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile conversion CSS missing');
-          console.log('VOY PRO v1.33.1 mobile conversion + booking baseline OK');
+          if(!/\.party-fields/.test(css)||!/#availability-form>button\[type="submit"\]/.test(css)) throw new Error('Compact booking CSS missing');
+          const routePages=[
+            'budapest/tours/buda-castle-ezraider-tour/index.html','budapest/tours/margaret-island-ezraider-tour/index.html','budapest/private-tours/index.html',
+            'he/budapest/tours/buda-castle-ezraider-tour/index.html','he/budapest/tours/margaret-island-ezraider-tour/index.html','he/budapest/private-tours/index.html',
+            'hu/budapest/tours/buda-castle-ezraider-tour/index.html','hu/budapest/tours/margaret-island-ezraider-tour/index.html','hu/budapest/private-tours/index.html'
+          ];
+          for(const p of routePages){
+            const html=read(p);
+            if(!html.includes('id="booking"')) throw new Error('Booking section missing: '+p);
+            if(/href="\/(?:he\/|hu\/)?budapest\/\?[^"]*#booking"/.test(html)) throw new Error('Tour-page CTA leaves selected tour: '+p);
+          }
+          console.log('VOY PRO v1.34.0 conversion funnel + booking baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin

@@ -50,7 +50,7 @@
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const money=(amount,currency='EUR')=>new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency}).format(Number(amount||0));
   const HU={
-    'Regular price':'Normál ár','Discount':'Kedvezmény','Additions':'Kiegészítések','Total':'Összesen',
+    'Regular price':'Normál ár','Discount':'Kedvezmény','Additions':'Kiegészítések','Total':'Összesen','From €70':'€70-tól','Live availability · Final price before confirmation · Local support':'Aktuális elérhetőség · Végső ár megerősítés előtt · Helyi segítség',
     'Discounts and additions are shown separately before confirmation.':'A kedvezmények és kiegészítések külön jelennek meg a megerősítés előtt.',
     'Menu':'Menü','Close menu':'Menü bezárása','Explore Budapest':'Fedezd fel Budapestet','Buda Castle Tour':'Budavári túra','Margaret Island':'Margitsziget','Extended Tour':'Hosszabb túra','Private Tours':'Privát túrák','Budapest with Kids':'Budapest gyerekekkel','Portugal · Marvão':'Portugália · Marvão','Check availability':'Szabad időpontok','Ask us on WhatsApp':'Kérdezz WhatsAppon','View Buda tour':'Budai túra','See the most popular route':'Legnépszerűbb útvonal','Cookie preferences':'Süti beállítások','Your privacy choices':'Adatvédelmi beállítások','Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.':'A szükséges tárolás a foglalási funkciók működéséhez kell. Az opcionális analitika segít megérteni, mely oldalak vezetnek foglaláshoz.','Essential only':'Csak szükséges','Allow analytics':'Analitika engedélyezése',
     'Tell us what you need':'Írd meg, mire van szükséged','We’ll send the details to the Budapest team on WhatsApp.':'Az adatokat WhatsAppon elküldjük a budapesti csapatnak.','Preferred date':'Kívánt dátum','Independent riders':'Önálló vezetők','Guide language':'Vezetés nyelve','Choose language':'Válassz nyelvet','Private?':'Privát?','No · regular extended request':'Nem · normál hosszabb túra','Yes · our group only':'Igen · csak a mi csoportunk','Preferred start time':'Kívánt indulási idő','(optional)':'(opcionális)','Send request on WhatsApp':'Kérés küldése WhatsAppon','This sends a request, not a confirmed booking. Our local team will confirm the route, time, vehicles and guide language.':'Ez még kérés, nem megerősített foglalás. Helyi csapatunk visszaigazolja az útvonalat, időpontot, járműveket és a vezetés nyelvét.','Extended Buda + Margaret':'Buda + Margitsziget hosszabb túra',
@@ -269,6 +269,28 @@
   document.documentElement.dataset.trustVariant=experiments.trust_placement_v1||'default';
   enhanceMobileNavigation();
 
+  function optimizeHomeConversion(){
+    const isHome=page==='/budapest/'||page==='/he/budapest/'||page==='/hu/budapest/';
+    if(!isHome)return;
+    const gallery=document.querySelector('.photo-gallery-section');
+    const booking=document.querySelector('#booking');
+    if(gallery&&booking&&gallery.previousElementSibling!==booking) booking.insertAdjacentElement('afterend',gallery);
+    const actions=document.querySelector('.hero-actions');
+    const book=actions?.querySelector('[data-track="booking_cta"]');
+    const picker=actions?.querySelector('[data-track="tour_picker_cta"]');
+    if(actions&&book&&picker){
+      book.classList.add('alt');book.classList.remove('hero-secondary');
+      picker.classList.add('hero-secondary');picker.classList.remove('alt');
+      actions.insertBefore(book,picker);
+    }
+    const facts=document.querySelector('.hero .facts');
+    if(facts&&!facts.querySelector('[data-home-live-price]')){
+      const price=document.createElement('span');price.dataset.homeLivePrice='';price.dataset.runtimePrice='';
+      price.textContent=t('From €70','החל מ־€70');facts.insertBefore(price,facts.firstChild);
+    }
+  }
+  optimizeHomeConversion();
+
   const EVENT_KEY='voy_event_queue_v1';
   function payload(event, metadata={}){
     return {event,timestamp:now(),visitor_id:visitorId,session_id:getStore('voy_session_id')||null,destination_id:'budapest',page,locale,
@@ -443,7 +465,8 @@
       const before=preserve?String(select.value||''):'';
       const languages=guideLanguagesForProduct(product);
       select.innerHTML=`<option value="">${t('Choose guide language','בחרו שפת הדרכה')}</option>`+languages.map(code=>`<option value="${escapeHTML(code)}">${escapeHTML(guideLanguageLabel(code))}</option>`).join('');
-      if(before&&languages.includes(before))select.value=before;
+      const smartDefault=languages.includes(locale)?locale:(languages.includes('en')?'en':languages[0]||'');
+      if(before&&languages.includes(before))select.value=before;else if(smartDefault)select.value=smartDefault;
       field.dataset.availableLanguages=languages.join(',');
     };
     form._updateGuideLanguages(null,{preserve:false});
@@ -495,6 +518,23 @@
     nudge.innerHTML=`<div><small>${t('MORE BUDAPEST','עוד מבודפשט')}</small><b>${t('Want Buda and Margaret Island in one longer experience?','רוצים את בודה ואת מרגיט בחוויה ארוכה אחת?')}</b><span>${t('See the Extended Buda + Margaret option before you choose a departure.','בדקו את אפשרות בודה + מרגיט הארוכה לפני בחירת היציאה.')}</span></div><a class="btn secondary" href="${href}" data-related>${t('See extended tour','לסיור הארוך')}</a>`;
     nudge.querySelector('a')?.addEventListener('click',()=>track('extended_route_nudge_clicked',{from_experience:product?.id||null,page}));
   }
+  function enhanceBookingFormLayout(form){
+    if(!form||form.dataset.conversionLayout==='ready')return;
+    form.dataset.conversionLayout='ready';
+    const partyNames=['adults','children','babies'];
+    const partyFields=partyNames.map(name=>form.querySelector(`[name="${name}"]`)?.closest('.field')).filter(Boolean);
+    if(partyFields.length===3){
+      const grid=document.createElement('div');grid.className='party-fields';grid.setAttribute('aria-label',t('Group composition','הרכב הקבוצה'));
+      partyFields[0].insertAdjacentElement('beforebegin',grid);partyFields.forEach(field=>grid.appendChild(field));
+    }
+    const submit=form.querySelector('button[type="submit"]');
+    if(submit&&!form.querySelector('[data-booking-form-assurance]')){
+      const assurance=document.createElement('div');assurance.className='booking-form-assurance';assurance.dataset.bookingFormAssurance='';
+      assurance.textContent=t('Live availability · Final price before confirmation · Local support','זמינות בזמן אמת · מחיר סופי לפני אישור · תמיכה מקומית');
+      submit.insertAdjacentElement('afterend',assurance);
+    }
+  }
+
   function updatePrivateUpgrade(product){
     const box=document.querySelector('[data-private-upgrade]');if(!box)return;
     const allowed=Boolean(product?.privateAllowed);box.hidden=!allowed;
@@ -730,6 +770,7 @@
     if(dateInput){dateInput.min=budapestDate(0);dateInput.max=budapestDate(365);if(!dateInput.value)dateInput.value=budapestDate(0);}
     ensurePrivateUpgrade(form);
     ensureGuideLanguageField(form);
+    enhanceBookingFormLayout(form);
     hydrateCatalog().then(()=>{
       if(qs.get('mode')==='private'){
         const mode=document.querySelector('[data-private-upgrade]');
