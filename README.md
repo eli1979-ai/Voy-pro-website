@@ -1,15 +1,17 @@
 # VOY PRO Website
 
-Staging deployment repository for the VOY PRO website.
+Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged release: **v1.32.9**.
+Current staged baseline: **v1.33.0** (consolidated from verified v1.32.9).
 
-v1.32.9 extends the working Budapest booking flow:
-- the WhatsApp button shown after a confirmed booking now opens a booking-specific message with the booking reference, tour, date/time, party, guide language, payment method, total, and existing referral attribution;
-- the checkout reads live payment capabilities from EZRaider OS;
-- when Stripe is enabled in the backend, a **Pay now by card** option appears automatically alongside card/cash on arrival;
-- selecting Pay now starts a provider-backed secure checkout and redirects only after the backend has created the pending booking/payment session;
-- the option stays hidden while no real online-card provider is configured, so staging never presents a fake payment method;
-- JavaScript syntax checking and live CORS/catalog/availability API smoke tests remain mandatory.
+The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
-Automatic email and WhatsApp booking confirmations are queued by EZRaider OS after a booking becomes confirmed/paid. Delivery activates only when the real email and Meta WhatsApp provider credentials are configured.
+Key Budapest booking capabilities preserved in this baseline:
+- live catalog and availability from EZRaider OS / FBM public APIs;
+- Buda and Margaret tour selection with resilient fallback UI;
+- booking confirmation WhatsApp message with booking reference, tour, date/time, party, guide language, payment method, total and referral attribution;
+- payment capabilities loaded from the backend;
+- secure Pay now by card flow appears only when online-card payment is really enabled;
+- automatic email/WhatsApp confirmations remain backend responsibilities and activate only with configured providers.
+
+Historical patch/build machinery is archived under `legacy/v1.32.9-build-chain/` and must not be used for new feature development.
