@@ -29,7 +29,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.37.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.38.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -124,7 +124,7 @@ jobs:
           if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
           const sitemap=read('sitemap.xml');
           if((sitemap.match(/<lastmod>2026-09-20<\/lastmod>/g)||[]).length<24) throw new Error('Sitemap lastmod coverage missing');
-          console.log('VOY PRO v1.37.0 launch readiness + intent clusters + tour SEO baseline OK');
+          console.log('VOY PRO v1.38.0 parallel launch + SEO + conversion baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin

@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.37.0** (launch-readiness hardening on the multilingual SEO baseline).
+Current staged baseline: **v1.38.0** (parallel-site launch strategy on the launch-readiness baseline).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -25,3 +25,5 @@ v1.35.0 adds multilingual TouristTrip + Offer + itinerary structured data to Bud
 v1.36.0 connects the Budapest planning/intent pages to the most relevant tour pages and their own local booking forms, adds a multilingual intent hub to the Budapest homepage, fixes intent-page breadcrumb hierarchy, and records accurate sitemap lastmod dates for pages changed in the September 20 release sequence.
 
 v1.37.0 adds automated launch-readiness validation, production robots and redirect-migration plans, makes the root redirect permanent, and fixes the multilingual where-to-stay booking/breadcrumb metadata. Staging remains blocked from indexing until the final domain cutover.
+
+v1.38.0 changes the launch strategy from domain migration to parallel operation: the existing EZRaiderEU Budapest site remains live on its current domain while VOY PRO launches independently on voy-pro.com. No legacy redirects or Search Console Change of Address are part of the initial launch. A future migration map is retained only as reference.
