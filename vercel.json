@@ -8,25 +8,46 @@
     {
       "source": "/",
       "destination": "/budapest/",
-      "permanent": false
+      "permanent": true
     }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        {"key": "X-Content-Type-Options", "value": "nosniff"},
-        {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"},
-        {"key": "X-Frame-Options", "value": "DENY"},
-        {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), usb=()"},
-        {"key": "Cross-Origin-Opener-Policy", "value": "same-origin"}
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), usb=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
       ]
     },
     {
       "source": "/manage/(.*)",
       "headers": [
-        {"key": "X-Robots-Tag", "value": "noindex, nofollow"},
-        {"key": "Cache-Control", "value": "private, no-store, max-age=0"}
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store, max-age=0"
+        }
       ]
     }
   ]

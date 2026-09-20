@@ -1,8 +1,9 @@
 {
   "name": "voy-pro-website-v2",
-  "version": "1.36.0",
+  "version": "1.37.0",
   "private": true,
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js"
+    "build": "rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js",
+    "verify:launch": "node scripts/verify-launch-readiness.mjs"
   }
 }
