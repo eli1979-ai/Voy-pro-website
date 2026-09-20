@@ -25,7 +25,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.32.9') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.33.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -47,7 +47,7 @@ jobs:
           if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
           if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
-          console.log('VOY PRO v1.32.9 booking confirmation + pay-now UI OK');
+          console.log('VOY PRO v1.33.0 booking confirmation + pay-now UI OK');
           NODE
 
       - name: Smoke public booking API from website origin
