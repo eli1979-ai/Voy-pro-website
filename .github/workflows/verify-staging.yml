@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.42.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.43.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -63,7 +63,8 @@ jobs:
             if(!(picker>=0&&booking>picker&&gallery>booking)) throw new Error(name+' homepage conversion order regressed');
           }
           const css=read('assets/site.css');
-          if(!/header \.language-picker\{display:none!important\}/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile conversion CSS missing');
+          if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');
+          if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
           if(!/\.party-fields/.test(css)||!/#availability-form>button\[type="submit"\]/.test(css)) throw new Error('Compact booking CSS missing');
           const routePages=[
             'budapest/tours/buda-castle-ezraider-tour/index.html','budapest/tours/margaret-island-ezraider-tour/index.html','budapest/private-tours/index.html',
@@ -151,7 +152,7 @@ jobs:
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
           if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
-          console.log('VOY PRO v1.42.0 site-wide QA + custom-domain + destination-aware baseline OK');
+          console.log('VOY PRO v1.43.0 restored header languages + site-wide QA baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin

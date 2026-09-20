@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.42.0** (site-wide QA hardening on the custom-domain baseline).
+Current staged baseline: **v1.43.0** (restored header language visibility on the QA-hardened baseline).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -35,3 +35,5 @@ v1.40.0 makes the shared browser runtime destination-aware. Budapest continues u
 v1.41.0 verifies the Budapest public booking API from the new custom domain `https://voy-pro.com` as well as the Vercel staging origin. The custom domain is live, but search-engine indexing remains intentionally blocked until the FBM production-environment decision is finalized.
 
 v1.42.0 adds a permanent site-wide static QA gate covering all public sitemap URLs, internal links/fragments, canonical and hreflang integrity, metadata, H1s, duplicate IDs, image alt attributes, RTL, safe external links and destination isolation. It also replaces hash-only WhatsApp fallbacks for special requests and improves form label/control associations for accessibility.
+
+v1.43.0 restores the EN/HU/HE or destination-appropriate language picker to the mobile header while keeping the same language options inside the mobile menu as a fallback. The header picker uses compact mobile sizing and CI now treats hiding it again as a regression.
