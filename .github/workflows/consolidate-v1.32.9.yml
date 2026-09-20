@@ -128,9 +128,6 @@ jobs:
           Historical patch/build machinery is archived under `legacy/v1.32.9-build-chain/` and must not be used for new feature development.
           EOF
 
-          sed -i "s/r.version!=='1.32.9'/r.version!=='1.33.0'/" .github/workflows/verify-staging.yml
-          sed -i "s/VOY PRO v1.32.9 booking confirmation + pay-now UI OK/VOY PRO v1.33.0 consolidated booking baseline OK/" .github/workflows/verify-staging.yml
-          sed -i "s/r.version !== '1.28.0'/r.version !== '1.33.0'/" .github/workflows/deploy-prebuilt-staging.yml
 
       - name: Verify clean build is byte-equivalent except release metadata
         shell: bash
