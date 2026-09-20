@@ -193,7 +193,11 @@
   function enhanceMobileNavigation(){
     const nav=document.querySelector('.navlinks'); if(!nav||document.querySelector('.nav-menu-toggle')) return;
     const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
-    const sheet=document.createElement('div');sheet.className='mobile-nav-sheet';sheet.hidden=true;sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${t('Close menu','סגירת תפריט')}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/#tours':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;document.body.appendChild(sheet);
+    const sheet=document.createElement('div');sheet.className='mobile-nav-sheet';sheet.hidden=true;sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${t('Close menu','סגירת תפריט')}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/#tours':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="#">${t('Ask us on WhatsApp','פנייה ב‑WhatsApp')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;document.body.appendChild(sheet);
+    const langRow=sheet.querySelector('[data-mobile-language-row]');
+    if(langRow)document.querySelectorAll('.language-picker .lang-switch').forEach(link=>langRow.appendChild(link.cloneNode(true)));
+    const mobileWa=sheet.querySelector('[data-mobile-nav-wa]');
+    if(mobileWa){mobileWa.href=whatsAppUrl();mobileWa.addEventListener('click',()=>track('whatsapp_clicked',{page,context:'mobile_nav'}));}
     const close=()=>{sheet.hidden=true;btn.setAttribute('aria-expanded','false');document.body.classList.remove('nav-open')};
     btn.onclick=()=>{sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open')};sheet.querySelector('.mobile-nav-close').onclick=close;sheet.addEventListener('click',e=>{if(e.target===sheet)close()});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
   }
@@ -296,8 +300,9 @@
     bar.setAttribute('aria-label',t('Cookie preferences','העדפות עוגיות'));
     bar.innerHTML=`<div><b>${t('Your privacy choices','בחירות הפרטיות שלך')}</b><p>${t('Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.','אחסון חיוני מפעיל את תהליך ההזמנה. אנליטיקה אופציונלית עוזרת לנו להבין אילו עמודים וקמפיינים מובילים להזמנות.')}</p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${t('Essential only','חיוני בלבד')}</button><button type="button" class="btn" data-consent-analytics>${t('Allow analytics','לאפשר אנליטיקה')}</button></div>`;
     document.body.appendChild(bar);
-    bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});bar.remove();});
-    bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{setConsent({analytics:true,marketing:false});bar.remove();location.reload();});
+    document.body.classList.add('consent-open');
+    bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});document.body.classList.remove('consent-open');bar.remove();});
+    bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{setConsent({analytics:true,marketing:false});document.body.classList.remove('consent-open');bar.remove();location.reload();});
   }
   initAccessibility();
   initConsent();
@@ -404,7 +409,7 @@
         if(price&&p.priceFrom!=null) price.textContent=t('From ','החל מ־')+money(p.priceFrom,p.currency||'EUR');
         if(p.bookingEnabled===false){card.classList.add('is-unavailable');if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');}
         else {card.classList.add('is-live');if(state)state.textContent=t('Online booking','הזמנה באתר');}
-      }else{card.classList.add('is-unavailable');}
+      }else{card.classList.add('is-unavailable');if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');}
     });
   }
   function bindTourCardSelectors(){
