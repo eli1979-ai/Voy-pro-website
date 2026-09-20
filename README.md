@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.33.1** (mobile conversion and pricing clarity on the consolidated v1.33.0 baseline).
+Current staged baseline: **v1.34.0** (conversion-funnel optimization on the consolidated source baseline).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -17,3 +17,5 @@ Key Budapest booking capabilities preserved in this baseline:
 Historical patch/build machinery is archived under `legacy/v1.32.9-build-chain/` and must not be used for new feature development.
 
 Mobile funnel hardening in v1.33.1 keeps language selection inside the mobile menu, prevents the consent banner from colliding with fixed CTAs, and shows approved Budapest fallback prices before live FBM pricing hydrates.
+
+v1.34.0 shortens the path from hero to booking, places route choice before the photo gallery, defaults guide language from the selected site locale when available, and compacts group composition inputs without changing live booking rules.
