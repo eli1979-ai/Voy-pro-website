@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.35.0** (tour-page structured data and social-sharing SEO on the conversion baseline).
+Current staged baseline: **v1.36.0** (multilingual intent clusters and semantic internal linking on the tour SEO baseline).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -21,3 +21,5 @@ Mobile funnel hardening in v1.33.1 keeps language selection inside the mobile me
 v1.34.0 shortens the path from hero to booking, places route choice before the photo gallery, defaults guide language from the selected site locale when available, and compacts group composition inputs without changing live booking rules.
 
 v1.35.0 adds multilingual TouristTrip + Offer + itinerary structured data to Buda, Margaret and Extended tour pages, fixes breadcrumb hierarchy, and adds large social-sharing images. FAQ content remains visible to users but no FAQPage markup is emitted because Google retired FAQ rich results in 2026.
+
+v1.36.0 connects the Budapest planning/intent pages to the most relevant tour pages and their own local booking forms, adds a multilingual intent hub to the Budapest homepage, fixes intent-page breadcrumb hierarchy, and records accurate sitemap lastmod dates for pages changed in the September 20 release sequence.

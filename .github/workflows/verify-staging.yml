@@ -27,7 +27,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.35.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.36.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -96,7 +96,33 @@ jobs:
             if(trip.itinerary?.['@type']!=='ItemList'||!trip.itinerary.itemListElement?.length) throw new Error('Tour itinerary schema missing: '+p);
             if(scripts.some(v=>v['@type']==='FAQPage')) throw new Error('Deprecated FAQPage schema emitted: '+p);
           }
-          console.log('VOY PRO v1.35.0 tour SEO + conversion baseline OK');
+          const intentPages=[
+            'budapest/with-kids/index.html','budapest/first-day/index.html','budapest/unique-things-to-do/index.html','budapest/buda-castle-without-walking/index.html',
+            'he/budapest/with-kids/index.html','he/budapest/first-day/index.html','he/budapest/unique-things-to-do/index.html','he/budapest/buda-castle-without-walking/index.html',
+            'hu/budapest/with-kids/index.html','hu/budapest/first-day/index.html','hu/budapest/unique-things-to-do/index.html','hu/budapest/buda-castle-without-walking/index.html'
+          ];
+          for(const p of intentPages){
+            const html=read(p);
+            if(!html.includes('data-intent-bridge=""')) throw new Error('Intent bridge missing: '+p);
+            if(!html.includes('href="#booking"')) throw new Error('Local booking CTA missing: '+p);
+            if(/href="\/(?:he\/|hu\/)?budapest\/#booking"/.test(html)) throw new Error('Intent CTA still leaves page: '+p);
+            const bridge=(html.match(/<section class="section intent-bridge"[\s\S]*?<\/section>/)||[])[0]||'';
+            if((bridge.match(/class="intent-bridge-card"/g)||[]).length!==3) throw new Error('Intent route cards missing: '+p);
+            if((bridge.match(/href="\/(?:he\/|hu\/)?budapest\/(?:tours\/|private-tours\/)/g)||[]).length<3) throw new Error('Intent route links not crawlable: '+p);
+            const scripts=[...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)].map(m=>JSON.parse(m[1]));
+            const crumbs=scripts.find(v=>v['@type']==='BreadcrumbList');
+            if(!crumbs||crumbs.itemListElement?.map(v=>v.position).join(',')!=='1,2,3') throw new Error('Intent breadcrumb hierarchy invalid: '+p);
+          }
+          for(const [name,html] of Object.entries({en,he,hu})){
+            if(!html.includes('data-intent-hub=""')) throw new Error(name+' intent hub missing');
+            const hub=(html.match(/<section class="section intent-hub"[\s\S]*?<\/section>/)||[])[0]||'';
+            if((hub.match(/class="intent-hub-card"/g)||[]).length!==4) throw new Error(name+' intent hub card count invalid');
+            for(const slug of ['with-kids','first-day','unique-things-to-do','buda-castle-without-walking']) if(!hub.includes('/'+slug+'/')) throw new Error(name+' intent hub link missing: '+slug);
+          }
+          if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
+          const sitemap=read('sitemap.xml');
+          if((sitemap.match(/<lastmod>2026-09-20<\/lastmod>/g)||[]).length<24) throw new Error('Sitemap lastmod coverage missing');
+          console.log('VOY PRO v1.36.0 intent clusters + tour SEO + conversion baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin
