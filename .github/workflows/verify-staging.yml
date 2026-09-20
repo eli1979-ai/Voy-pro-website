@@ -63,7 +63,8 @@ jobs:
             if(!(picker>=0&&booking>picker&&gallery>booking)) throw new Error(name+' homepage conversion order regressed');
           }
           const css=read('assets/site.css');
-          if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');\n          if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
+          if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');
+          if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
           if(!/\.party-fields/.test(css)||!/#availability-form>button\[type="submit"\]/.test(css)) throw new Error('Compact booking CSS missing');
           const routePages=[
             'budapest/tours/buda-castle-ezraider-tour/index.html','budapest/tours/margaret-island-ezraider-tour/index.html','budapest/private-tours/index.html',
