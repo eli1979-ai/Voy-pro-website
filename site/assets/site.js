@@ -216,6 +216,7 @@
   const inferredSource = qs.get('utm_source') || (referrer.includes('google.')?'google':referrer.includes('bing.')?'bing':referrer.includes('tripadvisor.')?'tripadvisor':referrer.includes('getyourguide.')?'getyourguide':referrer?'referral':'direct');
   const inferredMedium = qs.get('utm_medium') || ((inferredSource==='google'||inferredSource==='bing')?'organic':referrer?'referral':'none');
   const attr = {
+    touch_id: uuid(),
     source: inferredSource, medium: inferredMedium,
     campaign: qs.get('utm_campaign') || null, content: qs.get('utm_content') || null,
     term: qs.get('utm_term') || null, referrer: referrer || null,
@@ -293,16 +294,54 @@
 
   const EVENT_KEY='voy_event_queue_v1';
   function payload(event, metadata={}){
-    return {event,timestamp:now(),visitor_id:visitorId,session_id:getStore('voy_session_id')||null,destination_id:'budapest',page,locale,
+    return {event_id:uuid(),event,timestamp:now(),visitor_id:visitorId,session_id:getStore('voy_session_id')||null,destination_id:'budapest',page,locale,
       source:attr.source,medium:attr.medium,campaign:attr.campaign,content:attr.content,term:attr.term,referrer:attr.referrer,
       click_ids:{gclid:attr.gclid,gbraid:attr.gbraid,wbraid:attr.wbraid,fbclid:attr.fbclid,msclkid:attr.msclkid,ttclid:attr.ttclid},
       personalization_segment:segment,experiment_assignments:experiments,metadata};
   }
+  let eventFlushTimer=null;
+  let eventFlushInFlight=false;
+  async function flushEventQueue({keepalive=false}={}){
+    if(!analyticsAllowed()||!bookingEnabled||eventFlushInFlight) return;
+    const queued=safeJSON(getStore(EVENT_KEY),[])||[];
+    if(!queued.length) return;
+    const batch=queued.slice(0,25);
+    eventFlushInFlight=true;
+    try{
+      const response=await fetch(apiRoot+'/marketing/events',{
+        method:'POST',
+        headers:authHeaders(),
+        body:JSON.stringify({session_id:getStore('voy_session_id')||null,events:batch}),
+        keepalive,
+      });
+      if(!response.ok) return;
+      const sentIds=new Set(batch.map(item=>item?.event_id));
+      const current=safeJSON(getStore(EVENT_KEY),[])||[];
+      const remaining=current.filter(item=>!sentIds.has(item?.event_id)).slice(-25);
+      setStore(EVENT_KEY,JSON.stringify(remaining));
+    }catch(e){
+      // Analytics delivery must never interrupt booking.
+    }finally{
+      eventFlushInFlight=false;
+      const remaining=safeJSON(getStore(EVENT_KEY),[])||[];
+      if(remaining.length&&!keepalive) scheduleEventFlush(false);
+    }
+  }
+  function scheduleEventFlush(immediate=false){
+    if(!analyticsAllowed()||!bookingEnabled) return;
+    if(eventFlushTimer) clearTimeout(eventFlushTimer);
+    eventFlushTimer=setTimeout(()=>{eventFlushTimer=null;flushEventQueue();},immediate?50:1400);
+  }
   function track(event,metadata={}){
     if(!analyticsAllowed()) return;
-    const q=safeJSON(getStore(EVENT_KEY),[])||[];q.push(payload(event,metadata));setStore(EVENT_KEY,JSON.stringify(q.slice(-25)));
+    const q=safeJSON(getStore(EVENT_KEY),[])||[];
+    q.push(payload(event,metadata));
+    setStore(EVENT_KEY,JSON.stringify(q.slice(-25)));
+    scheduleEventFlush(q.length>=8||['booking_completed','capacity_request_created','whatsapp_clicked'].includes(event));
   }
   function recentEvents(){return analyticsAllowed()?(safeJSON(getStore(EVENT_KEY),[])||[]):[];}
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushEventQueue({keepalive:true});});
+  window.addEventListener('pagehide',()=>{flushEventQueue({keepalive:true});});
   track('page_view',{title:document.title}); if(segment!=='default') track('personalization_applied',{segment});
 
   function initAccessibility(){
@@ -356,19 +395,30 @@
       const storedFirst=analyticsAllowed()?(safeJSON(getStore('voy_first_attribution'))||attr):null;
       const exp=extra.experience_id||getStore('voy_experience_id')||null;
       const analyticsPayload=analyticsAllowed()?{
+        visitor_id:visitorId,
         attribution:{first_touch:storedFirst,last_touch:attr},
         personalization_segment:segment,
         experiment_assignments:experiments,
         recent_events:recentEvents()
       }:{consent:'essential_only'};
       const data=await api('/sessions',{method:'POST',body:JSON.stringify({destination_id:'budapest',experience_id:exp,locale,stage,...analyticsPayload,...extra})});
-      if(data?.id){setStore('voy_session_id',data.id);if(analyticsAllowed()){try{await api('/attribution/sync',{method:'POST',body:JSON.stringify({session_id:data.id,attribution:{first_touch:storedFirst,last_touch:attr}})});}catch(e){}}}
+      if(data?.id){
+        setStore('voy_session_id',data.id);
+        if(analyticsAllowed()){
+          try{await api('/attribution/sync',{method:'POST',body:JSON.stringify({session_id:data.id,visitor_id:visitorId,attribution:{first_touch:storedFirst,last_touch:attr}})});}catch(e){}
+          scheduleEventFlush(true);
+        }
+      }
       return data;
     }catch(e){return null;}
   }
   async function patchSession(extra={}){
     const sid=getStore('voy_session_id'); if(!sid||!bookingEnabled) return null;
-    try{return await api('/sessions/'+encodeURIComponent(sid),{method:'PATCH',body:JSON.stringify({...extra,...(analyticsAllowed()?{recent_events:recentEvents()}:{})})});}catch(e){return null;}
+    try{
+      const result=await api('/sessions/'+encodeURIComponent(sid),{method:'PATCH',body:JSON.stringify({...extra,...(analyticsAllowed()?{recent_events:recentEvents()}:{})})});
+      if(analyticsAllowed()) scheduleEventFlush(true);
+      return result;
+    }catch(e){return null;}
   }
 
   document.querySelectorAll('details[data-faq]').forEach(d=>d.addEventListener('toggle',()=>{if(d.open) track('faq_opened',{question:d.dataset.faq});}));
