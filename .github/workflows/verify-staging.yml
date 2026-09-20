@@ -29,7 +29,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.38.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.39.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -124,7 +124,29 @@ jobs:
           if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
           const sitemap=read('sitemap.xml');
           if((sitemap.match(/<lastmod>2026-09-20<\/lastmod>/g)||[]).length<24) throw new Error('Sitemap lastmod coverage missing');
-          console.log('VOY PRO v1.38.0 parallel launch + SEO + conversion baseline OK');
+          const portugalPages=[
+            ['portugal/index.html','https://voy-pro.com/portugal/#request'],
+            ['he/portugal/index.html','https://voy-pro.com/he/portugal/#request'],
+            ['pt/portugal/index.html','https://voy-pro.com/pt/portugal/#request']
+          ];
+          for(const [p,requestUrl] of portugalPages){
+            const html=read(p);
+            if(/https:\/\/www\.pombais\.pt/i.test(html)) throw new Error('Portugal still hands booking to Pombais: '+p);
+            if(!html.includes('data-portugal-request-form')||!html.includes('id="request"')) throw new Error('Portugal VOY PRO request form missing: '+p);
+            if(!html.includes('/assets/site.js')) throw new Error('Portugal shared runtime missing: '+p);
+            const scripts=[...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)].map(m=>JSON.parse(m[1]));
+            const list=scripts.find(v=>v['@type']==='ItemList');
+            if(!list||list.itemListElement?.length!==3) throw new Error('Portugal tour schema missing: '+p);
+            for(const item of list.itemListElement){
+              if(item.item?.offers?.url!==requestUrl) throw new Error('Portugal schema offer leaves VOY PRO: '+p);
+              if(item.item?.provider?.name!=='Pombais Experience & Villas') throw new Error('Portugal local operator transparency regressed: '+p);
+            }
+          }
+          if(!/const isPortugalPage=routePath\.includes\('\/portugal\/'\)/.test(js)) throw new Error('Portugal route guard missing');
+          if(!/bindPortugalRequestFlow/.test(js)||/a\[href\*="pombais\.pt"\]/.test(js)) throw new Error('Portugal request runtime invalid');
+          if(!/if\(!analyticsAllowed\(\)\|\|isPortugalPage\) return/.test(js)||!/if\(isPortugalPage\) return null/.test(js)) throw new Error('Portugal must not write through Budapest public client');
+          if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
+          console.log('VOY PRO v1.39.0 Portugal direct request + parallel launch + SEO baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin

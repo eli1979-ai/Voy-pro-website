@@ -281,3 +281,16 @@ header .destination-switch{display:none!important}
 .intent-hub-card span{margin-top:auto;color:var(--blue);font-size:12px;font-weight:900}
 @media(max-width:800px){.intent-bridge-head{grid-template-columns:1fr;gap:5px}.intent-bridge-grid{grid-template-columns:1fr}.intent-bridge-card{min-height:0}.intent-hub-grid{grid-template-columns:1fr 1fr}.intent-hub-card{min-height:165px}}
 @media(max-width:480px){.intent-hub-grid{grid-template-columns:1fr}.intent-hub-card{min-height:0}}
+
+
+/* v1.39.0 — Portugal requests stay inside VOY PRO */
+.portugal-request{background:#f4f7f8;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.portugal-request-form{margin-top:18px}
+.portugal-request-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.portugal-request-grid .field{margin:0}
+.portugal-request-notes{grid-column:1/-1}
+.portugal-request-form textarea{width:100%;resize:vertical}
+.portugal-request-form>button{width:100%;min-height:49px;margin-top:14px}
+.portugal-request-status{margin-top:10px}
+.portugal-request-assurance{align-self:start}
+@media(max-width:700px){.portugal-request-grid{grid-template-columns:1fr}.portugal-request-notes{grid-column:auto}}

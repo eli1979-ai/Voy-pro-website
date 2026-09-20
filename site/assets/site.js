@@ -7,6 +7,7 @@
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
   const routePath=(location.pathname||'/').toLowerCase();
   const routeLocale=routePath.startsWith('/he/')?'he':routePath.startsWith('/hu/')?'hu':routePath.startsWith('/pt/')?'pt':null;
+  const isPortugalPage=routePath.includes('/portugal/');
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
   document.documentElement.lang=locale;
@@ -144,7 +145,7 @@
   }
   function whatsAppUrl(context='',overrides={}){
     const details={...currentRequestDetails(),...overrides};
-    const generic=t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`);
+    const generic=isPortugalPage?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`);
     const privateFlexible=t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to request a private Budapest tour at a flexible departure time.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבקש סיור פרטי בבודפשט בשעת יציאה גמישה.`);
     const extended=t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check the Extended Buda + Margaret tour.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק את הסיור הארוך בודה + מרגיט.`);
     const bookingConfirmed=t(`Hi, I have a confirmed VOY PRO Budapest booking and I’d like help with it.`,`היי, יש לי הזמנה מאושרת ל־VOY PRO Budapest ואני רוצה עזרה בנוגע להזמנה.`);
@@ -170,30 +171,81 @@
     return 'https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
   }
 
-  function bindPortugalGuideLanguageChoice(){
-    const select=document.querySelector('[data-portugal-guide-language]');
-    if(!select)return;
-    const status=document.querySelector('[data-portugal-guide-language-status]');
-    document.querySelectorAll('a[href*="pombais.pt"]').forEach(link=>link.addEventListener('click',e=>{
-      const guideLanguage=String(select.value||'').trim().toLowerCase();
-      if(!guideLanguage){
-        e.preventDefault();
-        if(status){status.textContent=select.dataset.requiredMessage||'Choose a guide language before continuing.';status.hidden=false;}
-        select.focus();
-        track('partner_booking_language_required',{branch:'MVR',page});
+  function bindPortugalRequestFlow(){
+    if(!isPortugalPage)return;
+    const form=document.querySelector('[data-portugal-request-form]');
+    if(!form)return;
+    const labels=locale==='he'?{
+      route:'מסלול',date:'תאריך מועדף',people:'משתתפים',language:'שפת הדרכה',name:'שם',notes:'הערות',source:'מקור הפניה',
+      missing:'יש להשלים מסלול, תאריך, שפת הדרכה ושם.'
+    }:locale==='pt'?{
+      route:'Passeio',date:'Data preferida',people:'Pessoas',language:'Idioma do guia',name:'Nome',notes:'Notas',source:'Origem',
+      missing:'Preencha o passeio, a data, o idioma e o nome.'
+    }:{
+      route:'Tour',date:'Preferred date',people:'People',language:'Guide language',name:'Name',notes:'Notes',source:'Source',
+      missing:'Please complete tour, date, guide language and name.'
+    };
+    const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:'Megalithic Route'};
+    const routeSelect=form.querySelector('[name="route"]');
+    document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
+      const route=String(a.dataset.portugalTour||'');
+      if(routeSelect&&routeNames[route])routeSelect.value=route;
+    }));
+    form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const f=new FormData(form);
+      const route=String(f.get('route')||'').trim();
+      const date=String(f.get('date')||'').trim();
+      const people=String(f.get('people')||'').trim();
+      const guide=String(f.get('guide_language')||'').trim();
+      const name=String(f.get('full_name')||'').trim();
+      const notes=String(f.get('notes')||'').trim();
+      const status=form.querySelector('[data-portugal-request-status]');
+      if(!route||!date||!guide||!name){
+        if(status)status.textContent=labels.missing;
         return;
       }
-      try{const u=new URL(link.href);u.searchParams.set('voy_guide_language',guideLanguage);link.href=u.toString();}catch(err){}
-      if(status){status.textContent='';status.hidden=true;}
-      track('partner_booking_language_selected',{branch:'MVR',guide_language:guideLanguage,page,href:link.href});
-    }));
+      const intro=locale==='he'
+        ?'היי, אני רוצה לבקש זמינות לסיור EZRaider במרבאו דרך VOY PRO.'
+        :locale==='pt'
+          ?'Olá, gostaria de pedir disponibilidade para um passeio de EZRaider em Marvão através da VOY PRO.'
+          :'Hi, I’d like to request availability for an EZRaider tour in Marvão through VOY PRO.';
+      const lines=[
+        intro,'',
+        labels.route+': '+(routeNames[route]||route),
+        labels.date+': '+date,
+        labels.people+': '+people,
+        labels.language+': '+guideLanguageLabel(guide),
+        labels.name+': '+name
+      ];
+      if(notes)lines.push(labels.notes+': '+notes);
+      const sourceLabel=[attr.source,attr.medium].filter(Boolean).join('/');
+      if(sourceLabel&&attr.source!=='direct')lines.push(labels.source+': '+sourceLabel);
+      if(attr.campaign)lines.push('Campaign: '+attr.campaign);
+      const affiliateRef=qs.get('ref')||qs.get('affiliate')||null;
+      if(affiliateRef)lines.push('Referral: '+affiliateRef);
+      lines.push('Page: '+location.pathname);
+      location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+    });
   }
-  bindPortugalGuideLanguageChoice();
+  bindPortugalRequestFlow();
 
   function enhanceMobileNavigation(){
     const nav=document.querySelector('.navlinks'); if(!nav||document.querySelector('.nav-menu-toggle')) return;
     const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
-    const sheet=document.createElement('div');sheet.className='mobile-nav-sheet';sheet.hidden=true;sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${t('Close menu','סגירת תפריט')}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/#tours':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="#">${t('Ask us on WhatsApp','פנייה ב‑WhatsApp')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;document.body.appendChild(sheet);
+    const sheet=document.createElement('div');sheet.className='mobile-nav-sheet';sheet.hidden=true;
+    if(isPortugalPage){
+      const portugalHome=locale==='he'?'/he/portugal/':locale==='pt'?'/pt/portugal/':'/portugal/';
+      const budapestHome=locale==='he'?'/he/budapest/':'/budapest/';
+      const heading=locale==='he'?'פורטוגל · מרבאו':locale==='pt'?'Portugal · Marvão':'Portugal · Marvão';
+      const tours=locale==='he'?'סיורים':locale==='pt'?'Passeios':'Tours';
+      const request=locale==='he'?'בקשת זמינות':locale==='pt'?'Pedir disponibilidade':'Request availability';
+      const budapest=locale==='he'?'בודפשט':locale==='pt'?'Budapeste':'Budapest';
+      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${t('Close menu','סגירת תפריט')}">×</button><b>${heading}</b><a href="${portugalHome}#tours">${tours}</a><a href="${portugalHome}#request">${request}</a><a href="${budapestHome}">${budapest}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="#">WhatsApp · VOY PRO</a><a href="${portugalHome}#request" class="btn">${request}</a></div>`;
+    }else{
+      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${t('Close menu','סגירת תפריט')}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/#tours':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="#">${t('Ask us on WhatsApp','פנייה ב-WhatsApp')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;
+    }
+    document.body.appendChild(sheet);
     const langRow=sheet.querySelector('[data-mobile-language-row]');
     if(langRow)document.querySelectorAll('.language-picker .lang-switch').forEach(link=>langRow.appendChild(link.cloneNode(true)));
     const mobileWa=sheet.querySelector('[data-mobile-nav-wa]');
@@ -333,7 +385,7 @@
     eventFlushTimer=setTimeout(()=>{eventFlushTimer=null;flushEventQueue();},immediate?50:1400);
   }
   function track(event,metadata={}){
-    if(!analyticsAllowed()) return;
+    if(!analyticsAllowed()||isPortugalPage) return;
     const q=safeJSON(getStore(EVENT_KEY),[])||[];
     q.push(payload(event,metadata));
     setStore(EVENT_KEY,JSON.stringify(q.slice(-25)));
@@ -389,6 +441,7 @@
   }
 
   async function createSession(stage, extra={}){
+    if(isPortugalPage) return null;
     try{
       const existing=getStore('voy_session_id');
       if(existing){await patchSession({stage,...extra});return {id:existing};}
