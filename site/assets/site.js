@@ -12,6 +12,7 @@
   document.documentElement.lang=locale;
   if(locale==='he'){document.documentElement.dir='rtl';document.body?.classList.add('rtl')}else{document.documentElement.removeAttribute('dir');}
   const qs = new URLSearchParams(location.search);
+  const campaignPromo=(qs.get('promo')||'').trim().toUpperCase()||null;
   const now = () => new Date().toISOString();
   const safeJSON = (s, fallback=null) => { try{return JSON.parse(s)}catch(e){return fallback} };
 
@@ -784,16 +785,16 @@
     const status=document.querySelector('#availability-status');
     try{
       setBookingStep(3);setBookingStep(2);status.textContent=t('Checking price and reserving your places…','בודקים מחיר ושומרים את המקומות שלכם…');
-      const quote=await api('/quotes',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,extras:[]})});
+      const quote=await api('/quotes',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,extras:[],promo_code:campaignPromo})});
       const hold=await api('/holds',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage})});
-      bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage};
+      bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:campaignPromo};
       const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;
       const privateLabel=isPrivate?`<span class="checkout-private-flag">${t('Private tour · your group only','סיור פרטי · הקבוצה שלכם בלבד')}</span>`:`<span class="checkout-standard-flag">${t('Scheduled tour','סיור רגיל')}</span>`;
       const sum=shell.querySelector('[data-checkout-summary]');sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(experience.title)}</b><span>${escapeHTML(date)} · ${escapeHTML(slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(guideLanguage))}</span></div>${renderQuoteBreakdown(quote)}`;
       startHoldTimer(hold.expires_at);
       status.textContent=t('Your places are held for 10 minutes while you complete the booking.','המקומות נשמרים ל־10 דקות בזמן השלמת ההזמנה.');
       shell.scrollIntoView({behavior:'smooth',block:'center'});
-      track('hold_created',{hold_id:hold.id,slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage});
+      track('hold_created',{hold_id:hold.id,slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage,promo_code_applied:quote.promo_code_applied||campaignPromo||null,discount:quote.discount||0});
       patchSession({stage:'checkout_ready',selected_date:date,selected_time:slot.time,slot_id:slot.id,quote_id:quote.id,hold_id:hold.id,hold_expires_at:hold.expires_at,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});
     }catch(e){
       const privateConflict=['PRIVATE_DEPARTURE_NOT_EMPTY','PRIVATE_HOLD_MISMATCH','PRIVATE_DEPARTURE_RESERVED'].includes(e.code);
@@ -889,19 +890,19 @@
       const paymentMethod=String(f.get('payment_method')||'pay_arrival_card');
       if(paymentMethod==='pay_now_card'){
         st.textContent=t('Opening secure card payment…','פותחים תשלום מאובטח בכרטיס…');
-        const payment=await api('/payments/intents',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({payment_type:'online',payment_method:'pay_now_card',hold_id:bookingState.hold.id,session_id:sid,customer,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,currency:bookingState.quote?.currency||'EUR'})});
+        const payment=await api('/payments/intents',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({payment_type:'online',payment_method:'pay_now_card',hold_id:bookingState.hold.id,session_id:sid,customer,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,currency:bookingState.quote?.currency||'EUR',promo_code:bookingState.promoCode||null})});
         if(!payment?.checkout_url)throw Object.assign(new Error('Secure card payment could not be started.'),{code:'PAYMENT_START_FAILED'});
         patchSession({stage:'payment_redirect',payment_provider:'stripe',payment_checkout_id:payment.id,booking_id:payment.booking_id,booking_reference:payment.booking_reference});
         location.assign(payment.checkout_url);
         return;
       }
-      const booking=await api('/bookings',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({hold_id:bookingState.hold.id,session_id:sid,customer,payment_method:paymentMethod,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,extras:[]})});
+      const booking=await api('/bookings',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({hold_id:bookingState.hold.id,session_id:sid,customer,payment_method:paymentMethod,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,extras:[],promo_code:bookingState.promoCode||null})});
       clearInterval(holdTimer); bookingState.hold=null; delStore('voy_recovery_state');
       const manageToken=booking.manage_token||booking.secure_token||'';const manageUrl='/manage/?token='+encodeURIComponent(manageToken)+(locale==='he'?'&lang=he':locale==='hu'?'&lang=hu':'');
       const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:booking.reference,experience_title:bookingState.experience?.title||booking.experience_title,date:bookingState.date||booking.selected_date,requested_time:bookingState.slot?.time||booking.slot_time,riders:bookingState.composition?.riders_16_plus||0,children:bookingState.composition?.child_passengers_3_15||0,babies:bookingState.composition?.baby_passengers_1_2||0,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage||booking.guide_language,payment_method:paymentMethod,total:booking.total,currency:booking.currency||'EUR'});
       st.classList.add('success-card');st.innerHTML=`<div class="success-icon">✓</div><h3>${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(booking.reference)}</b></div><p>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}${bookingState.isPrivate?` · ${t('Private tour','סיור פרטי')}`:''} · ${t('Guide','הדרכה')}: ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))} · ${t('Payment','תשלום')}: ${paymentMethod==='pay_arrival_cash'?t('cash on arrival','מזומן במקום'):t('card on arrival','כרטיס במקום')}</p><div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
       bindConfirmationActions(st,booking);checkoutForm.querySelectorAll('input,select,button:not([data-copy-booking-ref])').forEach(el=>el.disabled=true);document.querySelector('.mobilebook')?.setAttribute('hidden','');
-      track('booking_completed',{booking_id:booking.id,reference:booking.reference,revenue:booking.total,currency:booking.currency,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});
+      track('booking_completed',{booking_id:booking.id,reference:booking.reference,revenue:booking.total,currency:booking.currency,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,promo_code_applied:booking.promo_code_applied||bookingState.promoCode||null,discount:booking.discount||0});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});
     }catch(err){patchSession({stage:'booking_failed',error_code:err?.code||String(err?.status||'booking_failed')});const msg=err.code==='HOLD_EXPIRED'?t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.'):err.code==='STAFF_CONFIRMATION_REQUIRED'?t('This booking needs an additional confirmation. Please search again and send a request.','להזמנה הזו נדרש אישור נוסף. יש לחפש מחדש ולשלוח בקשה.'):t('The booking could not be completed. No online card charge was made.','לא ניתן להשלים את ההזמנה. לא בוצע חיוב מקוון.');st.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(st);}
   });}
 
