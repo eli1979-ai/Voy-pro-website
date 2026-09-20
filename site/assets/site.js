@@ -1,4 +1,4 @@
-(function(){
+(async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
   const clientKey = cfg.clientKey || '';
@@ -291,11 +291,51 @@
   const segment = pathSegment(); document.body.dataset.segment=segment; if(analyticsAllowed()) setStore('voy_segment',segment);
 
   function hashString(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
-  function assignExperiment(id, variants){const key='voy_exp_'+id;const existing=getStore(key);if(existing&&variants.includes(existing))return existing;const v=variants[hashString(visitorId+id)%variants.length];setStore(key,v);return v}
+  function assignExperiment(id,variants){
+    const normalized=(Array.isArray(variants)?variants:[]).map(v=>typeof v==='string'?{key:v,weight_bps:1}:v).filter(v=>v&&v.key&&Number(v.weight_bps)>0);
+    if(!normalized.length)return null;
+    const keys=normalized.map(v=>String(v.key));
+    const key='voy_exp_'+id;
+    const existing=getStore(key);
+    if(existing&&keys.includes(existing))return existing;
+    const total=normalized.reduce((sum,v)=>sum+Number(v.weight_bps||0),0);
+    let bucket=hashString(visitorId+id)%Math.max(1,total);
+    let selected=keys[keys.length-1];
+    for(const v of normalized){
+      bucket-=Number(v.weight_bps||0);
+      if(bucket<0){selected=String(v.key);break;}
+    }
+    setStore(key,selected);
+    return selected;
+  }
+  async function loadRuntimeExperiments(){
+    if(!bookingEnabled)return [];
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),800);
+    try{
+      const response=await fetch(apiRoot+'/marketing/experiments?page='+encodeURIComponent(page),{
+        method:'GET',
+        headers:{'x-voy-client-key':clientKey,'x-voy-client':'voy-pro-website'},
+        signal:controller.signal,
+        cache:'no-store',
+      });
+      if(!response.ok)return [];
+      const data=await response.json();
+      return Array.isArray(data?.experiments)?data.experiments:[];
+    }catch(e){
+      return [];
+    }finally{
+      clearTimeout(timer);
+    }
+  }
   const experiments={};
-  if(page==='/budapest/'||page==='/he/budapest/'||page==='/hu/budapest/'){
-    experiments.budapest_home_cta_v1=assignExperiment('budapest_home_cta_v1',['availability','route_first']);
-    experiments.trust_placement_v1=assignExperiment('trust_placement_v1',['hero_inline','below_hero']);
+  const runtimeExperiments=await loadRuntimeExperiments();
+  for(const experiment of runtimeExperiments){
+    const id=String(experiment?.key||'').trim();
+    const variants=Array.isArray(experiment?.variants)?experiment.variants:[];
+    if(!id||variants.length<2)continue;
+    const assigned=assignExperiment(id,variants);
+    if(assigned)experiments[id]=assigned;
   }
   if(analyticsAllowed()) setStore('voy_experiments',JSON.stringify(experiments));
 
