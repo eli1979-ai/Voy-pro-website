@@ -27,7 +27,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.34.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.35.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -71,7 +71,32 @@ jobs:
             if(!html.includes('id="booking"')) throw new Error('Booking section missing: '+p);
             if(/href="\/(?:he\/|hu\/)?budapest\/\?[^"]*#booking"/.test(html)) throw new Error('Tour-page CTA leaves selected tour: '+p);
           }
-          console.log('VOY PRO v1.34.0 conversion funnel + booking baseline OK');
+          const seoTours=[
+            ['budapest/tours/buda-castle-ezraider-tour/index.html',70],
+            ['budapest/tours/margaret-island-ezraider-tour/index.html',70],
+            ['budapest/tours/buda-margaret-extended-tour/index.html',120],
+            ['he/budapest/tours/buda-castle-ezraider-tour/index.html',70],
+            ['he/budapest/tours/margaret-island-ezraider-tour/index.html',70],
+            ['he/budapest/tours/buda-margaret-extended-tour/index.html',120],
+            ['hu/budapest/tours/buda-castle-ezraider-tour/index.html',70],
+            ['hu/budapest/tours/margaret-island-ezraider-tour/index.html',70],
+            ['hu/budapest/tours/buda-margaret-extended-tour/index.html',120]
+          ];
+          for(const [p,price] of seoTours){
+            const html=read(p);
+            if(!/twitter:card" content="summary_large_image"|content="summary_large_image" name="twitter:card"/.test(html)) throw new Error('Large social card missing: '+p);
+            if(!/property="og:image"/.test(html)||!/name="twitter:image"/.test(html)) throw new Error('Social image missing: '+p);
+            const scripts=[...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)].map(m=>JSON.parse(m[1]));
+            const trip=scripts.find(v=>v['@type']==='TouristTrip');
+            const crumbs=scripts.find(v=>v['@type']==='BreadcrumbList');
+            if(!trip) throw new Error('TouristTrip schema missing: '+p);
+            if(!crumbs||crumbs.itemListElement?.map(v=>v.position).join(',')!=='1,2,3') throw new Error('Breadcrumb hierarchy invalid: '+p);
+            if(String(trip.offers?.price)!==String(price)||trip.offers?.priceCurrency!=='EUR') throw new Error('Tour price schema invalid: '+p);
+            if(trip.provider?.name!=='AllGo Guided Tours Bud Kft.') throw new Error('Tour provider schema invalid: '+p);
+            if(trip.itinerary?.['@type']!=='ItemList'||!trip.itinerary.itemListElement?.length) throw new Error('Tour itinerary schema missing: '+p);
+            if(scripts.some(v=>v['@type']==='FAQPage')) throw new Error('Deprecated FAQPage schema emitted: '+p);
+          }
+          console.log('VOY PRO v1.35.0 tour SEO + conversion baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin
