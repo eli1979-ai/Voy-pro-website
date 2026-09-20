@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.38.0** (parallel-site launch strategy on the launch-readiness baseline).
+Current staged baseline: **v1.39.0** (Portugal direct-to-VOY PRO request flow on the parallel-launch baseline).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -27,3 +27,5 @@ v1.36.0 connects the Budapest planning/intent pages to the most relevant tour pa
 v1.37.0 adds automated launch-readiness validation, production robots and redirect-migration plans, makes the root redirect permanent, and fixes the multilingual where-to-stay booking/breadcrumb metadata. Staging remains blocked from indexing until the final domain cutover.
 
 v1.38.0 changes the launch strategy from domain migration to parallel operation: the existing EZRaiderEU Budapest site remains live on its current domain while VOY PRO launches independently on voy-pro.com. No legacy redirects or Search Console Change of Address are part of the initial launch. A future migration map is retained only as reference.
+
+v1.39.0 removes the Portugal booking handoff to the local partner. Marvão requests now stay with VOY PRO, preselect the chosen route, carry date/group/language context into VOY PRO WhatsApp, and keep Pombais visible only as the local operator. Until FBM has a dedicated Marvão public booking client, Portugal pages deliberately do not write sessions or marketing events through the Budapest client.
