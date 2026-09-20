@@ -29,7 +29,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.40.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.41.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -149,7 +149,7 @@ jobs:
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
           if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
-          console.log('VOY PRO v1.40.0 destination-aware runtime + Portugal direct request + SEO baseline OK');
+          console.log('VOY PRO v1.41.0 custom-domain QA + destination-aware runtime + SEO baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin
@@ -166,31 +166,34 @@ jobs:
           console.log('CLIENT_KEY='+JSON.stringify(key));
           NODE
           )"
-          ORIGIN='https://voy-pro-staging.vercel.app'
+          ORIGINS=('https://voy-pro-staging.vercel.app' 'https://voy-pro.com')
+          for ORIGIN in "${ORIGINS[@]}"; do
+            suffix="$(printf '%s' "$ORIGIN" | tr -cd 'a-zA-Z0-9')"
+            code="$(curl -sS -o "/tmp/preflight-$suffix.out" -D "/tmp/preflight-$suffix.headers" -w '%{http_code}' -X OPTIONS "$API_ROOT/experiences" \
+              -H "Origin: $ORIGIN" \
+              -H 'Access-Control-Request-Method: GET' \
+              -H 'Access-Control-Request-Headers: x-voy-client-key')"
+            test "$code" = "204"
+            grep -qi "^access-control-allow-origin: $ORIGIN" "/tmp/preflight-$suffix.headers"
 
-          code="$(curl -sS -o /tmp/preflight.out -D /tmp/preflight.headers -w '%{http_code}' -X OPTIONS "$API_ROOT/experiences" \
-            -H "Origin: $ORIGIN" \
-            -H 'Access-Control-Request-Method: GET' \
-            -H 'Access-Control-Request-Headers: x-voy-client-key')"
-          test "$code" = "204"
-          grep -qi "^access-control-allow-origin: $ORIGIN" /tmp/preflight.headers
+            code="$(curl -sS -o "/tmp/experiences-$suffix.json" -w '%{http_code}' "$API_ROOT/experiences" \
+              -H "Origin: $ORIGIN" \
+              -H "x-voy-client-key: $CLIENT_KEY")"
+            test "$code" = "200"
+            node -e "const x=require('/tmp/experiences-$suffix.json'); if(!Array.isArray(x)||!x.some(v=>v.id==='exp_bud_buda')) process.exit(1)"
+          done
 
-          code="$(curl -sS -o /tmp/experiences.json -w '%{http_code}' "$API_ROOT/experiences" \
-            -H "Origin: $ORIGIN" \
-            -H "x-voy-client-key: $CLIENT_KEY")"
-          test "$code" = "200"
-          node -e "const x=require('/tmp/experiences.json'); if(!Array.isArray(x)||!x.some(v=>v.id==='exp_bud_buda')) process.exit(1)"
-
+          ORIGIN='https://voy-pro.com'
           DATE="$(TZ=Europe/Budapest date -d '+1 day' +%F)"
           code="$(curl -sS -o /tmp/availability.json -w '%{http_code}' \
             "$API_ROOT/experiences/exp_bud_buda/availability?date=$DATE&riders_16_plus=1&child_passengers_3_15=0&baby_passengers_1_2=0&is_private=false&guide_language=en" \
             -H "Origin: $ORIGIN" \
             -H "x-voy-client-key: $CLIENT_KEY")"
           test "$code" = "200"
-          node -e "const x=require('/tmp/availability.json'); if(!Array.isArray(x.slots)) process.exit(1); console.log('availability slots:',x.slots.length)"
+          node -e "const x=require('/tmp/availability.json'); if(!Array.isArray(x.slots)) process.exit(1); console.log('custom-domain availability slots:',x.slots.length)"
 
           code="$(curl -sS -o /tmp/payment-capabilities.json -w '%{http_code}' "$API_ROOT/payments/capabilities" \
             -H "Origin: $ORIGIN" \
             -H "x-voy-client-key: $CLIENT_KEY")"
           test "$code" = "200"
-          node -e "const x=require('/tmp/payment-capabilities.json'); if(typeof x.online_card!=='boolean') process.exit(1); console.log('online card enabled:',x.online_card)"
+          node -e "const x=require('/tmp/payment-capabilities.json'); if(typeof x.online_card!=='boolean') process.exit(1); console.log('custom-domain online card enabled:',x.online_card)"
