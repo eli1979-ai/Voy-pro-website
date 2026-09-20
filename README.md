@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.40.0** (destination-aware website runtime on the Portugal direct-request baseline).
+Current staged baseline: **v1.41.0** (custom-domain live QA on the destination-aware baseline).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -31,3 +31,5 @@ v1.38.0 changes the launch strategy from domain migration to parallel operation:
 v1.39.0 removes the Portugal booking handoff to the local partner. Marvão requests now stay with VOY PRO, preselect the chosen route, carry date/group/language context into VOY PRO WhatsApp, and keep Pombais visible only as the local operator. Until FBM has a dedicated Marvão public booking client, Portugal pages deliberately do not write sessions or marketing events through the Budapest client.
 
 v1.40.0 makes the shared browser runtime destination-aware. Budapest continues using its existing public booking client; Portugal/Marvão has destination id `portugal-marvao` but makes no FBM session or marketing calls until a dedicated destination client key is configured. This prevents Portugal CTA clicks from creating Budapest sessions and prepares the website for a future Marvão public client without another frontend architecture change.
+
+v1.41.0 verifies the Budapest public booking API from the new custom domain `https://voy-pro.com` as well as the Vercel staging origin. The custom domain is live, but search-engine indexing remains intentionally blocked until the FBM production-environment decision is finalized.
