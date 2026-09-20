@@ -29,7 +29,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.39.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.40.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -146,7 +146,7 @@ jobs:
           if(!/bindPortugalRequestFlow/.test(js)||/a\[href\*="pombais\.pt"\]/.test(js)) throw new Error('Portugal request runtime invalid');
           if(!/if\(!analyticsAllowed\(\)\|\|isPortugalPage\) return/.test(js)||!/if\(isPortugalPage\) return null/.test(js)) throw new Error('Portugal must not write through Budapest public client');
           if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
-          console.log('VOY PRO v1.39.0 Portugal direct request + parallel launch + SEO baseline OK');
+          console.log('VOY PRO v1.40.0 destination-aware runtime + Portugal direct request + SEO baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin
