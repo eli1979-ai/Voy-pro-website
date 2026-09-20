@@ -1,13 +1,16 @@
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
-  const clientKey = cfg.clientKey || '';
-  const bookingEnabled = !!(cfg.bookingEnabled && apiRoot && clientKey);
   const page = document.body.dataset.page || location.pathname;
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
   const routePath=(location.pathname||'/').toLowerCase();
   const routeLocale=routePath.startsWith('/he/')?'he':routePath.startsWith('/hu/')?'hu':routePath.startsWith('/pt/')?'pt':null;
   const isPortugalPage=routePath.includes('/portugal/');
+  const destinationId=isPortugalPage?'portugal-marvao':'budapest';
+  const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
+  const destinationClient=destinationClients[destinationId]||null;
+  const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
+  const bookingEnabled=!!(cfg.bookingEnabled&&apiRoot&&clientKey);
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
   document.documentElement.lang=locale;
@@ -387,7 +390,7 @@
 
   const EVENT_KEY='voy_event_queue_v1';
   function payload(event, metadata={}){
-    return {event_id:uuid(),event,timestamp:now(),visitor_id:visitorId,session_id:getStore('voy_session_id')||null,destination_id:'budapest',page,locale,
+    return {event_id:uuid(),event,timestamp:now(),visitor_id:visitorId,session_id:getStore('voy_session_id')||null,destination_id:destinationId,page,locale,
       source:attr.source,medium:attr.medium,campaign:attr.campaign,content:attr.content,term:attr.term,referrer:attr.referrer,
       click_ids:{gclid:attr.gclid,gbraid:attr.gbraid,wbraid:attr.wbraid,fbclid:attr.fbclid,msclkid:attr.msclkid,ttclid:attr.ttclid},
       personalization_segment:segment,experiment_assignments:experiments,metadata};
@@ -426,13 +429,13 @@
     eventFlushTimer=setTimeout(()=>{eventFlushTimer=null;flushEventQueue();},immediate?50:1400);
   }
   function track(event,metadata={}){
-    if(!analyticsAllowed()||isPortugalPage) return;
+    if(!analyticsAllowed()||!bookingEnabled) return;
     const q=safeJSON(getStore(EVENT_KEY),[])||[];
     q.push(payload(event,metadata));
     setStore(EVENT_KEY,JSON.stringify(q.slice(-25)));
     scheduleEventFlush(q.length>=8||['booking_completed','capacity_request_created','whatsapp_clicked'].includes(event));
   }
-  function recentEvents(){return analyticsAllowed()?(safeJSON(getStore(EVENT_KEY),[])||[]):[];}
+  function recentEvents(){return analyticsAllowed()&&bookingEnabled?(safeJSON(getStore(EVENT_KEY),[])||[]):[];}
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushEventQueue({keepalive:true});});
   window.addEventListener('pagehide',()=>{flushEventQueue({keepalive:true});});
   track('page_view',{title:document.title}); if(segment!=='default') track('personalization_applied',{segment});
@@ -482,7 +485,7 @@
   }
 
   async function createSession(stage, extra={}){
-    if(isPortugalPage) return null;
+    if(!bookingEnabled) return null;
     try{
       const existing=getStore('voy_session_id');
       if(existing){await patchSession({stage,...extra});return {id:existing};}
@@ -495,7 +498,7 @@
         experiment_assignments:experiments,
         recent_events:recentEvents()
       }:{consent:'essential_only'};
-      const data=await api('/sessions',{method:'POST',body:JSON.stringify({destination_id:'budapest',experience_id:exp,locale,stage,...analyticsPayload,...extra})});
+      const data=await api('/sessions',{method:'POST',body:JSON.stringify({destination_id:destinationId,experience_id:exp,locale,stage,...analyticsPayload,...extra})});
       if(data?.id){
         setStore('voy_session_id',data.id);
         if(analyticsAllowed()){
