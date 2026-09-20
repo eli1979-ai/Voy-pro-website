@@ -50,10 +50,15 @@ for(const langPath of ['budapest/where-to-stay/index.html','he/budapest/where-to
   if(!crumbs||crumbs.itemListElement?.map(v=>v.position).join(',')!=='1,2,3') throw new Error('Where-to-stay breadcrumb invalid: '+langPath);
 }
 
-const redirects=read(path.join(root,'launch','redirect-map.csv')).trim().split(/\r?\n/);
-if(redirects.length<6) throw new Error('Legacy redirect map is unexpectedly small.');
+const parallelPlan=read(path.join(root,'launch','PARALLEL-LAUNCH.md'));
+if(!/No 301\/308 redirects are installed from EZRaiderEU to VOY PRO during phase 1\./.test(parallelPlan)) throw new Error('Parallel-site SEO contract missing.');
+if(!/No Google Search Console Change of Address is submitted during phase 1\./.test(parallelPlan)) throw new Error('Parallel-site Search Console contract missing.');
+
+const futureMap=read(path.join(root,'launch','future-migration-map.csv')).trim().split(/\r?\n/);
+if(futureMap.length<6) throw new Error('Future migration reference is unexpectedly small.');
+if(futureMap.slice(1).some(line=>/,301,|,308,/.test(line))) throw new Error('Future migration map must stay deferred during parallel launch.');
 
 const vercel=JSON.parse(read(path.join(root,'vercel.json')));
 if(!vercel.redirects?.some(r=>r.source==='/'&&r.destination==='/budapest/'&&r.permanent===true)) throw new Error('Root redirect must be permanent.');
 
-console.log('Launch readiness contract OK:', htmlFiles.length, 'HTML files,', sitemapUrls.length, 'sitemap URLs.');
+console.log('Parallel launch readiness OK:', htmlFiles.length, 'HTML files,', sitemapUrls.length, 'VOY PRO sitemap URLs.');
