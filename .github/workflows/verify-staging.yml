@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.43.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.44.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -66,6 +66,17 @@ jobs:
           if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');
           if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
           if(!/\.party-fields/.test(css)||!/#availability-form>button\[type="submit"\]/.test(css)) throw new Error('Compact booking CSS missing');
+          const discoveryPages=[
+            ['en',en,'/budapest/tours/buda-castle-ezraider-tour/','/budapest/tours/margaret-island-ezraider-tour/','/budapest/tours/buda-margaret-extended-tour/','/budapest/private-tours/'],
+            ['he',he,'/he/budapest/tours/buda-castle-ezraider-tour/','/he/budapest/tours/margaret-island-ezraider-tour/','/he/budapest/tours/buda-margaret-extended-tour/','/he/budapest/private-tours/'],
+            ['hu',hu,'/hu/budapest/tours/buda-castle-ezraider-tour/','/hu/budapest/tours/margaret-island-ezraider-tour/','/hu/budapest/tours/buda-margaret-extended-tour/','/hu/budapest/private-tours/']
+          ];
+          for(const [name,html,...targets] of discoveryPages){
+            if((html.match(/class="tour-detail-link"/g)||[]).length!==4) throw new Error(name+' tour detail card links missing');
+            for(const target of targets) if(!html.includes('class="tour-detail-link" href="'+target+'"')) throw new Error(name+' direct tour link missing: '+target);
+            if((html.match(/data-select-experience=""/g)||[]).length<3) throw new Error(name+' availability selectors missing');
+          }
+          if(!/\.tour-detail-link:after/.test(css)||!/\.tour-choice-bottom \.btn\{position:relative;z-index:3\}/.test(css)) throw new Error('Clickable tour-card CSS missing');
           const routePages=[
             'budapest/tours/buda-castle-ezraider-tour/index.html','budapest/tours/margaret-island-ezraider-tour/index.html','budapest/private-tours/index.html',
             'he/budapest/tours/buda-castle-ezraider-tour/index.html','he/budapest/tours/margaret-island-ezraider-tour/index.html','he/budapest/private-tours/index.html',
@@ -152,7 +163,7 @@ jobs:
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
           if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
-          console.log('VOY PRO v1.43.0 restored header languages + site-wide QA baseline OK');
+          console.log('VOY PRO v1.44.0 tour discovery navigation + site-wide QA baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin
