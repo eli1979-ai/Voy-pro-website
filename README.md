@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.47.11** (v1.47.10 baseline + Budapest social sharing previews use the live hero image across EN/HE/HU).
+Current staged baseline: **v1.47.12** (v1.47.11 baseline + Portugal social sharing previews use the live Marvão hero image across EN/HE/PT).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -61,3 +61,4 @@ v1.47.8 synchronizes TouristTrip itinerary structured data with the user-visible
 v1.47.9 refreshes sitemap lastmod values to 2026-09-21 for the nine Budapest tour URLs and three Portugal URLs changed in the current release sequence, with CI coverage for those exact entries.\n
 v1.47.10 synchronizes the three Marvão TouristTrip itineraries with the exact visible Express, Explorer and Megalithic route stops across EN/HE/PT. CI now rejects any mismatch between those visible route details and structured data.\n
 v1.47.11 adds Budapest Open Graph and Twitter hero imagery across EN/HE/HU, switches to summary_large_image, and uses the locally hosted Budapest hero photo for social/WhatsApp link previews.\n
+v1.47.12 adds Portugal Open Graph and Twitter hero imagery across EN/HE/PT, switches those pages to summary_large_image, and uses the locally hosted Marvão hero photo for social/WhatsApp link previews.\n
