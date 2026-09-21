@@ -990,16 +990,22 @@
           <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong>${escapeHTML(price)}</strong></div>
           <h4>${escapeHTML(offer.name)}</h4><p>${escapeHTML(note)}</p>
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
-          `<div class="ancillary-qty" aria-label="${escapeHTML(offer.name)}">
-            <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="-">−</button>
-            <span>${qty}</span>
-            <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="+">+</button>
-          </div>`}
+          qty===0
+            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}">${escapeHTML(ancillaryText('add'))}</button>`
+            :`<div class="ancillary-selected-row">
+                <span class="ancillary-added-label">✓ ${escapeHTML(ancillaryText('added'))}</span>
+                <div class="ancillary-qty" aria-label="${escapeHTML(offer.name)}">
+                  <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="-">−</button>
+                  <span>${qty}</span>
+                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="+">+</button>
+                </div>
+              </div>`}
         </div></article>`;
     }).join('');
     node.innerHTML=`<div class="ancillary-head"><div><small>${escapeHTML(ancillaryText('kicker'))}</small><h3>${escapeHTML(ancillaryText('title'))}</h3><p>${escapeHTML(ancillaryText('intro'))}</p></div><span class="ancillary-spark" aria-hidden="true">✦</span></div>
       <div class="ancillary-grid">${cards}</div>
       <div class="ancillary-payment-note">${escapeHTML(ancillaryText('paidArrival'))}</div>`;
+    node.querySelectorAll('[data-ancillary-add]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryAdd,1)));
     node.querySelectorAll('[data-ancillary-minus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryMinus,-1)));
     node.querySelectorAll('[data-ancillary-plus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryPlus,1)));
   }
