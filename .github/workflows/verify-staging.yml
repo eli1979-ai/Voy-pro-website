@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.9') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.10') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -307,9 +307,18 @@ jobs:
             const scripts=[...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)].map(m=>JSON.parse(m[1]));
             const list=scripts.find(v=>v['@type']==='ItemList');
             if(!list||list.itemListElement?.length!==3) throw new Error('Portugal tour schema missing: '+p);
-            for(const item of list.itemListElement){
+            const routeIds=['route-express','route-explorer','route-megalithic'];
+            for(let i=0;i<list.itemListElement.length;i++){
+              const item=list.itemListElement[i];
               if(item.item?.offers?.url!==requestUrl) throw new Error('Portugal schema offer leaves VOY PRO: '+p);
               if(item.item?.provider?.name!=='Pombais Experience & Villas') throw new Error('Portugal local operator transparency regressed: '+p);
+              const id=routeIds[i];
+              const start=html.indexOf('id="'+id+'"');
+              const end=start>=0?html.indexOf('</article>',start):-1;
+              const block=start>=0&&end>start?html.slice(start,end):'';
+              const visibleStops=[...block.matchAll(/<h4>(.*?)<\/h4>/g)].map(m=>m[1].replace(/&amp;/g,'&'));
+              const schemaStops=(item.item?.itinerary?.itemListElement||[]).map(v=>v.item?.name);
+              if(!visibleStops.length||JSON.stringify(visibleStops)!==JSON.stringify(schemaStops)) throw new Error('Portugal itinerary schema does not match visible route: '+p+' '+id);
             }
           }
           if(!/const isPortugalPage=routePath\.includes\('\/portugal\/'\)/.test(js)) throw new Error('Portugal route guard missing');
