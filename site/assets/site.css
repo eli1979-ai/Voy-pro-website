@@ -159,6 +159,37 @@ html[lang="he"] .tour-choice-card.is-featured:before{content:'מומלץ';right:
 @media(max-width:900px){.portugal-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.portugal-tour-grid{grid-template-columns:1fr}.portugal-page .quickinfo-grid.portugal-quick{grid-template-columns:1fr 1fr}.partner-cta-panel{align-items:flex-start;flex-direction:column}.partner-cta-panel .btn{width:100%}}
 @media(max-width:560px){.portugal-hero-card{margin-top:8px}.portugal-hero-photo{aspect-ratio:16/10;border-radius:16px}.portugal-hero-photo img{object-position:center 82%}.portugal-gallery-grid{grid-template-columns:1fr;gap:12px}.portugal-gallery-grid figure{border-radius:16px;aspect-ratio:16/10}.portugal-gallery-grid img{height:100%;aspect-ratio:auto;object-fit:cover;object-position:center 80%}.portugal-gallery-grid figcaption{inset:auto 9px 9px 9px;font-size:11px;padding:7px 9px}.portugal-page .quickinfo-grid.portugal-quick{grid-template-columns:1fr}.portugal-mobile .mobile-price-copy small{font-size:10px}.portugal-mobile .mobile-price-copy b{font-size:14px}.portugal-mobile .btn{max-width:62%;line-height:1.15;text-align:center}}
 
+/* v1.47.5 — tour card photography */
+.tour-choice-card[data-tour-image],.portugal-tour-card[data-tour-image]{
+  background-color:#13202a;
+  background-image:linear-gradient(180deg,rgba(7,16,23,.42) 0%,rgba(7,16,23,.67) 48%,rgba(7,16,23,.93) 100%),var(--tour-card-image);
+  background-size:cover,cover;
+  background-position:center,var(--tour-card-position,center 64%);
+  background-repeat:no-repeat;
+  color:#fff;
+  border-color:rgba(255,255,255,.18);
+  box-shadow:0 14px 34px rgba(13,21,29,.18)
+}
+.tour-choice-card[data-tour-image]{--tour-card-position:center 62%}
+.portugal-tour-card[data-tour-image]{--tour-card-position:center 78%;min-height:360px;position:relative;overflow:hidden}
+.tour-choice-card[data-tour-image]:after{display:none}
+.tour-choice-card[data-tour-image] h3,.tour-choice-card[data-tour-image] .tour-detail-link,.portugal-tour-card[data-tour-image] h3{color:#fff}
+.tour-choice-card[data-tour-image] .tour-detail-link:hover{color:#fff}
+.tour-choice-card[data-tour-image]>p,.portugal-tour-card[data-tour-image] p{color:rgba(255,255,255,.9)}
+.tour-choice-card[data-tour-image] .tour-duration,.portugal-tour-card[data-tour-image] .tour-duration{color:rgba(255,255,255,.82)}
+.tour-choice-card[data-tour-image] .tour-highlights span,.portugal-tour-card[data-tour-image] .tour-highlights span{
+  color:#fff;background:rgba(7,16,23,.48);border-color:rgba(255,255,255,.24);backdrop-filter:blur(4px)
+}
+.tour-choice-card[data-tour-image] .tour-choice-bottom,.portugal-tour-card[data-tour-image] .partner-price{border-color:rgba(255,255,255,.25)}
+.tour-choice-card[data-tour-image] .tour-choice-bottom small,.tour-choice-card[data-tour-image] .tour-choice-bottom span,.portugal-tour-card[data-tour-image] .partner-price small{color:rgba(255,255,255,.78)}
+.tour-choice-card[data-tour-image] .tour-choice-bottom strong,.portugal-tour-card[data-tour-image] .partner-price strong{color:#fff}
+.tour-choice-card[data-tour-image] .tour-tag,.portugal-tour-card[data-tour-image] .tour-tag{box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.portugal-tour-card[data-tour-image] .partner-tour-cta{position:relative;z-index:2}
+@media(max-width:800px){
+  .tour-choice-card[data-tour-image]{--tour-card-position:center 68%}
+  .portugal-tour-card[data-tour-image]{--tour-card-position:center 82%;min-height:340px}
+}
+
 /* v1.25 confirmation + safe selection recovery */
 .confirmation-reference{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid #cfe5d7;border-radius:12px;padding:11px 13px;margin:10px 0}.confirmation-reference span{font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase}.confirmation-reference b{font-size:18px;letter-spacing:.4px}.confirmation-next{display:grid;gap:6px;margin-top:14px;padding-top:13px;border-top:1px solid #cfe5d7}.confirmation-next b{font-size:13px}.confirmation-next span{font-size:12px;line-height:1.5;color:var(--muted)}.success-actions button.btn{font:inherit}.resume-card.is-restorable{background:#f4f8ff;border-color:#c7d9eb}
 @media(max-width:560px){.confirmation-reference{align-items:flex-start;flex-direction:column}.success-actions .btn{flex:1 1 46%}}

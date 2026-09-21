@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.47.4** (v1.47.3 baseline + lower Portugal photo focal points).
+Current staged baseline: **v1.47.5** (v1.47.4 baseline + representative photography on Budapest and Marvão tour cards).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -54,3 +54,4 @@ v1.47.0 hardens the active booking funnel: standard checkout advances to Step 3 
 v1.47.2 removes the Budapest photography runtime dependency on `ezraidereu.com`: Budapest hero, gallery, social-sharing and tour schema image references now use locally hosted VOY PRO assets across English, Hebrew and Hungarian pages. CI rejects any Budapest HTML that reintroduces an EZRaiderEU media dependency and verifies the local image set is present.\n
 v1.47.3 replaces the Portugal illustrated hero with a real locally hosted Marvão EZRaider photo across EN/HE/PT and reframes the phone gallery as single-column 16:10 cards to avoid tall, narrow mobile images.\n
 v1.47.4 shifts Portugal image focal points lower so EZRaider vehicles remain visible in cropped hero and gallery photography, especially on phones.\n
+v1.47.5 adds representative background photography to all main Budapest and Marvão tour cards across their supported languages, using local VOY PRO assets and per-card image mappings that can be swapped later without changing card layout.\n
