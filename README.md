@@ -39,3 +39,6 @@ v1.42.0 adds a permanent site-wide static QA gate covering all public sitemap UR
 v1.43.0 restores the EN/HU/HE or destination-appropriate language picker to the mobile header while keeping the same language options inside the mobile menu as a fallback. The header picker uses compact mobile sizing and CI now treats hiding it again as a regression.
 
 v1.44.0 separates tour discovery from booking intent on the Budapest homepages. The tour card/title now opens the full tour description, while a distinct availability button selects that tour and moves into booking when live. No-JavaScript fallbacks send Buda/Margaret/private availability buttons to the matching tour booking section, and Hungarian cards now link to their real tour pages instead of only the homepage booking anchor.
+
+
+v1.45.0 adds a site-wide Branches and Legal footer, showing Budapest, Portugal · Marvão and Prague (Coming soon); publishes localized EN/HU/HE/PT Terms, Privacy, Cookie/Storage, Legal Notice and Accessibility pages; exposes persistent cookie-preference controls; and hardens the binding checkout with explicit Terms acceptance plus a payment-obligation submit label. Partner-destination and capacity requests remain non-binding until confirmed.
