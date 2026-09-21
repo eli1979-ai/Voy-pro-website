@@ -122,7 +122,8 @@ jobs:
           ];
           for(const [p,palace,clark,matthias] of routeOrderChecks){
             const html=read(p);
-            const a=html.indexOf(palace), b=html.indexOf(clark), d=html.indexOf(matthias);
+            const route=(html.match(/<section class="section route-itinerary"[\s\S]*?<\/section>/)||[])[0]||'';
+            const a=route.indexOf(palace), b=route.indexOf(clark), d=route.indexOf(matthias);
             if(!(a>=0&&b>a&&d>b)) throw new Error('Buda route order regression: '+p);
           }
           const budapestRoutePages=[
