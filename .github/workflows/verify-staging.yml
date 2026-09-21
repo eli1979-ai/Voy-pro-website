@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.4') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.5') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -100,7 +100,20 @@ jobs:
           ]){
             if(!read(p).includes('class="special-request-panel" id="request"')) throw new Error('Extended request anchor missing: '+p);
           }
+          const tourCardPages=[
+            ['budapest/index.html',4],['he/budapest/index.html',4],['hu/budapest/index.html',4],
+            ['portugal/index.html',3],['he/portugal/index.html',3],['pt/portugal/index.html',3]
+          ];
+          for(const [p,expected] of tourCardPages){
+            const html=read(p);
+            const mapped=[...html.matchAll(/data-tour-image="([^"]+)" style="--tour-card-image:url\('([^']+)'\)"/g)];
+            if(mapped.length!==expected) throw new Error('Tour card image mapping count invalid: '+p);
+            for(const [,id,img] of mapped){
+              if(!img.startsWith('/assets/images/')) throw new Error('Tour card image must be local: '+p+' '+id);
+            }
+          }
           const css=read('assets/site.css');
+          if(!/\.tour-choice-card\[data-tour-image\],\.portugal-tour-card\[data-tour-image\]/.test(css)||!/var\(--tour-card-image\)/.test(css)) throw new Error('Tour card photography CSS missing');
           const budapestRoots=['budapest','he/budapest','hu/budapest'];
           const walkHtml=dir=>fs.readdirSync(path.join('dist',dir),{withFileTypes:true}).flatMap(entry=>{
             const rel=path.join(dir,entry.name);
