@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.6') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.7') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -111,6 +111,20 @@ jobs:
             for(const [,id,img] of mapped){
               if(!img.startsWith('/assets/images/')) throw new Error('Tour card image must be local: '+p+' '+id);
             }
+          }
+          const routeOrderChecks=[
+            ['budapest/tours/buda-castle-ezraider-tour/index.html','Buda Castle &amp; Royal Palace','Clark Ádám Square','Matthias Church'],
+            ['he/budapest/tours/buda-castle-ezraider-tour/index.html','טירת בודה והארמון המלכותי','כיכר אדם קלארק','כנסיית מתיאש'],
+            ['hu/budapest/tours/buda-castle-ezraider-tour/index.html','Budai Vár és Királyi Palota','Clark Ádám tér','Mátyás-templom'],
+            ['budapest/tours/buda-margaret-extended-tour/index.html','Buda Castle &amp; Royal Palace','Clark Ádám Square','Matthias Church &amp; Fisherman’s Bastion'],
+            ['he/budapest/tours/buda-margaret-extended-tour/index.html','טירת בודה והארמון המלכותי','כיכר אדם קלארק','כנסיית מתיאש ומצודת הדייגים'],
+            ['hu/budapest/tours/buda-margaret-extended-tour/index.html','Budai Vár és Királyi Palota','Clark Ádám tér','Mátyás-templom és Halászbástya']
+          ];
+          for(const [p,palace,clark,matthias] of routeOrderChecks){
+            const html=read(p);
+            const route=(html.match(/<section class="section route-itinerary"[\s\S]*?<\/section>/)||[])[0]||'';
+            const a=route.indexOf(palace), b=route.indexOf(clark), d=route.indexOf(matthias);
+            if(!(a>=0&&b>a&&d>b)) throw new Error('Buda route order regression: '+p);
           }
           const budapestRoutePages=[
             ['budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
