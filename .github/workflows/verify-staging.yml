@@ -54,6 +54,7 @@ jobs:
           if(!/src="\/assets\/site\.js"/.test(manage)) throw new Error('Manage cookie/preferences runtime missing');
           if(!/הונגריה, בודפשט/.test(manage)||!/Magyarország, Budapest/.test(manage)) throw new Error('Manage localized footer regression');
           if(!/#token=/.test(read('assets/site.js'))) throw new Error('Booking confirmation must use fragment-based Manage link');
+          const js=read('assets/site.js');
           if(/setBookingStep\(3\);setBookingStep\(2\)/.test(js)) throw new Error('Checkout stepper still regresses to step 2');
           if(!/shell\.hidden=false;setBookingStep\(3\)/.test(js)) throw new Error('Checkout does not enter step 3 after hold creation');
           if(!/checkoutForm\.dataset\.submitting==='true'/.test(js)||!/aria-busy/.test(js)) throw new Error('Checkout duplicate-submit guard missing');
@@ -68,7 +69,6 @@ jobs:
             if((html.match(/data-portugal-tour="explorer"/g)||[]).length!==1) throw new Error(name+' duplicate Explorer route attribute');
           }
 
-          const js=read('assets/site.js');
           if(!/a\.addEventListener\('pointerdown',refresh\)/.test(js)) throw new Error('WhatsApp pointerdown hardening missing');
           if(!/Source:/.test(js)||!/Campaign:/.test(js)||!/Referral:/.test(js)) throw new Error('WhatsApp referral attribution missing');
           if(!/booking_confirmation/.test(js)||!/Booking reference:/.test(js)) throw new Error('Confirmed-booking WhatsApp context missing');
