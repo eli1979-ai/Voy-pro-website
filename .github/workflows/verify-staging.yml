@@ -225,7 +225,8 @@ jobs:
             if(!html.includes('data-portugal-request-form')||!html.includes('id="request"')) throw new Error('Portugal VOY PRO request form missing: '+p);
             if(!html.includes('/assets/site.js')) throw new Error('Portugal shared runtime missing: '+p);
             if(!html.includes('class="section portugal-gallery"')) throw new Error('Portugal photo gallery missing: '+p);
-            const localImages=[...html.matchAll(/src="(\/assets\/images\/portugal\/marvao-0[1-4]\.(?:jpg|webp))"/g)].map(m=>m[1]);
+            const gallery=(html.match(/<div class="portugal-gallery-grid">([\s\S]*?)<\/div><p class="portugal-gallery-credit">/)||[])[1]||'';
+            const localImages=[...gallery.matchAll(/src="(\/assets\/images\/portugal\/marvao-0[1-4]\.(?:jpg|webp))"/g)].map(m=>m[1]);
             if(localImages.length!==4||new Set(localImages).size!==4) throw new Error('Portugal local gallery asset set invalid: '+p);
             if(/https?:\/\/(?:www\.)?pombais\.pt\/[^"'\s>]+\.(?:jpg|jpeg|webp|png)/i.test(html)) throw new Error('Portugal gallery hotlinks Pombais media: '+p);
             if((html.match(/loading="lazy"/g)||[]).length<4) throw new Error('Portugal gallery lazy loading missing: '+p);
