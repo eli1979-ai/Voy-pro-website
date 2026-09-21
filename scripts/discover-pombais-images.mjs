@@ -13,4 +13,7 @@ for (const url of urls){
   }
 }
 await writeFile('site/__pombais-images.txt',[...new Set(all)].join('\n')+'\n');
+console.log('POMBAIS_IMAGE_URLS_START');
+for(const x of [...new Set(all)]) console.log(x);
+console.log('POMBAIS_IMAGE_URLS_END');
 console.log('Pombais images discovered:',new Set(all).size);
