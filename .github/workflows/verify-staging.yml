@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.46.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -54,8 +54,21 @@ jobs:
           if(!/src="\/assets\/site\.js"/.test(manage)) throw new Error('Manage cookie/preferences runtime missing');
           if(!/הונגריה, בודפשט/.test(manage)||!/Magyarország, Budapest/.test(manage)) throw new Error('Manage localized footer regression');
           if(!/#token=/.test(read('assets/site.js'))) throw new Error('Booking confirmation must use fragment-based Manage link');
-
           const js=read('assets/site.js');
+          if(/setBookingStep\(3\);setBookingStep\(2\)/.test(js)) throw new Error('Checkout stepper still regresses to step 2');
+          if(!/shell\.hidden=false;setBookingStep\(3\)/.test(js)) throw new Error('Checkout does not enter step 3 after hold creation');
+          if(!/checkoutForm\.dataset\.submitting==='true'/.test(js)||!/aria-busy/.test(js)) throw new Error('Checkout duplicate-submit guard missing');
+          if(!/bookingState\.idempotencyKey\|\|\(bookingState\.idempotencyKey='voy_'\+uuid\(\)\)/.test(js)) throw new Error('Stable checkout idempotency key missing');
+          if(!/initPaymentReturnNotice/.test(js)||!/payment_cancelled_return/.test(js)) throw new Error('Stripe cancellation return UX missing');
+
+          const hePortugal=read('he/portugal/index.html');
+          const ptPortugal=read('pt/portugal/index.html');
+          for(const [name,html] of Object.entries({hePortugal,ptPortugal})){
+            if(/directly with Pombais|ישירות מול Pombais|diretamente com a Pombais|diretamente para a Pombais|page EZRaider da Pombais/i.test(html)) throw new Error(name+' still bypasses VOY PRO request flow');
+            if((html.match(/data-portugal-tour="express"/g)||[]).length!==1) throw new Error(name+' duplicate Express route attribute');
+            if((html.match(/data-portugal-tour="explorer"/g)||[]).length!==1) throw new Error(name+' duplicate Explorer route attribute');
+          }
+
           if(!/a\.addEventListener\('pointerdown',refresh\)/.test(js)) throw new Error('WhatsApp pointerdown hardening missing');
           if(!/Source:/.test(js)||!/Campaign:/.test(js)||!/Referral:/.test(js)) throw new Error('WhatsApp referral attribution missing');
           if(!/booking_confirmation/.test(js)||!/Booking reference:/.test(js)) throw new Error('Confirmed-booking WhatsApp context missing');
