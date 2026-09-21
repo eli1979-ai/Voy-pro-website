@@ -304,3 +304,17 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 .tour-choice-bottom .btn{position:relative;z-index:3}
 .tour-choice-card:focus-within{border-color:#7bb8df;box-shadow:0 0 0 3px rgba(42,145,213,.14),0 16px 38px rgba(13,77,124,.10)}
 @media(max-width:800px){.tour-detail-link:after{inset:-62px -22px -155px -18px}html[dir="rtl"] .tour-detail-link:after{inset:-62px -18px -155px -22px}}
+
+
+/* v1.44.0 — separate tour discovery from availability */
+.tour-choice-card{cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.tour-choice-card:hover{transform:translateY(-2px);border-color:#b7cfde;box-shadow:0 16px 36px rgba(13,21,29,.08)}
+.tour-detail-link{color:inherit;text-decoration:none}
+.tour-detail-link::after{content:"";position:absolute;inset:0;z-index:1}
+.tour-choice-card:hover .tour-detail-link{color:var(--blue)}
+.tour-choice-actions{position:relative;z-index:2;display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.tour-choice-actions .btn{min-width:145px}
+.tour-detail-cta{background:#fff!important;color:var(--blue)!important;border:1px solid var(--line)!important}
+.special-request-panel#request{scroll-margin-top:88px}
+@media(max-width:800px){.tour-choice-actions{width:100%;display:grid;grid-template-columns:1fr 1fr}.tour-choice-actions .btn{width:100%;min-width:0;padding-inline:10px}.tour-detail-link::after{border-radius:22px}}
+@media(max-width:420px){.tour-choice-actions{grid-template-columns:1fr}}
