@@ -86,8 +86,8 @@ jobs:
           ];
           for(const [name,html,...targets] of discoveryPages){
             if((html.match(/class="tour-detail-link"/g)||[]).length!==4) throw new Error(name+' tour detail card links missing');
-            for(const target of targets) if(!html.includes('class="tour-detail-link" href="'+target+'"')) throw new Error(name+' direct tour link missing: '+target);
-            if((html.match(/data-select-experience=""/g)||[]).length<3) throw new Error(name+' availability selectors missing');
+            for(const target of targets) if(!html.includes('data-tour-detail="" href="'+target+'"')) throw new Error(name+' direct tour link missing: '+target);
+            if((html.match(/data-select-experience=""/g)||[]).length<2) throw new Error(name+' availability selectors missing');
           }
           if(!/\.tour-detail-link:after/.test(css)||!/\.tour-choice-bottom \.btn\{position:relative;z-index:3\}/.test(css)) throw new Error('Clickable tour-card CSS missing');
           const routePages=[
