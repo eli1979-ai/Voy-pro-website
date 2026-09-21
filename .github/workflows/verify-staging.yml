@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.8') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.9') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -264,7 +264,22 @@ jobs:
           }
           if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
           const sitemap=read('sitemap.xml');
-          if((sitemap.match(/<lastmod>2026-09-20<\/lastmod>/g)||[]).length<24) throw new Error('Sitemap lastmod coverage missing');
+          const refreshedSitemapUrls=[
+            'https://voy-pro.com/budapest/tours/buda-castle-ezraider-tour/',
+            'https://voy-pro.com/budapest/tours/buda-margaret-extended-tour/',
+            'https://voy-pro.com/budapest/tours/margaret-island-ezraider-tour/',
+            'https://voy-pro.com/he/budapest/tours/buda-castle-ezraider-tour/',
+            'https://voy-pro.com/he/budapest/tours/buda-margaret-extended-tour/',
+            'https://voy-pro.com/he/budapest/tours/margaret-island-ezraider-tour/',
+            'https://voy-pro.com/hu/budapest/tours/buda-castle-ezraider-tour/',
+            'https://voy-pro.com/hu/budapest/tours/buda-margaret-extended-tour/',
+            'https://voy-pro.com/hu/budapest/tours/margaret-island-ezraider-tour/',
+            'https://voy-pro.com/portugal/','https://voy-pro.com/he/portugal/','https://voy-pro.com/pt/portugal/'
+          ];
+          for(const url of refreshedSitemapUrls){
+            const entry='<url><loc>'+url+'</loc><lastmod>2026-09-21</lastmod></url>';
+            if(!sitemap.includes(entry)) throw new Error('Fresh sitemap lastmod missing: '+url);
+          }
           for(const p of ['portugal/index.html','he/portugal/index.html','pt/portugal/index.html']){
             const html=read(p);
             if(!html.includes('class="hero-card portugal-hero-card"')||!html.includes('class="portugal-hero-photo"')) throw new Error('Portugal photographic hero missing: '+p);
