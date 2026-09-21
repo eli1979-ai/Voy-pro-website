@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.44.0** (direct tour discovery navigation on the QA-hardened baseline).
+Current staged baseline: **v1.45.1** (v1.45.0 legal/footer release + binding checkout hotfix + legal-center Branches footer completion).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -42,3 +42,5 @@ v1.44.0 separates tour discovery from booking intent on the Budapest homepages. 
 
 
 v1.45.0 adds a site-wide Branches and Legal footer, showing Budapest, Portugal · Marvão and Prague (Coming soon); publishes localized EN/HU/HE/PT Terms, Privacy, Cookie/Storage, Legal Notice and Accessibility pages; exposes persistent cookie-preference controls; and hardens the binding checkout with explicit Terms acceptance plus a payment-obligation submit label. Partner-destination and capacity requests remain non-binding until confirmed.
+
+v1.45.1 completes the localized legal-center footer rollout so EN/HU/HE/PT legal pages carry the same Branches/Locations navigation (Budapest, Portugal · Marvão, Prague Coming soon) as the rest of the site. It preserves the v1.45.0 binding checkout payment-obligation hotfix and does not move any FBM business logic into the website.
