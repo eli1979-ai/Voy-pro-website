@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.7') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.8') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -233,6 +233,10 @@ jobs:
             if(String(trip.offers?.price)!==String(price)||trip.offers?.priceCurrency!=='EUR') throw new Error('Tour price schema invalid: '+p);
             if(trip.provider?.name!=='AllGo Guided Tours Bud Kft.') throw new Error('Tour provider schema invalid: '+p);
             if(trip.itinerary?.['@type']!=='ItemList'||!trip.itinerary.itemListElement?.length) throw new Error('Tour itinerary schema missing: '+p);
+            const route=(html.match(/<section class="section route-itinerary"[\s\S]*?<\/section>/)||[])[0]||'';
+            const visibleStops=[...route.matchAll(/<h3>(.*?)<\/h3>/g)].map(m=>m[1].replace(/&amp;/g,'&'));
+            const schemaStops=(trip.itinerary.itemListElement||[]).map(v=>v.item?.name);
+            if(JSON.stringify(visibleStops)!==JSON.stringify(schemaStops)) throw new Error('Tour itinerary schema does not match visible route: '+p);
             if(scripts.some(v=>v['@type']==='FAQPage')) throw new Error('Deprecated FAQPage schema emitted: '+p);
           }
           const intentPages=[
