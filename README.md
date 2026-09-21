@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.47.1** (v1.47.0 baseline + local Marvão photo gallery across EN/HE/PT).
+Current staged baseline: **v1.47.2** (v1.47.1 baseline + locally hosted Budapest photography across EN/HE/HU).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -51,3 +51,4 @@ v1.46.0 hardens the post-booking customer journey: Manage Booking links use a re
 
 v1.47.0 hardens the active booking funnel: standard checkout advances to Step 3 only after quote + hold creation, mobile CTA follows the active step, checkout submissions are duplicate-guarded and reuse a stable idempotency key across retries, Stripe-cancel returns show a clear recovery message, and Marvão HE/PT copy is aligned with the VOY PRO request-first flow instead of implying a direct partner booking handoff.
 \nv1.47.1 adds a local Marvão photo gallery across English, Hebrew and Portuguese using four locally hosted Pombais-supplied images, with responsive layout, lazy loading, descriptive alt text and no runtime hotlink dependency on Pombais media.\n
+v1.47.2 removes the Budapest photography runtime dependency on `ezraidereu.com`: Budapest hero, gallery, social-sharing and tour schema image references now use locally hosted VOY PRO assets across English, Hebrew and Hungarian pages. CI rejects any Budapest HTML that reintroduces an EZRaiderEU media dependency and verifies the local image set is present.\n
