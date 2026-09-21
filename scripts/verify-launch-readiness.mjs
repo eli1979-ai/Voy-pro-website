@@ -10,6 +10,11 @@ const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
 const htmlFiles=walk(site).filter(p=>p.endsWith('.html'));
 const rel=p=>path.relative(site,p).replaceAll('\\','/');
 const read=p=>fs.readFileSync(p,'utf8');
+const canonicalFromHTML=html=>{
+  const tags=[...html.matchAll(/<link\b[^>]*>/gi)].map(m=>m[0]);
+  const tag=tags.find(t=>/\brel=["']canonical["']/i.test(t));
+  return tag ? ((tag.match(/\bhref=["']([^"']+)["']/i)||[])[1]||null) : null;
+};
 
 const stagingRobots=read(path.join(site,'robots.txt'));
 if(!/User-agent:\s*\*/i.test(stagingRobots)||!/Disallow:\s*\//i.test(stagingRobots)) throw new Error('Staging robots.txt must block indexing.');
@@ -24,7 +29,7 @@ if(!sitemapUrls.length) throw new Error('Production sitemap is empty.');
 for(const file of htmlFiles){
   const p=rel(file), html=read(file);
   const is404=p==='404.html', isManage=p.startsWith('manage/');
-  const canonical=(html.match(/<link href="([^"]+)" rel="canonical"\/>/)||[])[1];
+  const canonical=canonicalFromHTML(html);
   if(!is404&&!isManage){
     if(!canonical) throw new Error('Canonical missing: '+p);
     if(!canonical.startsWith('https://voy-pro.com/')) throw new Error('Canonical host invalid: '+p);
@@ -37,7 +42,7 @@ for(const url of sitemapUrls){
   const file=path.join(site,pathname,'index.html');
   if(!fs.existsSync(file)) throw new Error('Sitemap target missing: '+url);
   const html=read(file);
-  const canonical=(html.match(/<link href="([^"]+)" rel="canonical"\/>/)||[])[1];
+  const canonical=canonicalFromHTML(html);
   if(canonical!==url) throw new Error('Sitemap/canonical mismatch: '+url+' -> '+canonical);
 }
 
