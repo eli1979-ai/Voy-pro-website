@@ -1,6 +1,6 @@
 {
   "name": "voy-pro-website-v2",
-  "version": "1.47.0",
+  "version": "1.47.1",
   "private": true,
   "scripts": {
     "build": "rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js",

@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.47.0** (v1.46.0 baseline + booking-funnel and Portugal request-flow hardening).
+Current staged baseline: **v1.47.1** (v1.47.0 baseline + local Marvão photo gallery across EN/HE/PT).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -50,3 +50,4 @@ v1.45.2 standardizes the Branches/Locations column site-wide to country-first na
 v1.46.0 hardens the post-booking customer journey: Manage Booking links use a refresh-safe URL fragment for the secure token, legacy query-token links migrate to the fragment on load, Manage Booking WhatsApp support includes booking context, HE/HU footers are localized, contact/date controls are accessibility-hardened, cookie preferences work on the Manage page, and the cancellation control is wired to the existing FBM manage-cancellation contract while preserving contact fallback when automated cancellation is unavailable.
 
 v1.47.0 hardens the active booking funnel: standard checkout advances to Step 3 only after quote + hold creation, mobile CTA follows the active step, checkout submissions are duplicate-guarded and reuse a stable idempotency key across retries, Stripe-cancel returns show a clear recovery message, and Marvão HE/PT copy is aligned with the VOY PRO request-first flow instead of implying a direct partner booking handoff.
+\nv1.47.1 adds a local Marvão photo gallery across English, Hebrew and Portuguese using four locally hosted Pombais-supplied images, with responsive layout, lazy loading, descriptive alt text and no runtime hotlink dependency on Pombais media.\n
