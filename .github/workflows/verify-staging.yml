@@ -31,12 +31,17 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.10') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.11') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
           const he=read('he/budapest/index.html');
           const hu=read('hu/budapest/index.html');
+          for(const [name,html] of Object.entries({en,he,hu})){
+            if(!/content="summary_large_image" name="twitter:card"/.test(html)) throw new Error(name+' Budapest large social card missing');
+            if(!/property="og:image"/.test(html)||!/name="twitter:image"/.test(html)) throw new Error(name+' Budapest social hero image missing');
+            if(!/https:\/\/voy-pro\.com\/assets\/images\/budapest\/img12\.jpg\?v=1\.47\.11/.test(html)) throw new Error(name+' Budapest social hero URL invalid');
+          }
           for(const [name,html] of Object.entries({en,he,hu})){
             if(!/value="exp_bud_buda"/.test(html)||!/value="exp_bud_margaret"/.test(html)) throw new Error(name+' tour selector regressed');
             if(/data-wa="" href="#"/.test(html)||/href="#"[^>]*data-wa=""/.test(html)) throw new Error(name+' WhatsApp still has hash fallback');
