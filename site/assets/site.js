@@ -538,6 +538,7 @@
   document.querySelectorAll('details[data-faq]').forEach(d=>d.addEventListener('toggle',()=>{if(d.open) track('faq_opened',{question:d.dataset.faq});}));
   document.querySelectorAll('[data-review-source]').forEach(a=>a.addEventListener('click',()=>track('trust_source_clicked',{provider:a.dataset.reviewSource})));
   document.querySelectorAll('[data-related]').forEach(a=>a.addEventListener('click',()=>track('related_tour_clicked',{target:a.getAttribute('href')})));
+  document.querySelectorAll('[data-tour-detail]').forEach(a=>a.addEventListener('click',()=>track('tour_detail_clicked',{target:a.getAttribute('href'),source:'tour_picker'})));
   document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>{
     const name=el.dataset.track;
     if(name==='whatsapp_clicked') createSession('whatsapp_clicked',{page});
