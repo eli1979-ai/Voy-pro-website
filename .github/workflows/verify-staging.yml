@@ -219,7 +219,8 @@ jobs:
           if(!/destinationClients\[destinationId\]/.test(js)||!/destinationId==='budapest'&&cfg\.clientKey/.test(js)) throw new Error('Destination client isolation missing');
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
-          if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');\n          if(!/\.portugal-gallery-grid/.test(css)) throw new Error('Portugal gallery CSS missing');
+          if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
+          if(!/\.portugal-gallery-grid/.test(css)) throw new Error('Portugal gallery CSS missing');
           console.log('VOY PRO v1.45.0 footer + legal center + compliant checkout baseline OK');
           NODE
 
