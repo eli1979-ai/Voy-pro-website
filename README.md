@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.45.2** (v1.45.1 baseline + site-wide country-first Branches/Locations naming).
+Current staged baseline: **v1.46.0** (v1.45.2 baseline + Manage Booking UX, secure-link and support hardening).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -46,3 +46,5 @@ v1.45.0 adds a site-wide Branches and Legal footer, showing Budapest, Portugal �
 v1.45.1 completes the localized legal-center footer rollout so EN/HU/HE/PT legal pages carry the same Branches/Locations navigation (Budapest, Portugal · Marvão, Prague Coming soon) as the rest of the site. It preserves the v1.45.0 binding checkout payment-obligation hotfix and does not move any FBM business logic into the website.
 
 v1.45.2 standardizes the Branches/Locations column site-wide to country-first naming: Hungary, Budapest; Portugal, Marvão; Czechia, Prague, with localized equivalents in Hebrew, Hungarian and Portuguese. Prague remains marked Coming soon.
+
+v1.46.0 hardens the post-booking customer journey: Manage Booking links use a refresh-safe URL fragment for the secure token, legacy query-token links migrate to the fragment on load, Manage Booking WhatsApp support includes booking context, HE/HU footers are localized, contact/date controls are accessibility-hardened, cookie preferences work on the Manage page, and the cancellation control is wired to the existing FBM manage-cancellation contract while preserving contact fallback when automated cancellation is unavailable.
