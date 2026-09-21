@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.45.0') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.46.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -42,6 +42,18 @@ jobs:
             if(/data-wa="" href="#"/.test(html)||/href="#"[^>]*data-wa=""/.test(html)) throw new Error(name+' WhatsApp still has hash fallback');
             if(!/wa\.me\/36300993099/.test(html)) throw new Error(name+' static WhatsApp fallback missing');
           }
+
+          const manage=read('manage/index.html');
+          for(const m of manage.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)){
+            const code=(m[1]||'').trim();
+            if(code) new Function(code);
+          }
+          if(!/hashParams\.get\('token'\)/.test(manage)||!/safeHash\.set\('token',token\)/.test(manage)) throw new Error('Manage token refresh-safe fragment handling missing');
+          if(!/supportWhatsApp\(\)/.test(manage)||!/Booking reference:/.test(manage)) throw new Error('Manage WhatsApp booking context missing');
+          if(!/\/manage\/['"]?\+encodeURIComponent\(token\)\+['"]?\/cancel/.test(manage)&&!/encodeURIComponent\(token\).*\/cancel/.test(manage)) throw new Error('Manage cancellation endpoint wiring missing');
+          if(!/src="\/assets\/site\.js"/.test(manage)) throw new Error('Manage cookie/preferences runtime missing');
+          if(!/הונגריה, בודפשט/.test(manage)||!/Magyarország, Budapest/.test(manage)) throw new Error('Manage localized footer regression');
+          if(!/#token=/.test(read('assets/site.js'))) throw new Error('Booking confirmation must use fragment-based Manage link');
 
           const js=read('assets/site.js');
           if(!/a\.addEventListener\('pointerdown',refresh\)/.test(js)) throw new Error('WhatsApp pointerdown hardening missing');
