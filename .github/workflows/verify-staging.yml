@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.44.1') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.45.0') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -76,6 +76,20 @@ jobs:
             if(!read(p).includes('class="special-request-panel" id="request"')) throw new Error('Extended request anchor missing: '+p);
           }
           const css=read('assets/site.css');
+          const legalPages=[
+            'legal/terms/index.html','legal/privacy/index.html','legal/cookies/index.html','legal/legal-notice/index.html','legal/accessibility/index.html',
+            'he/legal/terms/index.html','he/legal/privacy/index.html','he/legal/cookies/index.html','he/legal/legal-notice/index.html','he/legal/accessibility/index.html',
+            'hu/legal/terms/index.html','hu/legal/privacy/index.html','hu/legal/cookies/index.html','hu/legal/legal-notice/index.html','hu/legal/accessibility/index.html',
+            'pt/legal/terms/index.html','pt/legal/privacy/index.html','pt/legal/cookies/index.html','pt/legal/legal-notice/index.html','pt/legal/accessibility/index.html'
+          ];
+          for(const p of legalPages){if(!fs.existsSync(path.join('dist',p))) throw new Error('Legal center missing: '+p);}
+          for(const [name,html] of Object.entries({en,he,hu})){
+            if(!/Prague|פראג|Prága/.test(html)||!/data-cookie-settings/.test(html)||!/legal\/privacy\//.test(html)) throw new Error(name+' footer legal/branches missing');
+          }
+          if(!/showConsentPreferences\(force=false\)/.test(js)||!/data-cookie-settings/.test(js)) throw new Error('Cookie preference reopening missing');
+          if(!/name="legal_acceptance" required/.test(js)||!/Book now – payment obligation/.test(js)) throw new Error('Binding checkout legal acceptance/payment wording missing');
+          if(!/data-checkout-legal/.test(js)||!/legal\.hidden=true/.test(js)) throw new Error('Non-binding request legal-state separation missing');
+          if(!/const isLegalPage=routePath\.includes\('\/legal\/'\)/.test(js)||!/!isLegalPage&&cfg\.bookingEnabled/.test(js)) throw new Error('Legal pages must not create booking analytics sessions');
           if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');
           if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
           if(!/\.party-fields/.test(css)||!/#availability-form>button\[type="submit"\]/.test(css)) throw new Error('Compact booking CSS missing');
@@ -176,7 +190,7 @@ jobs:
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
           if(!/\.portugal-request-grid/.test(css)) throw new Error('Portugal request CSS missing');
-          console.log('VOY PRO v1.44.1 explicit tour actions + site-wide QA baseline OK');
+          console.log('VOY PRO v1.45.0 footer + legal center + compliant checkout baseline OK');
           NODE
 
       - name: Smoke public booking API from website origin
