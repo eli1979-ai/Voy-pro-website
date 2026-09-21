@@ -1,19 +1,24 @@
-import {writeFile} from 'node:fs/promises';
-const urls=[
-  'https://www.pombais.pt/turismo/en/tour/ezrider/',
-  'https://www.pombais.pt/turismo/tour/ezrider/'
-];
-const all=[];
-for (const url of urls){
-  const r=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 VOY-PRO-image-audit/1.0'}});
-  const html=await r.text();
-  const found=[...html.matchAll(/https?:[^"'\s<>]+\/wp-content\/uploads\/[^"'\s<>]+/g)].map(m=>m[0].replace(/&amp;/g,'&'));
-  for(const x of found){
-    if(/ez|raider|WhatsApp|image000|caption|637d469f|ba150043|bf9511da|6579a6a7|e40965f6|418d0f14/i.test(x)) all.push(x);
-  }
+const assets={
+  "portugal/marvao-01.jpg": "https://www.pombais.pt/turismo/wp-content/uploads/2024/08/Imagem-WhatsApp-2025-03-13-as-09.25.12_637d469f-605x605.jpg",
+  "portugal/marvao-02.jpg": "https://www.pombais.pt/turismo/wp-content/uploads/2024/08/caption-2-605x605.jpg",
+  "portugal/marvao-03.webp": "https://www.pombais.pt/turismo/wp-content/uploads/2024/08/image00015-605x605.webp",
+  "portugal/marvao-04.jpg": "https://www.pombais.pt/turismo/wp-content/uploads/2024/08/Imagem-WhatsApp-2025-05-17-as-13.52.53_ba150043-605x605.jpg",
+  "budapest/img02.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img02.jpg",
+  "budapest/img08.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img08.jpg",
+  "budapest/img12.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img12.jpg",
+  "budapest/img13.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img13.jpg",
+  "budapest/img14.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img14.jpg",
+  "budapest/img15.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img15.jpg",
+  "budapest/img16.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img16.jpg",
+  "budapest/img17.jpg": "https://ezraidereu.com/budapest/wp-content/themes/ezraider/img/gallery/img17.jpg"
+};
+for(const [name,url] of Object.entries(assets)){
+  const r=await fetch(url,{headers:{'user-agent':'Mozilla/5.0 VOY-PRO-image-mirror/1.0'}});
+  if(!r.ok) throw new Error(name+' fetch failed: '+r.status);
+  const buf=Buffer.from(await r.arrayBuffer());
+  const b64=buf.toString('base64');
+  console.log('ASSET_META|'+name+'|'+buf.length+'|'+(r.headers.get('content-type')||'application/octet-stream'));
+  const size=6000;
+  for(let i=0;i<b64.length;i+=size) console.log('ASSET_CHUNK|'+name+'|'+String(i/size).padStart(4,'0')+'|'+b64.slice(i,i+size));
+  console.log('ASSET_END|'+name);
 }
-await writeFile('site/__pombais-images.txt',[...new Set(all)].join('\n')+'\n');
-console.log('POMBAIS_IMAGE_URLS_START');
-for(const x of [...new Set(all)]) console.log(x);
-console.log('POMBAIS_IMAGE_URLS_END');
-console.log('Pombais images discovered:',new Set(all).size);
