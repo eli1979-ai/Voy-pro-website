@@ -863,7 +863,7 @@
         select.insertBefore(option,select.firstChild);
       }
       const submit=document.querySelector('#live-checkout-form button[type=\"submit\"]');
-      const sync=()=>{if(!submit)return;submit.textContent=select.value==='pay_now_card'?t('Continue to secure card payment','המשך לתשלום מאובטח בכרטיס'):t('Confirm booking','אישור הזמנה');};
+      const sync=()=>{if(!submit)return;submit.textContent=select.value==='pay_now_card'?t('Continue to secure card payment','המשך לתשלום מאובטח בכרטיס'):t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');};
       select.addEventListener('change',sync);sync();
     }catch{}
   }
