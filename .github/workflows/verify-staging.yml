@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.1') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.2') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -101,6 +101,23 @@ jobs:
             if(!read(p).includes('class="special-request-panel" id="request"')) throw new Error('Extended request anchor missing: '+p);
           }
           const css=read('assets/site.css');
+          const budapestRoots=['budapest','he/budapest','hu/budapest'];
+          const walkHtml=dir=>fs.readdirSync(path.join('dist',dir),{withFileTypes:true}).flatMap(entry=>{
+            const rel=path.join(dir,entry.name);
+            return entry.isDirectory()?walkHtml(rel):(entry.isFile()&&entry.name.endsWith('.html')?[rel]:[]);
+          });
+          const budapestPages=budapestRoots.flatMap(walkHtml);
+          if(budapestPages.length<36) throw new Error('Budapest page coverage unexpectedly low: '+budapestPages.length);
+          let localBudapestImageRefs=0;
+          for(const p of budapestPages){
+            const html=read(p);
+            if(/ezraidereu\.com/i.test(html)) throw new Error('Budapest still depends on EZRaiderEU media: '+p);
+            localBudapestImageRefs+=(html.match(/\/assets\/images\/budapest\/img\d+\.(?:jpg|jpeg|webp|png)/gi)||[]).length;
+          }
+          if(localBudapestImageRefs<30) throw new Error('Budapest local image references unexpectedly low: '+localBudapestImageRefs);
+          for(const file of ['img02.jpg','img08.jpg','img12.jpg','img13.jpg','img14.jpg','img15.jpg','img16.jpg','img17.jpg']){
+            if(!fs.existsSync(path.join('dist','assets','images','budapest',file))) throw new Error('Budapest local image asset missing: '+file);
+          }
           const legalPages=[
             'legal/terms/index.html','legal/privacy/index.html','legal/cookies/index.html','legal/legal-notice/index.html','legal/accessibility/index.html',
             'he/legal/terms/index.html','he/legal/privacy/index.html','he/legal/cookies/index.html','he/legal/legal-notice/index.html','he/legal/accessibility/index.html',
