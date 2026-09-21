@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.2') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.3') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -207,6 +207,13 @@ jobs:
           if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
           const sitemap=read('sitemap.xml');
           if((sitemap.match(/<lastmod>2026-09-20<\/lastmod>/g)||[]).length<24) throw new Error('Sitemap lastmod coverage missing');
+          for(const p of ['portugal/index.html','he/portugal/index.html','pt/portugal/index.html']){
+            const html=read(p);
+            if(!html.includes('class="hero-card portugal-hero-card"')||!html.includes('class="portugal-hero-photo"')) throw new Error('Portugal photographic hero missing: '+p);
+            if(!html.includes('/assets/images/portugal/marvao-01.jpg')) throw new Error('Portugal hero local image missing: '+p);
+            if(html.includes('class="portugal-visual"')) throw new Error('Portugal legacy illustrated hero returned: '+p);
+          }
+          if(!/\.portugal-hero-photo\{/.test(css)||!/\.portugal-gallery-grid\{grid-template-columns:1fr;gap:12px\}/.test(css)||!/\.portugal-gallery-grid figure\{border-radius:16px;aspect-ratio:16\/10\}/.test(css)) throw new Error('Portugal mobile visual framing regression');
           const portugalPages=[
             ['portugal/index.html','https://voy-pro.com/portugal/#request'],
             ['he/portugal/index.html','https://voy-pro.com/he/portugal/#request'],
