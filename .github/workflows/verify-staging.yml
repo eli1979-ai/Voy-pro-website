@@ -31,7 +31,7 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.5') throw new Error('Unexpected release version: '+r.version);
+          if(r.version!=='1.47.6') throw new Error('Unexpected release version: '+r.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
@@ -112,7 +112,34 @@ jobs:
               if(!img.startsWith('/assets/images/')) throw new Error('Tour card image must be local: '+p+' '+id);
             }
           }
+          const budapestRoutePages=[
+            ['budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
+            ['budapest/tours/margaret-island-ezraider-tour/index.html',6,false],
+            ['budapest/tours/buda-margaret-extended-tour/index.html',9,true],
+            ['he/budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
+            ['he/budapest/tours/margaret-island-ezraider-tour/index.html',6,false],
+            ['he/budapest/tours/buda-margaret-extended-tour/index.html',9,true],
+            ['hu/budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
+            ['hu/budapest/tours/margaret-island-ezraider-tour/index.html',6,false],
+            ['hu/budapest/tours/buda-margaret-extended-tour/index.html',9,true]
+          ];
+          for(const [p,expectedStops,needsClark] of budapestRoutePages){
+            const html=read(p);
+            if((html.match(/class="section route-itinerary"/g)||[]).length!==1) throw new Error('Budapest route section missing: '+p);
+            if((html.match(/class="route-stop"/g)||[]).length!==expectedStops) throw new Error('Budapest route stop count invalid: '+p);
+            if(needsClark&&!/(Clark Ádám|אדם קלארק)/.test(html)) throw new Error('Clark Adam / Kilometre Zero route stop missing: '+p);
+          }
+          for(const p of ['portugal/index.html','he/portugal/index.html','pt/portugal/index.html']){
+            const html=read(p);
+            if((html.match(/class="section marvao-route-details"/g)||[]).length!==1) throw new Error('Marvao route details section missing: '+p);
+            if((html.match(/class="marvao-route-card"/g)||[]).length!==3) throw new Error('Marvao route card count invalid: '+p);
+            if((html.match(/class="route-stop"/g)||[]).length!==14) throw new Error('Marvao route stop count invalid: '+p);
+            if((html.match(/class="tour-route-link"/g)||[]).length!==3) throw new Error('Marvao route detail links missing: '+p);
+            if(!html.includes('id="route-express"')||!html.includes('id="route-explorer"')||!html.includes('id="route-megalithic"')) throw new Error('Marvao route anchors missing: '+p);
+            if(!/Sever/.test(html)||!/Beirã/.test(html)) throw new Error('Marvao published Megalithic highlights missing: '+p);
+          }
           const css=read('assets/site.css');
+          if(!/\.route-itinerary-grid/.test(css)||!/\.marvao-route-grid/.test(css)||!/\.tour-route-link/.test(css)) throw new Error('Detailed route CSS missing');
           if(!/\.tour-choice-card\[data-tour-image\],\.portugal-tour-card\[data-tour-image\]/.test(css)||!/var\(--tour-card-image\)/.test(css)) throw new Error('Tour card photography CSS missing');
           const budapestRoots=['budapest','he/budapest','hu/budapest'];
           const walkHtml=dir=>fs.readdirSync(path.join('dist',dir),{withFileTypes:true}).flatMap(entry=>{

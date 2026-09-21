@@ -2,7 +2,7 @@
 
 Canonical staging source for the VOY PRO customer-facing website.
 
-Current staged baseline: **v1.47.5** (v1.47.4 baseline + representative photography on Budapest and Marvão tour cards).
+Current staged baseline: **v1.47.6** (v1.47.5 baseline + detailed Budapest and Marvão route itineraries).
 
 The deployable website lives in `site/`. The build copies that canonical source to `dist/` and verifies browser JavaScript syntax.
 
@@ -55,3 +55,4 @@ v1.47.2 removes the Budapest photography runtime dependency on `ezraidereu.com`:
 v1.47.3 replaces the Portugal illustrated hero with a real locally hosted Marvão EZRaider photo across EN/HE/PT and reframes the phone gallery as single-column 16:10 cards to avoid tall, narrow mobile images.\n
 v1.47.4 shifts Portugal image focal points lower so EZRaider vehicles remain visible in cropped hero and gallery photography, especially on phones.\n
 v1.47.5 adds representative background photography to all main Budapest and Marvão tour cards across their supported languages, using local VOY PRO assets and per-card image mappings that can be swapped later without changing card layout.\n
+v1.47.6 adds detailed route itineraries and points of interest to all Budapest tour-detail pages across EN/HE/HU and to all three Marvão routes across EN/HE/PT. Buda now includes Clark Ádám Square, Budapest Kilometre Zero and the Chain Bridge viewpoint. Marvão details are based on Pombais' published Express, Explorer and Megalithic route descriptions, with direct route-detail anchors from the tour cards.\n
