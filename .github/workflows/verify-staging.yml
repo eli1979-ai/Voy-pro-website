@@ -62,6 +62,19 @@ jobs:
             const picker=html.indexOf('class="section tour-picker"'), booking=html.indexOf('class="section booking"'), gallery=html.indexOf('photo-gallery-section');
             if(!(picker>=0&&booking>picker&&gallery>booking)) throw new Error(name+' homepage conversion order regressed');
           }
+          for(const [name,html] of Object.entries({en,he,hu})){
+            const picker=(html.match(/<section class="section tour-picker"[\s\S]*?<\/section>/)||[])[0]||'';
+            if((picker.match(/data-tour-detail=""/g)||[]).length<8) throw new Error(name+' tour detail links missing');
+            if((picker.match(/class="tour-choice-actions"/g)||[]).length!==4) throw new Error(name+' separate tour actions missing');
+            if((picker.match(/data-select-experience=""/g)||[]).length<2) throw new Error(name+' availability selectors missing');
+          }
+          for(const p of [
+            'budapest/tours/buda-margaret-extended-tour/index.html',
+            'he/budapest/tours/buda-margaret-extended-tour/index.html',
+            'hu/budapest/tours/buda-margaret-extended-tour/index.html'
+          ]){
+            if(!read(p).includes('class="special-request-panel" id="request"')) throw new Error('Extended request anchor missing: '+p);
+          }
           const css=read('assets/site.css');
           if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');
           if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
