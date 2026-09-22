@@ -860,6 +860,8 @@
         const option=document.createElement('option');
         option.value='pay_now_card';
         option.textContent=t('Pay now by card','תשלום מיידי בכרטיס');
+        option.defaultSelected=true;
+        option.selected=true;
         select.insertBefore(option,select.firstChild);
       }
       const submit=document.querySelector('#live-checkout-form button[type=\"submit\"]');
