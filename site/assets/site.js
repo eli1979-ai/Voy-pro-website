@@ -105,7 +105,7 @@
     return en;
   }
   const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):en;
-  const GUIDE_LANGUAGE_NAMES={en:{en:'English',he:'אנגלית',hu:'Angol'},he:{en:'Hebrew',he:'עברית',hu:'Héber'},hu:{en:'Hungarian',he:'הונגרית',hu:'Magyar'},es:{en:'Spanish',he:'ספרדית',hu:'Spanyol'},pt:{en:'Portuguese',he:'פורטוגזית',hu:'Portugál'}};
+  const GUIDE_LANGUAGE_NAMES={en:{en:'English',he:'אנגלית',hu:'Angol',pt:'Inglês'},he:{en:'Hebrew',he:'עברית',hu:'Héber'},hu:{en:'Hungarian',he:'הונגרית',hu:'Magyar'},es:{en:'Spanish',he:'ספרדית',hu:'Spanyol'},pt:{en:'Portuguese',he:'פורטוגזית',hu:'Portugál',pt:'Português'}};
   const guideLanguageLabel=(code)=>{const key=String(code||'').toLowerCase();return GUIDE_LANGUAGE_NAMES[key]?.[locale]||GUIDE_LANGUAGE_NAMES[key]?.en||key.toUpperCase();};
   const BUDAPEST_GUIDE_LANGUAGES=['en','he','hu','es'];
   const localeBudapestHome=()=>locale==='he'?'/he/budapest/':locale==='hu'?'/hu/budapest/':'/budapest/';
