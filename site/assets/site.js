@@ -1062,6 +1062,17 @@
     node.querySelectorAll('[data-ancillary-minus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryMinus,-1)));
     node.querySelectorAll('[data-ancillary-plus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryPlus,1)));
   }
+  function restoreAncillaryControlFocus(productId,intent='plus'){
+    const node=document.querySelector('[data-ancillary-upsell]');
+    if(!node)return;
+    const id=String(productId);
+    const buttons=[...node.querySelectorAll('button')];
+    const byData=(key)=>buttons.find(btn=>String(btn.dataset?.[key]||'')===id);
+    let target=intent==='minus'?byData('ancillaryMinus'):intent==='add'?byData('ancillaryAdd'):byData('ancillaryPlus');
+    if(!target&&intent==='minus')target=byData('ancillaryAdd');
+    if(!target)target=byData('ancillaryPlus')||byData('ancillaryAdd')||byData('ancillaryMinus');
+    if(target)target.focus({preventScroll:true});
+  }
   async function loadAncillaryOffers(){
     bookingState.ancillaryOffers=[];bookingState.extras=[];
     const node=document.querySelector('[data-ancillary-upsell]');if(node){node.hidden=true;node.innerHTML='';}
@@ -1080,7 +1091,10 @@
     }
   }
   async function changeAncillaryQuantity(productId,delta){
-    const offer=(bookingState.ancillaryOffers||[]).find(x=>String(x.product_id)===String(productId));
+    const active=document.activeElement;
+    const id=String(productId);
+    const focusIntent=active?.dataset?.ancillaryMinus===id?'minus':active?.dataset?.ancillaryAdd===id?'add':'plus';
+    const offer=(bookingState.ancillaryOffers||[]).find(x=>String(x.product_id)===id);
     if(!offer||!bookingState.slot?.id)return;
     const available=offer.available_quantity==null?99:Math.max(0,Number(offer.available_quantity||0));
     const maxConfigured=offer.max_per_booking==null?99:Math.max(1,Number(offer.max_per_booking||1));
@@ -1091,19 +1105,19 @@
     const previous=[...(bookingState.extras||[])];
     const others=previous.filter(x=>String(x.product_id)!==String(productId));
     bookingState.extras=next?[...others,{product_id:productId,quantity:next}]:others;
-    renderAncillaryOffers();syncAncillaryPaymentAvailability();
+    renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
     const node=document.querySelector('[data-ancillary-upsell]');if(node)node.setAttribute('aria-busy','true');
     try{
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({
         slot_id:bookingState.slot.id,group_composition:bookingState.composition,
         is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,promo_code:bookingState.promoCode||campaignPromo
       })});
-      bookingState.quote=quote;renderStandardCheckoutSummary();renderAncillaryOffers();syncAncillaryPaymentAvailability();
+      bookingState.quote=quote;renderStandardCheckoutSummary();renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
       const live=document.querySelector('[data-ancillary-live]');
       if(live)live.textContent=`${offer.name}: ${ancillaryText('quantity')} ${next}`;
       track(next>current?'ancillary_added':'ancillary_removed',{product_id:productId,sku:offer.sku,quantity:next,product_kind:offer.product_kind,quote_total:quote.total,currency:quote.currency});
     }catch(e){
-      bookingState.extras=previous;renderAncillaryOffers();syncAncillaryPaymentAvailability();
+      bookingState.extras=previous;renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
       const status=document.querySelector('[data-checkout-status]');
       if(status)status.textContent=e?.code==='ANCILLARY_OUT_OF_SEASON'?t('This extra is not available for the selected date.','התוספת אינה זמינה בתאריך שנבחר.'):t('That extra is no longer available. Your booking selection was not changed.','התוספת כבר אינה זמינה. בחירת הסיור לא השתנתה.');
     }finally{if(node)node.removeAttribute('aria-busy');}
