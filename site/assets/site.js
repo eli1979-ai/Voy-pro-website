@@ -812,7 +812,7 @@
     selects.forEach(s=>{
       const before=s.value;
       s.innerHTML='';
-      (products||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=p.title;s.appendChild(o);});
+      (products||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=localizedBudapestExperienceTitle(p,p.title);s.appendChild(o);});
       if(before&&(products||[]).some(p=>p.id===before))s.value=before;
     });
   }
@@ -840,7 +840,7 @@
       selects.forEach(s=>{
         const before=s.value;
         s.innerHTML=''; s.disabled=false;
-        bookable.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=p.title;s.appendChild(o);});
+        bookable.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=localizedBudapestExperienceTitle(p,p.title);s.appendChild(o);});
         if(before&&bookable.some(p=>p.id===before))s.value=before;
         else if(intended)s.value=intended.id;
       });
