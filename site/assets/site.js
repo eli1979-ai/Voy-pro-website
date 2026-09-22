@@ -921,7 +921,7 @@
       sale:'BUY',rental:'RENT',add:'Add',added:'Added',soldout:'Unavailable',
       paidArrival:'Selected extras are reserved with your booking and paid on arrival.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
-      rentalNote:'Rental for your tour',saleNote:'Yours to keep'
+      rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each'
     },
     he:{
       kicker:'משדרגים את החוויה',title:'להוסיף נוחות או לתעד את הרכיבה',
@@ -929,7 +929,7 @@
       sale:'קנייה',rental:'השכרה',add:'הוספה',added:'נוסף',soldout:'לא זמין',
       paidArrival:'התוספות נשמרות עם ההזמנה ומשולמות במקום.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
-      rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם'
+      rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה'
     },
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Kényelem vagy emlék a túrához',
@@ -937,7 +937,7 @@
       sale:'VÁSÁRLÁS',rental:'BÉRLÉS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
       paidArrival:'A kiválasztott kiegészítőket a foglalással együtt tartjuk, fizetés a helyszínen.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
-      rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod'
+      rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként'
     }
   };
   const ancillaryText=(key)=>ANCILLARY_COPY[locale]?.[key]||ANCILLARY_COPY.en[key]||key;
@@ -987,7 +987,7 @@
       return `<article class="ancillary-card ${qty?'is-selected':''} ${unavailable?'is-unavailable':''}" data-ancillary-product="${escapeHTML(offer.product_id)}">
         <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
         <div class="ancillary-card-body">
-          <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong>${escapeHTML(price)}</strong></div>
+          <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
           <h4>${escapeHTML(offer.name)}</h4><p>${escapeHTML(note)}</p>
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
           qty===0
