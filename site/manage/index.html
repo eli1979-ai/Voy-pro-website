@@ -86,7 +86,7 @@
   const intro=he?'היי, יש לי הזמנה ב־VOY PRO Budapest ואני צריך עזרה בנוגע אליה.':hu?'Szia, van egy VOY PRO Budapest foglalásom, és segítséget szeretnék kérni.':'Hi, I have a VOY PRO Budapest booking and I need help with it.';
   const lines=[intro];
   if(booking?.reference)lines.push('',(he?'מספר הזמנה: ':hu?'Foglalási szám: ':'Booking reference: ')+booking.reference);
-  if(booking)lines.push((he?'סיור: ':hu?'Túra: ':'Tour: ')+experienceLabel(booking),(he?'תאריך: ':hu?'Dátum: ':'Date: ')+(booking.selected_date||'—'),(he?'שעה: ':hu?'Időpont: ':'Time: ')+(booking.slot_time||'—'));
+  if(booking)lines.push((he?'סיור: ':hu?'Túra: ':'Tour: ')+experienceLabel(booking),(he?'תאריך: ':hu?'Dátum: ':'Date: ')+(manageDateLabel(booking.selected_date)||'—'),(he?'שעה: ':hu?'Időpont: ':'Time: ')+(manageTimeLabel(booking.slot_time)||'—'));
   return 'https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
  }
  function render(){
