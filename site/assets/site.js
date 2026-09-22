@@ -837,7 +837,7 @@
   function ensureCheckoutShell(){
     const booking=document.querySelector('#booking .booking-grid'); if(!booking||document.querySelector('#live-checkout-shell')) return;
     const shell=document.createElement('div');shell.id='live-checkout-shell';shell.className='live-checkout-shell';shell.hidden=true;
-    shell.innerHTML=`<div class="panel checkout-panel"><div class="checkout-title-row"><div><div class="eyebrow">${t('BOOKING','הזמנה')}</div><h3 data-checkout-heading>${t('Complete your booking','השלמת ההזמנה')}</h3></div><button type="button" class="checkout-edit" data-checkout-edit>${t('Change selection','שינוי בחירה')}</button></div><div data-checkout-summary class="checkout-summary"></div><div class="checkout-assurance"><span>${t('Current price','מחיר נוכחי')}</span><span>${t('Places held while you finish','המקומות נשמרים בזמן השלמת ההזמנה')}</span><span>${t('Direct Budapest team','צוות בודפשט ישירות')}</span></div><div data-hold-timer class="hold-timer"></div><section data-ancillary-upsell class="ancillary-upsell" hidden></section><form id="live-checkout-form"><div class="checkout-fields"><div class="field"><label>${t('Full name','שם מלא')}</label><input name="full_name" required autocomplete="name"></div><div class="field"><label>Email</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>${t('Phone','טלפון')}</label><input name="phone" required autocomplete="tel"></div><div class="field"><label>${t('Payment','תשלום')}</label><select name="payment_method"><option value="pay_arrival_card">${t('Pay by card on arrival','תשלום בכרטיס במקום')}</option><option value="pay_arrival_cash">${t('Pay cash on arrival','תשלום במזומן במקום')}</option></select></div></div><div class="checkout-legal" data-checkout-legal><label><input type="checkbox" name="legal_acceptance" required><span>${t('I accept the Terms of Use and confirm I have read the Privacy Notice.','אני מאשר/ת את תנאי השימוש ומאשר/ת שקראתי את הצהרת הפרטיות.')} <a href="${legalBasePath()}terms/" target="_blank" rel="noopener">${t('Terms of Use','תנאי שימוש')}</a> · <a href="${legalBasePath()}privacy/" target="_blank" rel="noopener">${t('Privacy Notice','הצהרת פרטיות')}</a></span></label></div><button class="btn checkout-confirm" type="submit">${t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום')}</button><div class="status" data-checkout-status></div></form></div>`;
+    shell.innerHTML=`<div class="panel checkout-panel"><div class="checkout-title-row"><div><div class="eyebrow">${t('BOOKING','הזמנה')}</div><h3 data-checkout-heading>${t('Complete your booking','השלמת ההזמנה')}</h3></div><button type="button" class="checkout-edit" data-checkout-edit>${t('Change selection','שינוי בחירה')}</button></div><div data-checkout-summary class="checkout-summary"></div><div class="checkout-assurance"><span>${t('Current price','מחיר נוכחי')}</span><span>${t('Places held while you finish','המקומות נשמרים בזמן השלמת ההזמנה')}</span><span>${t('Direct Budapest team','צוות בודפשט ישירות')}</span></div><div data-hold-timer class="hold-timer"></div><section data-ancillary-upsell class="ancillary-upsell" hidden></section><form id="live-checkout-form"><div class="checkout-fields"><div class="field"><label>${t('Full name','שם מלא')}</label><input name="full_name" required autocomplete="name"></div><div class="field"><label>Email</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>${t('Phone','טלפון')}</label><input name="phone" required autocomplete="tel"></div><div class="field payment-field"><label>${t('Payment','תשלום')}</label><select name="payment_method"><option value="pay_arrival_card">${t('Pay by card on arrival','תשלום בכרטיס במקום')}</option><option value="pay_arrival_cash">${t('Pay cash on arrival','תשלום במזומן במקום')}</option></select><small class="payment-method-note" data-payment-method-note aria-live="polite">${escapeHTML(paymentMethodHelp('pay_arrival_card'))}</small></div></div><div class="checkout-legal" data-checkout-legal><label><input type="checkbox" name="legal_acceptance" required><span>${t('I accept the Terms of Use and confirm I have read the Privacy Notice.','אני מאשר/ת את תנאי השימוש ומאשר/ת שקראתי את הצהרת הפרטיות.')} <a href="${legalBasePath()}terms/" target="_blank" rel="noopener">${t('Terms of Use','תנאי שימוש')}</a> · <a href="${legalBasePath()}privacy/" target="_blank" rel="noopener">${t('Privacy Notice','הצהרת פרטיות')}</a></span></label></div><button class="btn checkout-confirm" type="submit">${t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום')}</button><div class="status" data-checkout-status></div></form></div>`;
     (booking.firstElementChild||booking).appendChild(shell);
     shell.querySelector('[data-checkout-edit]')?.addEventListener('click',()=>{
       releaseHold();shell.hidden=true;setBookingStep(1);
@@ -848,6 +848,28 @@
     });
   }
   ensureCheckoutShell();
+
+  function paymentMethodHelp(method){
+    const copy={
+      en:{
+        pay_now_card:'Secure online card payment. You will continue to the secure payment page after confirming.',
+        pay_arrival_card:'Reserve now and pay by card at the meeting point.',
+        pay_arrival_cash:'Reserve now and pay cash at the meeting point.'
+      },
+      he:{
+        pay_now_card:'תשלום מאובטח בכרטיס אונליין. לאחר האישור תעברו לעמוד התשלום המאובטח.',
+        pay_arrival_card:'שומרים את ההזמנה עכשיו ומשלמים בכרטיס בנקודת המפגש.',
+        pay_arrival_cash:'שומרים את ההזמנה עכשיו ומשלמים במזומן בנקודת המפגש.'
+      },
+      hu:{
+        pay_now_card:'Biztonságos online bankkártyás fizetés. A megerősítés után a biztonságos fizetési oldalra lépsz.',
+        pay_arrival_card:'Foglalj most, és fizess bankkártyával a találkozási ponton.',
+        pay_arrival_cash:'Foglalj most, és fizess készpénzzel a találkozási ponton.'
+      }
+    };
+    const lang=copy[locale]||copy.en;
+    return lang[method]||lang.pay_arrival_card;
+  }
 
   let paymentCapabilities={online_card:false};
   async function hydratePaymentMethods(){
@@ -865,9 +887,10 @@
         select.insertBefore(option,select.firstChild);
       }
       const submit=document.querySelector('#live-checkout-form button[type=\"submit\"]');
+      const note=document.querySelector('#live-checkout-form [data-payment-method-note]');
       const sync=()=>{
-        if(!submit)return;
-        submit.textContent=select.value==='pay_now_card'?t('Continue to secure card payment','המשך לתשלום מאובטח בכרטיס'):t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');
+        if(submit)submit.textContent=select.value==='pay_now_card'?t('Continue to secure card payment','המשך לתשלום מאובטח בכרטיס'):t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');
+        if(note)note.textContent=paymentMethodHelp(select.value);
       };
       select._voySyncPayment=sync;
       select.addEventListener('change',sync);sync();
