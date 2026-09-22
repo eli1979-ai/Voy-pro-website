@@ -942,7 +942,8 @@
       sale:'BUY',rental:'RENT',add:'Add',added:'Added',soldout:'Unavailable',
       paidArrival:'Selected extras are reserved with your booking and paid on arrival.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
-      rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each'
+      rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
+      decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity'
     },
     he:{
       kicker:'משדרגים את החוויה',title:'להוסיף נוחות או לתעד את הרכיבה',
@@ -950,7 +951,8 @@
       sale:'קנייה',rental:'השכרה',add:'הוספה',added:'נוסף',soldout:'לא זמין',
       paidArrival:'התוספות נשמרות עם ההזמנה ומשולמות במקום.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
-      rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה'
+      rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
+      decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות'
     },
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Kényelem vagy emlék a túrához',
@@ -958,7 +960,8 @@
       sale:'VÁSÁRLÁS',rental:'BÉRLÉS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
       paidArrival:'A kiválasztott kiegészítőket a foglalással együtt tartjuk, fizetés a helyszínen.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
-      rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként'
+      rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
+      decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség'
     }
   };
   const ancillaryText=(key)=>ANCILLARY_COPY[locale]?.[key]||ANCILLARY_COPY.en[key]||key;
@@ -1012,20 +1015,21 @@
           <h4>${escapeHTML(offer.name)}</h4><p>${escapeHTML(note)}</p>
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
           qty===0
-            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}">${escapeHTML(ancillaryText('add'))}</button>`
+            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('add'))}: ${escapeHTML(offer.name)}">${escapeHTML(ancillaryText('add'))}</button>`
             :`<div class="ancillary-selected-row">
                 <span class="ancillary-added-label">✓ ${escapeHTML(ancillaryText('added'))}</span>
                 <div class="ancillary-qty" aria-label="${escapeHTML(offer.name)}">
-                  <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="-">−</button>
-                  <span>${qty}</span>
-                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="+">+</button>
+                  <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('decrease'))}: ${escapeHTML(offer.name)}">−</button>
+                  <span aria-label="${escapeHTML(ancillaryText('quantity'))}: ${qty}">${qty}</span>
+                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('increase'))}: ${escapeHTML(offer.name)}">+</button>
                 </div>
               </div>`}
         </div></article>`;
     }).join('');
     node.innerHTML=`<div class="ancillary-head"><div><small>${escapeHTML(ancillaryText('kicker'))}</small><h3>${escapeHTML(ancillaryText('title'))}</h3><p>${escapeHTML(ancillaryText('intro'))}</p></div><span class="ancillary-spark" aria-hidden="true">✦</span></div>
       <div class="ancillary-grid">${cards}</div>
-      <div class="ancillary-payment-note">${escapeHTML(ancillaryText('paidArrival'))}</div>`;
+      <div class="ancillary-payment-note">${escapeHTML(ancillaryText('paidArrival'))}</div>
+      <span class="sr-only" data-ancillary-live role="status" aria-live="polite" aria-atomic="true"></span>`;
     node.querySelectorAll('[data-ancillary-add]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryAdd,1)));
     node.querySelectorAll('[data-ancillary-minus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryMinus,-1)));
     node.querySelectorAll('[data-ancillary-plus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryPlus,1)));
@@ -1061,6 +1065,8 @@
         is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,promo_code:bookingState.promoCode||campaignPromo
       })});
       bookingState.quote=quote;renderStandardCheckoutSummary();renderAncillaryOffers();syncAncillaryPaymentAvailability();
+      const live=document.querySelector('[data-ancillary-live]');
+      if(live)live.textContent=`${offer.name}: ${ancillaryText('quantity')} ${next}`;
       track(next>current?'ancillary_added':'ancillary_removed',{product_id:productId,sku:offer.sku,quantity:next,product_kind:offer.product_kind,quote_total:quote.total,currency:quote.currency});
     }catch(e){
       bookingState.extras=previous;renderAncillaryOffers();syncAncillaryPaymentAvailability();
