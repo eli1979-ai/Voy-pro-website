@@ -981,6 +981,21 @@
     if(sku.includes('WARMER')||category==='cold_weather')return '🧥';
     return offer?.product_kind==='rental'?'📷':'✨';
   };
+  function ancillaryDisplayName(offer){
+    const sku=String(offer?.sku||'').toUpperCase();
+    const copy={
+      en:{GOPRO:'GoPro rental',WARMER:'Body warmer pack',HAT:'Fleece hat',SCARF:'Fleece scarf',DRONE:'Drone rental'},
+      he:{GOPRO:'השכרת GoPro',WARMER:'ערכת חימום לגוף',HAT:'כובע פליז',SCARF:'צעיף פליז',DRONE:'השכרת רחפן'},
+      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónbérlés'}
+    };
+    const lang=copy[locale]||copy.en;
+    if(sku.includes('GOPRO'))return lang.GOPRO;
+    if(sku.includes('WARMER'))return lang.WARMER;
+    if(sku.includes('HAT'))return lang.HAT;
+    if(sku.includes('SCARF'))return lang.SCARF;
+    if(sku.includes('DRONE'))return lang.DRONE;
+    return offer?.name||offer?.sku||'Extra';
+  }
   function ancillaryPitch(offer){
     const sku=String(offer?.sku||'').toUpperCase();
     const copy={
@@ -1038,7 +1053,7 @@
     const offers=Array.isArray(bookingState.ancillaryOffers)?bookingState.ancillaryOffers:[];
     return extras.map(extra=>{
       const offer=offers.find(x=>String(x.product_id)===String(extra.product_id));
-      return {name:offer?.name||offer?.sku||String(extra.product_id),quantity:Number(extra.quantity||0)};
+      return {name:offer?ancillaryDisplayName(offer):String(extra.product_id),quantity:Number(extra.quantity||0)};
     });
   }
   function renderSelectedAncillarySummary(){
@@ -1088,16 +1103,16 @@
         <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
         <div class="ancillary-card-body">
           <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
-          <h4>${escapeHTML(offer.name)}</h4><p>${escapeHTML(note)}</p>
+          <h4>${escapeHTML(ancillaryDisplayName(offer))}</h4><p>${escapeHTML(note)}</p>
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
           qty===0
-            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryCta(offer))}: ${escapeHTML(offer.name)}">${escapeHTML(ancillaryCta(offer))}</button>`
+            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryCta(offer))}: ${escapeHTML(ancillaryDisplayName(offer))}">${escapeHTML(ancillaryCta(offer))}</button>`
             :`<div class="ancillary-selected-row">
                 <span class="ancillary-added-label">✓ ${escapeHTML(ancillaryText('added'))}</span>
-                <div class="ancillary-qty" aria-label="${escapeHTML(offer.name)}">
-                  <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('decrease'))}: ${escapeHTML(offer.name)}">−</button>
+                <div class="ancillary-qty" aria-label="${escapeHTML(ancillaryDisplayName(offer))}">
+                  <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('decrease'))}: ${escapeHTML(ancillaryDisplayName(offer))}">−</button>
                   <span aria-label="${escapeHTML(ancillaryText('quantity'))}: ${qty}">${qty}</span>
-                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('increase'))}: ${escapeHTML(offer.name)}">+</button>
+                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('increase'))}: ${escapeHTML(ancillaryDisplayName(offer))}">+</button>
                 </div>
               </div>`}
         </div></article>`;
@@ -1162,7 +1177,7 @@
       })});
       bookingState.quote=quote;renderStandardCheckoutSummary();renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
       const live=document.querySelector('[data-ancillary-live]');
-      if(live)live.textContent=`${offer.name}: ${ancillaryText('quantity')} ${next}`;
+      if(live)live.textContent=`${ancillaryDisplayName(offer)}: ${ancillaryText('quantity')} ${next}`;
       track(next>current?'ancillary_added':'ancillary_removed',{product_id:productId,sku:offer.sku,quantity:next,product_kind:offer.product_kind,quote_total:quote.total,currency:quote.currency});
     }catch(e){
       bookingState.extras=previous;renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
