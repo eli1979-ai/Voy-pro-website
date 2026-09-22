@@ -800,6 +800,12 @@
       {id:'exp_bud_margaret',slug:'margaret-island',title:title('Margaret Island by EZRaider','סיור אי מרגיט על EZRaider','Margitsziget EZRaiderrel'),durationMinutes:120,basePrice:70,priceFrom:70,currency:'EUR',maxIndependentRiders:12,bookingEnabled:true,privateAllowed:true,privateSurchargePerRider:30,privateMinRiders:2,flexibleDepartureWhenPrivate:true,guideLanguages:['en','he','hu','es']}
     ];
   }
+  function localizedBudapestExperienceTitle(experience,fallbackTitle=''){
+    const raw=[experience?.slug,experience?.id,experience?.title,fallbackTitle].filter(Boolean).join(' ').toLowerCase();
+    if(raw.includes('extended')||(raw.includes('buda')&&raw.includes('margaret')))return locale==='he'?'סיור ארוך בודה + מרגיט':locale==='hu'?'Buda + Margitsziget hosszabb túra':'Extended Buda + Margaret Tour';
+    const localized=fallbackBudapestProducts().find(p=>String(p.id)===String(experience?.id||'')||p.slug===experience?.slug);
+    return String(localized?.title||experience?.title||fallbackTitle||'').trim();
+  }
   function seedExperienceSelects(selects,products){
     (products||[]).forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
     selects.forEach(s=>{
@@ -1106,8 +1112,7 @@
       ?`<span class="checkout-private-flag">${t('Private tour · your group only','סיור פרטי · הקבוצה שלכם בלבד')}</span>`
       :`<span class="checkout-standard-flag">${t('Scheduled tour','סיור רגיל')}</span>`;
     const sum=shell.querySelector('[data-checkout-summary]');
-    const localizedCheckoutProduct=fallbackBudapestProducts().find(p=>String(p.id)===String(bookingState.experience.id||'')||p.slug===bookingState.experience.slug);
-    const checkoutTourTitle=localizedCheckoutProduct?.title||bookingState.experience.title;
+    const checkoutTourTitle=localizedBudapestExperienceTitle(bookingState.experience);
     if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(checkoutTourTitle)}</b><span>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
   }
   function selectedAncillaryQuantity(productId){
@@ -1356,8 +1361,7 @@
       const confirmationMeetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':'Meeting point';
       const confirmationMapsLabel=locale==='he'?'פתיחה ב־Google Maps':locale==='hu'?'Megnyitás a Google Térképen':'Open in Google Maps';
       const confirmationTotal=finiteNumber(booking.total);
-      const confirmationLocalizedProduct=fallbackBudapestProducts().find(p=>String(p.id)===String(bookingState.experience?.id||'')||p.slug===bookingState.experience?.slug);
-      const confirmationTour=String(confirmationLocalizedProduct?.title||bookingState.experience?.title||booking.experience_title||'').trim();
+      const confirmationTour=localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title);
       terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon">✓</div><h3>${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(booking.reference)}</b></div>${confirmationTour?`<div class="confirmation-tour"><span>${t('Tour','סיור')}</span><strong>${escapeHTML(confirmationTour)}</strong></div>`:''}${renderPartySummary(bookingState.composition)}${confirmationTotal!=null?`<div class="confirmation-total"><span>${t('Total','סה״כ')}</span><strong>${escapeHTML(money(confirmationTotal,booking.currency||'EUR'))}</strong></div>`:''}<div class="party-summary confirmation-meta"><span>${t('Date','תאריך')} · ${escapeHTML(confirmationDateLabel(bookingState.date))}</span><span>${t('Time','שעה')} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span>${bookingState.isPrivate?`<span>${t('Private tour','סיור פרטי')}</span>`:''}<span>${t('Guide','הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span><span>${t('Payment','תשלום')} · ${paymentMethod==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):paymentMethod==='pay_arrival_cash'?t('cash on arrival','מזומן במקום'):t('card on arrival','כרטיס במקום')}</span></div>${renderConfirmationAncillarySummary()}<div class="confirmation-meeting-point"><div><small>${escapeHTML(confirmationMeetingLabel)}</small><b>Városház utca 14, 1052 Budapest</b></div><a class="btn secondary" href="https://maps.app.goo.gl/BNqXWux5XAnHi2W19" target="_blank" rel="noopener">${escapeHTML(confirmationMapsLabel)}</a></div><div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
       bindConfirmationActions(st,booking);checkoutForm.querySelectorAll('input,select,button:not([data-copy-booking-ref])').forEach(el=>el.disabled=true);document.querySelector('.mobilebook')?.setAttribute('hidden','');
       track('booking_completed',{booking_id:booking.id,reference:booking.reference,revenue:booking.total,currency:booking.currency,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,promo_code_applied:booking.promo_code_applied||bookingState.promoCode||null,discount:booking.discount||0});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});
