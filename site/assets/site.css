@@ -515,3 +515,5 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
   .route-schematic-legend{gap:8px}
   .route-visual-compact .route-photo-strip{grid-auto-columns:minmax(138px,68vw)}
 }
+
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
