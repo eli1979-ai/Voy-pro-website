@@ -620,7 +620,8 @@
   }
   function setSelectedTourHint(p){
     const hint=document.querySelector('[data-selected-tour-hint]'); if(!hint||!p)return;
-    hint.textContent=t(`Selected: ${p.title}. Choose your date and group size.`,`נבחר: ${p.title}. עכשיו בחרו תאריך וגודל קבוצה.`);
+    const selectedTitle=localizedBudapestExperienceTitle(p,p.title);
+    hint.textContent=t(`Selected: ${selectedTitle}. Choose your date and group size.`,`נבחר: ${selectedTitle}. עכשיו בחרו תאריך וגודל קבוצה.`);
     hint.classList.add('is-selected');
   }
   function hydrateTourCards(products=[]){
