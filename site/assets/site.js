@@ -1239,7 +1239,7 @@
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:copy.budapestAddress,
-      maps:'https://maps.app.goo.gl/rymYMLYjtKHSgjbt6?g_st=ac',
+      maps:'https://maps.app.goo.gl/BNqXWux5XAnHi2W19',
       mapQuery:'EZRaider Budapest by VOY PRO, Városház utca 14, Budapest, Hungary',
       mapZoom:19
     }:{
