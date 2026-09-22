@@ -943,7 +943,7 @@
       paidArrival:'Selected extras are reserved with your booking and paid on arrival.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
       rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
-      decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity'
+      decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity',selectedExtras:'Selected extras'
     },
     he:{
       kicker:'משדרגים את החוויה',title:'להוסיף נוחות או לתעד את הרכיבה',
@@ -952,7 +952,7 @@
       paidArrival:'התוספות נשמרות עם ההזמנה ומשולמות במקום.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
       rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
-      decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות'
+      decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות',selectedExtras:'תוספות שנבחרו'
     },
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Kényelem vagy emlék a túrához',
@@ -961,7 +961,7 @@
       paidArrival:'A kiválasztott kiegészítőket a foglalással együtt tartjuk, fizetés a helyszínen.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
-      decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség'
+      decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség',selectedExtras:'Kiválasztott extrák'
     }
   };
   const ancillaryText=(key)=>ANCILLARY_COPY[locale]?.[key]||ANCILLARY_COPY.en[key]||key;
@@ -978,6 +978,18 @@
     const select=document.querySelector('#live-checkout-form [name="payment_method"]');
     if(select&&typeof select._voySyncPayment==='function')select._voySyncPayment();
   }
+  function renderSelectedAncillarySummary(){
+    const extras=Array.isArray(bookingState.extras)?bookingState.extras.filter(x=>Number(x?.quantity||0)>0):[];
+    if(!extras.length)return '';
+    const offers=Array.isArray(bookingState.ancillaryOffers)?bookingState.ancillaryOffers:[];
+    const rows=extras.map(extra=>{
+      const offer=offers.find(x=>String(x.product_id)===String(extra.product_id));
+      const name=offer?.name||offer?.sku||String(extra.product_id);
+      return `<span><b>${escapeHTML(name)}</b><strong>×${Number(extra.quantity||0)}</strong></span>`;
+    }).join('');
+    return `<div class="checkout-extras-summary"><small>${escapeHTML(ancillaryText('selectedExtras'))}</small><div>${rows}</div></div>`;
+  }
+
   function renderStandardCheckoutSummary(){
     const shell=document.querySelector('#live-checkout-shell');
     if(!shell||!bookingState.experience||!bookingState.slot)return;
@@ -985,7 +997,7 @@
       ?`<span class="checkout-private-flag">${t('Private tour · your group only','סיור פרטי · הקבוצה שלכם בלבד')}</span>`
       :`<span class="checkout-standard-flag">${t('Scheduled tour','סיור רגיל')}</span>`;
     const sum=shell.querySelector('[data-checkout-summary]');
-    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(bookingState.experience.title)}</b><span>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderQuoteBreakdown(bookingState.quote)}`;
+    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(bookingState.experience.title)}</b><span>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
   }
   function selectedAncillaryQuantity(productId){
     const hit=(bookingState.extras||[]).find(x=>String(x.product_id)===String(productId));
