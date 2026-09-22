@@ -1188,8 +1188,11 @@
     const end=new Date(start.getTime()+duration*60000);
     const compact=d=>`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}T${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}00`;
     const title=encodeURIComponent(`${bookingState.experience?.title||booking?.experience_title||'VOY PRO Budapest'}${bookingState.isPrivate?' · Private':''}`);
-    const details=encodeURIComponent(`VOY PRO booking ${booking?.reference||''}`);
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${compact(start)}/${compact(end)}&ctz=Europe%2FBudapest&details=${details}`;
+    const meetingPoint='Városház utca 14, 1052 Budapest, Hungary';
+    const mapsUrl='https://maps.app.goo.gl/BNqXWux5XAnHi2W19';
+    const details=encodeURIComponent(`VOY PRO booking ${booking?.reference||''}\nMeeting point: ${meetingPoint}\nGoogle Maps: ${mapsUrl}`);
+    const locationParam=encodeURIComponent(meetingPoint);
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${compact(start)}/${compact(end)}&ctz=Europe%2FBudapest&details=${details}&location=${locationParam}`;
   }
   function bindConfirmationActions(root,booking){
     const copy=root?.querySelector('[data-copy-booking-ref]');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(String(booking.reference||''));copy.textContent=t('Reference copied','מספר ההזמנה הועתק');track('booking_reference_copied',{reference:booking.reference})}catch(e){copy.textContent=t('Reference: ','מספר הזמנה: ')+String(booking.reference||'')}};
