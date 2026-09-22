@@ -245,7 +245,7 @@
       const lines=[
         intro,'',
         labels.route+': '+(routeNames[route]||route),
-        labels.date+': '+date,
+        labels.date+': '+(locale==='pt'?confirmationDateLabel(date):date),
         labels.people+': '+people,
         labels.language+': '+guideLanguageLabel(guide),
         labels.name+': '+name
