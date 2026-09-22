@@ -1240,11 +1240,13 @@
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:copy.budapestAddress,
       maps:'https://maps.app.goo.gl/rymYMLYjtKHSgjbt6?g_st=ac',
-      mapQuery:'place_id:ChIJR_q2zJXdQUcRtUmmtT-Ozb8'
+      mapQuery:'EZRaider Budapest by VOY PRO, Városház utca 14, Budapest, Hungary',
+      mapZoom:19
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
       maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
-      mapQuery:'Pombais Experience & Villas, Marvão, Portugal'
+      mapQuery:'Pombais Experience & Villas, Marvão, Portugal',
+      mapZoom:16
     };
     const section=document.createElement('section');
     section.className='section meeting-point-section';
@@ -1261,7 +1263,7 @@
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
-          src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=16&amp;output=embed"
+          src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen></iframe>
