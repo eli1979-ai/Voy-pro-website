@@ -944,7 +944,7 @@
       kicker:'MAKE THE RIDE YOURS',title:'Upgrade your ride before you go',
       intro:'Stay warmer, ride more comfortably and capture better memories with extras chosen for your tour.',
       sale:'BUY',rental:'RENT',add:'Add',added:'Added',soldout:'Unavailable',
-      paidArrival:'Selected extras are reserved with your booking and paid on arrival.',
+      paymentNote:'Selected extras are included in your booking total and follow your selected payment method.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
       rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
       decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity',selectedExtras:'Selected extras',
@@ -954,7 +954,7 @@
       kicker:'משדרגים את החוויה',title:'משדרגים את הרכיבה לפני שיוצאים',
       intro:'יותר חום, יותר נוחות וזיכרונות טובים יותר – תוספות שנבחרו במיוחד לסיור שלכם.',
       sale:'קנייה',rental:'השכרה',add:'הוספה',added:'נוסף',soldout:'לא זמין',
-      paidArrival:'התוספות נשמרות עם ההזמנה ומשולמות במקום.',
+      paymentNote:'התוספות נכללות בסכום ההזמנה ומשולמות בהתאם לאמצעי התשלום שבחרתם.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
       rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
       decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות',selectedExtras:'תוספות שנבחרו',
@@ -964,7 +964,7 @@
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Tedd még jobbá a túrát indulás előtt',
       intro:'Több meleg, nagyobb kényelem és jobb emlékek – a túrádhoz válogatott kiegészítőkkel.',
       sale:'VÁSÁRLÁS',rental:'BÉRLÉS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
-      paidArrival:'A kiválasztott kiegészítőket a foglalással együtt tartjuk, fizetés a helyszínen.',
+      paymentNote:'A kiválasztott kiegészítők bekerülnek a foglalás végösszegébe, és a választott fizetési mód szerint fizetendők.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
       decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség',selectedExtras:'Kiválasztott extrák',
@@ -1119,7 +1119,7 @@
     }).join('');
     node.innerHTML=`<div class="ancillary-head"><div><small>${escapeHTML(ancillaryText('kicker'))}</small><h3>${escapeHTML(ancillaryText('title'))}</h3><p>${escapeHTML(ancillaryText('intro'))}</p></div><span class="ancillary-spark" aria-hidden="true">✦</span></div>
       <div class="ancillary-grid">${cards}</div>
-      <div class="ancillary-payment-note">${escapeHTML(ancillaryText('paidArrival'))}</div>
+      <div class="ancillary-payment-note">${escapeHTML(ancillaryText('paymentNote'))}</div>
       <span class="sr-only" data-ancillary-live role="status" aria-live="polite" aria-atomic="true"></span>`;
     node.querySelectorAll('[data-ancillary-add]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryAdd,1)));
     node.querySelectorAll('[data-ancillary-minus]').forEach(btn=>btn.addEventListener('click',()=>changeAncillaryQuantity(btn.dataset.ancillaryMinus,-1)));
