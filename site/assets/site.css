@@ -445,3 +445,81 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
   .ancillary-head{gap:10px}
   .ancillary-spark{min-width:36px;height:36px}
 }
+
+
+/* v1.49 restored meeting point + route visuals */
+.meeting-point-section{background:#f6f8fa;border-top:1px solid var(--line)}
+.meeting-point-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(420px,1.1fr);gap:28px;align-items:stretch}
+.meeting-point-copy{align-self:center;padding:12px 4px}
+.meeting-point-copy .eyebrow{color:#0d4d7c}
+.meeting-point-copy h2{margin:8px 0 10px}
+.meeting-point-copy p{max-width:640px;color:var(--muted);line-height:1.6}
+.meeting-point-address{display:grid;gap:3px;margin:20px 0 16px}
+.meeting-point-address b{font-size:12px;color:#0d4d7c}
+.meeting-point-address strong{font-size:20px;line-height:1.25}
+.meeting-point-button{display:inline-flex}
+.meeting-map-card{position:relative;min-height:285px;border:1px solid #dce6eb;border-radius:24px;overflow:hidden;text-decoration:none;color:var(--ink);background:
+  radial-gradient(circle at 22% 28%,rgba(42,143,214,.09),transparent 28%),
+  linear-gradient(145deg,#f4f8fa,#edf3f6)}
+.meeting-map-card:before,.meeting-map-card:after{content:'';position:absolute;inset:auto;background:#dceaf1;border-radius:999px;transform:rotate(-24deg)}
+.meeting-map-card:before{width:125%;height:18px;left:-12%;top:44%}
+.meeting-map-card:after{width:88%;height:12px;left:17%;top:63%;transform:rotate(18deg)}
+.meeting-map-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(112,142,159,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(112,142,159,.08) 1px,transparent 1px);background-size:34px 34px;opacity:.48}
+.meeting-map-pin{position:absolute;left:52%;top:42%;width:28px;height:28px;border-radius:50% 50% 50% 0;background:#2a8fd6;transform:translate(-50%,-50%) rotate(-45deg);box-shadow:0 10px 24px rgba(42,143,214,.28);z-index:2}
+.meeting-map-pin:after{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:#fff;left:9px;top:9px}
+.meeting-map-label{position:absolute;left:50%;top:58%;transform:translateX(-50%);z-index:3;width:min(82%,420px);padding:14px 16px;text-align:center;background:rgba(255,255,255,.9);backdrop-filter:blur(7px);border:1px solid rgba(255,255,255,.8);border-radius:16px;box-shadow:0 12px 32px rgba(13,21,29,.08)}
+.meeting-map-label small,.meeting-map-label span{display:block;color:var(--muted);font-size:11px;line-height:1.4}
+.meeting-map-label b{display:block;margin:2px 0 3px;font-size:15px}
+.meeting-map-card:hover{border-color:#afd5ed;box-shadow:0 14px 36px rgba(13,21,29,.08)}
+.rtl .meeting-map-pin{left:48%}
+
+.route-visual-restored{margin:22px 0 26px;padding:18px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(180deg,#fff,#f8fbfd)}
+.route-visual-label{margin:0 0 10px;color:#0d4d7c;font-size:10px;font-weight:950;letter-spacing:.9px;text-transform:uppercase}
+.route-photo-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(165px,1fr);gap:10px;overflow-x:auto;padding:0 0 8px;scroll-snap-type:x proximity;overscroll-behavior-inline:contain}
+.route-photo-card{position:relative;margin:0;min-height:205px;border-radius:16px;overflow:hidden;background:#15212b;scroll-snap-align:start;box-shadow:0 8px 22px rgba(13,21,29,.08)}
+.route-photo-card img{width:100%;height:205px;object-fit:cover;display:block;filter:saturate(.96) contrast(1.02)}
+.route-photo-card:after{content:'';position:absolute;inset:38% 0 0;background:linear-gradient(180deg,transparent,rgba(10,18,24,.82))}
+.route-photo-card figcaption{position:absolute;left:13px;right:13px;bottom:12px;z-index:2;color:#fff}
+.route-photo-card figcaption span{display:block;margin-bottom:4px;font-size:10px;font-weight:950;opacity:.8}
+.route-photo-card figcaption b{display:block;font-size:14px;line-height:1.2}
+.route-schematic-panel{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.route-schematic-canvas{height:245px;border:1px solid #dce7ec;border-radius:18px;overflow:hidden;background:
+  radial-gradient(circle at 19% 25%,rgba(42,143,214,.07),transparent 22%),
+  linear-gradient(160deg,#f8fbfc,#edf4f7)}
+.route-schematic-canvas svg{width:100%;height:100%;display:block}
+.route-river-shape{fill:none;stroke:#d9ebf3;stroke-width:10;stroke-linecap:round;opacity:.9}
+.route-schematic-line{fill:none;stroke:#2a8fd6;stroke-width:1.1;stroke-dasharray:3 2;stroke-linecap:round;stroke-linejoin:round}
+.route-schematic-nodes circle{fill:#0d4d7c;stroke:#fff;stroke-width:.7;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))}
+.route-schematic-nodes text{fill:#fff;font-size:2.5px;font-weight:900;font-family:Arial,sans-serif}
+.route-schematic-legend{display:flex;gap:10px;overflow-x:auto;padding:12px 2px 3px;scrollbar-width:thin}
+.route-schematic-legend span{display:flex;align-items:center;gap:6px;min-width:max-content;color:#56636d;font-size:11px;font-weight:750}
+.route-schematic-legend b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#0d4d7c;color:#fff;font-size:10px}
+.route-schematic-note{display:block;margin-top:8px;color:var(--muted);font-size:10px;line-height:1.45}
+
+.route-visual-compact{margin:15px 0 4px;padding:0;border:0;border-radius:0;background:transparent}
+.route-visual-compact .route-photo-strip{grid-auto-columns:minmax(128px,1fr);gap:8px}
+.route-visual-compact .route-photo-card,.route-visual-compact .route-photo-card img{height:125px;min-height:125px}
+.route-visual-compact .route-photo-card figcaption{left:9px;right:9px;bottom:8px}
+.route-visual-compact .route-photo-card figcaption b{font-size:11px}
+.route-visual-compact .route-schematic-panel{margin-top:12px;padding-top:12px}
+.route-visual-compact .route-schematic-canvas{height:175px}
+.route-visual-compact .route-schematic-legend span{font-size:9px}
+.route-visual-compact .route-schematic-note{font-size:9px}
+
+@media(max-width:900px){
+  .meeting-point-grid{grid-template-columns:1fr}
+  .meeting-map-card{min-height:250px}
+  .route-photo-strip{grid-auto-columns:minmax(170px,58vw)}
+}
+@media(max-width:560px){
+  .meeting-point-section{padding-top:34px;padding-bottom:34px}
+  .meeting-point-address strong{font-size:17px}
+  .meeting-map-card{min-height:230px;border-radius:18px}
+  .meeting-map-label{width:86%;padding:12px}
+  .route-visual-restored{margin:17px 0 21px;padding:12px;border-radius:17px}
+  .route-photo-strip{grid-auto-columns:minmax(155px,72vw)}
+  .route-photo-card,.route-photo-card img{height:178px;min-height:178px}
+  .route-schematic-canvas{height:200px}
+  .route-schematic-legend{gap:8px}
+  .route-visual-compact .route-photo-strip{grid-auto-columns:minmax(138px,68vw)}
+}
