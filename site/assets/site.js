@@ -179,8 +179,9 @@
     if(affiliateRef)detailLines.push(t(`Referral: ${affiliateRef}`,`קוד הפניה: ${affiliateRef}`));
     if(details.booking_reference)detailLines.push(t(`Booking reference: ${details.booking_reference}`,`מספר הזמנה: ${details.booking_reference}`));
     if(details.experience_title)detailLines.push(t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
-    if(details.date)detailLines.push(t(`Preferred date: ${details.date}`,`תאריך מועדף: ${details.date}`));
-    if(details.requested_time)detailLines.push(t(`Preferred time: ${details.requested_time}`,`שעה מועדפת: ${details.requested_time}`));
+    const confirmedBooking=context==='booking_confirmation';
+    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`):t(`Preferred date: ${details.date}`,`תאריך מועדף: ${details.date}`));
+    if(details.requested_time)detailLines.push(confirmedBooking?(locale==='he'?`שעה: ${details.requested_time}`:locale==='hu'?`Időpont: ${details.requested_time}`:`Time: ${details.requested_time}`):t(`Preferred time: ${details.requested_time}`,`שעה מועדפת: ${details.requested_time}`));
     if(details.riders)detailLines.push(t(`Independent riders: ${details.riders}`,`רוכבים עצמאיים: ${details.riders}`));
     if(Number(details.children||0)>0)detailLines.push(t(`Children 3–15: ${details.children}`,`ילדים 3–15: ${details.children}`));
     if(Number(details.babies||0)>0)detailLines.push(t(`Babies 1–2: ${details.babies}`,`פעוטות 1–2: ${details.babies}`));
