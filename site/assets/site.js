@@ -253,7 +253,7 @@
       if(notes)lines.push(labels.notes+': '+notes);
       const sourceLabel=[attr.source,attr.medium].filter(Boolean).join('/');
       if(sourceLabel&&attr.source!=='direct')lines.push(labels.source+': '+sourceLabel);
-      if(attr.campaign)lines.push('Campaign: '+attr.campaign);
+      if(attr.campaign)lines.push((locale==='pt'?'Campanha':'Campaign')+': '+attr.campaign);
       const affiliateRef=qs.get('ref')||qs.get('affiliate')||null;
       if(affiliateRef)lines.push('Referral: '+affiliateRef);
       lines.push('Page: '+location.pathname);
