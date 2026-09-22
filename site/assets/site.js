@@ -1240,7 +1240,7 @@
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:copy.budapestAddress,
       maps:'https://maps.app.goo.gl/BNqXWux5XAnHi2W19',
-      mapQuery:'EZRaider Budapest by VOY PRO, Városház utca 14, Budapest, Hungary',
+      mapQuery:'47.494133,19.055124',
       mapZoom:19
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
