@@ -1325,8 +1325,17 @@
     const locationParam=encodeURIComponent(meetingPoint);
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${compact(start)}/${compact(end)}&ctz=Europe%2FBudapest&details=${details}&location=${locationParam}`;
   }
+  async function copyBookingReference(value){
+    const text=String(value||'');
+    try{
+      if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return true;}
+    }catch(e){}
+    const field=document.createElement('textarea');
+    field.value=text;field.setAttribute('readonly','');field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();
+    let copied=false;try{copied=document.execCommand('copy')}catch(e){}field.remove();return copied;
+  }
   function bindConfirmationActions(root,booking){
-    const copy=root?.querySelector('[data-copy-booking-ref]');if(copy)copy.onclick=async()=>{try{await navigator.clipboard.writeText(String(booking.reference||''));copy.textContent=t('Reference copied','מספר ההזמנה הועתק');track('booking_reference_copied',{reference:booking.reference})}catch(e){copy.textContent=t('Reference: ','מספר הזמנה: ')+String(booking.reference||'')}};
+    const copy=root?.querySelector('[data-copy-booking-ref]');if(copy)copy.onclick=async()=>{const copied=await copyBookingReference(booking.reference);if(copied){copy.textContent=t('Reference copied','מספר ההזמנה הועתק');track('booking_reference_copied',{reference:booking.reference})}else{copy.textContent=t('Reference: ','מספר הזמנה: ')+String(booking.reference||'')}};
     const cal=root?.querySelector('[data-calendar-booking]');if(cal){cal.href=calendarUrlForBooking(booking);cal.target='_blank';cal.rel='noopener';}
   }
 
