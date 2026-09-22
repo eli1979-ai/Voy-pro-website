@@ -1044,6 +1044,14 @@
     if(sku.includes('DRONE'))return lang.DRONE;
     return ancillaryText('add');
   }
+  function ancillaryAvailabilityNote(offer){
+    if(offer?.available_quantity==null)return '';
+    const available=Math.max(0,Number(offer.available_quantity||0));
+    if(available<1||available>2)return '';
+    if(locale==='he')return available===1?'נותרה יחידה אחת ליציאה הזו':'נותרו 2 יחידות ליציאה הזו';
+    if(locale==='hu')return available===1?'1 darab érhető el ehhez az induláshoz':'2 darab érhető el ehhez az induláshoz';
+    return available===1?'1 available for this departure':'2 available for this departure';
+  }
   function syncAncillaryPaymentAvailability(){
     const select=document.querySelector('#live-checkout-form [name="payment_method"]');
     if(select&&typeof select._voySyncPayment==='function')select._voySyncPayment();
@@ -1099,11 +1107,13 @@
       const kind=offer.product_kind==='rental'?'rental':'sale';
       const badge=kind==='rental'?ancillaryText('rental'):ancillaryText('sale');
       const note=ancillaryPitch(offer);
+      const availabilityNote=ancillaryAvailabilityNote(offer);
       return `<article class="ancillary-card ${qty?'is-selected':''} ${unavailable?'is-unavailable':''}" data-ancillary-product="${escapeHTML(offer.product_id)}">
         <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
         <div class="ancillary-card-body">
           <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
           <h4>${escapeHTML(ancillaryDisplayName(offer))}</h4><p>${escapeHTML(note)}</p>
+          ${availabilityNote?`<div class="ancillary-availability" aria-label="${escapeHTML(availabilityNote)}">● ${escapeHTML(availabilityNote)}</div>`:''}
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
           qty===0
             ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryCta(offer))}: ${escapeHTML(ancillaryDisplayName(offer))}">${escapeHTML(ancillaryCta(offer))}</button>`
