@@ -90,6 +90,7 @@
     if((m=en.match(/^Private tours require at least (\d+) independent riders\.$/))) return `Privát túrához legalább ${m[1]} önálló vezető szükséges.`;
     if((m=en.match(/^Your places are held for (.+)$/))) return `A helyeket még ${m[1]} ideig tartjuk.`;
     if((m=en.match(/^Tour: (.+)$/))) return `Túra: ${m[1]}`;
+    if((m=en.match(/^Source: (.+)$/))) return `Forrás: ${m[1]}`;
     if((m=en.match(/^Booking reference: (.+)$/))) return `Foglalási szám: ${m[1]}`;
     if((m=en.match(/^Preferred date: (.+)$/))) return `Kívánt dátum: ${m[1]}`;
     if((m=en.match(/^Preferred time: (.+)$/))) return `Kívánt időpont: ${m[1]}`;
