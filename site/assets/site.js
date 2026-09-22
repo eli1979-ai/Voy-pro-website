@@ -865,10 +865,6 @@
       const submit=document.querySelector('#live-checkout-form button[type=\"submit\"]');
       const sync=()=>{
         if(!submit)return;
-        const online=select.querySelector('option[value="pay_now_card"]');
-        const hasExtras=Array.isArray(bookingState?.extras)&&bookingState.extras.length>0;
-        if(online){online.hidden=hasExtras;online.disabled=hasExtras;}
-        if(hasExtras&&select.value==='pay_now_card')select.value='pay_arrival_card';
         submit.textContent=select.value==='pay_now_card'?t('Continue to secure card payment','המשך לתשלום מאובטח בכרטיס'):t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');
       };
       select._voySyncPayment=sync;
@@ -1161,13 +1157,9 @@
       if(!bookingState.hold?.id){st.textContent=t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור את היציאה מחדש.');return;}
       st.textContent=t('Confirming booking…','מאשרים הזמנה…');
       const paymentMethod=String(f.get('payment_method')||'pay_arrival_card');
-      if(paymentMethod==='pay_now_card'&&Array.isArray(bookingState.extras)&&bookingState.extras.length){
-        st.textContent=t('Extras are currently paid on arrival. Choose card or cash on arrival to keep these extras.','תוספות משולמות כרגע במקום. בחרו תשלום בכרטיס או במזומן במקום כדי להשאיר את התוספות.');
-        return;
-      }
       if(paymentMethod==='pay_now_card'){
         st.textContent=t('Opening secure card payment…','פותחים תשלום מאובטח בכרטיס…');
-        const payment=await api('/payments/intents',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({payment_type:'online',payment_method:'pay_now_card',hold_id:bookingState.hold.id,session_id:sid,customer,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,currency:bookingState.quote?.currency||'EUR',promo_code:bookingState.promoCode||null})});
+        const payment=await api('/payments/intents',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({payment_type:'online',payment_method:'pay_now_card',hold_id:bookingState.hold.id,session_id:sid,customer,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,currency:bookingState.quote?.currency||'EUR',extras:bookingState.extras||[],promo_code:bookingState.promoCode||null})});
         if(!payment?.checkout_url)throw Object.assign(new Error('Secure card payment could not be started.'),{code:'PAYMENT_START_FAILED'});
         terminal=true;patchSession({stage:'payment_redirect',payment_provider:'stripe',payment_checkout_id:payment.id,booking_id:payment.booking_id,booking_reference:payment.booking_reference});
         location.assign(payment.checkout_url);
