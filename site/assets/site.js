@@ -255,7 +255,7 @@
       if(sourceLabel&&attr.source!=='direct')lines.push(labels.source+': '+sourceLabel);
       if(attr.campaign)lines.push((locale==='pt'?'Campanha':'Campaign')+': '+attr.campaign);
       const affiliateRef=qs.get('ref')||qs.get('affiliate')||null;
-      if(affiliateRef)lines.push('Referral: '+affiliateRef);
+      if(affiliateRef)lines.push((locale==='pt'?'Referência':'Referral')+': '+affiliateRef);
       lines.push('Page: '+location.pathname);
       location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
     });
