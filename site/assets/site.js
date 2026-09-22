@@ -947,7 +947,8 @@
       paidArrival:'Selected extras are reserved with your booking and paid on arrival.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
       rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
-      decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity',selectedExtras:'Selected extras'
+      decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity',selectedExtras:'Selected extras',
+      loadError:'Extras could not be loaded right now. You can continue booking without them.'
     },
     he:{
       kicker:'משדרגים את החוויה',title:'להוסיף נוחות או לתעד את הרכיבה',
@@ -956,7 +957,8 @@
       paidArrival:'התוספות נשמרות עם ההזמנה ומשולמות במקום.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
       rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
-      decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות',selectedExtras:'תוספות שנבחרו'
+      decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות',selectedExtras:'תוספות שנבחרו',
+      loadError:'לא הצלחנו לטעון כרגע את התוספות. אפשר להמשיך בהזמנה בלעדיהן.'
     },
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Kényelem vagy emlék a túrához',
@@ -965,7 +967,8 @@
       paidArrival:'A kiválasztott kiegészítőket a foglalással együtt tartjuk, fizetés a helyszínen.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
-      decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség',selectedExtras:'Kiválasztott extrák'
+      decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség',selectedExtras:'Kiválasztott extrák',
+      loadError:'A kiegészítőket most nem sikerült betölteni. A foglalást nélkülük is folytathatod.'
     }
   };
   const ancillaryText=(key)=>ANCILLARY_COPY[locale]?.[key]||ANCILLARY_COPY.en[key]||key;
@@ -1068,7 +1071,13 @@
       bookingState.ancillaryOffers=Array.isArray(offers)?offers:[];
       renderAncillaryOffers();
       if(bookingState.ancillaryOffers.length)track('ancillary_offers_viewed',{slot_id:bookingState.slot.id,count:bookingState.ancillaryOffers.length,destination_id:destinationId});
-    }catch(e){bookingState.ancillaryOffers=[];}
+    }catch(e){
+      bookingState.ancillaryOffers=[];
+      if(node){
+        node.hidden=false;
+        node.innerHTML=`<div class="ancillary-load-error" role="status">${escapeHTML(ancillaryText('loadError'))}</div>`;
+      }
+    }
   }
   async function changeAncillaryQuantity(productId,delta){
     const offer=(bookingState.ancillaryOffers||[]).find(x=>String(x.product_id)===String(productId));
