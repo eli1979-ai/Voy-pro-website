@@ -29,6 +29,21 @@
   catch(e){box.innerHTML='<div class="manage-error"><h2>'+T('We could not load this booking.','לא הצלחנו לטעון את ההזמנה.')+'</h2><p>'+T('Use WhatsApp and the local team will help.','פנו אלינו ב‑WhatsApp והצוות המקומי יסייע.')+'</p><a class="btn alt" href="'+supportWhatsApp()+'">WhatsApp</a></div>';}
  }
  function esc(v){return String(v??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
+ function bookingStatusLabel(value){
+  const status=String(value||'');
+  const labels={
+   confirmed:T('Confirmed','מאושרת','Megerősítve'),
+   hold:T('On hold','ממתינה','Függőben'),
+   cancelled:T('Cancelled','בוטלה','Lemondva'),
+   completed:T('Completed','הושלמה','Teljesítve'),
+   no_show:T('No-show','לא הגיעו','Nem jelent meg'),
+   refunded:T('Refunded','הוחזר התשלום','Visszatérítve'),
+   partially_refunded:T('Partially refunded','הוחזר חלקית','Részben visszatérítve')
+  };
+  if(labels[status])return labels[status];
+  const human=status.replaceAll('_',' ').trim();
+  return human?human.charAt(0).toUpperCase()+human.slice(1):'—';
+ }
  function paymentStatusLabel(value){
   const status=String(value||'unpaid');
   const labels={
@@ -56,7 +71,7 @@
  }
  function render(){
   const gc=booking.group_composition||{};
-  box.innerHTML=`<div class="manage-head"><div><small>${T('BOOKING','הזמנה')}</small><h2>${esc(booking.reference)}</h2><p>${esc(experienceLabel(booking))}</p></div><span class="manage-status">${esc(T(String(booking.status||''),({confirmed:'מאושרת',hold:'ממתינה',cancelled:'בוטלה'}[booking.status]||String(booking.status||''))))}</span></div>
+  box.innerHTML=`<div class="manage-head"><div><small>${T('BOOKING','הזמנה')}</small><h2>${esc(booking.reference)}</h2><p>${esc(experienceLabel(booking))}</p></div><span class="manage-status">${esc(bookingStatusLabel(booking.status))}</span></div>
   <div class="manage-summary"><div><small>${T('Date','תאריך')}</small><b>${esc(booking.selected_date)}</b></div><div><small>${T('Time','שעה')}</small><b>${esc(booking.slot_time)}</b></div><div><small>${T('Guests','משתתפים')}</small><b>${esc(booking.party_size)}</b></div><div><small>${T('Guide language','שפת הדרכה')}</small><b>${esc(guideLabel(booking.guide_language))}</b></div><div><small>${T('Total','סה״כ')}</small><b>${esc(booking.total)} ${esc(booking.currency||'EUR')}</b></div></div>
   <div class="manage-detail-strip"><span>${T('Riders 16+','רוכבים 16+')} · ${esc(gc.riders_16_plus||0)}</span>${Number(gc.child_passengers_3_15||0)>0?`<span>${T('Children 3–15','ילדים 3–15')} · ${esc(gc.child_passengers_3_15)}</span>`:''}${Number(gc.baby_passengers_1_2||0)>0?`<span>${T('Babies 1–2','פעוטות 1–2')} · ${esc(gc.baby_passengers_1_2)}</span>`:''}<span>${T('Payment','תשלום')} · ${esc(paymentStatusLabel(booking.payment_status))}</span>${booking.payment_method?`<span>${T('Payment method','אמצעי תשלום','Fizetési mód')} · ${esc(paymentMethodLabel(booking.payment_method))}</span>`:''}${Number(booking.balance_due||0)>0?`<span>${T('Balance due','יתרה לתשלום')} · ${esc(booking.balance_due)} ${esc(booking.currency||'EUR')}</span>`:''}<span>${T('Meeting point','נקודת מפגש','Találkozási pont')} · Városház utca 14, 1052 Budapest</span></div>
   <div class="manage-actions"><button class="btn secondary" type="button" id="manage-copy-ref">${T('Copy reference','העתקת מספר')}</button><a class="btn secondary" href="https://maps.app.goo.gl/BNqXWux5XAnHi2W19" target="_blank" rel="noopener">${T('Open meeting point','פתיחת נקודת המפגש','Találkozási pont megnyitása')}</a><a class="btn alt" href="${supportWhatsApp()}">WhatsApp</a><a class="btn secondary" href="${hu?'/hu/budapest/':he?'/he/budapest/':'/budapest/'}">${T('Back to Budapest','חזרה לבודפשט')}</a></div><p class="manage-security-note">${T('Keep this Manage Booking link private. Anyone with the link may be able to access this booking.','שמרו את קישור ניהול ההזמנה פרטי. מי שמחזיק בקישור עשוי לקבל גישה להזמנה.')}</p>
