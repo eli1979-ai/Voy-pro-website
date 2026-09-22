@@ -1299,7 +1299,10 @@
 
   const checkoutForm=document.querySelector('#live-checkout-form');
   if(checkoutForm){checkoutForm.addEventListener('submit',async e=>{
-    e.preventDefault();const st=document.querySelector('[data-checkout-status]');const f=new FormData(checkoutForm);const customer={full_name:String(f.get('full_name')||'').trim(),email:String(f.get('email')||'').trim(),phone:String(f.get('phone')||'').trim(),preferred_language:locale};
+    e.preventDefault();const st=document.querySelector('[data-checkout-status]');
+    const ancillary=document.querySelector('[data-ancillary-upsell]');
+    if(ancillary?.getAttribute('aria-busy')==='true'){if(st)st.textContent=ancillaryText('updating');return;}
+    const f=new FormData(checkoutForm);const customer={full_name:String(f.get('full_name')||'').trim(),email:String(f.get('email')||'').trim(),phone:String(f.get('phone')||'').trim(),preferred_language:locale};
     if(!customer.full_name||!customer.email||!customer.phone){st.textContent=t('Please complete name, email and phone.','יש להשלים שם, אימייל וטלפון.');return;}
     if(checkoutForm.dataset.submitting==='true')return;
     checkoutForm.dataset.submitting='true';checkoutForm.setAttribute('aria-busy','true');
