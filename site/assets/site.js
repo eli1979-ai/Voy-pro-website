@@ -97,6 +97,7 @@
     if((m=en.match(/^Children 3–15: (.+)$/))) return `Gyermekek 3–15: ${m[1]}`;
     if((m=en.match(/^Babies 1–2: (.+)$/))) return `Kisgyermekek 1–2: ${m[1]}`;
     if((m=en.match(/^Guide language: (.+)$/))) return `Vezetés nyelve: ${m[1]}`;
+    if((m=en.match(/^Payment: (.+)$/))) return `Fizetés: ${m[1]}`;
     return en;
   }
   const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):en;
