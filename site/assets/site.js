@@ -217,7 +217,7 @@
       route:'Tour',date:'Preferred date',people:'People',language:'Guide language',name:'Name',notes:'Notes',source:'Source',
       missing:'Please complete tour, date, guide language and name.'
     };
-    const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:'Megalithic Route'};
+    const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:locale==='pt'?'Rota Megalítica':'Megalithic Route'};
     const routeSelect=form.querySelector('[name="route"]');
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
