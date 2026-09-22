@@ -1240,7 +1240,7 @@
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:copy.budapestAddress,
       maps:'https://maps.app.goo.gl/rymYMLYjtKHSgjbt6?g_st=ac',
-      mapQuery:'Városház utca 14, 1052 Budapest, Hungary'
+      mapQuery:'place_id:ChIJR_q2zJXdQUcRtUmmtT-Ozb8'
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
       maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
