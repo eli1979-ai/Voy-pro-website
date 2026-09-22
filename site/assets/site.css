@@ -427,6 +427,7 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 .ancillary-add-btn{margin-top:auto;padding:10px 14px;border:0;border-radius:12px;background:#0d4d7c;color:#fff;font-weight:850;letter-spacing:.01em;cursor:pointer;box-shadow:0 8px 18px rgba(13,77,124,.18);transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
 .ancillary-add-btn:hover{transform:translateY(-1px);background:#0f5d92;box-shadow:0 10px 22px rgba(13,77,124,.24)}
 .ancillary-add-btn:focus-visible{outline:3px solid rgba(13,77,124,.24);outline-offset:2px}
+[data-ancillary-upsell][aria-busy="true"] .ancillary-add-btn,[data-ancillary-upsell][aria-busy="true"] .ancillary-qty button{opacity:.55;cursor:progress;pointer-events:none}
 .ancillary-selected-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto;padding-top:9px}
 .ancillary-added-label{font-size:.78rem;font-weight:850;color:#0d6a45;white-space:nowrap}
 .ancillary-qty{display:flex;align-items:center;gap:8px}
