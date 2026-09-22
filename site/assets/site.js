@@ -1106,7 +1106,9 @@
       ?`<span class="checkout-private-flag">${t('Private tour · your group only','סיור פרטי · הקבוצה שלכם בלבד')}</span>`
       :`<span class="checkout-standard-flag">${t('Scheduled tour','סיור רגיל')}</span>`;
     const sum=shell.querySelector('[data-checkout-summary]');
-    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(bookingState.experience.title)}</b><span>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
+    const localizedCheckoutProduct=fallbackBudapestProducts().find(p=>String(p.id)===String(bookingState.experience.id||'')||p.slug===bookingState.experience.slug);
+    const checkoutTourTitle=localizedCheckoutProduct?.title||bookingState.experience.title;
+    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(checkoutTourTitle)}</b><span>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
   }
   function selectedAncillaryQuantity(productId){
     const hit=(bookingState.extras||[]).find(x=>String(x.product_id)===String(productId));
