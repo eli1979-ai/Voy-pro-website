@@ -171,6 +171,10 @@
     if(Number(details.babies||0)>0)detailLines.push(t(`Babies 1–2: ${details.babies}`,`פעוטות 1–2: ${details.babies}`));
     if(details.guide_language)detailLines.push(t(`Guide language: ${guideLanguageLabel(details.guide_language)}`,`שפת הדרכה: ${guideLanguageLabel(details.guide_language)}`));
     if(details.is_private)detailLines.push(t('Private tour: yes','סיור פרטי: כן'));
+    if(Array.isArray(details.extras)&&details.extras.length){
+      const extrasText=details.extras.map(item=>`${item.name} ×${Number(item.quantity||0)}`).join(', ');
+      detailLines.push(`${ancillaryText('selectedExtras')}: ${extrasText}`);
+    }
     if(details.payment_method){const paymentName=details.payment_method==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):details.payment_method==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום');detailLines.push(t(`Payment: ${paymentName}`,`תשלום: ${paymentName}`));}
     if(details.total!=null)detailLines.push(t(`Total: ${money(details.total,details.currency||'EUR')}`,`סה״כ: ${money(details.total,details.currency||'EUR')}`));
     if(detailLines.length)lines.push('',...detailLines);
@@ -978,15 +982,18 @@
     const select=document.querySelector('#live-checkout-form [name="payment_method"]');
     if(select&&typeof select._voySyncPayment==='function')select._voySyncPayment();
   }
-  function renderSelectedAncillarySummary(){
+  function selectedAncillaryDetails(){
     const extras=Array.isArray(bookingState.extras)?bookingState.extras.filter(x=>Number(x?.quantity||0)>0):[];
-    if(!extras.length)return '';
     const offers=Array.isArray(bookingState.ancillaryOffers)?bookingState.ancillaryOffers:[];
-    const rows=extras.map(extra=>{
+    return extras.map(extra=>{
       const offer=offers.find(x=>String(x.product_id)===String(extra.product_id));
-      const name=offer?.name||offer?.sku||String(extra.product_id);
-      return `<span><b>${escapeHTML(name)}</b><strong>×${Number(extra.quantity||0)}</strong></span>`;
-    }).join('');
+      return {name:offer?.name||offer?.sku||String(extra.product_id),quantity:Number(extra.quantity||0)};
+    });
+  }
+  function renderSelectedAncillarySummary(){
+    const items=selectedAncillaryDetails();
+    if(!items.length)return '';
+    const rows=items.map(item=>`<span><b>${escapeHTML(item.name)}</b><strong>×${item.quantity}</strong></span>`).join('');
     return `<div class="checkout-extras-summary"><small>${escapeHTML(ancillaryText('selectedExtras'))}</small><div>${rows}</div></div>`;
   }
 
@@ -1211,7 +1218,7 @@
       const booking=await api('/bookings',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({hold_id:bookingState.hold.id,session_id:sid,customer,payment_method:paymentMethod,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,extras:bookingState.extras||[],promo_code:bookingState.promoCode||null})});
       clearInterval(holdTimer); bookingState.hold=null; delStore('voy_recovery_state');
       const manageToken=booking.manage_token||booking.secure_token||'';const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':'';const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
-      const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:booking.reference,experience_title:bookingState.experience?.title||booking.experience_title,date:bookingState.date||booking.selected_date,requested_time:bookingState.slot?.time||booking.slot_time,riders:bookingState.composition?.riders_16_plus||0,children:bookingState.composition?.child_passengers_3_15||0,babies:bookingState.composition?.baby_passengers_1_2||0,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage||booking.guide_language,payment_method:paymentMethod,total:booking.total,currency:booking.currency||'EUR'});
+      const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:booking.reference,experience_title:bookingState.experience?.title||booking.experience_title,date:bookingState.date||booking.selected_date,requested_time:bookingState.slot?.time||booking.slot_time,riders:bookingState.composition?.riders_16_plus||0,children:bookingState.composition?.child_passengers_3_15||0,babies:bookingState.composition?.baby_passengers_1_2||0,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage||booking.guide_language,payment_method:paymentMethod,extras:selectedAncillaryDetails(),total:booking.total,currency:booking.currency||'EUR'});
       terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon">✓</div><h3>${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(booking.reference)}</b></div><p>${escapeHTML(bookingState.date)} · ${escapeHTML(bookingState.slot.time)}${bookingState.isPrivate?` · ${t('Private tour','סיור פרטי')}`:''} · ${t('Guide','הדרכה')}: ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))} · ${t('Payment','תשלום')}: ${paymentMethod==='pay_arrival_cash'?t('cash on arrival','מזומן במקום'):t('card on arrival','כרטיס במקום')}</p><div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
       bindConfirmationActions(st,booking);checkoutForm.querySelectorAll('input,select,button:not([data-copy-booking-ref])').forEach(el=>el.disabled=true);document.querySelector('.mobilebook')?.setAttribute('hidden','');
       track('booking_completed',{booking_id:booking.id,reference:booking.reference,revenue:booking.total,currency:booking.currency,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,promo_code_applied:booking.promo_code_applied||bookingState.promoCode||null,discount:booking.discount||0});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});
