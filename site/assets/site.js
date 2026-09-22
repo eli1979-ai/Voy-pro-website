@@ -1239,10 +1239,12 @@
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:copy.budapestAddress,
-      maps:'https://maps.app.goo.gl/rymYMLYjtKHSgjbt6?g_st=ac'
+      maps:'https://maps.app.goo.gl/rymYMLYjtKHSgjbt6?g_st=ac',
+      mapQuery:'Városház utca 14, 1052 Budapest, Hungary'
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
-      maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac'
+      maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
+      mapQuery:'Pombais Experience & Villas, Marvão, Portugal'
     };
     const section=document.createElement('section');
     section.className='section meeting-point-section';
@@ -1255,11 +1257,16 @@
         <div class="meeting-point-address"><b>${escapeHTML(data.name)}</b><strong>${escapeHTML(data.address)}</strong></div>
         <a class="btn secondary meeting-point-button" href="${escapeHTML(data.maps)}" target="_blank" rel="noopener" data-track="meeting_point_maps">${escapeHTML(copy.maps)}</a>
       </div>
-      <a class="meeting-map-card" href="${escapeHTML(data.maps)}" target="_blank" rel="noopener" aria-label="${escapeHTML(copy.maps)}">
-        <span class="meeting-map-grid" aria-hidden="true"></span>
-        <span class="meeting-map-pin" aria-hidden="true"></span>
-        <span class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></span>
-      </a>
+      <div class="meeting-map-card">
+        <iframe
+          class="meeting-map-frame"
+          title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
+          src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=16&amp;output=embed"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen></iframe>
+        <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></div>
+      </div>
     </div>`;
     document.querySelector('main')?.appendChild(section);
   }
