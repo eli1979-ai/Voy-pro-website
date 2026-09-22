@@ -1164,6 +1164,8 @@
     }
   }
   async function changeAncillaryQuantity(productId,delta){
+    const node=document.querySelector('[data-ancillary-upsell]');
+    if(node?.getAttribute('aria-busy')==='true')return;
     const active=document.activeElement;
     const id=String(productId);
     const focusIntent=active?.dataset?.ancillaryMinus===id?'minus':active?.dataset?.ancillaryAdd===id?'add':'plus';
@@ -1175,11 +1177,11 @@
     const current=selectedAncillaryQuantity(productId);
     const next=Math.max(0,Math.min(max,current+delta));
     if(next===current)return;
+    if(node)node.setAttribute('aria-busy','true');
     const previous=[...(bookingState.extras||[])];
     const others=previous.filter(x=>String(x.product_id)!==String(productId));
     bookingState.extras=next?[...others,{product_id:productId,quantity:next}]:others;
     renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
-    const node=document.querySelector('[data-ancillary-upsell]');if(node)node.setAttribute('aria-busy','true');
     try{
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({
         slot_id:bookingState.slot.id,group_composition:bookingState.composition,
