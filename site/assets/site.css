@@ -434,7 +434,7 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 .ancillary-qty button:hover{background:#eef7fc}
 .ancillary-qty span{min-width:24px;text-align:center;font-weight:850}
 .ancillary-soldout{margin-top:auto;border:0;background:transparent;color:#7a838b;text-align:left;padding:9px 0 0;font-weight:700}
-.ancillary-payment-note{margin-top:12px;padding:9px 11px;border-radius:12px;background:rgba(13,77,124,.07);font-size:.82rem;color:#37505f}
+.ancillary-payment-note{margin-top:12px;padding:9px 11px;border-radius:12px;background:rgba(13,77,124,.07);font-size:.82rem;color:#37505f}.ancillary-load-error{padding:12px 14px;border:1px solid #e3cf9f;border-radius:14px;background:#fff8e8;color:#6f5200;font-size:.86rem;line-height:1.45}
 .rtl .ancillary-soldout{text-align:right}
 @media(max-width:720px){
   .ancillary-upsell{padding:14px;margin:14px 0 18px;border-radius:18px}
