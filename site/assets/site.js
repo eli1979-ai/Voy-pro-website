@@ -1314,10 +1314,14 @@
     const start=new Date(Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]),Number(tm[1]),Number(tm[2])));
     const end=new Date(start.getTime()+duration*60000);
     const compact=d=>`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}T${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}00`;
-    const title=encodeURIComponent(`${bookingState.experience?.title||booking?.experience_title||'VOY PRO Budapest'}${bookingState.isPrivate?' · Private':''}`);
+    const calendarTourTitle=localizedBudapestExperienceTitle(bookingState.experience,booking?.experience_title)||'VOY PRO Budapest';
+    const privateSuffix=bookingState.isPrivate?(locale==='he'?' · פרטי':locale==='hu'?' · Privát':' · Private'):'';
+    const title=encodeURIComponent(`${calendarTourTitle}${privateSuffix}`);
     const meetingPoint='Városház utca 14, 1052 Budapest, Hungary';
     const mapsUrl='https://maps.app.goo.gl/BNqXWux5XAnHi2W19';
-    const details=encodeURIComponent(`VOY PRO booking ${booking?.reference||''}\nMeeting point: ${meetingPoint}\nGoogle Maps: ${mapsUrl}`);
+    const bookingLabel=locale==='he'?'הזמנת VOY PRO':locale==='hu'?'VOY PRO foglalás':'VOY PRO booking';
+    const meetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':'Meeting point';
+    const details=encodeURIComponent(`${bookingLabel} ${booking?.reference||''}\n${meetingLabel}: ${meetingPoint}\nGoogle Maps: ${mapsUrl}`);
     const locationParam=encodeURIComponent(meetingPoint);
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${compact(start)}/${compact(end)}&ctz=Europe%2FBudapest&details=${details}&location=${locationParam}`;
   }
