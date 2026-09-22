@@ -1113,7 +1113,7 @@
       :`<span class="checkout-standard-flag">${t('Scheduled tour','סיור רגיל')}</span>`;
     const sum=shell.querySelector('[data-checkout-summary]');
     const checkoutTourTitle=localizedBudapestExperienceTitle(bookingState.experience);
-    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(checkoutTourTitle)}</b><span>${escapeHTML(confirmationDateLabel(bookingState.date))} · ${escapeHTML(bookingState.slot.time)}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
+    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(checkoutTourTitle)}</b><span>${escapeHTML(confirmationDateLabel(bookingState.date))} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
   }
   function selectedAncillaryQuantity(productId){
     const hit=(bookingState.extras||[]).find(x=>String(x.product_id)===String(productId));
