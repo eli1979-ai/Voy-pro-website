@@ -1014,6 +1014,21 @@
     if(sku.includes('DRONE'))return lang.DRONE;
     return offer?.product_kind==='rental'?ancillaryText('rentalNote'):ancillaryText('saleNote');
   }
+  function ancillaryCta(offer){
+    const sku=String(offer?.sku||'').toUpperCase();
+    const copy={
+      en:{GOPRO:'Rent GoPro',WARMER:'Add warmth',HAT:'Add hat',SCARF:'Add scarf',DRONE:'Rent drone'},
+      he:{GOPRO:'השכרת GoPro',WARMER:'הוספת חימום',HAT:'הוספת כובע',SCARF:'הוספת צעיף',DRONE:'השכרת רחפן'},
+      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drón bérlése'}
+    };
+    const lang=copy[locale]||copy.en;
+    if(sku.includes('GOPRO'))return lang.GOPRO;
+    if(sku.includes('WARMER'))return lang.WARMER;
+    if(sku.includes('HAT'))return lang.HAT;
+    if(sku.includes('SCARF'))return lang.SCARF;
+    if(sku.includes('DRONE'))return lang.DRONE;
+    return ancillaryText('add');
+  }
   function syncAncillaryPaymentAvailability(){
     const select=document.querySelector('#live-checkout-form [name="payment_method"]');
     if(select&&typeof select._voySyncPayment==='function')select._voySyncPayment();
@@ -1076,7 +1091,7 @@
           <h4>${escapeHTML(offer.name)}</h4><p>${escapeHTML(note)}</p>
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
           qty===0
-            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('add'))}: ${escapeHTML(offer.name)}">${escapeHTML(ancillaryText('add'))}</button>`
+            ?`<button type="button" class="ancillary-add-btn" data-ancillary-add="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryCta(offer))}: ${escapeHTML(offer.name)}">${escapeHTML(ancillaryCta(offer))}</button>`
             :`<div class="ancillary-selected-row">
                 <span class="ancillary-added-label">✓ ${escapeHTML(ancillaryText('added'))}</span>
                 <div class="ancillary-qty" aria-label="${escapeHTML(offer.name)}">
