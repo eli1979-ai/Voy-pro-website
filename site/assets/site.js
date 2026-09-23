@@ -264,8 +264,8 @@
 
   function enhanceMobileNavigation(){
     const nav=document.querySelector('.navlinks'); if(!nav||document.querySelector('.nav-menu-toggle')) return;
-    const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
-    const sheet=document.createElement('div');sheet.className='mobile-nav-sheet';sheet.hidden=true;
+    const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls','mobile-nav-sheet');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
+    const sheet=document.createElement('div');sheet.id='mobile-nav-sheet';sheet.className='mobile-nav-sheet';sheet.hidden=true;
     if(isPortugalPage){
       const portugalHome=locale==='he'?'/he/portugal/':locale==='pt'?'/pt/portugal/':'/portugal/';
       const budapestHome=locale==='he'?'/he/budapest/':'/budapest/';
