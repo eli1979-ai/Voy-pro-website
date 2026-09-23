@@ -575,6 +575,7 @@
   }
   enhanceFormLabels();
   const availabilityStatus=document.querySelector('#availability-status');if(availabilityStatus){availabilityStatus.setAttribute('role','status');availabilityStatus.setAttribute('aria-live','polite');}
+  const slotList=document.querySelector('#slotlist');if(slotList){slotList.setAttribute('role','group');slotList.setAttribute('aria-label',t('Choose a departure:','בחרו שעה:'));}
 
   document.querySelectorAll('details[data-faq]').forEach(d=>d.addEventListener('toggle',()=>{if(d.open) track('faq_opened',{question:d.dataset.faq});}));
   document.querySelectorAll('[data-review-source]').forEach(a=>a.addEventListener('click',()=>track('trust_source_clicked',{provider:a.dataset.reviewSource})));
