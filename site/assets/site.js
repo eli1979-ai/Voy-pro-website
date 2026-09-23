@@ -482,7 +482,7 @@
     if(locale==='pt') return {aria:'Preferências de cookies',title:'As suas escolhas de privacidade',body:'O armazenamento essencial mantém as funções de reserva. A análise opcional ajuda-nos a perceber que páginas e campanhas levam a reservas.',essential:'Apenas essencial',analytics:'Permitir análise'};
     return {aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),body:t('Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.','אחסון חיוני מפעיל את תהליך ההזמנה. אנליטיקה אופציונלית עוזרת לנו להבין אילו עמודים וקמפיינים מובילים להזמנות.'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה')};
   }
-  function showConsentPreferences(force=false){
+  function showConsentPreferences(force=false,returnFocusTo=null){
     document.documentElement.dataset.analyticsConsent=analyticsAllowed()?'granted':'denied';
     if(document.querySelector('.consent-banner')||(!force&&consent.decided)) return;
     const copy=consentCopy();
@@ -494,12 +494,12 @@
     document.body.appendChild(bar);
     document.body.classList.add('consent-open');
     if(force) bar.querySelector('[data-consent-essential]').focus();
-    bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});document.body.classList.remove('consent-open');bar.remove();});
+    bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});document.body.classList.remove('consent-open');bar.remove();returnFocusTo?.focus();});
     bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{setConsent({analytics:true,marketing:false});document.body.classList.remove('consent-open');bar.remove();location.reload();});
   }
   function initConsent(){
     showConsentPreferences(false);
-    document.querySelectorAll('[data-cookie-settings]').forEach(btn=>btn.addEventListener('click',()=>showConsentPreferences(true)));
+    document.querySelectorAll('[data-cookie-settings]').forEach(btn=>btn.addEventListener('click',()=>showConsentPreferences(true,btn)));
   }
   initAccessibility();
   initConsent();
