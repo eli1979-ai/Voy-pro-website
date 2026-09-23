@@ -881,7 +881,7 @@
       releaseHold();shell.hidden=true;setBookingStep(1);
       const slots=document.querySelector('#slotlist');if(slots)slots.innerHTML='';
       const status=document.querySelector('#availability-status');if(status)status.textContent=t('Selection unlocked. Update the tour, date or group and search again.','הבחירה נפתחה מחדש. עדכנו סיור, תאריך או קבוצה וחפשו שוב.');
-      document.querySelector('#availability-form')?.scrollIntoView({behavior:'smooth',block:'center'});
+      const availabilityForm=document.querySelector('#availability-form');availabilityForm?.querySelector('[name="experience"]')?.focus({preventScroll:true});availabilityForm?.scrollIntoView({behavior:'smooth',block:'center'});
       track('checkout_edit_selection',{page});patchSession({stage:'selection_edit'});
     });
   }
