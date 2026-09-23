@@ -283,7 +283,7 @@
     const mobileWa=sheet.querySelector('[data-mobile-nav-wa]');
     if(mobileWa){mobileWa.href=whatsAppUrl();mobileWa.addEventListener('click',()=>track('whatsapp_clicked',{page,context:'mobile_nav'}));}
     const close=()=>{sheet.hidden=true;btn.setAttribute('aria-expanded','false');document.body.classList.remove('nav-open')};
-    btn.onclick=()=>{sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open')};sheet.querySelector('.mobile-nav-close').onclick=close;sheet.addEventListener('click',e=>{if(e.target===sheet)close()});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
+    btn.onclick=()=>{sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open')};sheet.querySelector('.mobile-nav-close').onclick=close;sheet.addEventListener('click',e=>{if(e.target===sheet)close()});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus()}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
   }
   function rescueMarkup(message){return `${message}<div class="status-actions"><a class="btn secondary" href="#" data-inline-wa>${t('Ask us on WhatsApp','פנייה ב‑WhatsApp')}</a><a class="btn secondary" href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('View Buda tour','לצפייה בסיור בודה')}</a></div>`}
   function bindInlineWhatsApp(root=document){root.querySelectorAll('[data-inline-wa]').forEach(a=>{a.href=whatsAppUrl();a.onclick=()=>track('whatsapp_clicked',{page,context:'booking_rescue'})})}
