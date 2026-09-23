@@ -251,8 +251,22 @@ jobs:
             echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           } > /tmp/pr-body.md
 
-          URL="$(gh pr create             --draft             --base main             --head "$BRANCH"             --title "Agent: atomic VOY PRO development task"             --body-file /tmp/pr-body.md)"
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          set +e
+          URL="$(gh pr create             --draft             --base main             --head "$BRANCH"             --title "Agent: atomic VOY PRO development task"             --body-file /tmp/pr-body.md 2>/tmp/pr-create-error.log)"
+          PR_STATUS=$?
+          set -e
+
+          if [ "$PR_STATUS" -eq 0 ] && [ -n "$URL" ]; then
+            echo "url=$URL" >> "$GITHUB_OUTPUT"
+            echo "created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=" >> "$GITHUB_OUTPUT"
+            echo "created=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Draft PR could not be created automatically. The checkpoint branch was pushed successfully and remains available for controller/human PR creation."
+            if [ -s /tmp/pr-create-error.log ]; then
+              cat /tmp/pr-create-error.log
+            fi
+          fi
 
       - name: Write run summary
         if: always()
@@ -260,12 +274,16 @@ jobs:
         env:
           CODEX_FINAL: ${{ steps.codex.outputs.final-message }}
           PR_URL: ${{ steps.pr.outputs.url }}
+          PR_CREATED: ${{ steps.pr.outputs.created }}
+          BRANCH: ${{ steps.branch.outputs.name }}
         run: |
           {
             echo "## VOY PRO Development Orchestrator"
             echo
             if [ -n "$PR_URL" ]; then
               echo "Draft PR: $PR_URL"
+            elif [ "$PR_CREATED" = "false" ]; then
+              echo "Draft PR creation was unavailable; checkpoint branch is ready: `$BRANCH`"
             fi
             echo
             echo "### Codex report"
