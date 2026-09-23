@@ -1,0 +1,190 @@
+name: VOY PRO Development Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'One atomic development task'
+        required: true
+        type: string
+      base_branch:
+        description: 'Base branch'
+        required: true
+        default: 'main'
+        type: string
+
+concurrency:
+  group: voy-development-orchestrator
+  cancel-in-progress: false
+
+jobs:
+  orchestrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Enforce approved base branch
+        shell: bash
+        env:
+          BASE_BRANCH: ${{ inputs.base_branch }}
+        run: |
+          set -euo pipefail
+          if [ "$BASE_BRANCH" != "main" ]; then
+            echo "v1 only permits main as the base branch."
+            exit 1
+          fi
+
+      - name: Check out current main
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify OpenAI secret exists
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "Missing repository Actions secret OPENAI_API_KEY."
+            exit 1
+          fi
+
+      - name: Preflight repository validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          npm run verify:launch
+          npm run qa:site
+
+      - name: Create isolated working branch
+        id: branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="agent/${GITHUB_RUN_ID}"
+          git switch -c "$BRANCH"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Run Codex implementation
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ':workspace'
+          effort: 'medium'
+          prompt: |
+            You are the implementation worker inside the VOY PRO Development Orchestrator.
+
+            Read AGENTS.md before making any change.
+            Inspect the current repository implementation before editing.
+            Perform exactly ONE atomic task:
+
+            ${{ inputs.task }}
+
+            Rules:
+            - Make the smallest complete change.
+            - Do not change business rules unless the task explicitly says to do so.
+            - Do not edit .github/**, AGENTS.md, vercel.json, package.json, or legacy/**.
+            - Do not merge or deploy production.
+            - Run the relevant repository checks while working.
+            - Stop after this task is complete.
+            - In your final response list files changed, checks run, remaining risk, and the next recommended atomic task.
+
+      - name: Enforce protected paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only)"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -E '^(\.github/|AGENTS\.md$|vercel\.json$|package\.json$|legacy/)'; then
+            echo "Agent changed a protected path. Human approval is required; rejecting this run."
+            exit 1
+          fi
+
+      - name: Require an implementation change
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Codex made no repository changes."
+            exit 1
+          fi
+
+      - name: Post-change validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          npm run verify:launch
+          npm run qa:site
+
+      - name: Commit and push checkpoint branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          set -euo pipefail
+          git config user.name "voy-development-orchestrator"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Agent: atomic development task"
+          git remote set-url origin "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git"
+          git push --set-upstream origin "$BRANCH"
+
+      - name: Open draft pull request
+        id: pr
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+          TASK: ${{ inputs.task }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Atomic task"
+            echo "$TASK"
+            echo
+            echo "## Orchestrator contract"
+            echo "- Implemented from current main"
+            echo "- Protected paths enforced"
+            echo "- npm run build passed"
+            echo "- npm run verify:launch passed"
+            echo "- npm run qa:site passed"
+            echo "- Draft PR only; no automatic merge"
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          } > /tmp/pr-body.md
+
+          URL="$(gh pr create             --draft             --base main             --head "$BRANCH"             --title "Agent: atomic VOY PRO development task"             --body-file /tmp/pr-body.md)"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Write run summary
+        if: always()
+        shell: bash
+        env:
+          CODEX_FINAL: ${{ steps.codex.outputs.final-message }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+        run: |
+          {
+            echo "## VOY PRO Development Orchestrator"
+            echo
+            if [ -n "$PR_URL" ]; then
+              echo "Draft PR: $PR_URL"
+            fi
+            echo
+            echo "### Codex report"
+            echo "$CODEX_FINAL"
+          } >> "$GITHUB_STEP_SUMMARY"
