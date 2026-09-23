@@ -493,6 +493,7 @@
     bar.innerHTML=`<div><b>${copy.title}</b><p>${copy.body}</p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${copy.essential}</button><button type="button" class="btn" data-consent-analytics>${copy.analytics}</button></div>`;
     document.body.appendChild(bar);
     document.body.classList.add('consent-open');
+    if(force) bar.querySelector('[data-consent-essential]').focus();
     bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});document.body.classList.remove('consent-open');bar.remove();});
     bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{setConsent({analytics:true,marketing:false});document.body.classList.remove('consent-open');bar.remove();location.reload();});
   }
