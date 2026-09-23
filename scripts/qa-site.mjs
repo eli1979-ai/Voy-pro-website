@@ -126,6 +126,10 @@ if(!/Disallow:\s*\//i.test(robots)) errors.push('robots.txt: staging crawl block
 const js=read(path.join(site,'assets','site.js'));
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
+if(!/<option value="pay_now_card" disabled>/.test(js)) errors.push('assets/site.js: visible online-card payment option missing');
+if(!/const onlineReady=Boolean\(caps\?\.online_card\)/.test(js)) errors.push('assets/site.js: online-card capability gating missing');
+if(!/payNow\.disabled=!onlineReady/.test(js)) errors.push('assets/site.js: online-card disabled state is not tied to capability');
+if(!/location\.assign\(payment\.checkout_url\)/.test(js)) errors.push('assets/site.js: secure checkout redirect missing');
 
 // Check gallery, social, structured-data and runtime image references offline.
 const imageSources=walk(site).filter(p=>/\.(?:html|css|js)$/.test(p));
