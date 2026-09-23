@@ -187,7 +187,7 @@ jobs:
           for(const [name,html] of Object.entries({en,he,hu})){
             if(!/Prague|פראג|Prága/.test(html)||!/data-cookie-settings/.test(html)||!/legal\/privacy\//.test(html)) throw new Error(name+' footer legal/branches missing');
           }
-          if(!/showConsentPreferences\(force=false\)/.test(js)||!/data-cookie-settings/.test(js)) throw new Error('Cookie preference reopening missing');
+          if(!/showConsentPreferences\(force=false,returnFocusTo=null\)/.test(js)||!/data-cookie-settings/.test(js)) throw new Error('Cookie preference reopening missing');
           if(!/name="legal_acceptance" required/.test(js)||!/Book now – payment obligation/.test(js)) throw new Error('Binding checkout legal acceptance/payment wording missing');
           if(!/data-checkout-legal/.test(js)||!/legal\.hidden=true/.test(js)) throw new Error('Non-binding request legal-state separation missing');
           if(!/const isLegalPage=routePath\.includes\('\/legal\/'\)/.test(js)||!/!isLegalPage&&cfg\.bookingEnabled/.test(js)) throw new Error('Legal pages must not create booking analytics sessions');
