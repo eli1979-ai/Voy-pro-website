@@ -256,7 +256,7 @@
       if(attr.campaign)lines.push((locale==='pt'?'Campanha':locale==='he'?'קמפיין':'Campaign')+': '+attr.campaign);
       const affiliateRef=qs.get('ref')||qs.get('affiliate')||null;
       if(affiliateRef)lines.push((locale==='pt'?'Referência':locale==='he'?'קוד הפניה':'Referral')+': '+affiliateRef);
-      lines.push((locale==='pt'?'Página':'Page')+': '+location.pathname);
+      lines.push((locale==='pt'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname);
       location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
     });
   }
