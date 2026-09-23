@@ -472,6 +472,7 @@
 
   function initAccessibility(){
     document.querySelector('main')?.setAttribute('id','main-content');
+    document.querySelectorAll('[data-booking-step].is-active').forEach(el=>el.setAttribute('aria-current','step'));
     document.querySelectorAll('.status,[data-checkout-status],[data-hold-timer]').forEach(el=>{el.setAttribute('role','status');el.setAttribute('aria-live','polite');});
     document.querySelectorAll('.field').forEach((field,i)=>{
       const label=field.querySelector('label'); const control=field.querySelector('input,select,textarea');
@@ -945,6 +946,7 @@
       const n=Number(el.getAttribute('data-booking-step'));
       el.classList.toggle('is-active',n===step);
       el.classList.toggle('is-done',n<step);
+      if(n===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
     });
     const mobileCta=document.querySelector('.mobilebook .btn');
     if(mobileCta){
