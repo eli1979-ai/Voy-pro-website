@@ -127,8 +127,22 @@ const js=read(path.join(site,'assets','site.js'));
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
 
-const legacyMedia=[...new Set(htmlFiles.flatMap(p=>[...read(p).matchAll(/https:\/\/ezraidereu\.com\/budapest\/wp-content\/[^"' )<]+/gi)].map(m=>m[0])))];
-if(legacyMedia.length) warn('site','still depends on '+legacyMedia.length+' unique EZRaiderEU media URLs');
+// Check gallery, social, structured-data and runtime image references offline.
+const imageSources=walk(site).filter(p=>/\.(?:html|css|js)$/.test(p));
+for(const source of imageSources){
+  const file=rel(source), content=read(source);
+  if(/https?:\/\/(?:www\.)?(?:ezraidereu\.com\/budapest|pombais\.pt\/turismo)\/wp-content\//i.test(content)){
+    fail(file,'external EZRaiderEU/Pombais media dependency remains');
+  }
+  const images=new Set([...content.matchAll(/\/assets\/images\/[^\s"'<>`)]+/g)].map(m=>m[0]));
+  for(const image of images){
+    const pathname=decodeURIComponent(new URL(image,'https://voy-pro.com').pathname);
+    const asset=path.join(site,pathname);
+    if(!fs.existsSync(asset)||!fs.statSync(asset).isFile()||fs.statSync(asset).size===0){
+      fail(file,'local image missing or empty: '+image);
+    }
+  }
+}
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
