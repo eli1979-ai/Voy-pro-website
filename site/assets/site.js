@@ -393,6 +393,7 @@
     const cta=document.querySelector('[data-personalize-cta]'); if(cta){cta.textContent=t('See the most popular route','לצפייה במסלול הפופולרי');cta.href=localeBudapestCore('tours/buda-castle-ezraider-tour/');}
   }
   document.documentElement.dataset.trustVariant=experiments.trust_placement_v1||'default';
+  document.querySelectorAll('.language-picker .lang-switch.active, .language-picker .lang-switch.is-current').forEach(link=>link.setAttribute('aria-current','page'));
   enhanceMobileNavigation();
 
   function optimizeHomeConversion(){
