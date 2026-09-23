@@ -12,6 +12,10 @@ on:
         required: true
         default: 'main'
         type: string
+      source_pr:
+        description: 'Optional source PR number to prefetch as a read-only local reference'
+        required: false
+        type: string
 
 concurrency:
   group: voy-development-orchestrator
@@ -68,6 +72,63 @@ jobs:
           npm run verify:launch
           npm run qa:site
 
+      - name: Prepare optional source PR reference
+        id: source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_PR: ${{ inputs.source_pr }}
+        run: |
+          set -euo pipefail
+          ROOT="/tmp/orchestrator-source"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+
+          if [ -z "$SOURCE_PR" ]; then
+            echo "provided=false" >> "$GITHUB_OUTPUT"
+            echo "No source PR requested." > "$ROOT/README.txt"
+            exit 0
+          fi
+
+          case "$SOURCE_PR" in
+            *[!0-9]*)
+              echo "source_pr must be a numeric pull request number."
+              exit 1
+              ;;
+          esac
+
+          gh pr view "$SOURCE_PR" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json number,title,state,url,baseRefName,baseRefOid,headRefName,headRefOid \
+            > "$ROOT/metadata.json"
+
+          gh pr diff "$SOURCE_PR" \
+            --repo "$GITHUB_REPOSITORY" \
+            > "$ROOT/source.patch"
+
+          gh pr view "$SOURCE_PR" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json files \
+            --jq '.files[].path' \
+            > "$ROOT/files.txt"
+
+          HEAD_SHA="$(gh pr view "$SOURCE_PR" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json headRefOid \
+            --jq '.headRefOid')"
+
+          mkdir -p "$ROOT/tree"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$GITHUB_REPOSITORY/tarball/$HEAD_SHA" \
+            > "$ROOT/source.tar.gz"
+          tar -xzf "$ROOT/source.tar.gz" --strip-components=1 -C "$ROOT/tree"
+          rm "$ROOT/source.tar.gz"
+
+          chmod -R a-w "$ROOT"
+          echo "provided=true" >> "$GITHUB_OUTPUT"
+          echo "path=$ROOT" >> "$GITHUB_OUTPUT"
+
       - name: Create isolated working branch
         id: branch
         shell: bash
@@ -89,6 +150,15 @@ jobs:
 
             Read AGENTS.md before making any change.
             Inspect the current repository implementation before editing.
+            Source PR input: ${{ inputs.source_pr }}
+            If a source PR was provided, its read-only local reference is available at /tmp/orchestrator-source:
+            - metadata.json: PR metadata
+            - source.patch: complete PR diff against its base
+            - files.txt: changed-file list
+            - tree/: full source-PR head tree snapshot
+            Use those local files instead of network access or GitHub CLI calls.
+            Do not modify /tmp/orchestrator-source.
+
             Perform exactly ONE atomic task:
 
             ${{ inputs.task }}
