@@ -71,6 +71,12 @@ jobs:
           npm run build
           npm run verify:launch
           npm run qa:site
+          rm -rf dist
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Preflight left the working tree dirty after generated-output cleanup."
+            git status --short
+            exit 1
+          fi
 
       - name: Prepare optional source PR reference
         id: source
@@ -172,11 +178,17 @@ jobs:
             - Stop after this task is complete.
             - In your final response list files changed, checks run, remaining risk, and the next recommended atomic task.
 
+      - name: Remove generated validation output
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist
+
       - name: Enforce protected paths
         shell: bash
         run: |
           set -euo pipefail
-          CHANGED="$(git diff --name-only)"
+          CHANGED="$( { git diff --name-only; git ls-files --others --exclude-standard; } | sort -u )"
           echo "$CHANGED"
           if echo "$CHANGED" | grep -E '^(\.github/|AGENTS\.md$|vercel\.json$|package\.json$|legacy/)'; then
             echo "Agent changed a protected path. Human approval is required; rejecting this run."
@@ -199,6 +211,7 @@ jobs:
           npm run build
           npm run verify:launch
           npm run qa:site
+          rm -rf dist
 
       - name: Commit and push checkpoint branch
         shell: bash
