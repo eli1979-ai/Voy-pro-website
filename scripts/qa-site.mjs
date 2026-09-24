@@ -130,6 +130,12 @@ if(!/<option value="pay_now_card" disabled>/.test(js)) errors.push('assets/site.
 if(!/const onlineReady=Boolean\(caps\?\.online_card\)/.test(js)) errors.push('assets/site.js: online-card capability gating missing');
 if(!/payNow\.disabled=!onlineReady/.test(js)) errors.push('assets/site.js: online-card disabled state is not tied to capability');
 if(!/location\.assign\(payment\.checkout_url\)/.test(js)) errors.push('assets/site.js: secure checkout redirect missing');
+if(!/const PAYMENT_RETRY_KEY='voy_payment_retry_v1'/.test(js)) errors.push('assets/site.js: Stripe checkout retry session key missing');
+if(!/sessionStorage\.setItem\(PAYMENT_RETRY_KEY/.test(js)) errors.push('assets/site.js: Stripe checkout retry state is not stored per-tab');
+if(!/u\.hostname==='checkout\.stripe\.com'/.test(js)) errors.push('assets/site.js: Stripe retry URL host validation missing');
+if(!/rememberPaymentRetry\(payment\);patchSession\(\{stage:'payment_redirect'/.test(js)) errors.push('assets/site.js: active Stripe checkout is not remembered before redirect');
+if(!/data-payment-retry/.test(js)||!/payment_retry_clicked/.test(js)) errors.push('assets/site.js: cancelled-payment retry action missing');
+if(!/qs\.get\('payment'\)==='success'\)\{clearPaymentRetry\(\);return;\}/.test(js)) errors.push('assets/site.js: stale Stripe retry state is not cleared after success');
 
 // Check gallery, social, structured-data and runtime image references offline.
 const imageSources=walk(site).filter(p=>/\.(?:html|css|js)$/.test(p));
