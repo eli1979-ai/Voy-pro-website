@@ -45,6 +45,40 @@
     memoryStore.delete(k);
     if(ESSENTIAL_KEYS.has(k)||analyticsAllowed()){try{localStorage.removeItem(k)}catch(e){}}
   };
+  const PAYMENT_RETRY_KEY='voy_payment_retry_v1';
+  function isStripeCheckoutUrl(value){
+    try{
+      const u=new URL(String(value||''));
+      return u.protocol==='https:'&&u.hostname==='checkout.stripe.com';
+    }catch(e){return false;}
+  }
+  function rememberPaymentRetry(payment){
+    const checkoutUrl=String(payment?.checkout_url||'').trim();
+    if(!isStripeCheckoutUrl(checkoutUrl))return;
+    const expiresMs=Date.parse(String(payment?.expires_at||''));
+    const fallbackExpires=Date.now()+45*60*1000;
+    const state={
+      version:1,
+      saved_at:Date.now(),
+      checkout_url:checkoutUrl,
+      expires_at:Number.isFinite(expiresMs)?new Date(expiresMs).toISOString():new Date(fallbackExpires).toISOString(),
+      booking_id:payment?.booking_id||null,
+      booking_reference:payment?.booking_reference||null,
+      payment_checkout_id:payment?.id||null
+    };
+    try{sessionStorage.setItem(PAYMENT_RETRY_KEY,JSON.stringify(state))}catch(e){}
+  }
+  function paymentRetryState(){
+    let state=null;
+    try{state=safeJSON(sessionStorage.getItem(PAYMENT_RETRY_KEY))}catch(e){}
+    if(!state||!isStripeCheckoutUrl(state.checkout_url)){clearPaymentRetry();return null;}
+    const expiresMs=Date.parse(String(state.expires_at||''));
+    if(!Number.isFinite(expiresMs)||expiresMs<=Date.now()){clearPaymentRetry();return null;}
+    return state;
+  }
+  function clearPaymentRetry(){
+    try{sessionStorage.removeItem(PAYMENT_RETRY_KEY)}catch(e){}
+  }
   function setConsent(next){
     consent={decided:true,analytics:!!next.analytics,marketing:!!next.marketing,updated_at:new Date().toISOString()};
     try{localStorage.setItem(CONSENT_KEY,JSON.stringify(consent))}catch(e){}
@@ -1387,7 +1421,7 @@
         st.textContent=t('Opening secure card payment…','פותחים תשלום מאובטח בכרטיס…');
         const payment=await api('/payments/intents',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({payment_type:'online',payment_method:'pay_now_card',hold_id:bookingState.hold.id,session_id:sid,customer,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,currency:bookingState.quote?.currency||'EUR',extras:bookingState.extras||[],promo_code:bookingState.promoCode||null})});
         if(!payment?.checkout_url)throw Object.assign(new Error('Secure card payment could not be started.'),{code:'PAYMENT_START_FAILED'});
-        terminal=true;patchSession({stage:'payment_redirect',payment_provider:'stripe',payment_checkout_id:payment.id,booking_id:payment.booking_id,booking_reference:payment.booking_reference});
+        terminal=true;rememberPaymentRetry(payment);patchSession({stage:'payment_redirect',payment_provider:'stripe',payment_checkout_id:payment.id,booking_id:payment.booking_id,booking_reference:payment.booking_reference});
         location.assign(payment.checkout_url);
         return;
       }
@@ -1407,10 +1441,27 @@
   });}
 
   function initPaymentReturnNotice(){
+    if(qs.get('payment')==='success'){clearPaymentRetry();return;}
     if(!form||qs.get('payment')!=='cancelled')return;
-    const status=document.querySelector('#availability-status');if(status){status.innerHTML=rescueMarkup(t('Card payment was cancelled. No successful online card payment was completed. Restore your selection to recheck availability, or contact us on WhatsApp for help.','תשלום הכרטיס בוטל. לא הושלם תשלום מקוון מוצלח. אפשר לשחזר את הבחירה ולבדוק זמינות מחדש, או לפנות אלינו ב-WhatsApp לעזרה.'));bindInlineWhatsApp(status);}
+    const retry=paymentRetryState();
+    const status=document.querySelector('#availability-status');
+    if(status){
+      const message=retry
+        ?t('Card payment was cancelled. No charge was made. Your secure Stripe checkout is still available, so you can retry the card payment without creating a new booking.','תשלום הכרטיס בוטל ולא בוצע חיוב. התשלום המאובטח ב-Stripe עדיין זמין, ולכן אפשר לנסות שוב בלי ליצור הזמנה חדשה.')
+        :t('Card payment was cancelled. No successful online card payment was completed. Restore your selection to recheck availability, or contact us on WhatsApp for help.','תשלום הכרטיס בוטל. לא הושלם תשלום מקוון מוצלח. אפשר לשחזר את הבחירה ולבדוק זמינות מחדש, או לפנות אלינו ב-WhatsApp לעזרה.');
+      let markup=rescueMarkup(message);
+      if(retry){
+        const retryLabel=t('Retry card payment','חזרה לתשלום בכרטיס');
+        const retryHref=escapeHTML(retry.checkout_url);
+        markup=markup.replace('<div class="status-actions">','<div class="status-actions"><a class="btn" data-payment-retry href="'+retryHref+'">'+escapeHTML(retryLabel)+'</a>');
+      }
+      status.innerHTML=markup;
+      bindInlineWhatsApp(status);
+      const retryLink=status.querySelector('[data-payment-retry]');
+      if(retryLink)retryLink.addEventListener('click',()=>{patchSession({stage:'payment_retry_redirect',payment_provider:'stripe',payment_checkout_id:retry.payment_checkout_id||null,booking_id:retry.booking_id||null,booking_reference:retry.booking_reference||null});track('payment_retry_clicked',{page,booking_id:retry.booking_id||null,booking_reference:retry.booking_reference||null});});
+    }
     const clean=new URL(location.href);clean.searchParams.delete('payment');history.replaceState({},'',clean.pathname+(clean.searchParams.toString()?'?'+clean.searchParams.toString():'')+(clean.hash||'#booking'));
-    patchSession({stage:'payment_cancelled_return'});track('payment_cancelled_return',{page});
+    patchSession({stage:'payment_cancelled_return'});track('payment_cancelled_return',{page,retry_available:Boolean(retry)});
   }
 
   const WEBSITE_VISUAL_COPY={
