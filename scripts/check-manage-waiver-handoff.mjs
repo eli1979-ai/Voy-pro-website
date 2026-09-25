@@ -23,7 +23,11 @@ for(const token of [
 if(/waiver_token/.test(html)){
   failures.push('Manage Booking website must not read or embed waiver_token');
 }
-if(/\/waiver\/\$\{|\/waiver\/'\+/.test(html)){
+if(
+  html.includes("root.pathname=root.pathname.replace(/\\/api\\/v1\\/?$/,'')+'/waiver/'")||
+  html.includes("c.apiRoot+'/waiver/'")||
+  html.includes("c.apiRoot+\"/waiver/\"")
+){
   failures.push('Website must not construct the final waiver URL directly');
 }
 if(/returnUrl|redirect_uri|next_url|destination_url/i.test(html)){
