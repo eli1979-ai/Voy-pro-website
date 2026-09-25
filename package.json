@@ -3,7 +3,7 @@
   "version": "1.47.12",
   "private": true,
   "scripts": {
-    "build": "node scripts/check-payment-success-return.mjs && rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js",
+    "build": "node scripts/check-manage-rider-waiver-intake.mjs && node scripts/check-payment-success-return.mjs && rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js",
     "verify:launch": "node scripts/verify-launch-readiness.mjs",
     "qa:site": "node scripts/qa-site.mjs"
   }
