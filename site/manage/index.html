@@ -23,7 +23,7 @@
  if(!token||!c.bookingEnabled){box.innerHTML='<p>'+T('Booking management is not available from this link.','ניהול ההזמנה אינו זמין מהקישור הזה.')+'</p>';return;}
  const h={'x-voy-client-key':c.clientKey,'x-voy-client':'voy-pro-website','content-type':'application/json'};
  const api=async(path,opt={})=>{const r=await fetch(c.apiRoot+path,{...opt,headers:{...h,...(opt.headers||{})}});let x={};try{x=await r.json()}catch(e){}if(!r.ok){const er=new Error(x.error||'Request failed');er.code=x.code;throw er}return x};
- let booking,opt,paymentReturnPending=false,paymentReturnSettled=false;
+ let booking,opt,riderIntake=null,paymentReturnPending=false,paymentReturnSettled=false;
  const paymentIsSettled=()=>['paid','partially_paid'].includes(String(booking?.payment_status||''));
  const cleanPaymentReturn=()=>{if(!paymentReturn)return;const clean=new URL(location.href);clean.searchParams.delete('payment');history.replaceState({},'',clean.pathname+(clean.searchParams.toString()?'?'+clean.searchParams.toString():'')+(clean.hash||''));};
  async function reconcilePaymentReturn(){
@@ -44,6 +44,8 @@
   try{
    booking=await api('/manage/'+encodeURIComponent(token));
    opt=await api('/manage/'+encodeURIComponent(token)+'/options');
+   try{riderIntake=await api('/manage/'+encodeURIComponent(token)+'/riders');}
+   catch(e){riderIntake=null;}
    if(paymentReturn){await reconcilePaymentReturn();}else render();
   }
   catch(e){box.innerHTML='<div class="manage-error"><h2>'+T('We could not load this booking.','לא הצלחנו לטעון את ההזמנה.')+'</h2><p>'+T('Use WhatsApp and the local team will help.','פנו אלינו ב‑WhatsApp והצוות המקומי יסייע.')+'</p><a class="btn alt" href="'+supportWhatsApp()+'">WhatsApp</a></div>';}
@@ -119,6 +121,81 @@
   }
   return '<div class="notice" role="status">'+T('Payment was submitted and is still being confirmed. Refresh shortly if the payment status has not updated yet.','התשלום נשלח ועדיין נמצא באימות. אם סטטוס התשלום עדיין לא התעדכן, רעננו בעוד רגע.','A fizetés elküldésre került, és még megerősítés alatt áll. Ha az állapot nem frissült, rövidesen frissítsd az oldalt.')+'</div>';
  }
+
+ function riderMethodLabel(value){
+  const labels={
+   unassigned:T('Choose signing method','בחירת דרך חתימה','Válassz aláírási módot'),
+   same_device:T('Sign together on this device','חתימה יחד על המכשיר הזה','Aláírás együtt ezen az eszközön'),
+   individual_link:T('Send this rider an individual link','שליחת קישור אישי לרוכב','Egyéni link küldése a résztvevőnek'),
+   business_device:T('Sign on a VOY PRO device on arrival','חתימה על מכשיר של VOY PRO בהגעה','Aláírás VOY PRO eszközön érkezéskor'),
+   paper:T('Sign a paper waiver on arrival','חתימה ידנית על טופס בהגעה','Papíralapú nyilatkozat aláírása érkezéskor')
+  };
+  return labels[String(value||'unassigned')]||String(value||'');
+ }
+ function riderWaiverMarkup(){
+  if(!riderIntake){
+   return `<div class="manage-block waiver-intake-block"><h3>${T('Riders & waivers','רוכבים וכתבי ויתור','Résztvevők és nyilatkozatok')}</h3><p class="muted">${T('Rider waiver setup is temporarily unavailable. You can still manage the rest of your booking.','הגדרת כתבי הוויתור אינה זמינה כרגע. עדיין ניתן לנהל את שאר ההזמנה.','A résztvevői nyilatkozatok beállítása átmenetileg nem érhető el. A foglalás többi része továbbra is kezelhető.')}</p></div>`;
+  }
+  const riders=Array.isArray(riderIntake.riders)?riderIntake.riders:[];
+  const signedCount=riders.filter(r=>String(r.status||'')==='signed').length;
+  const bookingRider=riders.find(r=>r.is_booking_customer);
+  const cards=riders.map((r,index)=>{
+   const signed=String(r.status||'')==='signed';
+   const method=String(r.waiver_signing_method||'unassigned');
+   const contact=String(r.waiver_contact_preference||'none');
+   const assessment=Boolean(r.assessment_required);
+   const assessmentText=assessment
+    ?(String(r.assessment_status||'')==='approved'
+      ?T('Age 15 assessment approved','בדיקת גיל 15 אושרה','A 15 éves kori felmérés jóváhagyva')
+      :T('Age 15: practical assessment required before riding','גיל 15: נדרשת בדיקה מעשית ואישור לפני הרכיבה','15 éves: gyakorlati felmérés és jóváhagyás szükséges'))
+    :'';
+   return `<fieldset class="waiver-rider-card" data-rider-id="${esc(r.id)}" ${signed?'data-signed="true"':''}>
+    <legend><span>${T('Rider','רוכב','Résztvevő')} ${index+1}</span><span class="waiver-rider-state ${signed?'is-signed':'is-pending'}">${signed?'✓ '+T('Signed','חתום','Aláírva'):T('Waiver pending','ממתין לחתימה','Aláírásra vár')}</span></legend>
+    <label class="waiver-customer-choice"><input type="radio" name="booking-rider-choice" value="${esc(r.id)}" ${r.is_booking_customer?'checked':''} ${signed?'disabled':''}> <span>${T('The person who made the booking is this rider','המזמין הוא הרוכב הזה','A foglalást készítő személy ez a résztvevő')}</span></label>
+    <div class="checkout-fields">
+     <div class="field"><label for="rider-name-${index}">${T('Full name','שם מלא','Teljes név')}</label><input id="rider-name-${index}" data-rider-name required minlength="2" autocomplete="name" value="${esc(r.full_name||'')}" ${signed?'disabled':''}></div>
+     <div class="field"><label for="rider-dob-${index}">${T('Date of birth','תאריך לידה','Születési dátum')}</label><input id="rider-dob-${index}" data-rider-dob required type="date" value="${esc(r.date_of_birth||'')}" ${signed?'disabled':''}></div>
+    </div>
+    <div class="field"><label for="rider-method-${index}">${T('How will this rider sign?','כיצד הרוכב יחתום?','Hogyan írja alá ez a résztvevő?')}</label>
+     <select id="rider-method-${index}" data-rider-method ${signed?'disabled':''}>
+      ${['unassigned','same_device','individual_link','business_device','paper'].map(v=>`<option value="${v}" ${method===v?'selected':''}>${esc(riderMethodLabel(v))}</option>`).join('')}
+     </select>
+    </div>
+    <div class="waiver-contact-fields" data-rider-contact-wrap ${method==='individual_link'?'':'hidden'}>
+     <div class="field"><label for="rider-contact-${index}">${T('Send link by','שליחת הקישור באמצעות','Link küldése')}</label>
+      <select id="rider-contact-${index}" data-rider-contact ${signed?'disabled':''}>
+       <option value="whatsapp" ${contact==='whatsapp'?'selected':''}>WhatsApp</option>
+       <option value="email" ${contact==='email'?'selected':''}>Email</option>
+      </select>
+     </div>
+     <div class="checkout-fields">
+      <div class="field"><label for="rider-phone-${index}">${T('WhatsApp / phone','WhatsApp / טלפון','WhatsApp / telefon')}</label><input id="rider-phone-${index}" data-rider-phone type="tel" autocomplete="tel" value="${esc(r.phone||'')}" ${signed?'disabled':''}></div>
+      <div class="field"><label for="rider-email-${index}">${T('Email','אימייל','E-mail')}</label><input id="rider-email-${index}" data-rider-email type="email" autocomplete="email" value="${esc(r.email||'')}" ${signed?'disabled':''}></div>
+     </div>
+     <p class="small muted">${T('We will use the selected contact only to deliver this rider’s personal waiver link and related booking communication.','נשתמש בפרט הקשר שנבחר לצורך שליחת קישור כתב הוויתור האישי ותקשורת הקשורה להזמנה.','A kiválasztott elérhetőséget az egyéni nyilatkozat linkjéhez és a foglaláshoz kapcsolódó kommunikációhoz használjuk.')}</p>
+    </div>
+    ${assessmentText?`<div class="waiver-assessment-note">${esc(assessmentText)}</div>`:''}
+   </fieldset>`;
+  }).join('');
+  const noCustomerChecked=!bookingRider;
+  const allSigned=riders.length>0&&signedCount===riders.length;
+  return `<div class="manage-block waiver-intake-block">
+   <div class="waiver-intake-head"><div><h3>${T('Riders & waivers','רוכבים וכתבי ויתור','Résztvevők és nyilatkozatok')}</h3><p>${T('Add the details of every rider and choose how each person will complete the waiver.','הוסיפו את פרטי כל הרוכבים ובחרו כיצד כל אחד ישלים את כתב הוויתור.','Add meg minden résztvevő adatait, és válaszd ki, hogyan tölti ki a nyilatkozatot.')}</p></div><span class="waiver-progress">${signedCount}/${riders.length} ${T('signed','חתמו','aláírva')}</span></div>
+   <div class="notice waiver-age-rule">${T('Independent riding is normally from age 16. Age 15 requires a practical assessment and explicit staff approval. Under 15 cannot ride independently.','רכיבה עצמאית היא ככלל מגיל 16. בגיל 15 נדרשת בדיקה מעשית ואישור מפורש של הצוות. מתחת לגיל 15 אין רכיבה עצמאית.','Önálló vezetés általában 16 éves kortól lehetséges. 15 évesen gyakorlati felmérés és kifejezett személyzeti jóváhagyás szükséges. 15 év alatt nincs önálló vezetés.')}</div>
+   ${!allSigned?`<div class="waiver-apply-all"><label for="waiver-apply-all">${T('Apply signing method to all unsigned riders','אותה דרך חתימה לכל הרוכבים שטרם חתמו','Aláírási mód alkalmazása minden még alá nem írt résztvevőre')}</label><select id="waiver-apply-all"><option value="">—</option>${['same_device','individual_link','business_device','paper'].map(v=>`<option value="${v}">${esc(riderMethodLabel(v))}</option>`).join('')}</select></div>`:''}
+   <form id="waiver-riders-form">
+    <div class="waiver-rider-list">${cards}</div>
+    <label class="waiver-customer-choice waiver-customer-none"><input type="radio" name="booking-rider-choice" value="" ${noCustomerChecked?'checked':''}> <span>${T('The person who made the booking is not riding','המזמין אינו אחד הרוכבים','A foglalást készítő személy nem vesz részt a túrán')}</span></label>
+    ${!allSigned?`<button class="btn secondary" type="submit">${T('Save rider details','שמירת פרטי הרוכבים','Résztvevői adatok mentése')}</button>`:''}
+    <div class="status" id="waiver-riders-status" hidden></div>
+   </form>
+  </div>`;
+ }
+ function refreshRiderContact(card){
+  const method=card.querySelector('[data-rider-method]')?.value||'unassigned';
+  const wrap=card.querySelector('[data-rider-contact-wrap]');
+  if(wrap)wrap.hidden=method!=='individual_link';
+ }
  function render(){
   const gc=booking.group_composition||{};
   box.innerHTML=paymentReturnMarkup()+`<div class="manage-head"><div><small>${T('BOOKING','הזמנה')}</small><h2>${esc(booking.reference)}</h2><p>${esc(experienceLabel(booking))}</p></div><span class="manage-status">${esc(bookingStatusLabel(booking.status))}</span></div>
@@ -126,6 +203,7 @@
   <div class="manage-detail-strip"><span>${T('Riders 16+','רוכבים 16+')} · ${esc(gc.riders_16_plus||0)}</span>${Number(gc.child_passengers_3_15||0)>0?`<span>${T('Children 3–15','ילדים 3–15')} · ${esc(gc.child_passengers_3_15)}</span>`:''}${Number(gc.baby_passengers_1_2||0)>0?`<span>${T('Babies 1–2','פעוטות 1–2')} · ${esc(gc.baby_passengers_1_2)}</span>`:''}<span>${T('Payment','תשלום')} · ${esc(paymentStatusLabel(booking.payment_status))}</span>${booking.payment_method?`<span>${T('Payment method','אמצעי תשלום','Fizetési mód')} · ${esc(paymentMethodLabel(booking.payment_method))}</span>`:''}${Number(booking.balance_due||0)>0?`<span>${T('Balance due','יתרה לתשלום')} · ${esc(manageMoney(booking.balance_due,booking.currency||'EUR'))}</span>`:''}<span>${T('Meeting point','נקודת מפגש','Találkozási pont')} · Városház utca 14, 1052 Budapest</span></div>
   <div class="manage-actions"><button class="btn secondary" type="button" id="manage-copy-ref">${T('Copy reference','העתקת מספר')}</button><a class="btn secondary" href="https://maps.app.goo.gl/BNqXWux5XAnHi2W19" target="_blank" rel="noopener">${T('Open meeting point','פתיחת נקודת המפגש','Találkozási pont megnyitása')}</a><a class="btn alt" href="${supportWhatsApp()}">WhatsApp</a><a class="btn secondary" href="${hu?'/hu/budapest/':he?'/he/budapest/':'/budapest/'}">${T('Back to Budapest','חזרה לבודפשט')}</a></div><p class="manage-security-note">${T('Keep this Manage Booking link private. Anyone with the link may be able to access this booking.','שמרו את קישור ניהול ההזמנה פרטי. מי שמחזיק בקישור עשוי לקבל גישה להזמנה.')}</p>
   <div class="manage-block"><h3>${T('Contact details','פרטי קשר')}</h3><form id="manage-contact"><div class="checkout-fields"><div class="field"><label for="manage-email">${T('Email','אימייל')}</label><input id="manage-email" name="email" type="email" autocomplete="email" value="${esc(booking.customer?.email||'')}"></div><div class="field"><label for="manage-phone">${T('Phone','טלפון')}</label><input id="manage-phone" name="phone" type="tel" autocomplete="tel" value="${esc(booking.customer?.phone||'')}"></div></div><button class="btn secondary" type="submit">${T('Update contact details','עדכון פרטי קשר')}</button><div class="status" data-contact-status hidden></div></form></div>
+  ${riderWaiverMarkup()}
   ${opt.can_change_datetime?`<div class="manage-block"><h3>${T('Change date or time','שינוי תאריך או שעה')}</h3><p>${T('Availability is checked before the change is confirmed.','הזמינות נבדקת לפני אישור השינוי.')}</p><div class="manage-change-row"><div class="field"><label for="manage-date">${T('New date','תאריך חדש','Új dátum')}</label><input id="manage-date" type="date" min="${new Date().toISOString().slice(0,10)}"></div><button id="manage-search" class="btn secondary" type="button">${T('Find times','חיפוש שעות')}</button></div><div id="manage-slots" class="slotlist"></div><div class="status" id="manage-change-status" hidden></div></div>`:''}
   <div class="manage-block"><h3>${T('Cancellation','ביטול')}</h3><p>${esc(he?'לתנאי הביטול או לסיוע בביטול, פנו לצוות VOY PRO.':hu?'A lemondási feltételekhez vagy segítséghez lépj kapcsolatba a VOY PRO csapatával.':(opt.cancellation?.policy_summary||T('Contact VOY PRO support for cancellation assistance.','פנו לצוות VOY PRO לסיוע בביטול.')))}</p>${opt.cancellation?.allowed?'<button class="btn secondary" id="manage-cancel">'+T('Cancel booking','ביטול הזמנה')+'</button>':'<a class="btn secondary" href="'+supportWhatsApp()+'">'+T('Contact support','פנייה לתמיכה')+'</a>'}<div class="status" id="manage-cancel-status" hidden></div></div>`;
   bind();
@@ -139,6 +217,62 @@
    catch(err){if(st){const msg=err.code==='CANCELLATION_POLICY_NOT_CONFIGURED'?T('Online cancellation is not available yet. Contact support.','ביטול מקוון עדיין אינו זמין. פנו לתמיכה.','Az online lemondás még nem érhető el. Kérj segítséget.'):T('The cancellation could not be completed. Contact support.','לא ניתן להשלים את הביטול. פנו לתמיכה.','A lemondást nem sikerült befejezni. Kérj segítséget.');st.innerHTML=esc(msg)+' <a href="'+supportWhatsApp()+'">WhatsApp</a>';}}
   };
   const cf=document.getElementById('manage-contact');if(cf)cf.addEventListener('submit',async e=>{e.preventDefault();const st=cf.querySelector('[data-contact-status]');st.hidden=false;st.textContent=T('Updating…','מעדכנים…');const f=new FormData(cf);try{booking=await api('/manage/'+encodeURIComponent(token),{method:'PATCH',body:JSON.stringify({email:f.get('email'),phone:f.get('phone'),preferred_language:hu?'hu':he?'he':'en'})});st.textContent=T('Contact details updated.','פרטי הקשר עודכנו.')}catch(err){st.textContent=T('Could not update details. Contact support.','לא ניתן לעדכן את הפרטים. פנו לתמיכה.')}});
+  const riderForm=document.getElementById('waiver-riders-form');
+  if(riderForm){
+   riderForm.querySelectorAll('.waiver-rider-card').forEach(card=>{
+    refreshRiderContact(card);
+    const method=card.querySelector('[data-rider-method]');
+    if(method)method.addEventListener('change',()=>refreshRiderContact(card));
+   });
+   const applyAll=document.getElementById('waiver-apply-all');
+   if(applyAll)applyAll.addEventListener('change',()=>{
+    const value=applyAll.value;if(!value)return;
+    riderForm.querySelectorAll('.waiver-rider-card:not([data-signed="true"]) [data-rider-method]').forEach(select=>{select.value=value;select.dispatchEvent(new Event('change'))});
+   });
+   riderForm.querySelectorAll('input[name="booking-rider-choice"]').forEach(radio=>radio.addEventListener('change',()=>{
+    if(!radio.checked||!radio.value)return;
+    const card=riderForm.querySelector('.waiver-rider-card[data-rider-id="'+CSS.escape(radio.value)+'"]');if(!card)return;
+    const name=card.querySelector('[data-rider-name]'),email=card.querySelector('[data-rider-email]'),phone=card.querySelector('[data-rider-phone]');
+    const customerName=[booking.customer?.first_name,booking.customer?.last_name].filter(Boolean).join(' ').trim();
+    if(name&&!name.value&&customerName)name.value=customerName;
+    if(email&&!email.value&&booking.customer?.email)email.value=booking.customer.email;
+    if(phone&&!phone.value&&booking.customer?.phone)phone.value=booking.customer.phone;
+   }));
+   riderForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const status=document.getElementById('waiver-riders-status');
+    if(status){status.hidden=false;status.textContent=T('Saving rider details…','שומרים את פרטי הרוכבים…','Résztvevői adatok mentése…');}
+    const bookingCustomerId=riderForm.querySelector('input[name="booking-rider-choice"]:checked')?.value||'';
+    const riders=[...riderForm.querySelectorAll('.waiver-rider-card')].map(card=>{
+     const method=card.querySelector('[data-rider-method]')?.value||'unassigned';
+     const contact=method==='individual_link'?(card.querySelector('[data-rider-contact]')?.value||'whatsapp'):'none';
+     return {
+      id:card.dataset.riderId,
+      full_name:card.querySelector('[data-rider-name]')?.value||'',
+      date_of_birth:card.querySelector('[data-rider-dob]')?.value||'',
+      email:card.querySelector('[data-rider-email]')?.value||null,
+      phone:card.querySelector('[data-rider-phone]')?.value||null,
+      is_booking_customer:bookingCustomerId===card.dataset.riderId,
+      waiver_signing_method:method,
+      waiver_contact_preference:contact
+     };
+    });
+    try{
+     const out=await api('/manage/'+encodeURIComponent(token)+'/riders',{method:'PATCH',body:JSON.stringify({riders})});
+     riderIntake={...(riderIntake||{}),...out,riders:Array.isArray(out.riders)?out.riders:riders};
+     if(status)status.textContent=T('Rider details saved.','פרטי הרוכבים נשמרו.','A résztvevői adatok mentve.');
+    }catch(err){
+     if(status){
+      const msg=err.code==='RIDER_TOO_YOUNG'
+       ?T('A rider under 15 cannot be registered for independent riding.','לא ניתן לרשום רוכב מתחת לגיל 15 לרכיבה עצמאית.','15 év alatti résztvevő nem regisztrálható önálló vezetésre.')
+       :err.code==='SIGNED_RIDER_LOCKED'
+        ?T('A rider who already signed can no longer be changed.','לא ניתן לשנות רוכב שכבר חתם.','A már aláírt résztvevő adatai nem módosíthatók.')
+        :T('Could not save rider details. Check all required fields and contact details.','לא ניתן לשמור את פרטי הרוכבים. בדקו את כל שדות החובה ופרטי הקשר.','Nem sikerült menteni a résztvevői adatokat. Ellenőrizd a kötelező mezőket és az elérhetőségeket.');
+      status.textContent=msg;
+     }
+    }
+   });
+  }
   const search=document.getElementById('manage-search');if(search)search.onclick=async()=>{const date=document.getElementById('manage-date').value,slots=document.getElementById('manage-slots'),st=document.getElementById('manage-change-status');if(!date)return;slots.innerHTML='';st.hidden=false;st.textContent=T('Checking availability…','בודקים זמינות…');try{const out=await api('/manage/'+encodeURIComponent(token)+'/availability?date='+encodeURIComponent(date));const avail=(out.slots||[]).filter(s=>s.sellable&&!s.current&&(!s.starts_at||new Date(s.starts_at).getTime()>Date.now()));if(!avail.length){st.textContent=T('No changeable departures found for this date.','לא נמצאו יציאות זמינות לשינוי בתאריך זה.');return}st.textContent=T('Choose a new time:','בחרו שעה חדשה:');avail.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='slot';b.textContent=s.time+(s.status==='low'?T(' · limited',' · זמינות מוגבלת'):'');b.onclick=()=>changeDeparture(s.id);slots.appendChild(b)})}catch(err){st.textContent=T('Availability could not be loaded.','לא ניתן לטעון זמינות.')}};
  }
  async function changeDeparture(id){const st=document.getElementById('manage-change-status');st.hidden=false;st.textContent=T('Confirming change…','מאשרים שינוי…');try{booking=await api('/manage/'+encodeURIComponent(token)+'/change',{method:'POST',body:JSON.stringify({new_departure_id:id})});st.textContent=T('Booking changed successfully.','ההזמנה שונתה בהצלחה.');setTimeout(load,500)}catch(err){st.textContent=err.code==='STAFF_CONFIRMATION_REQUIRED'?T('This change needs additional confirmation. Contact support.','לשינוי נדרש אישור נוסף. פנו לתמיכה.'):T('The change could not be completed. Contact support.','לא ניתן להשלים את השינוי. פנו לתמיכה.')}}
