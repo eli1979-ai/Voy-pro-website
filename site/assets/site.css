@@ -518,3 +518,25 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 }
 
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* Manage Booking — rider waiver intake */
+.waiver-intake-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.waiver-intake-head h3{margin-bottom:4px}.waiver-intake-head p{margin:0;color:var(--muted);max-width:620px}
+.waiver-progress{white-space:nowrap;border-radius:999px;padding:7px 10px;background:#f2f7fb;color:#0d4d7c;font-size:12px;font-weight:900}
+.waiver-age-rule{margin:14px 0;background:#f8fbfd;border:1px solid #dbe8f0;border-radius:12px;padding:12px 14px;color:var(--ink)}
+.waiver-apply-all{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.7fr);gap:12px;align-items:center;margin:14px 0}
+.waiver-apply-all label{font-weight:850}.waiver-apply-all select,.waiver-rider-card select,.waiver-rider-card input{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;color:var(--ink)}
+.waiver-rider-list{display:grid;gap:14px;margin:14px 0}
+.waiver-rider-card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fbfcfd}
+.waiver-rider-card legend{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:0 2px 10px;font-weight:900}
+.waiver-rider-state{font-size:11px;border-radius:999px;padding:5px 8px}.waiver-rider-state.is-signed{background:#edf9f2;color:#17623d}.waiver-rider-state.is-pending{background:#fff7e8;color:#855400}
+.waiver-customer-choice{display:flex;align-items:flex-start;gap:8px;margin:4px 0 12px;font-size:13px}.waiver-customer-choice input{width:auto;min-height:auto;margin-top:3px}
+.waiver-customer-none{margin:4px 0 16px;padding:10px 12px;background:#f7fafc;border-radius:10px}
+.waiver-contact-fields{margin-top:12px;padding:12px;border-radius:12px;background:#f4f8fb;border:1px solid #dfe9ef}
+.waiver-contact-fields[hidden]{display:none}
+.waiver-assessment-note{margin-top:12px;border-radius:10px;background:#fff4e5;color:#7a4c00;padding:9px 11px;font-size:12px;font-weight:800}
+.waiver-rider-card[data-signed="true"]{background:#f7faf8}.waiver-rider-card [disabled]{opacity:.72;cursor:not-allowed}
+@media(max-width:800px){
+ .waiver-intake-head{flex-direction:column}.waiver-apply-all{grid-template-columns:1fr}.waiver-rider-card legend{align-items:flex-start;flex-direction:column}
+}
+
