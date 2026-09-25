@@ -540,3 +540,9 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
  .waiver-intake-head{flex-direction:column}.waiver-apply-all{grid-template-columns:1fr}.waiver-rider-card legend{align-items:flex-start;flex-direction:column}
 }
 
+/* Manage Booking — start waiver signing handoff */
+.waiver-start-signing{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.waiver-start-signing .btn{min-width:220px}
+.waiver-start-signing p{margin:8px 0 0;max-width:620px}
+@media(max-width:640px){.waiver-start-signing .btn{width:100%}}
+
