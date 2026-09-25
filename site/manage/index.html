@@ -122,6 +122,18 @@
   return '<div class="notice" role="status">'+T('Payment was submitted and is still being confirmed. Refresh shortly if the payment status has not updated yet.','התשלום נשלח ועדיין נמצא באימות. אם סטטוס התשלום עדיין לא התעדכן, רעננו בעוד רגע.','A fizetés elküldésre került, és még megerősítés alatt áll. Ha az állapot nem frissült, rövidesen frissítsd az oldalt.')+'</div>';
  }
 
+ function waiverHandoffUrl(){
+  try{
+   const root=new URL(c.apiRoot,location.origin);
+   root.pathname=root.pathname.replace(/\/api\/v1\/?$/,'')+'/go/waiver/'+encodeURIComponent(token);
+   root.search='';
+   root.hash='';
+   root.searchParams.set('lang',lang);
+   return root.toString();
+  }catch(e){
+   return '';
+  }
+ }
  function riderMethodLabel(value){
   const labels={
    unassigned:T('Choose signing method','בחירת דרך חתימה','Válassz aláírási módot'),
@@ -179,6 +191,8 @@
   }).join('');
   const noCustomerChecked=!bookingRider;
   const allSigned=riders.length>0&&signedCount===riders.length;
+  const sameDevicePending=riders.some(r=>String(r.status||'')!=='signed'&&String(r.waiver_signing_method||'')==='same_device');
+  const handoffUrl=waiverHandoffUrl();
   return `<div class="manage-block waiver-intake-block">
    <div class="waiver-intake-head"><div><h3>${T('Riders & waivers','רוכבים וכתבי ויתור','Résztvevők és nyilatkozatok')}</h3><p>${T('Add the details of every rider and choose how each person will complete the waiver.','הוסיפו את פרטי כל הרוכבים ובחרו כיצד כל אחד ישלים את כתב הוויתור.','Add meg minden résztvevő adatait, és válaszd ki, hogyan tölti ki a nyilatkozatot.')}</p></div><span class="waiver-progress">${signedCount}/${riders.length} ${T('signed','חתמו','aláírva')}</span></div>
    <div class="notice waiver-age-rule">${T('Independent riding is normally from age 16. Age 15 requires a practical assessment and explicit staff approval. Under 15 cannot ride independently.','רכיבה עצמאית היא ככלל מגיל 16. בגיל 15 נדרשת בדיקה מעשית ואישור מפורש של הצוות. מתחת לגיל 15 אין רכיבה עצמאית.','Önálló vezetés általában 16 éves kortól lehetséges. 15 évesen gyakorlati felmérés és kifejezett személyzeti jóváhagyás szükséges. 15 év alatt nincs önálló vezetés.')}</div>
@@ -189,6 +203,7 @@
     ${!allSigned?`<button class="btn secondary" type="submit">${T('Save rider details','שמירת פרטי הרוכבים','Résztvevői adatok mentése')}</button>`:''}
     <div class="status" id="waiver-riders-status" hidden></div>
    </form>
+   ${sameDevicePending&&handoffUrl?`<div class="waiver-start-signing"><a class="btn" id="waiver-start-signing" href="${esc(handoffUrl)}" rel="noreferrer">${T('Start signing waivers','התחלת חתימה על כתבי הוויתור','Nyilatkozatok aláírásának indítása')}</a><p class="small muted">${T('Pass this device between the riders. Each rider signs their own waiver separately.','העבירו את המכשיר בין הרוכבים. כל רוכב חותם על כתב הוויתור שלו בנפרד.','Add át az eszközt a résztvevők között. Minden résztvevő külön írja alá a saját nyilatkozatát.')}</p></div>`:''}
   </div>`;
  }
  function refreshRiderContact(card){
@@ -260,7 +275,12 @@
     try{
      const out=await api('/manage/'+encodeURIComponent(token)+'/riders',{method:'PATCH',body:JSON.stringify({riders})});
      riderIntake={...(riderIntake||{}),...out,riders:Array.isArray(out.riders)?out.riders:riders};
-     if(status)status.textContent=T('Rider details saved.','פרטי הרוכבים נשמרו.','A résztvevői adatok mentve.');
+     render();
+     const savedStatus=document.getElementById('waiver-riders-status');
+     if(savedStatus){
+      savedStatus.hidden=false;
+      savedStatus.textContent=T('Rider details saved. You can now start signing.','פרטי הרוכבים נשמרו. כעת ניתן להתחיל בחתימה.','A résztvevői adatok mentve. Most megkezdhető az aláírás.');
+     }
     }catch(err){
      if(status){
       const msg=err.code==='RIDER_TOO_YOUNG'
