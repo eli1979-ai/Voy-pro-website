@@ -1,3 +1,24 @@
+(()=>{
+  const head=document.head;
+  if(head){
+    if(!head.querySelector('link[data-voy-brand-icon="favicon"]')){
+      const favicon=document.createElement('link');
+      favicon.rel='icon';
+      favicon.type='image/png';
+      favicon.href='/assets/brand/voy-pro-symbol.png';
+      favicon.dataset.voyBrandIcon='favicon';
+      head.appendChild(favicon);
+    }
+    if(!head.querySelector('link[data-voy-brand-icon="apple-touch"]')){
+      const apple=document.createElement('link');
+      apple.rel='apple-touch-icon';
+      apple.href='/assets/brand/voy-pro-symbol.png';
+      apple.dataset.voyBrandIcon='apple-touch';
+      head.appendChild(apple);
+    }
+  }
+})();
+
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
