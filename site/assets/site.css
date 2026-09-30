@@ -570,20 +570,20 @@ header .brand{
   width:182px;
   height:46px;
   background-image:url('/assets/brand/voy-pro-horizontal-dark.png');
-  background-size:224px 224px;
+  background-size:116% auto;
 }
 footer .brand{
   width:190px;
   height:50px;
   margin-bottom:10px;
   background-image:url('/assets/brand/voy-pro-horizontal-light.png');
-  background-size:234px 234px;
+  background-size:116% auto;
 }
 @media(max-width:800px){
   .nav{gap:12px}
   header .brand{
     width:148px;
     height:42px;
-    background-size:188px 188px;
+    background-size:116% auto;
   }
 }
