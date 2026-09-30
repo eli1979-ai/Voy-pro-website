@@ -546,3 +546,44 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 .waiver-start-signing p{margin:8px 0 0;max-width:620px}
 @media(max-width:640px){.waiver-start-signing .btn{width:100%}}
 
+
+
+/* VOY PRO official brand assets */
+header .brand,
+footer .brand{
+  display:block;
+  flex:0 0 auto;
+  overflow:hidden;
+  font-size:0!important;
+  line-height:0;
+  color:transparent!important;
+  background-repeat:no-repeat;
+  background-position:center;
+}
+header .brand span,
+footer .brand span{
+  margin:0!important;
+  font-size:0!important;
+  color:transparent!important;
+}
+header .brand{
+  width:182px;
+  height:46px;
+  background-image:url('/assets/brand/voy-pro-horizontal-dark.png');
+  background-size:224px 224px;
+}
+footer .brand{
+  width:190px;
+  height:50px;
+  margin-bottom:10px;
+  background-image:url('/assets/brand/voy-pro-horizontal-light.png');
+  background-size:234px 234px;
+}
+@media(max-width:800px){
+  .nav{gap:12px}
+  header .brand{
+    width:148px;
+    height:42px;
+    background-size:188px 188px;
+  }
+}
