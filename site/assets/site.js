@@ -774,7 +774,11 @@
         if(price&&p.priceFrom!=null) price.textContent=t('From ','החל מ־')+money(p.priceFrom,p.currency||'EUR');
         if(p.bookingEnabled===false){card.classList.add('is-unavailable');if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');}
         else {card.classList.add('is-live');if(state)state.textContent=t('Online booking','הזמנה באתר');}
-      }else{card.classList.add('is-unavailable');if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');}
+      }else{
+        card.classList.add('is-unavailable');
+        if(price)price.textContent=t('Live price unavailable','מחיר חי אינו זמין כרגע');
+        if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');
+      }
     });
   }
   function bindTourCardSelectors(){
@@ -935,74 +939,97 @@
     };
   }
 
-  function fallbackBudapestProducts(){
-    const title=(en,he,hu)=>locale==='he'?he:locale==='hu'?hu:en;
-    return [
-      {id:'exp_bud_buda',slug:'buda-highlights',title:title('Buda Highlights by EZRaider','סיור בודה על EZRaider','Budai városnézés EZRaiderrel'),durationMinutes:120,basePrice:70,priceFrom:70,currency:'EUR',maxIndependentRiders:12,bookingEnabled:true,privateAllowed:true,privateSurchargePerRider:30,privateMinRiders:2,flexibleDepartureWhenPrivate:true,guideLanguages:['en','he','hu','es']},
-      {id:'exp_bud_margaret',slug:'margaret-island',title:title('Margaret Island by EZRaider','סיור אי מרגיט על EZRaider','Margitsziget EZRaiderrel'),durationMinutes:120,basePrice:70,priceFrom:70,currency:'EUR',maxIndependentRiders:12,bookingEnabled:true,privateAllowed:true,privateSurchargePerRider:30,privateMinRiders:2,flexibleDepartureWhenPrivate:true,guideLanguages:['en','he','hu','es']}
-    ];
-  }
   function localizedBudapestExperienceTitle(experience,fallbackTitle=''){
     const raw=[experience?.slug,experience?.id,experience?.title,fallbackTitle].filter(Boolean).join(' ').toLowerCase();
     if(raw.includes('extended')||(raw.includes('buda')&&raw.includes('margaret')))return locale==='he'?'סיור ארוך בודה + מרגיט':locale==='hu'?'Buda + Margitsziget hosszabb túra':'Extended Buda + Margaret Tour';
-    const localized=fallbackBudapestProducts().find(p=>String(p.id)===String(experience?.id||'')||p.slug===experience?.slug);
-    return String(localized?.title||experience?.title||fallbackTitle||'').trim();
+    if(raw.includes('margaret')||raw.includes('margit'))return locale==='he'?'סיור אי מרגיט על EZRaider':locale==='hu'?'Margitsziget EZRaiderrel':'Margaret Island by EZRaider';
+    if(raw.includes('buda')||raw.includes('castle')||raw.includes('exp_bud_buda'))return locale==='he'?'סיור בודה על EZRaider':locale==='hu'?'Budai városnézés EZRaiderrel':'Buda Highlights by EZRaider';
+    return String(experience?.title||fallbackTitle||'').trim();
   }
-  function seedExperienceSelects(selects,products){
-    (products||[]).forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
-    selects.forEach(s=>{
-      const before=s.value;
-      s.innerHTML='';
-      (products||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=localizedBudapestExperienceTitle(p,p.title);s.appendChild(o);});
-      if(before&&(products||[]).some(p=>p.id===before))s.value=before;
+
+  function setCatalogUnavailable(selects,message=null){
+    productCache.bySlug={};
+    productCache.byId={};
+    selects.forEach(select=>{
+      select.innerHTML=`<option value="">${t('Tour options are temporarily unavailable','אפשרויות הסיור אינן זמינות כרגע')}</option>`;
+      select.disabled=true;
+    });
+    hydrateTourCards([]);
+    document.querySelectorAll('[data-runtime-price]').forEach(node=>{
+      node.textContent=t('Live price unavailable','מחיר חי אינו זמין כרגע');
+    });
+    const status=document.querySelector('#availability-status');
+    if(status&&message)status.textContent=message;
+    document.querySelector('#availability-form button[type="submit"]')?.setAttribute('disabled','');
+    document.querySelectorAll('[data-special-request-builder]').forEach(form=>{
+      if(typeof form._updateGuideLanguages==='function')form._updateGuideLanguages([]);
     });
   }
 
   async function hydrateCatalog(){
     const selects=[...document.querySelectorAll('select[name="experience"]')];
-    const provisional=fallbackBudapestProducts();
-    seedExperienceSelects(selects,provisional);
     if(!bookingEnabled){
-      selects.forEach(s=>{s.innerHTML=`<option value="">${t('Online booking is temporarily unavailable','ההזמנה החיה בתהליך חיבור')}</option>`;s.disabled=true;});
-      hydrateTourCards([]); return [];
+      setCatalogUnavailable(selects,t('Online booking is temporarily unavailable','ההזמנה המקוונת אינה זמינה כרגע'));
+      return [];
     }
     try{
-      let catalogFallback=false;
-      let products=[];
-      try{products=await api('/experiences',{method:'GET',timeoutMs:5000});}
-      catch(catalogError){catalogFallback=true;products=fallbackBudapestProducts();}
-      if(!Array.isArray(products)||!products.length){catalogFallback=true;products=fallbackBudapestProducts();}
-      (products||[]).forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
-      hydrateTourCards(products||[]);
-      const bookable=(products||[]).filter(p=>p.bookingEnabled!==false);
+      const products=await api('/experiences',{method:'GET',timeoutMs:5000});
+      if(!Array.isArray(products)||!products.length)throw new Error('CATALOG_EMPTY');
+      products.forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
+      hydrateTourCards(products);
+      document.querySelectorAll('[data-special-request-builder]').forEach(form=>{
+        if(typeof form._updateGuideLanguages==='function')form._updateGuideLanguages(products);
+      });
+      const bookable=products.filter(p=>p.bookingEnabled!==false);
+      if(!bookable.length)throw new Error('CATALOG_NO_BOOKABLE_PRODUCTS');
       const requested=qs.get('experience');
       const intentAliases=requested?[requested]:(page.includes('buda-margaret-extended')?['buda-margaret-extended','extended-buda-margaret','buda-and-margaret','buda-margaret']:(page.includes('margaret-island')?['margaret-island','margaret-island-tour']:['buda-highlights','buda-castle']));
       const intended=intentAliases.map(slug=>bookable.find(p=>p.slug===slug)).find(Boolean)||null;
-      selects.forEach(s=>{
-        const before=s.value;
-        s.innerHTML=''; s.disabled=false;
-        bookable.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=localizedBudapestExperienceTitle(p,p.title);s.appendChild(o);});
-        if(before&&bookable.some(p=>p.id===before))s.value=before;
-        else if(intended)s.value=intended.id;
+      selects.forEach(select=>{
+        const before=select.value;
+        select.innerHTML='';
+        select.disabled=false;
+        bookable.forEach(p=>{
+          const option=document.createElement('option');
+          option.value=p.id;
+          option.dataset.slug=p.slug;
+          option.textContent=localizedBudapestExperienceTitle(p,p.title);
+          select.appendChild(option);
+        });
+        if(before&&bookable.some(p=>p.id===before))select.value=before;
+        else if(intended)select.value=intended.id;
       });
       const isSpecialPage=page.includes('margaret-island')||page.includes('buda-margaret-extended');
-      const selectedId=selects.find(s=>s.value)?.value||null;
+      const selectedId=selects.find(select=>select.value)?.value||null;
       const active=(selectedId?bookable.find(p=>p.id===selectedId):null)||intended||(!isSpecialPage?bookable[0]:null);
-      if(catalogFallback){
-        const st=document.querySelector('#availability-status');
-        if(st)st.textContent=locale==='he'?'בחרו סיור, תאריך וקבוצה. הזמינות העדכנית תיבדק בעת החיפוש.':locale==='hu'?'Válassz túrát, dátumot és létszámot. Az aktuális elérhetőséget a kereséskor ellenőrizzük.':'Choose a tour, date and group. Live availability will be checked when you search.';
+      if(active){
+        setStore('voy_experience_id',active.id);
+        hydratePrice(active);
+        setSelectedTourHint(active);
+        updatePrivateUpgrade(active);
+        updateGuideLanguageField(active);
       }
-      if(active){setStore('voy_experience_id',active.id);hydratePrice(active);setSelectedTourHint(active);updatePrivateUpgrade(active);updateGuideLanguageField(active);}
       if(isSpecialPage&&!intended){
         const isExtended=page.includes('buda-margaret-extended');
         const label=isExtended?t('Extended Buda + Margaret — contact us','בודה + מרגיט — פנו אלינו'):t('Margaret Island — contact us','אי מרגיט — פנו אלינו');
-        selects.forEach(s=>{s.innerHTML=`<option value="">${label}</option>`;s.disabled=true;});
-        document.querySelectorAll('[data-runtime-price]').forEach(n=>n.textContent=t('Contact us for this route','פנו אלינו לגבי המסלול'));
-        const st=document.querySelector('#availability-status');if(st)st.textContent=isExtended?t('The extended Buda + Margaret tour is currently confirmed by the local team. Contact us on WhatsApp.','הסיור הארוך בודה + מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp.'):t('Margaret Island is currently confirmed by the local team. Contact us on WhatsApp, or view the Buda tour for online booking.','אי מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp, או לעבור לסיור בודה להזמנה באתר.');
-        const submit=document.querySelector('#availability-form button[type="submit"]'); if(submit) submit.disabled=true;
+        selects.forEach(select=>{select.innerHTML=`<option value="">${label}</option>`;select.disabled=true;});
+        document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=t('Contact us for this route','פנו אלינו לגבי המסלול'));
+        const status=document.querySelector('#availability-status');
+        if(status)status.textContent=isExtended
+          ?t('The extended Buda + Margaret tour is currently confirmed by the local team. Contact us on WhatsApp.','הסיור הארוך בודה + מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp.')
+          :t('Margaret Island is currently confirmed by the local team. Contact us on WhatsApp, or view the Buda tour for online booking.','אי מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp, או לעבור לסיור בודה להזמנה באתר.');
+        document.querySelector('#availability-form button[type="submit"]')?.setAttribute('disabled','');
+      }else{
+        document.querySelector('#availability-form button[type="submit"]')?.removeAttribute('disabled');
       }
-      return products||[];
-    }catch(e){selects.forEach(s=>{s.innerHTML=`<option value="">${t('Tour options are temporarily unavailable','הקטלוג החי אינו זמין')}</option>`;s.disabled=true;});hydrateTourCards([]);return []}
+      return products;
+    }catch(e){
+      setCatalogUnavailable(
+        selects,
+        t('Live tour options could not be loaded. Please try again or contact us on WhatsApp.','לא הצלחנו לטעון את אפשרויות הסיור החיות. נסו שוב או פנו אלינו ב‑WhatsApp.')
+      );
+      return [];
+    }
   }
   function hydratePrice(p){
     if(!p||p.priceFrom==null)return; document.querySelectorAll('[data-runtime-price]').forEach(n=>n.textContent=t('From ','החל מ־')+money(p.priceFrom,p.currency||'EUR'));
