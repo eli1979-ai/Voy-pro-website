@@ -1099,9 +1099,9 @@
 
   function renderPartySummary(composition){
     const chips=[];
-    if(Number(composition?.riders_16_plus||0)>0)chips.push(`<span>${t('Riders 16+','רוכבים 16+')} · ${Number(composition.riders_16_plus)}</span>`);
-    if(Number(composition?.child_passengers_3_15||0)>0)chips.push(`<span>${t('Children 3–15','ילדים 3–15')} · ${Number(composition.child_passengers_3_15)}</span>`);
-    if(Number(composition?.baby_passengers_1_2||0)>0)chips.push(`<span>${t('Babies 1–2','פעוטות 1–2')} · ${Number(composition.baby_passengers_1_2)}</span>`);
+    if(Number(composition?.riders_16_plus||0)>0)chips.push(`<span>${escapeHTML(partyAgeLabel('riders'))} · ${Number(composition.riders_16_plus)}</span>`);
+    if(Number(composition?.child_passengers_3_15||0)>0)chips.push(`<span>${escapeHTML(partyAgeLabel('children'))} · ${Number(composition.child_passengers_3_15)}</span>`);
+    if(Number(composition?.baby_passengers_1_2||0)>0)chips.push(`<span>${escapeHTML(partyAgeLabel('babies'))} · ${Number(composition.baby_passengers_1_2)}</span>`);
     return chips.length?`<div class="party-summary">${chips.join('')}</div>`:'';
   }
 
