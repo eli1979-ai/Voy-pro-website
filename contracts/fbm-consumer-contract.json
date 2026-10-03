@@ -155,6 +155,10 @@
         {
           "file": "site/assets/site.js",
           "marker": "api('/destinations/budapest'"
+        },
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/destinations/budapest')"
         }
       ],
       "response_cases": [
