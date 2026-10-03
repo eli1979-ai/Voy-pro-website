@@ -146,6 +146,65 @@
       ]
     },
     {
+      "id": "destination.budapest",
+      "path": "/api/v1/destinations/budapest",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/destinations/budapest'"
+        },
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/destinations/budapest')"
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "Budapest public destination config",
+          "sample": {
+            "id": "budapest",
+            "code": "BUD",
+            "name": "Budapest",
+            "country": "Hungary",
+            "currency": "EUR",
+            "timezone": "Europe/Budapest",
+            "configuration_version": 1,
+            "booking_horizon_days": 365,
+            "rider_policy": {
+              "standard_min_age": 16,
+              "assessment_min_age": 15,
+              "assessment_required_for_exception": true,
+              "child_passenger_min_age": 3,
+              "child_passenger_max_age": 15,
+              "baby_passenger_min_age": 1,
+              "baby_passenger_max_age": 2
+            },
+            "meeting_point": {
+              "address": "Városház utca 14, 1052 Budapest, Hungary",
+              "maps_url": "https://maps.app.goo.gl/BNqXWux5XAnHi2W19"
+            }
+          },
+          "required_fields": [
+            "configuration_version",
+            "booking_horizon_days",
+            "rider_policy",
+            "rider_policy.standard_min_age",
+            "rider_policy.assessment_min_age",
+            "rider_policy.child_passenger_min_age",
+            "rider_policy.child_passenger_max_age",
+            "rider_policy.baby_passenger_min_age",
+            "rider_policy.baby_passenger_max_age",
+            "meeting_point",
+            "meeting_point.address",
+            "meeting_point.maps_url"
+          ]
+        }
+      ]
+    },
+    {
       "id": "catalog.experiences",
       "path": "/api/v1/experiences",
       "methods": [

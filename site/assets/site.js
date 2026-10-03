@@ -33,6 +33,8 @@
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
   const bookingEnabled=!!(!isLegalPage&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  const isBudapestPage=routePath.includes('/budapest/');
+  let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
   document.documentElement.lang=locale;
@@ -133,7 +135,7 @@
     'From ':'Ettől: ','Contact the local team':'Kapcsolat a helyi csapattal','Online booking':'Online foglalás','Choose guide language':'Válassz vezetési nyelvet','Every booking must include the requested guiding language.':'Minden foglalásnál ki kell választani a kért vezetési nyelvet.','TOUR STYLE':'TÚRA TÍPUSA','Choose how you want to ride':'Válaszd ki a túra típusát','Final price is shown after you choose a departure.':'A végső ár az indulás kiválasztása után jelenik meg.','Join a scheduled tour':'Csatlakozás menetrend szerinti túrához','Current rider price':'Aktuális ár vezetőnként','Share the departure with other VOY PRO guests.':'Az induláson más VOY PRO vendégek is részt vehetnek.','Private tour · your group only':'Privát túra · csak a ti csoportotok','Private upgrade shown before confirmation':'Privát felár a megerősítés előtt','Need a different private start time? Send a request with your date and group':'Más privát indulási időt szeretnél? Küldd el a dátumot és a csoport létszámát','Private availability requires an empty departure.':'Privát foglaláshoz szabad indulás szükséges.','Private mode selected. Search again to see departures that can be reserved for your group only.':'Privát túra kiválasztva. Keress újra a kizárólag a csoportodnak foglalható indulásokhoz.','Scheduled tour selected. Search available departures for your group.':'Menetrend szerinti túra kiválasztva. Keress szabad időpontot a csoportodnak.','MORE BUDAPEST':'MÉG TÖBB BUDAPEST','Want Buda and Margaret Island in one longer experience?':'Szeretnéd Budát és a Margitszigetet egy hosszabb élményben?','See the Extended Buda + Margaret option before you choose a departure.':'Nézd meg a hosszabb Buda + Margitsziget lehetőséget indulás választása előtt.','See extended tour':'Hosszabb túra',
     'Private surcharge shown before confirmation':'A privát felár a megerősítés előtt jelenik meg','Restore your last tour selection':'Legutóbbi túraválasztás visszaállítása','We will recheck availability and price before anything is confirmed.':'Megerősítés előtt újra ellenőrizzük az aktuális időpontot és árat.','Restore selection':'Választás visszaállítása','Selection restored. Search again to recheck availability and price.':'A választást visszaállítottuk. Keress újra az aktuális időpontért és árért.','Online booking is temporarily unavailable':'Az online foglalás átmenetileg nem elérhető','Extended Buda + Margaret — contact us':'Buda + Margitsziget — lépj kapcsolatba velünk','Margaret Island — contact us':'Margitsziget — lépj kapcsolatba velünk','Contact us for this route':'Lépj kapcsolatba velünk ehhez az útvonalhoz','The extended Buda + Margaret tour is currently confirmed by the local team. Contact us on WhatsApp.':'Ezt a hosszabb túrát jelenleg a helyi csapat erősíti meg. Írj nekünk WhatsAppon.','Margaret Island is currently confirmed by the local team. Contact us on WhatsApp, or view the Buda tour for online booking.':'A margitszigeti túrát jelenleg a helyi csapat erősíti meg. Írj WhatsAppon, vagy válaszd a budai túrát online foglaláshoz.','Tour options are temporarily unavailable':'A túrák átmenetileg nem tölthetők be',
     'BOOKING':'FOGLALÁS','Current availability could not be loaded. Please try again or contact us on WhatsApp.':'Az aktuális elérhetőséget nem sikerült betölteni. Próbáld újra, vagy írj nekünk WhatsAppon.','No departures found right now.':'Jelenleg nincs elérhető indulás.','Private tour: yes':'Privát túra: igen','Scheduled tour selected. Search availability for your group.':'Menetrend szerinti túra kiválasztva. Keress elérhető indulást a csoportodnak.',
-        'LIVE CHECKOUT':'FOGLALÁS','Complete your booking':'Foglalás befejezése','Change selection':'Választás módosítása','Current price':'Aktuális ár','Places held while you finish':'A helyeket rövid ideig tartjuk','Direct Budapest team':'Közvetlen budapesti csapat','Full name':'Teljes név','Phone':'Telefon','Payment':'Fizetés','Pay now by card':'Fizetés most bankkártyával','Online card payment is currently unavailable':'Az online bankkártyás fizetés jelenleg nem érhető el.','Pay by card on arrival':'Fizetés kártyával a helyszínen','Pay cash on arrival':'Fizetés készpénzzel a helyszínen','Confirm booking':'Foglalás megerősítése','Book now – payment obligation':'Foglalás fizetési kötelezettséggel','I accept the Terms of Use and confirm I have read the Privacy Notice.':'Elfogadom a Felhasználási feltételeket, és tudomásul veszem az Adatkezelési tájékoztatót.','Terms of Use':'Felhasználási feltételek','Privacy Notice':'Adatkezelési tájékoztató','Selection unlocked. Update the tour, date or group and search again.':'A választás újra módosítható. Állítsd át a túrát, dátumot vagy létszámot, majd keress újra.','Hold expired — select the departure again.':'A foglalási idő lejárt — válaszd ki újra az indulást.','Complete booking':'Foglalás befejezése','Choose a time':'Válassz időpontot','Check availability':'Szabad időpontok keresése','Riders 16+':'Vezetők 16+','Children 3–15':'Gyermekek 3–15','Babies 1–2':'Kisgyermekek 1–2','Checking price and reserving your places…':'Ár ellenőrzése és helyek ideiglenes tartása…','Scheduled tour':'Menetrend szerinti túra','Your places are held for 10 minutes while you complete the booking.':'A helyeket 10 percig tartjuk, amíg befejezed a foglalást.','This booking needs a quick confirmation.':'Ehhez a foglaláshoz gyors megerősítés szükséges.','This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.':'Ez az indulás már nem foglalható privátként. Válassz másik indulást, vagy kérj rugalmas privát időpontot.','Could not hold this departure. Please choose another time.':'Ezt az indulást nem sikerült lefoglalni. Válassz másik időpontot.','Request confirmation':'Megerősítés kérése','Private request':'Privát kérés','This group needs a quick availability confirmation.':'Ehhez a csoporthoz gyors elérhetőségi megerősítés szükséges.','Send confirmation request':'Megerősítési kérés küldése','Online booking is not available for this route right now. Please contact the local team.':'Ehhez az útvonalhoz most nincs online foglalás. Kérjük, lépj kapcsolatba a helyi csapattal.','Choose the guide language for your tour.':'Válaszd ki a túra vezetési nyelvét.','That guide language is not available for this branch.':'Ez a vezetési nyelv ezen a helyszínen nem elérhető.','Checking availability…':'Szabad időpontok keresése…','No departures found right now.':'Jelenleg nincs elérhető indulás.','Choose a departure:':'Válassz indulást:',' · confirmation':' · megerősítés',' · limited':' · kevés hely','This private group needs a quick confirmation. Send the requested date and time and we’ll check the available setup.':'A privát csoporthoz gyors megerősítés szükséges. Küldd el a kívánt dátumot és időpontot, és ellenőrizzük a lehetőségeket.','Availability could not be loaded. Please contact us on WhatsApp.':'Az aktuális időpontokat most nem sikerült betölteni. Írj nekünk WhatsAppon.','Reference copied':'Hivatkozási szám másolva','Reference: ':'Hivatkozás: ','Please complete name, email and phone.':'Add meg a nevet, e-mail címet és telefonszámot.','Sending request…':'Kérés küldése…','Request sent':'Kérés elküldve','Reference':'Hivatkozás','The Budapest team will confirm the vehicles and guides needed for your group.':'A budapesti csapat visszaigazolja a szükséges járműveket és idegenvezetőt.','Back to Budapest':'Vissza Budapesthez','The hold expired. Please select the departure again.':'A foglalási idő lejárt. Válaszd ki újra az indulást.','Confirming booking…':'Foglalás megerősítése…','Booking confirmed':'Foglalás megerősítve','Booking reference':'Foglalási szám','Private tour':'Privát túra','Guide':'Vezetés','Paid online by card':'online kártyával fizetve','Cash on arrival':'készpénz a helyszínen','cash on arrival':'készpénz a helyszínen','Card on arrival':'kártya a helyszínen','card on arrival':'kártya a helyszínen','Manage booking':'Foglalás kezelése','Copy reference':'Szám másolása','Add to calendar':'Hozzáadás a naptárhoz','What happens next':'Mi történik ezután','Your booking is confirmed. Use Manage Booking for current details or available changes.':'A foglalásod megerősítve. A Foglalás kezelése oldalon láthatod az aktuális részleteket és az elérhető módosításokat.','Keep the Manage Booking link private — it gives access to this booking.':'A Foglalás kezelése linket kezeld bizalmasan, mert hozzáférést ad ehhez a foglaláshoz.','This booking needs an additional confirmation. Please search again and send a request.':'Ehhez a foglaláshoz további megerősítés szükséges. Keress újra, és küldj megerősítési kérést.','The booking could not be completed. No online card charge was made.':'A foglalást nem sikerült befejezni. Online kártyaterhelés nem történt.'
+        'LIVE CHECKOUT':'FOGLALÁS','Complete your booking':'Foglalás befejezése','Change selection':'Választás módosítása','Current price':'Aktuális ár','Places held while you finish':'A helyeket rövid ideig tartjuk','Direct Budapest team':'Közvetlen budapesti csapat','Full name':'Teljes név','Phone':'Telefon','Payment':'Fizetés','Pay now by card':'Fizetés most bankkártyával','Online card payment is currently unavailable':'Az online bankkártyás fizetés jelenleg nem érhető el.','Pay by card on arrival':'Fizetés kártyával a helyszínen','Pay cash on arrival':'Fizetés készpénzzel a helyszínen','Confirm booking':'Foglalás megerősítése','Book now – payment obligation':'Foglalás fizetési kötelezettséggel','I accept the Terms of Use and confirm I have read the Privacy Notice.':'Elfogadom a Felhasználási feltételeket, és tudomásul veszem az Adatkezelési tájékoztatót.','Terms of Use':'Felhasználási feltételek','Privacy Notice':'Adatkezelési tájékoztató','Selection unlocked. Update the tour, date or group and search again.':'A választás újra módosítható. Állítsd át a túrát, dátumot vagy létszámot, majd keress újra.','Hold expired — select the departure again.':'A foglalási idő lejárt — válaszd ki újra az indulást.','Complete booking':'Foglalás befejezése','Choose a time':'Válassz időpontot','Check availability':'Szabad időpontok keresése','Independent riders':'Önálló vezetők','Child passengers':'Gyermek utasok','Baby passengers':'Kisgyermek utasok','Checking price and reserving your places…':'Ár ellenőrzése és helyek ideiglenes tartása…','Scheduled tour':'Menetrend szerinti túra','Your places are held for 10 minutes while you complete the booking.':'A helyeket 10 percig tartjuk, amíg befejezed a foglalást.','This booking needs a quick confirmation.':'Ehhez a foglaláshoz gyors megerősítés szükséges.','This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.':'Ez az indulás már nem foglalható privátként. Válassz másik indulást, vagy kérj rugalmas privát időpontot.','Could not hold this departure. Please choose another time.':'Ezt az indulást nem sikerült lefoglalni. Válassz másik időpontot.','Request confirmation':'Megerősítés kérése','Private request':'Privát kérés','This group needs a quick availability confirmation.':'Ehhez a csoporthoz gyors elérhetőségi megerősítés szükséges.','Send confirmation request':'Megerősítési kérés küldése','Online booking is not available for this route right now. Please contact the local team.':'Ehhez az útvonalhoz most nincs online foglalás. Kérjük, lépj kapcsolatba a helyi csapattal.','Choose the guide language for your tour.':'Válaszd ki a túra vezetési nyelvét.','That guide language is not available for this branch.':'Ez a vezetési nyelv ezen a helyszínen nem elérhető.','Checking availability…':'Szabad időpontok keresése…','No departures found right now.':'Jelenleg nincs elérhető indulás.','Choose a departure:':'Válassz indulást:',' · confirmation':' · megerősítés',' · limited':' · kevés hely','This private group needs a quick confirmation. Send the requested date and time and we’ll check the available setup.':'A privát csoporthoz gyors megerősítés szükséges. Küldd el a kívánt dátumot és időpontot, és ellenőrizzük a lehetőségeket.','Availability could not be loaded. Please contact us on WhatsApp.':'Az aktuális időpontokat most nem sikerült betölteni. Írj nekünk WhatsAppon.','Reference copied':'Hivatkozási szám másolva','Reference: ':'Hivatkozás: ','Please complete name, email and phone.':'Add meg a nevet, e-mail címet és telefonszámot.','Sending request…':'Kérés küldése…','Request sent':'Kérés elküldve','Reference':'Hivatkozás','The Budapest team will confirm the vehicles and guides needed for your group.':'A budapesti csapat visszaigazolja a szükséges járműveket és idegenvezetőt.','Back to Budapest':'Vissza Budapesthez','The hold expired. Please select the departure again.':'A foglalási idő lejárt. Válaszd ki újra az indulást.','Confirming booking…':'Foglalás megerősítése…','Booking confirmed':'Foglalás megerősítve','Booking reference':'Foglalási szám','Private tour':'Privát túra','Guide':'Vezetés','Paid online by card':'online kártyával fizetve','Cash on arrival':'készpénz a helyszínen','cash on arrival':'készpénz a helyszínen','Card on arrival':'kártya a helyszínen','card on arrival':'kártya a helyszínen','Manage booking':'Foglalás kezelése','Copy reference':'Szám másolása','Add to calendar':'Hozzáadás a naptárhoz','What happens next':'Mi történik ezután','Your booking is confirmed. Use Manage Booking for current details or available changes.':'A foglalásod megerősítve. A Foglalás kezelése oldalon láthatod az aktuális részleteket és az elérhető módosításokat.','Keep the Manage Booking link private — it gives access to this booking.':'A Foglalás kezelése linket kezeld bizalmasan, mert hozzáférést ad ehhez a foglaláshoz.','This booking needs an additional confirmation. Please search again and send a request.':'Ehhez a foglaláshoz további megerősítés szükséges. Keress újra, és küldj megerősítési kérést.','The booking could not be completed. No online card charge was made.':'A foglalást nem sikerült befejezni. Online kártyaterhelés nem történt.'
   };
   function huDynamic(en){
     if(HU[en]) return HU[en];
@@ -468,7 +470,7 @@
     const facts=document.querySelector('.hero .facts');
     if(facts&&!facts.querySelector('[data-home-live-price]')){
       const price=document.createElement('span');price.dataset.homeLivePrice='';price.dataset.runtimePrice='';
-      price.textContent=t('From €70','החל מ־€70');facts.insertBefore(price,facts.firstChild);
+      price.textContent=locale==='he'?'טוען מחיר חי…':locale==='hu'?'Élő ár betöltése…':'Loading live price…';facts.insertBefore(price,facts.firstChild);
     }
   }
   optimizeHomeConversion();
@@ -579,6 +581,74 @@
       throw e;
     }finally{if(timer)clearTimeout(timer);}
   }
+
+  async function hydrateDestinationRuntime(){
+    if(!bookingEnabled||!isBudapestPage)return null;
+    try{
+      const data=await api('/destinations/budapest',{method:'GET',timeoutMs:5000});
+      if(!data?.rider_policy||!data?.meeting_point)throw new Error('DESTINATION_CONFIG_INCOMPLETE');
+      destinationRuntime=data;
+      return data;
+    }catch(e){
+      destinationRuntime=null;
+      return null;
+    }
+  }
+  const budapestPolicy=()=>destinationRuntime?.rider_policy||null;
+  const budapestMeetingPoint=()=>destinationRuntime?.meeting_point||null;
+  function riderPolicyLabels(){
+    const policy=budapestPolicy();
+    if(!policy){
+      return locale==='he'
+        ?{riders:'רוכבים עצמאיים',children:'נוסעים ילדים',babies:'נוסעים פעוטות'}
+        :locale==='hu'
+          ?{riders:'Önálló vezetők',children:'Gyermek utasok',babies:'Kisgyermek utasok'}
+          :{riders:'Independent riders',children:'Child passengers',babies:'Baby passengers'};
+    }
+    const riderAge=Number(policy.standard_min_age);
+    const childMin=Number(policy.child_passenger_min_age),childMax=Number(policy.child_passenger_max_age);
+    const babyMin=Number(policy.baby_passenger_min_age),babyMax=Number(policy.baby_passenger_max_age);
+    if(locale==='he')return {
+      riders:`רוכבים עצמאיים ${riderAge}+`,
+      children:`ילדים ${childMin}–${childMax}`,
+      babies:`פעוטות ${babyMin}–${babyMax}`,
+    };
+    if(locale==='hu')return {
+      riders:`Önálló vezetők ${riderAge}+`,
+      children:`Gyermekek ${childMin}–${childMax}`,
+      babies:`Kisgyermekek ${babyMin}–${babyMax}`,
+    };
+    return {
+      riders:`Independent riders ${riderAge}+`,
+      children:`Children ${childMin}–${childMax}`,
+      babies:`Babies ${babyMin}–${babyMax}`,
+    };
+  }
+  function applyDestinationRuntimeUI(){
+    if(!isBudapestPage)return;
+    const labels=riderPolicyLabels();
+    for(const [name,label] of [['adults',labels.riders],['children',labels.children],['babies',labels.babies]]){
+      document.querySelectorAll(`[name="${name}"]`).forEach(control=>{
+        const field=control.closest('.field');
+        const node=field?.querySelector('label');
+        if(node)node.textContent=label;
+      });
+    }
+    const policy=budapestPolicy();
+    document.querySelectorAll('[data-runtime-rider-policy]').forEach(node=>{
+      if(!policy){node.textContent=labels.riders;return;}
+      const standard=Number(policy.standard_min_age);
+      const assessment=Number(policy.assessment_min_age);
+      node.textContent=locale==='he'
+        ?`רכיבה עצמאית בדרך כלל מגיל ${standard}; גיל ${assessment} בכפוף להערכת התאמה`
+        :locale==='hu'
+          ?`Önálló vezetés általában ${standard}+; ${assessment} évesen alkalmassági felméréssel`
+          :`Independent riding is normally ${standard}+; age ${assessment} by suitability assessment`;
+    });
+  }
+
+  await hydrateDestinationRuntime();
+  applyDestinationRuntimeUI();
 
   async function createSession(stage, extra={}){
     if(!bookingEnabled) return null;
@@ -855,77 +925,120 @@
     };
   }
 
-  function fallbackBudapestProducts(){
-    const title=(en,he,hu)=>locale==='he'?he:locale==='hu'?hu:en;
-    return [
-      {id:'exp_bud_buda',slug:'buda-highlights',title:title('Buda Highlights by EZRaider','סיור בודה על EZRaider','Budai városnézés EZRaiderrel'),durationMinutes:120,basePrice:70,priceFrom:70,currency:'EUR',maxIndependentRiders:12,bookingEnabled:true,privateAllowed:true,privateSurchargePerRider:30,privateMinRiders:2,flexibleDepartureWhenPrivate:true,guideLanguages:['en','he','hu','es']},
-      {id:'exp_bud_margaret',slug:'margaret-island',title:title('Margaret Island by EZRaider','סיור אי מרגיט על EZRaider','Margitsziget EZRaiderrel'),durationMinutes:120,basePrice:70,priceFrom:70,currency:'EUR',maxIndependentRiders:12,bookingEnabled:true,privateAllowed:true,privateSurchargePerRider:30,privateMinRiders:2,flexibleDepartureWhenPrivate:true,guideLanguages:['en','he','hu','es']}
-    ];
-  }
   function localizedBudapestExperienceTitle(experience,fallbackTitle=''){
     const raw=[experience?.slug,experience?.id,experience?.title,fallbackTitle].filter(Boolean).join(' ').toLowerCase();
     if(raw.includes('extended')||(raw.includes('buda')&&raw.includes('margaret')))return locale==='he'?'סיור ארוך בודה + מרגיט':locale==='hu'?'Buda + Margitsziget hosszabb túra':'Extended Buda + Margaret Tour';
-    const localized=fallbackBudapestProducts().find(p=>String(p.id)===String(experience?.id||'')||p.slug===experience?.slug);
-    return String(localized?.title||experience?.title||fallbackTitle||'').trim();
+    if(raw.includes('margaret'))return locale==='he'?'סיור אי מרגיט על EZRaider':locale==='hu'?'Margitsziget EZRaiderrel':'Margaret Island by EZRaider';
+    if(raw.includes('buda'))return locale==='he'?'סיור בודה על EZRaider':locale==='hu'?'Budai városnézés EZRaiderrel':'Buda Highlights by EZRaider';
+    return String(experience?.title||fallbackTitle||'').trim();
   }
-  function seedExperienceSelects(selects,products){
-    (products||[]).forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
-    selects.forEach(s=>{
-      const before=s.value;
-      s.innerHTML='';
-      (products||[]).forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=localizedBudapestExperienceTitle(p,p.title);s.appendChild(o);});
-      if(before&&(products||[]).some(p=>p.id===before))s.value=before;
+  function catalogLoadingLabel(){
+    return locale==='he'?'טוען אפשרויות ומחירים חיים…':locale==='hu'?'Élő túraopciók és árak betöltése…':'Loading live tour options and prices…';
+  }
+  function catalogUnavailableLabel(){
+    return locale==='he'?'אפשרויות ומחירים חיים אינם זמינים כרגע':locale==='hu'?'Az élő túraopciók és árak jelenleg nem érhetők el':'Live tour options and prices are temporarily unavailable';
+  }
+  function setCatalogUnavailableUI(selects){
+    selects.forEach(select=>{
+      select.innerHTML=`<option value="">${escapeHTML(catalogUnavailableLabel())}</option>`;
+      select.disabled=true;
     });
+    document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=catalogUnavailableLabel());
+    const status=document.querySelector('#availability-status');
+    if(status)status.textContent=locale==='he'
+      ?'לא ניתן לאמת כרגע אפשרויות, מחיר או זמינות מול מערכת ההזמנות. נסו שוב בעוד רגע.'
+      :locale==='hu'
+        ?'A foglalási rendszerből jelenleg nem ellenőrizhetők az opciók, árak vagy az elérhetőség. Kérjük, próbálja újra rövidesen.'
+        :'Tour options, pricing and availability cannot be verified with the booking system right now. Please try again shortly.';
+    const submit=document.querySelector('#availability-form button[type="submit"]');
+    if(submit)submit.disabled=true;
   }
 
   async function hydrateCatalog(){
     const selects=[...document.querySelectorAll('select[name="experience"]')];
-    const provisional=fallbackBudapestProducts();
-    seedExperienceSelects(selects,provisional);
+    const submit=document.querySelector('#availability-form button[type="submit"]');
+    selects.forEach(select=>{
+      select.innerHTML=`<option value="">${escapeHTML(catalogLoadingLabel())}</option>`;
+      select.disabled=true;
+    });
+    document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=catalogLoadingLabel());
+    if(submit)submit.disabled=true;
+
     if(!bookingEnabled){
-      selects.forEach(s=>{s.innerHTML=`<option value="">${t('Online booking is temporarily unavailable','ההזמנה החיה בתהליך חיבור')}</option>`;s.disabled=true;});
-      hydrateTourCards([]); return [];
+      selects.forEach(select=>{
+        select.innerHTML=`<option value="">${t('Online booking is temporarily unavailable','ההזמנה החיה בתהליך חיבור')}</option>`;
+        select.disabled=true;
+      });
+      document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=t('Live price unavailable','מחיר חי אינו זמין'));
+      hydrateTourCards([]);
+      return [];
     }
+
     try{
-      let catalogFallback=false;
-      let products=[];
-      try{products=await api('/experiences',{method:'GET',timeoutMs:5000});}
-      catch(catalogError){catalogFallback=true;products=fallbackBudapestProducts();}
-      if(!Array.isArray(products)||!products.length){catalogFallback=true;products=fallbackBudapestProducts();}
-      (products||[]).forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
-      hydrateTourCards(products||[]);
-      const bookable=(products||[]).filter(p=>p.bookingEnabled!==false);
+      const products=await api('/experiences',{method:'GET',timeoutMs:5000});
+      if(!Array.isArray(products)||!products.length)throw new Error('CATALOG_EMPTY');
+
+      products.forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
+      hydrateTourCards(products);
+
+      const bookable=products.filter(p=>p.bookingEnabled!==false);
+      if(!bookable.length)throw new Error('CATALOG_NOT_BOOKABLE');
+
       const requested=qs.get('experience');
       const intentAliases=requested?[requested]:(page.includes('buda-margaret-extended')?['buda-margaret-extended','extended-buda-margaret','buda-and-margaret','buda-margaret']:(page.includes('margaret-island')?['margaret-island','margaret-island-tour']:['buda-highlights','buda-castle']));
       const intended=intentAliases.map(slug=>bookable.find(p=>p.slug===slug)).find(Boolean)||null;
-      selects.forEach(s=>{
-        const before=s.value;
-        s.innerHTML=''; s.disabled=false;
-        bookable.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.dataset.slug=p.slug;o.textContent=localizedBudapestExperienceTitle(p,p.title);s.appendChild(o);});
-        if(before&&bookable.some(p=>p.id===before))s.value=before;
-        else if(intended)s.value=intended.id;
+
+      selects.forEach(select=>{
+        const before=select.value;
+        select.innerHTML='';
+        select.disabled=false;
+        bookable.forEach(p=>{
+          const option=document.createElement('option');
+          option.value=p.id;
+          option.dataset.slug=p.slug;
+          option.textContent=localizedBudapestExperienceTitle(p,p.title);
+          select.appendChild(option);
+        });
+        if(before&&bookable.some(p=>p.id===before))select.value=before;
+        else if(intended)select.value=intended.id;
       });
+
       const isSpecialPage=page.includes('margaret-island')||page.includes('buda-margaret-extended');
-      const selectedId=selects.find(s=>s.value)?.value||null;
+      const selectedId=selects.find(select=>select.value)?.value||null;
       const active=(selectedId?bookable.find(p=>p.id===selectedId):null)||intended||(!isSpecialPage?bookable[0]:null);
-      if(catalogFallback){
-        const st=document.querySelector('#availability-status');
-        if(st)st.textContent=locale==='he'?'בחרו סיור, תאריך וקבוצה. הזמינות העדכנית תיבדק בעת החיפוש.':locale==='hu'?'Válassz túrát, dátumot és létszámot. Az aktuális elérhetőséget a kereséskor ellenőrizzük.':'Choose a tour, date and group. Live availability will be checked when you search.';
+
+      if(active){
+        setStore('voy_experience_id',active.id);
+        hydratePrice(active);
+        setSelectedTourHint(active);
+        updatePrivateUpgrade(active);
+        updateGuideLanguageField(active);
       }
-      if(active){setStore('voy_experience_id',active.id);hydratePrice(active);setSelectedTourHint(active);updatePrivateUpgrade(active);updateGuideLanguageField(active);}
+
       if(isSpecialPage&&!intended){
         const isExtended=page.includes('buda-margaret-extended');
         const label=isExtended?t('Extended Buda + Margaret — contact us','בודה + מרגיט — פנו אלינו'):t('Margaret Island — contact us','אי מרגיט — פנו אלינו');
-        selects.forEach(s=>{s.innerHTML=`<option value="">${label}</option>`;s.disabled=true;});
-        document.querySelectorAll('[data-runtime-price]').forEach(n=>n.textContent=t('Contact us for this route','פנו אלינו לגבי המסלול'));
-        const st=document.querySelector('#availability-status');if(st)st.textContent=isExtended?t('The extended Buda + Margaret tour is currently confirmed by the local team. Contact us on WhatsApp.','הסיור הארוך בודה + מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp.'):t('Margaret Island is currently confirmed by the local team. Contact us on WhatsApp, or view the Buda tour for online booking.','אי מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp, או לעבור לסיור בודה להזמנה באתר.');
-        const submit=document.querySelector('#availability-form button[type="submit"]'); if(submit) submit.disabled=true;
+        selects.forEach(select=>{select.innerHTML=`<option value="">${label}</option>`;select.disabled=true;});
+        document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=t('Contact us for this route','פנו אלינו לגבי המסלול'));
+        const status=document.querySelector('#availability-status');
+        if(status)status.textContent=isExtended
+          ?t('The extended Buda + Margaret tour is currently confirmed by the local team. Contact us on WhatsApp.','הסיור הארוך בודה + מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp.')
+          :t('Margaret Island is currently confirmed by the local team. Contact us on WhatsApp, or view the Buda tour for online booking.','אי מרגיט מתואם כרגע מול הצוות המקומי. אפשר לפנות אלינו ב‑WhatsApp, או לעבור לסיור בודה להזמנה באתר.');
+        if(submit)submit.disabled=true;
+      }else if(submit){
+        submit.disabled=false;
       }
-      return products||[];
-    }catch(e){selects.forEach(s=>{s.innerHTML=`<option value="">${t('Tour options are temporarily unavailable','הקטלוג החי אינו זמין')}</option>`;s.disabled=true;});hydrateTourCards([]);return []}
+
+      return products;
+    }catch(e){
+      setCatalogUnavailableUI(selects);
+      hydrateTourCards([]);
+      return [];
+    }
   }
   function hydratePrice(p){
-    if(!p||p.priceFrom==null)return; document.querySelectorAll('[data-runtime-price]').forEach(n=>n.textContent=t('From ','החל מ־')+money(p.priceFrom,p.currency||'EUR'));
+    if(!p||p.priceFrom==null)return;
+    document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=t('From ','החל מ־')+money(p.priceFrom,p.currency||'EUR'));
   }
 
   function ensureCheckoutShell(){
@@ -1037,9 +1150,10 @@
 
   function renderPartySummary(composition){
     const chips=[];
-    if(Number(composition?.riders_16_plus||0)>0)chips.push(`<span>${t('Riders 16+','רוכבים 16+')} · ${Number(composition.riders_16_plus)}</span>`);
-    if(Number(composition?.child_passengers_3_15||0)>0)chips.push(`<span>${t('Children 3–15','ילדים 3–15')} · ${Number(composition.child_passengers_3_15)}</span>`);
-    if(Number(composition?.baby_passengers_1_2||0)>0)chips.push(`<span>${t('Babies 1–2','פעוטות 1–2')} · ${Number(composition.baby_passengers_1_2)}</span>`);
+    const labels=riderPolicyLabels();
+    if(Number(composition?.riders_16_plus||0)>0)chips.push(`<span>${escapeHTML(labels.riders)} · ${Number(composition.riders_16_plus)}</span>`);
+    if(Number(composition?.child_passengers_3_15||0)>0)chips.push(`<span>${escapeHTML(labels.children)} · ${Number(composition.child_passengers_3_15)}</span>`);
+    if(Number(composition?.baby_passengers_1_2||0)>0)chips.push(`<span>${escapeHTML(labels.babies)} · ${Number(composition.baby_passengers_1_2)}</span>`);
     return chips.length?`<div class="party-summary">${chips.join('')}</div>`:'';
   }
 
@@ -1396,11 +1510,13 @@
     const calendarTourTitle=localizedBudapestExperienceTitle(bookingState.experience,booking?.experience_title)||'VOY PRO Budapest';
     const privateSuffix=bookingState.isPrivate?(locale==='he'?' · פרטי':locale==='hu'?' · Privát':' · Private'):'';
     const title=encodeURIComponent(`${calendarTourTitle}${privateSuffix}`);
-    const meetingPoint='Városház utca 14, 1052 Budapest, Hungary';
-    const mapsUrl='https://maps.app.goo.gl/BNqXWux5XAnHi2W19';
+    const meeting=budapestMeetingPoint();
+    const meetingPoint=String(meeting?.address||'').trim();
+    const mapsUrl=String(meeting?.maps_url||'').trim();
     const bookingLabel=locale==='he'?'הזמנת VOY PRO':locale==='hu'?'VOY PRO foglalás':'VOY PRO booking';
     const meetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':'Meeting point';
-    const details=encodeURIComponent(`${bookingLabel} ${booking?.reference||''}\n${meetingLabel}: ${meetingPoint}\nGoogle Maps: ${mapsUrl}`);
+    const meetingLines=meetingPoint?[`${meetingLabel}: ${meetingPoint}`,...(mapsUrl?[`Google Maps: ${mapsUrl}`]:[])]:[];
+    const details=encodeURIComponent([`${bookingLabel} ${booking?.reference||''}`,...meetingLines].join('\n'));
     const locationParam=encodeURIComponent(meetingPoint);
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${compact(start)}/${compact(end)}&ctz=Europe%2FBudapest&details=${details}&location=${locationParam}`;
   }
@@ -1454,7 +1570,7 @@
       const confirmationMapsLabel=locale==='he'?'פתיחה ב־Google Maps':locale==='hu'?'Megnyitás a Google Térképen':'Open in Google Maps';
       const confirmationTotal=finiteNumber(booking.total);
       const confirmationTour=localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title);
-      terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon" aria-hidden="true">✓</div><h3 tabindex="-1">${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(booking.reference)}</b></div>${confirmationTour?`<div class="confirmation-tour"><span>${t('Tour','סיור')}</span><strong>${escapeHTML(confirmationTour)}</strong></div>`:''}${renderPartySummary(bookingState.composition)}${confirmationTotal!=null?`<div class="confirmation-total"><span>${t('Total','סה״כ')}</span><strong>${escapeHTML(money(confirmationTotal,booking.currency||'EUR'))}</strong></div>`:''}<div class="party-summary confirmation-meta"><span>${t('Date','תאריך')} · ${escapeHTML(confirmationDateLabel(bookingState.date))}</span><span>${t('Time','שעה')} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span>${bookingState.isPrivate?`<span>${t('Private tour','סיור פרטי')}</span>`:''}<span>${t('Guide','הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span><span>${t('Payment','תשלום')} · ${paymentMethod==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):paymentMethod==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום')}</span></div>${renderConfirmationAncillarySummary()}<div class="confirmation-meeting-point"><div><small>${escapeHTML(confirmationMeetingLabel)}</small><b>Városház utca 14, 1052 Budapest</b></div><a class="btn secondary" href="https://maps.app.goo.gl/BNqXWux5XAnHi2W19" target="_blank" rel="noopener">${escapeHTML(confirmationMapsLabel)}</a></div><div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}" target="_blank" rel="noopener">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
+      terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon" aria-hidden="true">✓</div><h3 tabindex="-1">${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(booking.reference)}</b></div>${confirmationTour?`<div class="confirmation-tour"><span>${t('Tour','סיור')}</span><strong>${escapeHTML(confirmationTour)}</strong></div>`:''}${renderPartySummary(bookingState.composition)}${confirmationTotal!=null?`<div class="confirmation-total"><span>${t('Total','סה״כ')}</span><strong>${escapeHTML(money(confirmationTotal,booking.currency||'EUR'))}</strong></div>`:''}<div class="party-summary confirmation-meta"><span>${t('Date','תאריך')} · ${escapeHTML(confirmationDateLabel(bookingState.date))}</span><span>${t('Time','שעה')} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span>${bookingState.isPrivate?`<span>${t('Private tour','סיור פרטי')}</span>`:''}<span>${t('Guide','הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span><span>${t('Payment','תשלום')} · ${paymentMethod==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):paymentMethod==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום')}</span></div>${renderConfirmationAncillarySummary()}${(()=>{const meeting=budapestMeetingPoint();if(!meeting?.address)return '';return `<div class="confirmation-meeting-point"><div><small>${escapeHTML(confirmationMeetingLabel)}</small><b>${escapeHTML(meeting.address)}</b></div>${meeting.maps_url?`<a class="btn secondary" href="${escapeHTML(meeting.maps_url)}" target="_blank" rel="noopener">${escapeHTML(confirmationMapsLabel)}</a>`:''}</div>`;})()}<div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}" target="_blank" rel="noopener">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
       bindConfirmationActions(st,booking);st.querySelector('h3')?.focus({preventScroll:true});checkoutForm.querySelectorAll('input,select,button:not([data-copy-booking-ref])').forEach(el=>el.disabled=true);document.querySelector('.mobilebook')?.setAttribute('hidden','');
       track('booking_completed',{booking_id:booking.id,reference:booking.reference,revenue:booking.total,currency:booking.currency,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,promo_code_applied:booking.promo_code_applied||bookingState.promoCode||null,discount:booking.discount||0});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});
     }catch(err){patchSession({stage:'booking_failed',error_code:err?.code||String(err?.status||'booking_failed')});const msg=err.code==='HOLD_EXPIRED'?t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.'):err.code==='STAFF_CONFIRMATION_REQUIRED'?t('This booking needs an additional confirmation. Please search again and send a request.','להזמנה הזו נדרש אישור נוסף. יש לחפש מחדש ולשלוח בקשה.'):t('The booking could not be completed. No online card charge was made.','לא ניתן להשלים את ההזמנה. לא בוצע חיוב מקוון.');st.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(st);}
@@ -1487,22 +1603,22 @@
 
   const WEBSITE_VISUAL_COPY={
     en:{
-      meeting:'MEETING POINT',budapestTitle:'Start in central Budapest.',budapestBody:'Please arrive about 15 minutes before departure for check-in, equipment fitting and riding instructions.',budapestName:'VOY PRO Budapest',budapestAddress:'Városház utca 14, 1052 Budapest, Hungary',
+      meeting:'MEETING POINT',budapestTitle:'Start in central Budapest.',budapestBody:'Please arrive about 15 minutes before departure for check-in, equipment fitting and riding instructions.',budapestName:'VOY PRO Budapest',
       portugalTitle:'Start your Marvão experience here.',portugalBody:'Use the Google Maps pin for the exact meeting point before departure. The local experience is operated by Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
       maps:'Open in Google Maps',exactPin:'Exact meeting point',pictures:'ROUTE IN PICTURES',schematic:'ROUTE SCHEMATIC',schematicNote:'Illustrative route — the exact sequence can vary.'
     },
     he:{
-      meeting:'נקודת מפגש',budapestTitle:'מתחילים במרכז בודפשט.',budapestBody:'נא להגיע כ־15 דקות לפני היציאה לצ׳ק-אין, התאמת ציוד ותדריך רכיבה.',budapestName:'VOY PRO Budapest',budapestAddress:'Városház utca 14, 1052 Budapest, Hungary',
+      meeting:'נקודת מפגש',budapestTitle:'מתחילים במרכז בודפשט.',budapestBody:'נא להגיע כ־15 דקות לפני היציאה לצ׳ק-אין, התאמת ציוד ותדריך רכיבה.',budapestName:'VOY PRO Budapest',
       portugalTitle:'מתחילים את חוויית מרבאו כאן.',portugalBody:'לפני היציאה השתמשו בסימון המדויק ב-Google Maps. החוויה המקומית מופעלת על ידי Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
       maps:'פתיחה ב-Google Maps',exactPin:'נקודת המפגש המדויקת',pictures:'המסלול בתמונות',schematic:'תרשים המסלול',schematicNote:'המחשה בלבד — סדר המסלול בפועל עשוי להשתנות.'
     },
     hu:{
-      meeting:'TALÁLKOZÁSI PONT',budapestTitle:'Indulás Budapest belvárosából.',budapestBody:'Kérjük, érkezz körülbelül 15 perccel indulás előtt a bejelentkezéshez, felszereléshez és a vezetési oktatáshoz.',budapestName:'VOY PRO Budapest',budapestAddress:'Városház utca 14, 1052 Budapest, Hungary',
+      meeting:'TALÁLKOZÁSI PONT',budapestTitle:'Indulás Budapest belvárosából.',budapestBody:'Kérjük, érkezz körülbelül 15 perccel indulás előtt a bejelentkezéshez, felszereléshez és a vezetési oktatáshoz.',budapestName:'VOY PRO Budapest',
       portugalTitle:'Itt kezdődik a marvãói élmény.',portugalBody:'Indulás előtt használd a Google Maps pontos találkozási pontját. A helyi élményt a Pombais Experience & Villas üzemelteti.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
       maps:'Megnyitás a Google Térképen',exactPin:'Pontos találkozási pont',pictures:'AZ ÚTVONAL KÉPEKBEN',schematic:'ÚTVONALVÁZLAT',schematicNote:'Szemléltető útvonal — a pontos sorrend változhat.'
     },
     pt:{
-      meeting:'PONTO DE ENCONTRO',budapestTitle:'Partida no centro de Budapeste.',budapestBody:'Chegue cerca de 15 minutos antes da partida para check-in, ajuste do equipamento e instruções de condução.',budapestName:'VOY PRO Budapest',budapestAddress:'Városház utca 14, 1052 Budapest, Hungary',
+      meeting:'PONTO DE ENCONTRO',budapestTitle:'Partida no centro de Budapeste.',budapestBody:'Chegue cerca de 15 minutos antes da partida para check-in, ajuste do equipamento e instruções de condução.',budapestName:'VOY PRO Budapest',
       portugalTitle:'A sua experiência em Marvão começa aqui.',portugalBody:'Antes da partida, utilize o ponto exato no Google Maps. A experiência local é operada pela Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
       maps:'Abrir no Google Maps',exactPin:'Ponto de encontro exato',pictures:'PERCURSO EM IMAGENS',schematic:'ESQUEMA DO PERCURSO',schematicNote:'Esquema ilustrativo — a ordem exata pode variar.'
     }
@@ -1514,10 +1630,12 @@
     const budapest=budapestHomes.has(routePath),portugal=portugalHomes.has(routePath);
     if((!budapest&&!portugal)||document.querySelector('[data-branch-meeting-point]'))return;
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
+    const meeting=budapest?budapestMeetingPoint():null;
+    if(budapest&&(!meeting?.address||!meeting?.maps_url))return;
     const data=budapest?{
-      title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:copy.budapestAddress,
-      maps:'https://maps.app.goo.gl/BNqXWux5XAnHi2W19',
-      mapQuery:'47.494133,19.055124',
+      title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
+      maps:meeting.maps_url,
+      mapQuery:meeting.address,
       mapZoom:19
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
