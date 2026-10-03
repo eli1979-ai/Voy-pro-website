@@ -16,7 +16,7 @@ Key Budapest booking capabilities preserved in this baseline:
 
 Historical patch/build machinery is archived under `legacy/v1.32.9-build-chain/` and must not be used for new feature development.
 
-Mobile funnel hardening in v1.33.1 keeps language selection inside the mobile menu, prevents the consent banner from colliding with fixed CTAs, and shows approved Budapest fallback prices before live FBM pricing hydrates.
+Mobile funnel hardening keeps language selection inside the mobile menu and prevents the consent banner from colliding with fixed CTAs. Budapest runtime business values now hydrate only from FBM; before live catalog data arrives the site uses non-numeric safe wording instead of fixed fallback prices or policies.
 
 v1.34.0 shortens the path from hero to booking, places route choice before the photo gallery, defaults guide language from the selected site locale when available, and compacts group composition inputs without changing live booking rules.
 
