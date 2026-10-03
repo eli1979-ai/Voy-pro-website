@@ -580,6 +580,68 @@
     }finally{if(timer)clearTimeout(timer);}
   }
 
+  let destinationRuntime=null;
+
+  function destinationRiderPolicy(){
+    const policy=destinationRuntime?.rider_policy;
+    return policy&&typeof policy==='object'?policy:null;
+  }
+
+  function budapestMeetingPoint(){
+    const meeting=destinationRuntime?.meeting_point;
+    if(!meeting||typeof meeting!=='object') return null;
+    const address=String(meeting.address||'').trim();
+    const mapsUrl=String(meeting.maps_url||'').trim();
+    return address&&mapsUrl?{address,mapsUrl}:null;
+  }
+
+  function partyAgeLabel(kind){
+    const policy=destinationRiderPolicy();
+    const riderMin=Number(policy?.standard_min_age);
+    const childMin=Number(policy?.child_passenger_min_age);
+    const childMax=Number(policy?.child_passenger_max_age);
+    const babyMin=Number(policy?.baby_passenger_min_age);
+    const babyMax=Number(policy?.baby_passenger_max_age);
+    if(kind==='riders'){
+      if(!Number.isFinite(riderMin)) return locale==='he'?'רוכבים עצמאיים':locale==='hu'?'Önálló vezetők':'Independent riders';
+      return locale==='he'?'רוכבים '+riderMin+'+':locale==='hu'?'Önálló vezetők '+riderMin+'+':'Riders '+riderMin+'+';
+    }
+    if(kind==='children'){
+      if(!Number.isFinite(childMin)||!Number.isFinite(childMax)) return locale==='he'?'ילדים':locale==='hu'?'Gyermekek':'Children';
+      return locale==='he'?'ילדים '+childMin+'–'+childMax:locale==='hu'?'Gyermekek '+childMin+'–'+childMax:'Children '+childMin+'–'+childMax;
+    }
+    if(!Number.isFinite(babyMin)||!Number.isFinite(babyMax)) return locale==='he'?'פעוטות':locale==='hu'?'Kisgyermekek':'Babies';
+    return locale==='he'?'פעוטות '+babyMin+'–'+babyMax:locale==='hu'?'Kisgyermekek '+babyMin+'–'+babyMax:'Babies '+babyMin+'–'+babyMax;
+  }
+
+  function applyDestinationBusinessUI(){
+    if(destinationId!=='budapest'||!destinationRuntime) return;
+    document.querySelectorAll('[data-party-label="riders"]').forEach(node=>node.textContent=partyAgeLabel('riders'));
+    document.querySelectorAll('[data-party-label="children"]').forEach(node=>node.textContent=partyAgeLabel('children'));
+    document.querySelectorAll('[data-party-label="babies"]').forEach(node=>node.textContent=partyAgeLabel('babies'));
+    document.querySelectorAll('[data-runtime-rider-age]').forEach(node=>{
+      const min=Number(destinationRiderPolicy()?.standard_min_age);
+      node.textContent=Number.isFinite(min)
+        ?(locale==='he'?'רכיבה עצמאית בדרך כלל מגיל '+min:locale==='hu'?'Önálló vezetés általában '+min+'+':'Independent riding usually '+min+'+')
+        :(locale==='he'?'רכיבה עצמאית':locale==='hu'?'Önálló vezetés':'Independent riding');
+    });
+  }
+
+  async function hydrateDestinationConfig(){
+    if(destinationId!=='budapest'||!bookingEnabled) return null;
+    try{
+      const data=await api('/destinations/budapest',{method:'GET',timeoutMs:5000});
+      if(data&&data.rider_policy&&data.meeting_point){
+        destinationRuntime=data;
+        applyDestinationBusinessUI();
+        return data;
+      }
+    }catch(e){}
+    destinationRuntime=null;
+    return null;
+  }
+
+
   async function createSession(stage, extra={}){
     if(!bookingEnabled) return null;
     try{
