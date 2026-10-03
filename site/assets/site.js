@@ -619,6 +619,13 @@
     document.querySelectorAll('[data-party-label="babies"]').forEach(node=>node.textContent=partyAgeLabel('babies'));
     document.querySelectorAll('[data-runtime-rider-age]').forEach(node=>{
       const min=Number(destinationRiderPolicy()?.standard_min_age);
+      const format=String(node.dataset.runtimeRiderAge||'summary');
+      if(format==='minimum'){
+        node.textContent=Number.isFinite(min)
+          ?(locale==='he'?'בדרך כלל מגיל '+min:locale==='hu'?'Általában '+min+'+':'Usually age '+min+'+')
+          :(locale==='he'?'מדיניות גיל עדכנית':locale==='hu'?'Aktuális korhatár':'Current age policy');
+        return;
+      }
       node.textContent=Number.isFinite(min)
         ?(locale==='he'?'רכיבה עצמאית בדרך כלל מגיל '+min:locale==='hu'?'Önálló vezetés általában '+min+'+':'Independent riding usually '+min+'+')
         :(locale==='he'?'רכיבה עצמאית':locale==='hu'?'Önálló vezetés':'Independent riding');
