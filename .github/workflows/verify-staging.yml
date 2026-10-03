@@ -83,9 +83,9 @@ jobs:
           if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
           if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
-          if(!/From €70/.test(en)||!/€120/.test(en)) throw new Error('English fallback pricing missing');
-          if(!/החל מ־€70/.test(he)||!/€120/.test(he)) throw new Error('Hebrew fallback pricing missing');
-          if(!/€70-tól/.test(hu)||!/€120/.test(hu)) throw new Error('Hungarian fallback pricing missing');
+          if(/fallbackBudapestProducts|BUDAPEST_GUIDE_LANGUAGES|From €70/.test(js)) throw new Error('Website runtime still owns Budapest business fallback truth');
+          if(!/Live price at booking/.test(js)||!/PUBLIC_CATALOG_EMPTY/.test(js)) throw new Error('API-only catalog safe fallback missing');
+          if(/privateMinRiders\|\|2/.test(js)||/date\.max=budapestDate\(365\)/.test(js)) throw new Error('Website runtime still contains business-policy defaults');
           if(!/data-mobile-language-row/.test(js)||!/consent-open/.test(js)) throw new Error('Mobile navigation/consent hardening missing');
           if(!/optimizeHomeConversion/.test(js)||!/enhanceBookingFormLayout/.test(js)||!/smartDefault/.test(js)) throw new Error('Conversion funnel runtime missing');
           for(const [name,html] of Object.entries({en,he,hu})){
