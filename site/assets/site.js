@@ -154,8 +154,8 @@
     if((m=en.match(/^Preferred date: (.+)$/))) return `Kívánt dátum: ${m[1]}`;
     if((m=en.match(/^Preferred time: (.+)$/))) return `Kívánt időpont: ${m[1]}`;
     if((m=en.match(/^Independent riders: (.+)$/))) return `Önálló vezetők: ${m[1]}`;
-    if((m=en.match(/^Children 3–15: (.+)$/))) return `Gyermekek 3–15: ${m[1]}`;
-    if((m=en.match(/^Babies 1–2: (.+)$/))) return `Kisgyermekek 1–2: ${m[1]}`;
+    if((m=en.match(/^Child passengers: (.+)$/))) return `Gyermek utasok: ${m[1]}`;
+    if((m=en.match(/^Baby passengers: (.+)$/))) return `Kisgyermek utasok: ${m[1]}`;
     if((m=en.match(/^Guide language: (.+)$/))) return `Vezetés nyelve: ${m[1]}`;
     if((m=en.match(/^Payment: (.+)$/))) return `Fizetés: ${m[1]}`;
     if((m=en.match(/^Total: (.+)$/))) return `Összesen: ${m[1]}`;
@@ -245,8 +245,8 @@
     if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`):t(`Preferred date: ${confirmationDateLabel(details.date)}`,`תאריך מועדף: ${confirmationDateLabel(details.date)}`));
     if(details.requested_time)detailLines.push(confirmedBooking?(locale==='he'?`שעה: ${details.requested_time}`:locale==='hu'?`Időpont: ${details.requested_time}`:`Time: ${details.requested_time}`):t(`Preferred time: ${confirmationTimeLabel(details.requested_time)}`,`שעה מועדפת: ${confirmationTimeLabel(details.requested_time)}`));
     if(details.riders)detailLines.push(t(`Independent riders: ${details.riders}`,`רוכבים עצמאיים: ${details.riders}`));
-    if(Number(details.children||0)>0)detailLines.push(t(`Children 3–15: ${details.children}`,`ילדים 3–15: ${details.children}`));
-    if(Number(details.babies||0)>0)detailLines.push(t(`Babies 1–2: ${details.babies}`,`פעוטות 1–2: ${details.babies}`));
+    if(Number(details.children||0)>0)detailLines.push(t(`Child passengers: ${details.children}`,`נוסעים ילדים: ${details.children}`));
+    if(Number(details.babies||0)>0)detailLines.push(t(`Baby passengers: ${details.babies}`,`נוסעים פעוטות: ${details.babies}`));
     if(details.guide_language)detailLines.push(t(`Guide language: ${guideLanguageLabel(details.guide_language)}`,`שפת הדרכה: ${guideLanguageLabel(details.guide_language)}`));
     if(details.is_private)detailLines.push(t('Private tour: yes','סיור פרטי: כן'));
     if(Array.isArray(details.extras)&&details.extras.length){
@@ -432,7 +432,7 @@
     private:{en:['PRIVATE BUDAPEST EXPERIENCE','Check private tour options','A dedicated guide and private-group setup, subject to availability.'],he:['חוויה פרטית בבודפשט','בדיקת סיור פרטי','מדריך ייעודי ומבנה קבוצה פרטי, בכפוף לזמינות החיה.'],hu:['PRIVÁT BUDAPEST ÉLMÉNY','Privát túra lehetőségek','Saját idegenvezető és privát csoportbeállítás, az elérhetőségtől függően.']},
     group:{en:['GROUPS & EVENTS','Plan a group ride','We coordinate the vehicles, guides and escorts your group needs.'],he:['קבוצות ואירועים','תכנון סיור לקבוצה','אנחנו מתאמים את הכלים, המדריכים והמלווים שהקבוצה צריכה.'],hu:['CSOPORTOK ÉS ESEMÉNYEK','Csoportos túra tervezése','A szükséges járműveket, idegenvezetőket és kísérőket összehangoljuk a csoportod számára.']},
     buda:{en:["BUDA CASTLE · FISHERMAN'S BASTION",'Check Buda tour availability','The most popular VOY PRO route for Castle Hill highlights and Danube views.'],he:['טירת בודה · מצודת הדייגים','בדיקת זמינות לסיור בודה','המסלול הפופולרי של VOY PRO באזור גבעת המצודה ותצפיות הדנובה.'],hu:['BUDAI VÁR · HALÁSZBÁSTYA','Budai túra időpontjai','A VOY PRO legnépszerűbb útvonala a Várnegyed fő látnivalóival és dunai panorámákkal.']},
-    margaret:{en:['MARGARET ISLAND · GREEN RIDE','Check Margaret Island availability','Margaret Island runs daily with an 18:00 departure.'],he:['אי מרגיט · המסלול הירוק','בדיקת זמינות לאי מרגיט','סיור אי מרגיט יוצא בכל יום בשעה 18:00.'],hu:['MARGITSZIGET · ZÖLD TÚRA','Margitszigeti időpontok','A margitszigeti túra minden nap 18:00-kor indul.']},
+    margaret:{en:['MARGARET ISLAND · GREEN RIDE','Check Margaret Island availability','Margaret Island departure times are confirmed from live availability.'],he:['אי מרגיט · המסלול הירוק','בדיקת זמינות לאי מרגיט','שעות היציאה לסיור אי מרגיט מאושרות לפי הזמינות החיה.'],hu:['MARGITSZIGET · ZÖLD TÚRA','Margitszigeti időpontok','A margitszigeti indulási időpontokat az élő elérhetőség erősíti meg.']},
     extended:{en:['BUDA + MARGARET · EXTENDED TOUR','Request the Extended Tour','One longer guided experience combining the Buda and Margaret Island routes.'],he:['בודה + מרגיט · הסיור הארוך','בקשת הסיור הארוך','חוויה מודרכת ארוכה יותר שמשלבת את מסלולי בודה ואי מרגיט.'],hu:['BUDA + MARGITSZIGET · HOSSZABB TÚRA','Hosszabb túra kérése','Egy hosszabb vezetett élmény, amely a budai és margitszigeti útvonalat kombinálja.']},
     planning:{en:['PLAN YOUR BUDAPEST BASE','See live tour availability','Choose the area that fits your trip, then use VOY PRO to understand the wider city.'],he:['לתכנן את הבסיס בבודפשט','בדיקת זמינות לסיורים','בחרו אזור שמתאים לחופשה ואז השתמשו ב־VOY PRO כדי להבין את העיר הרחבה.'],hu:['TERVEZD MEG A BUDAPESTI BÁZISOD','Túrák elérhetősége','Válaszd ki az utazásodhoz illő környéket, majd ismerd meg a város többi részét a VOY PRO-val.']},
     first_day:{en:['A SMART FIRST DAY IN BUDAPEST','Start with an EZRaider overview','Cover key areas early, then decide what you want to revisit on foot.'],he:['דרך חכמה להתחיל את בודפשט','להתחיל עם סיור היכרות','רואים אזורים מרכזיים בתחילת החופשה ואז מחליטים לאן לחזור.'],hu:['OKOS ELSŐ NAP BUDAPESTEN','Kezdd egy EZRaider városnézéssel','Lásd a fő területeket már az elején, majd döntsd el, hová szeretnél gyalog visszatérni.']},
@@ -726,8 +726,8 @@
     const panel=document.querySelector('.special-request-panel');if(!panel)return;
     panel.classList.add('has-builder');
     const form=document.createElement('form');form.className='special-request-builder';form.dataset.specialRequestBuilder='';
-    const riderOptions=Array.from({length:11},(_,i)=>i+2).map(n=>`<option value="${n}">${n}</option>`).join('');
-    form.innerHTML=`<div class="special-builder-head"><b>${t('Tell us what you need','ספרו לנו מה אתם צריכים')}</b><span>${t('We’ll send the details to the Budapest team on WhatsApp.','נשלח את הפרטים לצוות בודפשט ב‑WhatsApp.')}</span></div><div class="special-builder-grid"><label>${t('Preferred date','תאריך מועדף')}<input type="date" name="special_date" required></label><label>${t('Independent riders','רוכבים עצמאיים')}<select name="special_riders">${riderOptions}</select></label><label>${t('Guide language','שפת הדרכה')}<select name="special_guide_language" required disabled><option value="">${t('Live languages unavailable','שפות זמינות ייטענו מהמערכת')}</option></select></label><label>${t('Private?','פרטי?')}<select name="special_private"><option value="false">${t('No · regular extended request','לא · בקשת סיור ארוך רגיל')}</option><option value="true">${t('Yes · our group only','כן · רק הקבוצה שלנו')}</option></select></label><label>${t('Preferred start time','שעת יציאה מועדפת')} <small>${t('(optional)','(אופציונלי)')}</small><input type="time" name="special_time"></label></div><button class="btn alt" type="submit">${t('Send request on WhatsApp','שליחת בקשה ב‑WhatsApp')}</button><small class="special-builder-note">${t('This sends a request, not a confirmed booking. Our local team will confirm the route, time, vehicles and guide language.','זו בקשה ולא הזמנה מאושרת. הצוות המקומי יאשר מסלול, שעה, כלים, מדריכים ושפת הדרכה.')}</small>`;
+    const riderControl=`<input type="number" name="special_riders" min="1" step="1" required value="1">`;
+    form.innerHTML=`<div class="special-builder-head"><b>${t('Tell us what you need','ספרו לנו מה אתם צריכים')}</b><span>${t('We’ll send the details to the Budapest team on WhatsApp.','נשלח את הפרטים לצוות בודפשט ב‑WhatsApp.')}</span></div><div class="special-builder-grid"><label>${t('Preferred date','תאריך מועדף')}<input type="date" name="special_date" required></label><label>${t('Independent riders','רוכבים עצמאיים')}${riderControl}</label><label>${t('Guide language','שפת הדרכה')}<select name="special_guide_language" required disabled><option value="">${t('Live languages unavailable','שפות זמינות ייטענו מהמערכת')}</option></select></label><label>${t('Private?','פרטי?')}<select name="special_private"><option value="false">${t('No · regular extended request','לא · בקשת סיור ארוך רגיל')}</option><option value="true">${t('Yes · our group only','כן · רק הקבוצה שלנו')}</option></select></label><label>${t('Preferred start time','שעת יציאה מועדפת')} <small>${t('(optional)','(אופציונלי)')}</small><input type="time" name="special_time"></label></div><button class="btn alt" type="submit">${t('Send request on WhatsApp','שליחת בקשה ב‑WhatsApp')}</button><small class="special-builder-note">${t('This sends a request, not a confirmed booking. Our local team will confirm the route, time, vehicles and guide language.','זו בקשה ולא הזמנה מאושרת. הצוות המקומי יאשר מסלול, שעה, כלים, מדריכים ושפת הדרכה.')}</small>`;
     form._updateGuideLanguages=(products=[])=>{
       const select=form.querySelector('select[name="special_guide_language"]');
       if(!select)return;
@@ -740,10 +740,10 @@
       select.disabled=!languages.length;
     };
     panel.appendChild(form);
-    const date=form.querySelector('[name="special_date"]');date.min=budapestDate(0);date.max=budapestDate(365);date.value=budapestDate(1);
+    const date=form.querySelector('[name="special_date"]');const horizon=Number(destinationRuntime?.booking_horizon_days);date.min=budapestDate(0);if(Number.isInteger(horizon)&&horizon>0)date.max=budapestDate(horizon);date.value=budapestDate(1);
     form.addEventListener('submit',e=>{
       e.preventDefault();const data=new FormData(form);
-      const details={experience_title:t('Extended Buda + Margaret','בודה + מרגיט — הסיור הארוך'),date:String(data.get('special_date')||''),requested_time:String(data.get('special_time')||''),riders:Number(data.get('special_riders')||2),children:0,babies:0,guide_language:String(data.get('special_guide_language')||'').trim().toLowerCase(),is_private:String(data.get('special_private'))==='true'};
+      const details={experience_title:t('Extended Buda + Margaret','בודה + מרגיט — הסיור הארוך'),date:String(data.get('special_date')||''),requested_time:String(data.get('special_time')||''),riders:Number(data.get('special_riders')||0),children:0,babies:0,guide_language:String(data.get('special_guide_language')||'').trim().toLowerCase(),is_private:String(data.get('special_private'))==='true'};
       const href=whatsAppUrl('extended',details);
       track('special_request_builder_submitted',{context:'extended',page,...details});
       createSession('whatsapp_clicked',{page,context:'extended_builder',...details});
