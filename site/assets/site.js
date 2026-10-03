@@ -128,7 +128,7 @@
     return m?`${m[1]}:${m[2]}`:raw;
   }
   const HU={
-    'Regular price':'Normál ár','Discount':'Kedvezmény','Additions':'Kiegészítések','Total':'Összesen','Tour':'Túra','Date':'Dátum','Time':'Időpont','From €70':'€70-tól','Live availability · Final price before confirmation · Local support':'Aktuális elérhetőség · Végső ár megerősítés előtt · Helyi segítség',
+    'Regular price':'Normál ár','Discount':'Kedvezmény','Additions':'Kiegészítések','Total':'Összesen','Tour':'Túra','Date':'Dátum','Time':'Időpont','Live availability · Final price before confirmation · Local support':'Aktuális elérhetőség · Végső ár megerősítés előtt · Helyi segítség',
     'Discounts and additions are shown separately before confirmation.':'A kedvezmények és kiegészítések külön jelennek meg a megerősítés előtt.',
     'Menu':'Menü','Close menu':'Menü bezárása','Explore Budapest':'Fedezd fel Budapestet','Buda Castle Tour':'Budavári túra','Margaret Island':'Margitsziget','Extended Tour':'Hosszabb túra','Private Tours':'Privát túrák','Budapest with Kids':'Budapest gyerekekkel','Portugal · Marvão':'Portugália · Marvão','Check availability':'Szabad időpontok','Ask us on WhatsApp':'Kérdezz WhatsAppon','View Buda tour':'Budai túra','See the most popular route':'Legnépszerűbb útvonal','Cookie preferences':'Süti beállítások','Your privacy choices':'Adatvédelmi beállítások','Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.':'A szükséges tárolás a foglalási funkciók működéséhez kell. Az opcionális analitika segít megérteni, mely oldalak vezetnek foglaláshoz.','Essential only':'Csak szükséges','Allow analytics':'Analitika engedélyezése',
     'Tell us what you need':'Írd meg, mire van szükséged','We’ll send the details to the Budapest team on WhatsApp.':'Az adatokat WhatsAppon elküldjük a budapesti csapatnak.','Preferred date':'Kívánt dátum','Independent riders':'Önálló vezetők','Guide language':'Vezetés nyelve','Choose language':'Válassz nyelvet','Private?':'Privát?','No · regular extended request':'Nem · normál hosszabb túra','Yes · our group only':'Igen · csak a mi csoportunk','Preferred start time':'Kívánt indulási idő','(optional)':'(opcionális)','Send request on WhatsApp':'Kérés küldése WhatsAppon','This sends a request, not a confirmed booking. Our local team will confirm the route, time, vehicles and guide language.':'Ez még kérés, nem megerősített foglalás. Helyi csapatunk visszaigazolja az útvonalat, időpontot, járműveket és a vezetés nyelvét.','Extended Buda + Margaret':'Buda + Margitsziget hosszabb túra',
@@ -1477,7 +1477,7 @@
   if(form){
     const status=document.querySelector('#availability-status'), slots=document.querySelector('#slotlist');
     const dateInput=form.querySelector('input[name="date"]');
-    if(dateInput){dateInput.min=budapestDate(0);dateInput.max=budapestDate(365);if(!dateInput.value)dateInput.value=budapestDate(0);}
+    if(dateInput){dateInput.min=budapestDate(0);const horizon=Number(destinationRuntime?.booking_horizon_days);if(Number.isInteger(horizon)&&horizon>0)dateInput.max=budapestDate(horizon);else dateInput.removeAttribute('max');if(!dateInput.value)dateInput.value=budapestDate(0);}
     ensurePrivateUpgrade(form);
     ensureGuideLanguageField(form);
     enhanceBookingFormLayout(form);
