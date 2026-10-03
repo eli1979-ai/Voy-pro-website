@@ -58,6 +58,26 @@ const forbidden=[
   ['Kisgyermekek 1–2','Hungarian static baby age label'],
 ];
 
+const forbiddenPatterns=[
+  [/~\s*2 hours/i,'English static tour duration'],
+  [/About 2 hours/i,'English static tour duration'],
+  [/\b2-hour\b/i,'English static tour duration'],
+  [/Independent riders[^<.\n]{0,30}16/i,'English static rider age'],
+  [/Independent riding[^<.\n]{0,30}16/i,'English static rider age'],
+  [/\bage\s*16\b/i,'English static rider age'],
+  [/(?:Minimum|From)\s+2\s+riders/i,'English static private-tour minimum'],
+  [/\b12\s+riders\b/i,'English static rider capacity'],
+  [/18:00/,'Static Budapest departure time'],
+  [/כ[־-]?2 שעות|כשעתיים/,'Hebrew static tour duration'],
+  [/מגיל\s*16|16\+/,'Hebrew static rider age'],
+  [/2\s*רוכבים/,'Hebrew static private-tour minimum'],
+  [/12\s*רוכבים/,'Hebrew static rider capacity'],
+  [/Kb\.\s*2 óra|~\s*2 óra/i,'Hungarian static tour duration'],
+  [/16 éves|16\+/i,'Hungarian static rider age'],
+  [/2\s*vezető/i,'Hungarian static private-tour minimum'],
+  [/12\s*fő/i,'Hungarian static rider capacity'],
+];
+
 let checked=0;
 for(const root of roots){
   for(const file of walk(root)){
@@ -66,10 +86,38 @@ for(const root of roots){
     for(const [needle,label] of forbidden){
       if(html.includes(needle))failures.push(file+': '+label+' remained: '+needle);
     }
+    for(const [pattern,label] of forbiddenPatterns){
+      if(pattern.test(html))failures.push(file+': '+label+' remained: '+pattern);
+    }
     const priceMarker=/<[^>]+data-(?:runtime|tour)-price[^>]*>[^<]*€[^<]*<\//i;
     if(priceMarker.test(html))failures.push(file+': price marker contains a static euro amount');
     inspectJsonLd(file,html);
   }
+}
+
+const runtimeJs=readFileSync('site/assets/site.js','utf8');
+const runtimeForbidden=[
+  ['BUDAPEST_GUIDE_LANGUAGES','static Budapest guide-language fallback'],
+  ['Children 3–15:','static child-age label in runtime messaging'],
+  ['Babies 1–2:','static baby-age label in runtime messaging'],
+  ['budapestDate(365)','static booking horizon'],
+  ['From €70','static price translation'],
+  ['privateMinRiders||2','static private minimum fallback'],
+  ['durationMinutes||120','static duration fallback'],
+  ['maxIndependentRiders:12','static capacity fallback'],
+  ['const riderOptions=Array.from({length:11}','static special-request rider range'],
+  ['18:00','static Budapest departure time in runtime copy'],
+];
+for(const [needle,label] of runtimeForbidden){
+  if(runtimeJs.includes(needle))failures.push('site/assets/site.js: '+label+' remained: '+needle);
+}
+for(const required of [
+  'destinationRuntime?.booking_horizon_days',
+  'form._updateGuideLanguages=(products=[])=>',
+  'function riderPolicyLabels()',
+  'function applyDestinationRuntimeUI()',
+]){
+  if(!runtimeJs.includes(required))failures.push('site/assets/site.js: required live business-data marker missing: '+required);
 }
 
 if(checked<30)failures.push('Budapest HTML coverage unexpectedly low: '+checked);
