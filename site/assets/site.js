@@ -889,12 +889,15 @@
     const hidden=box.querySelector('input[name="is_private"]');
     if(!allowed){if(hidden)hidden.value='false';updateExperienceNudge(product);return;}
     const surcharge=finiteNumber(product.privateSurchargePerRider);
-    const min=Math.max(1,Number(product.privateMinRiders||2));
+    const min=Number(product.privateMinRiders);
     const standardPrice=box.querySelector('[data-standard-mode-price]');
     if(standardPrice)standardPrice.textContent=finiteNumber(product.priceFrom)!=null?t(`${money(product.priceFrom,product.currency||'EUR')} per independent rider`,`‏${money(product.priceFrom,product.currency||'EUR')} לרוכב עצמאי`):t('Current rider price','מחיר נוכחי לרוכב');
     const price=box.querySelector('[data-private-price]');
     if(price)price.textContent=surcharge!=null?t(`Regular rate + ${money(surcharge,product.currency||'EUR')} per rider`,`מחיר רגיל + ${money(surcharge,product.currency||'EUR')} לכל רוכב`):t('Private surcharge shown before confirmation','תוספת הסיור הפרטי תוצג במחיר החי');
-    const minNode=box.querySelector('[data-private-min]');if(minNode)minNode.textContent=t(`Available from ${min} independent riders.`,`זמין החל מ־${min} רוכבים עצמאיים.`);
+    const minNode=box.querySelector('[data-private-min]');
+    if(minNode)minNode.textContent=Number.isInteger(min)&&min>0
+      ?t(`Available from ${min} independent riders.`,`זמין החל מ־${min} רוכבים עצמאיים.`)
+      :t('Private-tour minimum is temporarily unavailable.','מינימום הרוכבים לסיור פרטי אינו זמין כרגע.');
     const flexible=box.querySelector('[data-private-flexible]');if(flexible)flexible.hidden=product.flexibleDepartureWhenPrivate===false;
     const defaultMode=page.includes('/private-tours/')?'private':'standard';
     if(typeof box._setBookingMode==='function')box._setBookingMode(defaultMode,{silent:true});
@@ -1475,7 +1478,8 @@
       if(!guideLanguage){status.textContent=t('Choose the guide language for your tour.','בחרו את שפת ההדרכה לסיור.');return;}
       const allowedGuideLanguages=guideLanguagesForProduct(experience);
       if(!allowedGuideLanguages.includes(guideLanguage)){status.textContent=t('That guide language is not available for this branch.','שפת ההדרכה הזו אינה זמינה בסניף זה.');return;}
-      const privateMin=Math.max(1,Number(experience.privateMinRiders||2));
+      const privateMin=Number(experience.privateMinRiders);
+      if(isPrivate&&(!Number.isInteger(privateMin)||privateMin<1)){status.textContent=t('Private-tour rules are temporarily unavailable. Please try again or contact us.','כללי הסיור הפרטי אינם זמינים כרגע. נסו שוב או פנו אלינו.');return;}
       if(isPrivate&&composition.riders_16_plus<privateMin){status.textContent=t(`Private tours require at least ${privateMin} independent riders.`,`סיור פרטי דורש לפחות ${privateMin} רוכבים עצמאיים.`);return;}
       const party=composition.riders_16_plus+composition.child_passengers_3_15+composition.baby_passengers_1_2;
       saveSelectionRecovery(experience,String(data.get('date')),composition,isPrivate,guideLanguage);
@@ -1497,7 +1501,9 @@
     const time=String(bookingState.slot?.time||booking?.slot_time||'');
     const m=date.match(/^(\d{4})-(\d{2})-(\d{2})$/),tm=time.match(/^(\d{1,2}):(\d{2})/);
     if(!m||!tm)return '#';
-    const duration=Math.max(30,Number(bookingState.experience?.durationMinutes||120));
+    const liveDuration=Number(bookingState.experience?.durationMinutes);
+    if(!Number.isFinite(liveDuration)||liveDuration<=0)return '#';
+    const duration=Math.max(30,liveDuration);
     const start=new Date(Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]),Number(tm[1]),Number(tm[2])));
     const end=new Date(start.getTime()+duration*60000);
     const compact=d=>`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}T${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}00`;
