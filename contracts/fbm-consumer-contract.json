@@ -77,7 +77,13 @@
             "0.durationMinutes",
             "0.priceFrom",
             "0.currency",
-            "0.bookingEnabled"
+            "0.maxIndependentRiders",
+            "0.bookingEnabled",
+            "0.privateAllowed",
+            "0.privateSurchargePerRider",
+            "0.privateMinRiders",
+            "0.flexibleDepartureWhenPrivate",
+            "0.guideLanguages"
           ]
         }
       ]
