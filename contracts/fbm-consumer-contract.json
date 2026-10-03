@@ -1,0 +1,943 @@
+{
+  "version": 1,
+  "consumer": "eli1979-ai/Voy-pro-website",
+  "producer": "eli1979-ai/Ezraider-os",
+  "contract_prefix": "/api/v1",
+  "intent": "Machine-readable website consumer contract used by FBM pull-request compatibility checks. Route/method coverage applies to every entry; typed payload cases apply only where FBM exposes canonical schemas.",
+  "contracts": [
+    {
+      "id": "attribution.sync",
+      "path": "/api/v1/attribution/sync",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/attribution/sync'"
+        }
+      ]
+    },
+    {
+      "id": "booking_capacity.request",
+      "path": "/api/v1/booking-capacity-requests",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/booking-capacity-requests'"
+        }
+      ]
+    },
+    {
+      "id": "catalog.experiences",
+      "path": "/api/v1/experiences",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/experiences'"
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "catalog",
+          "sample": [
+            {
+              "id": "exp_bud_buda",
+              "slug": "buda-highlights",
+              "title": "Buda Highlights by EZRaider",
+              "durationMinutes": 90,
+              "basePrice": 70,
+              "priceFrom": 70,
+              "passengerPrice": 30,
+              "extraVehicleStaffPassengerPrice": 90,
+              "currency": "EUR",
+              "maxIndependentRiders": 12,
+              "productKind": "standard",
+              "privateAllowed": true,
+              "privateSurchargePerRider": 10,
+              "privateMinRiders": 2,
+              "flexibleDepartureWhenPrivate": false,
+              "guideLanguages": [
+                "en",
+                "he"
+              ],
+              "bookingEnabled": true
+            }
+          ],
+          "required_fields": [
+            "0.id",
+            "0.slug",
+            "0.title",
+            "0.durationMinutes",
+            "0.priceFrom",
+            "0.currency",
+            "0.bookingEnabled"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "availability.departures",
+      "path": "/api/v1/experiences/[experienceId]/availability",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "/availability?"
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "departure availability",
+          "sample": {
+            "experience_id": "exp_bud_buda",
+            "date": "2026-10-04",
+            "is_private": false,
+            "private_allowed": true,
+            "private_min_riders": 2,
+            "private_surcharge_per_rider": 10,
+            "flexible_departure_when_private": false,
+            "party_size": 2,
+            "group_composition": {
+              "riders_16_plus": 2,
+              "child_passengers_3_15": 0,
+              "baby_passengers_1_2": 0,
+              "request_15yo_independent_assessment": false
+            },
+            "seat_inventory_ok": true,
+            "allocation_policy": "direct_primary_then_overflow",
+            "partner_release_policy": null,
+            "slots": [
+              {
+                "id": "departure-1",
+                "time": "09:00",
+                "starts_at": "2026-10-04T07:00:00.000Z",
+                "price": 70,
+                "status": "available",
+                "sellable": true,
+                "requestable": false,
+                "is_private": false,
+                "private_departure_empty": true,
+                "requires_staff_confirmation": false,
+                "required_customer_rider_units": 2,
+                "available_customer_rider_units": 12,
+                "extra_vehicle_units": 0,
+                "departure_after_extra_staff_required": 0
+              }
+            ]
+          },
+          "required_fields": [
+            "slots",
+            "slots.0.id",
+            "slots.0.time",
+            "slots.0.starts_at",
+            "slots.0.status",
+            "slots.0.sellable",
+            "slots.0.price"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quote.create",
+      "path": "/api/v1/quotes",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/quotes'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "website quote",
+          "sample": {
+            "slot_id": "departure-1",
+            "group_composition": {
+              "riders_16_plus": 2,
+              "child_passengers_3_15": 0,
+              "baby_passengers_1_2": 0,
+              "request_15yo_independent_assessment": false
+            },
+            "is_private": false,
+            "extras": [],
+            "promo_code": null
+          },
+          "required_fields": [
+            "slot_id",
+            "group_composition",
+            "is_private",
+            "extras"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "quote",
+          "sample": {
+            "id": "quote-1",
+            "base": 140,
+            "ancillary": 0,
+            "ancillary_items": [],
+            "private_surcharge": 0,
+            "operational_support_surcharge": 0,
+            "is_private": false,
+            "discount": 0,
+            "promo_code_applied": null,
+            "total": 140,
+            "currency": "EUR",
+            "expiresAt": "2026-10-03T12:00:00.000Z",
+            "lines": [],
+            "family": {
+              "rider_subtotal": 140,
+              "child_passenger_subtotal": 0,
+              "baby_passenger_subtotal": 0,
+              "extra_staff_subtotal": 0,
+              "extra_staff_surcharge": 0,
+              "private_surcharge": 0,
+              "extra_staff_surcharge_per_passenger": 0,
+              "standard_passenger_price": 30,
+              "extra_vehicle_staff_passenger_price": 90,
+              "passengers": 0,
+              "excess_passengers": 0,
+              "extra_staff_passengers": 0,
+              "requires_staff_confirmation": false,
+              "staff_availability_status": "not_required",
+              "departure_existing_riders": 0,
+              "departure_existing_passengers": 0,
+              "departure_after_riders": 2,
+              "departure_after_passengers": 0,
+              "departure_after_extra_staff_required": 0,
+              "incremental_extra_staff_required": 0,
+              "incremental_extra_vehicle_units": 0
+            },
+            "fleet": null
+          },
+          "required_fields": [
+            "total",
+            "currency",
+            "expiresAt",
+            "family",
+            "ancillary_items"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hold.create",
+      "path": "/api/v1/holds",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/holds',{method:'POST'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "website hold",
+          "sample": {
+            "slot_id": "departure-1",
+            "group_composition": {
+              "riders_16_plus": 2,
+              "child_passengers_3_15": 0,
+              "baby_passengers_1_2": 0,
+              "request_15yo_independent_assessment": false
+            },
+            "is_private": false,
+            "guide_language": "en"
+          },
+          "required_fields": [
+            "slot_id",
+            "group_composition",
+            "is_private"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "hold",
+          "sample": {
+            "id": "hold-1",
+            "status": "active",
+            "slot_id": "departure-1",
+            "departure_id": "departure-1",
+            "requested_slot_id": "departure-1",
+            "allocation_applied": false,
+            "expires_at": "2026-10-03T12:00:00.000Z",
+            "vehicle_units": 2,
+            "passengers": 0,
+            "requires_staff_confirmation": false,
+            "is_private": false,
+            "guide_language": "en"
+          },
+          "required_fields": [
+            "id",
+            "expires_at",
+            "slot_id",
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hold.release",
+      "path": "/api/v1/holds/[id]",
+      "methods": [
+        "DELETE"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/holds/'+encodeURIComponent(id),{method:'DELETE'"
+        }
+      ]
+    },
+    {
+      "id": "booking.create",
+      "path": "/api/v1/bookings",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/bookings'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "website booking",
+          "sample": {
+            "hold_id": "hold-1",
+            "session_id": "session-1",
+            "customer": {
+              "first_name": "Test",
+              "last_name": "Guest",
+              "email": "guest@example.com",
+              "phone": "+3612345678",
+              "preferred_language": "en"
+            },
+            "payment_method": "pay_arrival_card",
+            "selected_date": "2026-10-04",
+            "slot_time": "09:00",
+            "experience_title": "Buda Highlights by EZRaider",
+            "is_private": false,
+            "guide_language": "en",
+            "extras": [],
+            "promo_code": null
+          },
+          "required_fields": [
+            "hold_id",
+            "customer",
+            "payment_method",
+            "extras"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "booking confirmation",
+          "sample": {
+            "id": "booking-1",
+            "reference": "VOY-1234",
+            "status": "confirmed",
+            "secure_token": "secure-token",
+            "manage_token": "manage-token",
+            "experience_id": "exp_bud_buda",
+            "experience_title": "Buda Highlights by EZRaider",
+            "selected_date": "2026-10-04",
+            "slot_time": "09:00",
+            "starts_at": "2026-10-04T07:00:00.000Z",
+            "timezone": "Europe/Budapest",
+            "party_size": 2,
+            "group_composition": {
+              "riders_16_plus": 2,
+              "child_passengers_3_15": 0,
+              "baby_passengers_1_2": 0,
+              "request_15yo_independent_assessment": false
+            },
+            "extra_vehicle_units": 0,
+            "total": 140,
+            "discount": 0,
+            "promo_code_applied": null,
+            "pricing_lines": [],
+            "ancillary_items": [],
+            "paid_amount": 0,
+            "balance_due": 140,
+            "payment_status": "unpaid",
+            "payment_method": "pay_arrival_card",
+            "is_private": false,
+            "guide_language": "en",
+            "currency": "EUR",
+            "created_at": "2026-10-03T10:00:00.000Z"
+          },
+          "required_fields": [
+            "reference",
+            "manage_token",
+            "secure_token",
+            "experience_title",
+            "selected_date",
+            "slot_time",
+            "payment_status",
+            "currency"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "payment.capabilities",
+      "path": "/api/v1/payments/capabilities",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/payments/capabilities'"
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "payment capabilities",
+          "sample": {
+            "online_card": true,
+            "provider": "stripe",
+            "mode": "test",
+            "readiness": {
+              "status": "ready",
+              "reason": null
+            }
+          },
+          "required_fields": [
+            "online_card"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "payment.intent",
+      "path": "/api/v1/payments/intents",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/payments/intents'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "website pay now",
+          "sample": {
+            "payment_type": "online",
+            "payment_method": "pay_now_card",
+            "hold_id": "hold-1",
+            "session_id": "session-1",
+            "customer": {
+              "first_name": "Test",
+              "last_name": "Guest",
+              "email": "guest@example.com",
+              "phone": "+3612345678",
+              "preferred_language": "en"
+            },
+            "selected_date": "2026-10-04",
+            "slot_time": "09:00",
+            "experience_title": "Buda Highlights by EZRaider",
+            "is_private": false,
+            "guide_language": "en",
+            "currency": "EUR",
+            "extras": [],
+            "promo_code": null
+          },
+          "required_fields": [
+            "payment_type",
+            "payment_method",
+            "hold_id",
+            "customer",
+            "extras"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "redirect checkout",
+          "sample": {
+            "id": "cs_test_1",
+            "status": "requires_action",
+            "ui_mode": "redirect",
+            "checkout_url": "https://checkout.stripe.com/test",
+            "amount": 140,
+            "currency": "EUR",
+            "payment_type": "online",
+            "payment_method": "pay_now_card",
+            "booking_id": "booking-1",
+            "booking_reference": "VOY-1234",
+            "payment_link_request_id": "request-1",
+            "expires_at": "2026-10-03T12:00:00.000Z"
+          },
+          "required_fields": [
+            "checkout_url",
+            "booking_id",
+            "booking_reference",
+            "status",
+            "ui_mode",
+            "expires_at"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ancillary.offers",
+      "path": "/api/v1/ancillary/offers",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/ancillary/offers'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "website ancillary offers",
+          "sample": {
+            "slot_id": "departure-1"
+          },
+          "required_fields": [
+            "slot_id"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "ancillary offers",
+          "sample": [
+            {
+              "product_id": "product-1",
+              "sku": "GOPRO",
+              "name": "GoPro",
+              "product_kind": "rental",
+              "inventory_mode": "serialized",
+              "price_minor": 3000,
+              "currency": "EUR",
+              "max_per_booking": 1,
+              "available_quantity": 1,
+              "metadata": {}
+            }
+          ],
+          "required_fields": [
+            "0.product_id",
+            "0.name",
+            "0.product_kind",
+            "0.price_minor",
+            "0.currency",
+            "0.available_quantity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "marketing.events",
+      "path": "/api/v1/marketing/events",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "apiRoot+'/marketing/events'"
+        }
+      ]
+    },
+    {
+      "id": "marketing.experiments",
+      "path": "/api/v1/marketing/experiments",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "apiRoot+'/marketing/experiments?page='"
+        }
+      ]
+    },
+    {
+      "id": "session.create",
+      "path": "/api/v1/sessions",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/sessions'"
+        }
+      ]
+    },
+    {
+      "id": "session.update",
+      "path": "/api/v1/sessions/[id]",
+      "methods": [
+        "PATCH"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/site.js",
+          "marker": "api('/sessions/'"
+        }
+      ]
+    },
+    {
+      "id": "manage.snapshot",
+      "path": "/api/v1/manage/[token]",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token))"
+        },
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token),{method:'PATCH'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "contact patch",
+          "sample": {
+            "email": "guest@example.com",
+            "phone": "+3612345678",
+            "preferred_language": "en"
+          },
+          "required_fields": []
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "manage snapshot",
+          "sample": {
+            "id": "booking-1",
+            "reference": "VOY-1234",
+            "status": "confirmed",
+            "experience_id": "exp_bud_buda",
+            "experience_slug": "buda-highlights",
+            "experience_title": "Buda Highlights by EZRaider",
+            "selected_date": "2026-10-04",
+            "slot_time": "09:00",
+            "starts_at": "2026-10-04T07:00:00.000Z",
+            "timezone": "Europe/Budapest",
+            "party_size": 2,
+            "group_composition": {
+              "riders_16_plus": 2,
+              "child_passengers_3_15": 0,
+              "baby_passengers_1_2": 0,
+              "request_15yo_independent_assessment": false
+            },
+            "total": 140,
+            "paid_amount": 0,
+            "balance_due": 140,
+            "payment_status": "unpaid",
+            "payment_method": "pay_arrival_card",
+            "payment_terms": null,
+            "extra_vehicle_units": 0,
+            "currency": "EUR",
+            "customer": {
+              "first_name": "Test",
+              "last_name": "Guest",
+              "email": "guest@example.com",
+              "phone": "+3612345678",
+              "preferred_language": "en"
+            },
+            "manage_token": "manage-token",
+            "created_at": "2026-10-03T10:00:00.000Z",
+            "updated_at": "2026-10-03T10:00:00.000Z"
+          },
+          "required_fields": [
+            "reference",
+            "status",
+            "experience_title",
+            "selected_date",
+            "slot_time",
+            "group_composition",
+            "total",
+            "balance_due",
+            "payment_status",
+            "currency",
+            "customer",
+            "manage_token"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manage.options",
+      "path": "/api/v1/manage/[token]/options",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token)+'/options')"
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "manage options",
+          "sample": {
+            "can_change_datetime": true,
+            "change_mode": "live_availability",
+            "price_difference_mode": "server_quote",
+            "can_add_extras": false,
+            "can_pay_balance": false,
+            "cancellation": {
+              "allowed": false,
+              "automated": false,
+              "policy_configured": false,
+              "requires_contact": true,
+              "policy_summary": "Contact support.",
+              "refund_preview": null
+            }
+          },
+          "required_fields": [
+            "can_change_datetime",
+            "can_add_extras",
+            "can_pay_balance",
+            "cancellation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manage.riders",
+      "path": "/api/v1/manage/[token]/riders",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token)+'/riders')"
+        },
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token)+'/riders',{method:'PATCH'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "rider patch",
+          "sample": {
+            "riders": [
+              {
+                "id": "rider-1",
+                "full_name": "Test Rider",
+                "date_of_birth": "1990-01-01",
+                "email": null,
+                "phone": null,
+                "is_booking_customer": true,
+                "waiver_signing_method": "same_device",
+                "waiver_contact_preference": "none"
+              }
+            ]
+          },
+          "required_fields": [
+            "riders"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "rider intake",
+          "sample": {
+            "booking_id": "booking-1",
+            "booking_reference": "VOY-1234",
+            "required_riders": 1,
+            "riders": [
+              {
+                "id": "rider-1",
+                "slot_index": 1,
+                "full_name": "Test Rider",
+                "date_of_birth": "1990-01-01",
+                "email": null,
+                "phone": null,
+                "status": "pending",
+                "is_booking_customer": true,
+                "waiver_signing_method": "same_device",
+                "waiver_contact_preference": "none",
+                "assessment_required": false,
+                "assessment_status": "not_required"
+              }
+            ]
+          },
+          "required_fields": [
+            "riders",
+            "riders.0.id",
+            "riders.0.status",
+            "riders.0.waiver_signing_method",
+            "riders.0.assessment_status"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manage.availability",
+      "path": "/api/v1/manage/[token]/availability",
+      "methods": [
+        "GET"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token)+'/availability?date='"
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "manage availability",
+          "sample": {
+            "date": "2026-10-04",
+            "current_date": "2026-10-04",
+            "experience_id": "exp_bud_buda",
+            "slots": [
+              {
+                "id": "departure-2",
+                "time": "09:30",
+                "starts_at": "2026-10-04T07:30:00.000Z",
+                "current": false,
+                "status": "available",
+                "sellable": true,
+                "requires_staff_confirmation": false,
+                "price_difference": 0,
+                "currency": "EUR"
+              }
+            ]
+          },
+          "required_fields": [
+            "slots",
+            "slots.0.id",
+            "slots.0.time",
+            "slots.0.sellable",
+            "slots.0.current",
+            "slots.0.status"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manage.change",
+      "path": "/api/v1/manage/[token]/change",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token)+'/change',{method:'POST'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "departure change",
+          "sample": {
+            "new_departure_id": "departure-2",
+            "new_date": null,
+            "new_time": null
+          },
+          "required_fields": [
+            "new_departure_id"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "changed booking",
+          "sample": {
+            "id": "booking-1",
+            "reference": "VOY-1234",
+            "status": "confirmed",
+            "experience_id": "exp_bud_buda",
+            "experience_slug": "buda-highlights",
+            "experience_title": "Buda Highlights by EZRaider",
+            "selected_date": "2026-10-05",
+            "slot_time": "09:30",
+            "starts_at": "2026-10-04T07:00:00.000Z",
+            "timezone": "Europe/Budapest",
+            "party_size": 2,
+            "group_composition": {
+              "riders_16_plus": 2,
+              "child_passengers_3_15": 0,
+              "baby_passengers_1_2": 0,
+              "request_15yo_independent_assessment": false
+            },
+            "total": 140,
+            "paid_amount": 0,
+            "balance_due": 140,
+            "payment_status": "unpaid",
+            "payment_method": "pay_arrival_card",
+            "payment_terms": null,
+            "extra_vehicle_units": 0,
+            "currency": "EUR",
+            "customer": {
+              "first_name": "Test",
+              "last_name": "Guest",
+              "email": "guest@example.com",
+              "phone": "+3612345678",
+              "preferred_language": "en"
+            },
+            "manage_token": "manage-token",
+            "created_at": "2026-10-03T10:00:00.000Z",
+            "updated_at": "2026-10-03T10:00:00.000Z",
+            "change": {
+              "confirmed": true,
+              "price_difference": 0,
+              "currency": "EUR",
+              "selected_date": "2026-10-05",
+              "slot_time": "09:30"
+            }
+          },
+          "required_fields": [
+            "reference",
+            "selected_date",
+            "slot_time",
+            "change",
+            "change.confirmed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "manage.cancel",
+      "path": "/api/v1/manage/[token]/cancel",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/manage/index.html",
+          "marker": "api('/manage/'+encodeURIComponent(token)+'/cancel',{method:'POST'"
+        }
+      ]
+    }
+  ]
+}
