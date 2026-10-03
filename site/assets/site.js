@@ -164,7 +164,6 @@
   const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):en;
   const GUIDE_LANGUAGE_NAMES={en:{en:'English',he:'אנגלית',hu:'Angol',pt:'Inglês'},he:{en:'Hebrew',he:'עברית',hu:'Héber'},hu:{en:'Hungarian',he:'הונגרית',hu:'Magyar'},es:{en:'Spanish',he:'ספרדית',hu:'Spanyol'},pt:{en:'Portuguese',he:'פורטוגזית',hu:'Portugál',pt:'Português'}};
   const guideLanguageLabel=(code)=>{const key=String(code||'').toLowerCase();return GUIDE_LANGUAGE_NAMES[key]?.[locale]||GUIDE_LANGUAGE_NAMES[key]?.en||key.toUpperCase();};
-  const BUDAPEST_GUIDE_LANGUAGES=['en','he','hu','es'];
   const localeBudapestHome=()=>locale==='he'?'/he/budapest/':locale==='hu'?'/hu/budapest/':'/budapest/';
   const localeBudapestBooking=()=>localeBudapestHome()+'#booking';
   const legalBasePath=()=>locale==='he'?'/he/legal/':locale==='hu'?'/hu/legal/':locale==='pt'?'/pt/legal/':'/legal/';
@@ -728,8 +727,18 @@
     panel.classList.add('has-builder');
     const form=document.createElement('form');form.className='special-request-builder';form.dataset.specialRequestBuilder='';
     const riderOptions=Array.from({length:11},(_,i)=>i+2).map(n=>`<option value="${n}">${n}</option>`).join('');
-    const guideOptions=BUDAPEST_GUIDE_LANGUAGES.map(code=>`<option value="${code}">${guideLanguageLabel(code)}</option>`).join('');
-    form.innerHTML=`<div class="special-builder-head"><b>${t('Tell us what you need','ספרו לנו מה אתם צריכים')}</b><span>${t('We’ll send the details to the Budapest team on WhatsApp.','נשלח את הפרטים לצוות בודפשט ב‑WhatsApp.')}</span></div><div class="special-builder-grid"><label>${t('Preferred date','תאריך מועדף')}<input type="date" name="special_date" required></label><label>${t('Independent riders','רוכבים עצמאיים')}<select name="special_riders">${riderOptions}</select></label><label>${t('Guide language','שפת הדרכה')}<select name="special_guide_language" required><option value="">${t('Choose language','בחרו שפה')}</option>${guideOptions}</select></label><label>${t('Private?','פרטי?')}<select name="special_private"><option value="false">${t('No · regular extended request','לא · בקשת סיור ארוך רגיל')}</option><option value="true">${t('Yes · our group only','כן · רק הקבוצה שלנו')}</option></select></label><label>${t('Preferred start time','שעת יציאה מועדפת')} <small>${t('(optional)','(אופציונלי)')}</small><input type="time" name="special_time"></label></div><button class="btn alt" type="submit">${t('Send request on WhatsApp','שליחת בקשה ב‑WhatsApp')}</button><small class="special-builder-note">${t('This sends a request, not a confirmed booking. Our local team will confirm the route, time, vehicles and guide language.','זו בקשה ולא הזמנה מאושרת. הצוות המקומי יאשר מסלול, שעה, כלים, מדריכים ושפת הדרכה.')}</small>`;
+    form.innerHTML=`<div class="special-builder-head"><b>${t('Tell us what you need','ספרו לנו מה אתם צריכים')}</b><span>${t('We’ll send the details to the Budapest team on WhatsApp.','נשלח את הפרטים לצוות בודפשט ב‑WhatsApp.')}</span></div><div class="special-builder-grid"><label>${t('Preferred date','תאריך מועדף')}<input type="date" name="special_date" required></label><label>${t('Independent riders','רוכבים עצמאיים')}<select name="special_riders">${riderOptions}</select></label><label>${t('Guide language','שפת הדרכה')}<select name="special_guide_language" required disabled><option value="">${t('Live languages unavailable','שפות זמינות ייטענו מהמערכת')}</option></select></label><label>${t('Private?','פרטי?')}<select name="special_private"><option value="false">${t('No · regular extended request','לא · בקשת סיור ארוך רגיל')}</option><option value="true">${t('Yes · our group only','כן · רק הקבוצה שלנו')}</option></select></label><label>${t('Preferred start time','שעת יציאה מועדפת')} <small>${t('(optional)','(אופציונלי)')}</small><input type="time" name="special_time"></label></div><button class="btn alt" type="submit">${t('Send request on WhatsApp','שליחת בקשה ב‑WhatsApp')}</button><small class="special-builder-note">${t('This sends a request, not a confirmed booking. Our local team will confirm the route, time, vehicles and guide language.','זו בקשה ולא הזמנה מאושרת. הצוות המקומי יאשר מסלול, שעה, כלים, מדריכים ושפת הדרכה.')}</small>`;
+    form._updateGuideLanguages=(products=[])=>{
+      const select=form.querySelector('select[name="special_guide_language"]');
+      if(!select)return;
+      const languages=[...new Set((products||[])
+        .flatMap(p=>Array.isArray(p?.guideLanguages)?p.guideLanguages:[])
+        .map(code=>String(code||'').toLowerCase())
+        .filter(Boolean))];
+      select.innerHTML=`<option value="">${languages.length?t('Choose language','בחרו שפה'):t('Live languages unavailable','שפות זמינות אינן זמינות כרגע')}</option>`+
+        languages.map(code=>`<option value="${escapeHTML(code)}">${escapeHTML(guideLanguageLabel(code))}</option>`).join('');
+      select.disabled=!languages.length;
+    };
     panel.appendChild(form);
     const date=form.querySelector('[name="special_date"]');date.min=budapestDate(0);date.max=budapestDate(365);date.value=budapestDate(1);
     form.addEventListener('submit',e=>{
@@ -784,8 +793,9 @@
   bindTourCardSelectors();
 
   function guideLanguagesForProduct(product){
-    const live=Array.isArray(product?.guideLanguages)?product.guideLanguages.map(x=>String(x).toLowerCase()).filter(Boolean):[];
-    return live.length?live:BUDAPEST_GUIDE_LANGUAGES;
+    return Array.isArray(product?.guideLanguages)
+      ?product.guideLanguages.map(x=>String(x).toLowerCase()).filter(Boolean)
+      :[];
   }
   function ensureGuideLanguageField(form){
     if(!form||form.querySelector('[data-guide-language-field]')) return;
