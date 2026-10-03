@@ -31,7 +31,8 @@ jobs:
           const path=require('path');
           const read=p=>fs.readFileSync(path.join('dist',p),'utf8');
           const r=JSON.parse(read('release.json'));
-          if(r.version!=='1.47.12') throw new Error('Unexpected release version: '+r.version);
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          if(r.version!==pkg.version) throw new Error('Release/package version mismatch: '+r.version+' vs '+pkg.version);
           if(r.target!=='staging'||r.seo_indexable!==false) throw new Error('Staging contract changed');
 
           const en=read('budapest/index.html');
