@@ -3,9 +3,10 @@
   "version": "1.47.13",
   "private": true,
   "scripts": {
-    "build": "node scripts/check-fbm-consumer-contract.mjs && node scripts/check-voy-brand-assets.mjs && node scripts/check-manage-waiver-handoff.mjs && node scripts/check-manage-rider-waiver-intake.mjs && node scripts/check-payment-success-return.mjs && rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js",
+    "build": "node scripts/check-fbm-consumer-contract.mjs && node scripts/check-a9-runtime-business-truth.mjs && node scripts/check-voy-brand-assets.mjs && node scripts/check-manage-waiver-handoff.mjs && node scripts/check-manage-rider-waiver-intake.mjs && node scripts/check-payment-success-return.mjs && rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node --check dist/assets/site.js",
     "verify:launch": "node scripts/verify-launch-readiness.mjs",
     "qa:site": "node scripts/qa-site.mjs",
-    "verify:fbm-contract": "node scripts/check-fbm-consumer-contract.mjs"
+    "verify:fbm-contract": "node scripts/check-fbm-consumer-contract.mjs",
+    "verify:a9-runtime-truth": "node scripts/check-a9-runtime-business-truth.mjs"
   }
 }
