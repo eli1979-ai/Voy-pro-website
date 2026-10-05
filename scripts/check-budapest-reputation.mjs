@@ -31,7 +31,7 @@ for(const file of pages){
 
 for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-kids/index.html','site/hu/budapest/with-kids/index.html']){
   const html=fs.readFileSync(file,'utf8');
-  if(!html.includes('1,299')||!html.includes('659')||!html.includes('#1')||!html.includes('Travelers’ Choice 2026')){
+  if(!googleForms.some(v=>html.includes(v))||!html.includes('659')||!html.includes('#1')||!html.includes('Travelers’ Choice 2026')){
     failures.push(file+': family reputation proof is incomplete');
   }
   if(/trust-source">GetYourGuide/.test(html)){
