@@ -84,9 +84,7 @@ jobs:
           if(/e\.preventDefault\(\);releaseHold\(\);setBookingStep\(1\)/.test(js)) throw new Error('Availability still resets to step 1');
           if(!/REQUEST_TIMEOUT/.test(js)) throw new Error('API timeout regression');
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
-          if(!/From €70/.test(en)||!/€120/.test(en)) throw new Error('English fallback pricing missing');
-          if(!/החל מ־€70/.test(he)||!/€120/.test(he)) throw new Error('Hebrew fallback pricing missing');
-          if(!/€70-tól/.test(hu)||!/€120/.test(hu)) throw new Error('Hungarian fallback pricing missing');
+          // Budapest pricing is canonical FBM data. Static price fallbacks are intentionally forbidden by A9.2c.
           if(!/data-mobile-language-row/.test(js)||!/consent-open/.test(js)) throw new Error('Mobile navigation/consent hardening missing');
           if(!/optimizeHomeConversion/.test(js)||!/enhanceBookingFormLayout/.test(js)||!/smartDefault/.test(js)) throw new Error('Conversion funnel runtime missing');
           for(const [name,html] of Object.entries({en,he,hu})){
@@ -217,17 +215,17 @@ jobs:
             if(/href="\/(?:he\/|hu\/)?budapest\/\?[^"]*#booking"/.test(html)) throw new Error('Tour-page CTA leaves selected tour: '+p);
           }
           const seoTours=[
-            ['budapest/tours/buda-castle-ezraider-tour/index.html',70],
-            ['budapest/tours/margaret-island-ezraider-tour/index.html',70],
-            ['budapest/tours/buda-margaret-extended-tour/index.html',120],
-            ['he/budapest/tours/buda-castle-ezraider-tour/index.html',70],
-            ['he/budapest/tours/margaret-island-ezraider-tour/index.html',70],
-            ['he/budapest/tours/buda-margaret-extended-tour/index.html',120],
-            ['hu/budapest/tours/buda-castle-ezraider-tour/index.html',70],
-            ['hu/budapest/tours/margaret-island-ezraider-tour/index.html',70],
-            ['hu/budapest/tours/buda-margaret-extended-tour/index.html',120]
+            'budapest/tours/buda-castle-ezraider-tour/index.html',
+            'budapest/tours/margaret-island-ezraider-tour/index.html',
+            'budapest/tours/buda-margaret-extended-tour/index.html',
+            'he/budapest/tours/buda-castle-ezraider-tour/index.html',
+            'he/budapest/tours/margaret-island-ezraider-tour/index.html',
+            'he/budapest/tours/buda-margaret-extended-tour/index.html',
+            'hu/budapest/tours/buda-castle-ezraider-tour/index.html',
+            'hu/budapest/tours/margaret-island-ezraider-tour/index.html',
+            'hu/budapest/tours/buda-margaret-extended-tour/index.html'
           ];
-          for(const [p,price] of seoTours){
+          for(const p of seoTours){
             const html=read(p);
             if(!/twitter:card" content="summary_large_image"|content="summary_large_image" name="twitter:card"/.test(html)) throw new Error('Large social card missing: '+p);
             if(!/property="og:image"/.test(html)||!/name="twitter:image"/.test(html)) throw new Error('Social image missing: '+p);
@@ -236,7 +234,7 @@ jobs:
             const crumbs=scripts.find(v=>v['@type']==='BreadcrumbList');
             if(!trip) throw new Error('TouristTrip schema missing: '+p);
             if(!crumbs||crumbs.itemListElement?.map(v=>v.position).join(',')!=='1,2,3') throw new Error('Breadcrumb hierarchy invalid: '+p);
-            if(String(trip.offers?.price)!==String(price)||trip.offers?.priceCurrency!=='EUR') throw new Error('Tour price schema invalid: '+p);
+            if(trip.offers&&Object.prototype.hasOwnProperty.call(trip.offers,'price')) throw new Error('Static tour price schema returned after A9: '+p);
             if(trip.provider?.name!=='AllGo Guided Tours Bud Kft.') throw new Error('Tour provider schema invalid: '+p);
             if(trip.itinerary?.['@type']!=='ItemList'||!trip.itinerary.itemListElement?.length) throw new Error('Tour itinerary schema missing: '+p);
             const route=(html.match(/<section class="section route-itinerary"[\s\S]*?<\/section>/)||[])[0]||'';
