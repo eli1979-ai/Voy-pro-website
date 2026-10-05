@@ -2,14 +2,21 @@
   "schema_version": 1,
   "location": "Budapest",
   "verified_at": "2026-10-05",
-  "google": {"rating": 5.0, "review_count": 1299},
+  "google": {
+    "rating": 5,
+    "review_count": 1299
+  },
   "tripadvisor": {
-    "rating": 5.0,
+    "rating": 5,
     "review_count": 659,
     "rank": 1,
     "category_total": 299,
     "category": "Outdoor Activities in Budapest",
     "award": "Travelers’ Choice 2026"
   },
-  "getyourguide": {"status": "not_verified_in_this_snapshot"}
+  "getyourguide": {
+    "status": "verified",
+    "rating": 5,
+    "review_count": 5
+  }
 }
