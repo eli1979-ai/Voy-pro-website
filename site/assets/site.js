@@ -623,6 +623,23 @@
       babies:`Babies ${babyMin}–${babyMax}`,
     };
   }
+  function agePolicyText(){
+    const policy=budapestPolicy();
+    if(!policy){
+      return locale==='he'
+        ?'כללי הגיל העדכניים של בודפשט נטענים ממדיניות התפעול שלנו.'
+        :locale==='hu'
+          ?'A budapesti korhatárok az aktuális működési szabályzatból töltődnek be.'
+          :'Current Budapest age rules are loaded from our operating policy.';
+    }
+    const standard=Number(policy.standard_min_age);
+    const assessment=Number(policy.assessment_min_age);
+    const babyMin=Number(policy.baby_passenger_min_age);
+    const childMax=Number(policy.child_passenger_max_age);
+    if(locale==='he')return `רכיבה עצמאית מותרת מגיל ${standard}. בני ${assessment} יכולים לקבל אישור חריג מהצוות. ילדים מגיל ${babyMin} ועד גיל ${childMax} כולל יכולים להצטרף כנוסעים באמצעות כיסא או מערך נוסע מתאים.`;
+    if(locale==='hu')return `Önállóan ${standard} éves kortól lehet vezetni. A ${assessment} éves résztvevő kivételesen, a csapat jóváhagyásával vezethet. Az ${babyMin}–${childMax} éves gyermekek utasként csatlakozhatnak, a megfelelő gyermek- vagy utasülés használatával.`;
+    return `Independent riding is from age ${standard}. Riders aged ${assessment} may be approved as an exception by our team. Children from age ${babyMin} through ${childMax} can join as passengers using the appropriate child/passenger seat setup.`;
+  }
   function applyDestinationRuntimeUI(){
     if(!isBudapestPage)return;
     const labels=riderPolicyLabels();
@@ -644,6 +661,7 @@
           ?`Önálló vezetés általában ${standard}+; ${assessment} évesen alkalmassági felméréssel`
           :`Independent riding is normally ${standard}+; age ${assessment} by suitability assessment`;
     });
+    document.querySelectorAll('[data-runtime-age-policy]').forEach(node=>{node.textContent=agePolicyText();});
   }
 
   await hydrateDestinationRuntime();
