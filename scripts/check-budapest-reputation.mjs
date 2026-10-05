@@ -39,6 +39,9 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
   if(!googleForms.some(v=>html.includes(v))||!html.includes('659')||!html.includes('#1')||!html.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(html)||!gygForms.some(v=>html.includes(v))){
     failures.push(file+': family reputation proof is incomplete');
   }
+  if(!html.includes('data-review-source="getyourguide"')||!gygForms.some(v=>html.includes(v))){
+    failures.push(file+': family external GetYourGuide source card is missing or stale');
+  }
   if(!html.includes('"@type":"FAQPage"')){
     failures.push(file+': family FAQ structured data missing');
   }
