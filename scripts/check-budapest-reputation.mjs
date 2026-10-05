@@ -40,6 +40,9 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
   if(!html.includes('"@type":"FAQPage"')){
     failures.push(file+': family FAQ structured data missing');
   }
+  for(const marker of ['Thule Yepp 2 Maxi','Thule Yepp Junior','/assets/images/budapest/family-child-seat-closeup.jpg','/assets/images/budapest/family-kids-ride.jpg','/assets/images/budapest/family-group-ride.jpg']){
+    if(!html.includes(marker))failures.push(file+': family child-seat model/media marker missing: '+marker);
+  }
 }
 
 if(failures.length){
