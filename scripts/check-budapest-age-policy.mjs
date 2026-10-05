@@ -33,8 +33,21 @@ for(const marker of [
   'policy.baby_passenger_min_age',
   'policy.child_passenger_max_age',
   "document.querySelectorAll('[data-runtime-age-policy]')",
+  "if(!policy)return null;",
 ]){
+
   if(!runtime.includes(marker)) failures.push('site/assets/site.js: missing age-policy runtime marker: '+marker);
+}
+
+const renderer=fs.readFileSync('scripts/render-budapest-age-policy.mjs','utf8');
+for(const marker of [
+  "destination.budapest",
+  "data-runtime-age-policy",
+  "dist/budapest",
+  "dist/he/budapest",
+  "dist/hu/budapest",
+]){
+  if(!renderer.includes(marker)) failures.push('age-policy renderer missing marker: '+marker);
 }
 
 const contract=fs.readFileSync('contracts/fbm-consumer-contract.json','utf8');
