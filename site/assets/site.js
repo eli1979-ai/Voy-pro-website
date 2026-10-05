@@ -625,13 +625,7 @@
   }
   function agePolicyText(){
     const policy=budapestPolicy();
-    if(!policy){
-      return locale==='he'
-        ?'כללי הגיל העדכניים של בודפשט נטענים ממדיניות התפעול שלנו.'
-        :locale==='hu'
-          ?'A budapesti korhatárok az aktuális működési szabályzatból töltődnek be.'
-          :'Current Budapest age rules are loaded from our operating policy.';
-    }
+    if(!policy)return null;
     const standard=Number(policy.standard_min_age);
     const assessment=Number(policy.assessment_min_age);
     const babyMin=Number(policy.baby_passenger_min_age);
@@ -661,7 +655,8 @@
           ?`Önálló vezetés általában ${standard}+; ${assessment} évesen alkalmassági felméréssel`
           :`Independent riding is normally ${standard}+; age ${assessment} by suitability assessment`;
     });
-    document.querySelectorAll('[data-runtime-age-policy]').forEach(node=>{node.textContent=agePolicyText();});
+    const liveAgePolicyText=agePolicyText();
+    if(liveAgePolicyText)document.querySelectorAll('[data-runtime-age-policy]').forEach(node=>{node.textContent=liveAgePolicyText;});
   }
 
   await hydrateDestinationRuntime();
