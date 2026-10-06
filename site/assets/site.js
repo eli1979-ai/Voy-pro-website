@@ -112,6 +112,40 @@
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const money=(amount,currency='EUR')=>new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency}).format(Number(amount||0));
+  function liveDurationLabel(value){
+    const total=Math.round(Number(value));
+    if(!Number.isFinite(total)||total<=0)return null;
+    const hours=Math.floor(total/60),minutes=total%60;
+    if(locale==='he'){
+      const h=hours===1?'שעה':hours>1?`${hours} שעות`:'';
+      const m=minutes?`${minutes} דקות`:'';
+      return [h,m].filter(Boolean).join(' ו־');
+    }
+    if(locale==='hu'){
+      const h=hours?`${hours} óra`:'';
+      const m=minutes?`${minutes} perc`:'';
+      return [h,m].filter(Boolean).join(' ');
+    }
+    if(locale==='pt'){
+      const h=hours?`${hours} h`:'';
+      const m=minutes?`${minutes} min`:'';
+      return [h,m].filter(Boolean).join(' ');
+    }
+    if(!hours)return `${minutes} min`;
+    if(!minutes)return hours===1?'1 hour':`${hours} hours`;
+    return `${hours} hr ${minutes} min`;
+  }
+  function durationUnavailableLabel(){
+    return locale==='he'?'משך הסיור אינו זמין כרגע'
+      :locale==='hu'?'A túra időtartama jelenleg nem érhető el'
+      :locale==='pt'?'Duração temporariamente indisponível'
+      :'Duration temporarily unavailable';
+  }
+  function isDurationPlaceholder(node){
+    const value=String(node?.textContent||'').trim();
+    return ['Live duration','משך חי','Élő időtartam'].includes(value);
+  }
+
   function confirmationDateLabel(value){
     const raw=String(value||'').trim();
     const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -782,15 +816,17 @@
   function hydrateTourCards(products=[]){
     document.querySelectorAll('[data-tour-card][data-experience-slugs]').forEach(card=>{
       const p=productByAliases(card.dataset.experienceSlugs,products);
-      const price=card.querySelector('[data-tour-price]'), state=card.querySelector('[data-tour-live-state]');
+      const price=card.querySelector('[data-tour-price]'), state=card.querySelector('[data-tour-live-state]'), duration=card.querySelector('.tour-duration');
       card.classList.remove('is-live','is-unavailable');
       if(p){
         card.dataset.productId=p.id||'';
+        if(duration)duration.textContent=liveDurationLabel(p.durationMinutes)||durationUnavailableLabel();
         if(price&&p.priceFrom!=null) price.textContent=t('From ','החל מ־')+money(p.priceFrom,p.currency||'EUR');
         if(p.bookingEnabled===false){card.classList.add('is-unavailable');if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');}
         else {card.classList.add('is-live');if(state)state.textContent=t('Online booking','הזמנה באתר');}
       }else{
         card.classList.add('is-unavailable');
+        if(duration&&isDurationPlaceholder(duration))duration.textContent=durationUnavailableLabel();
         if(price)price.textContent=t('Live price unavailable','מחיר חי אינו זמין כרגע');
         if(state)state.textContent=t('Contact the local team','פנו לצוות המקומי');
       }
