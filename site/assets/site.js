@@ -295,13 +295,13 @@
     const form=document.querySelector('[data-portugal-request-form]');
     if(!form)return;
     const labels=locale==='he'?{
-      route:'מסלול',date:'תאריך מועדף',people:'משתתפים',language:'שפת הדרכה',name:'שם',notes:'הערות',source:'מקור הפניה',
+      route:'מסלול',date:'תאריך מועדף',people:'משתתפים',language:'שפת הדרכה',name:'שם',notes:'הערות',
       missing:'יש להשלים מסלול, תאריך, שפת הדרכה ושם.'
     }:locale==='pt'?{
-      route:'Passeio',date:'Data preferida',people:'Pessoas',language:'Idioma do guia',name:'Nome',notes:'Notas',source:'Origem',
+      route:'Passeio',date:'Data preferida',people:'Pessoas',language:'Idioma do guia',name:'Nome',notes:'Notas',
       missing:'Preencha o passeio, a data, o idioma e o nome.'
     }:{
-      route:'Tour',date:'Preferred date',people:'People',language:'Guide language',name:'Name',notes:'Notes',source:'Source',
+      route:'Tour',date:'Preferred date',people:'People',language:'Guide language',name:'Name',notes:'Notes',
       missing:'Please complete tour, date, guide language and name.'
     };
     const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
@@ -310,7 +310,7 @@
       const route=String(a.dataset.portugalTour||'');
       if(routeSelect&&routeNames[route])routeSelect.value=route;
     }));
-    form.addEventListener('submit',e=>{
+    form.addEventListener('submit',async e=>{
       e.preventDefault();
       const f=new FormData(form);
       const route=String(f.get('route')||'').trim();
@@ -338,12 +338,10 @@
         labels.name+': '+name
       ];
       if(notes)lines.push(labels.notes+': '+notes);
-      const sourceLabel=[attr.source,attr.medium].filter(Boolean).join('/');
-      if(sourceLabel&&attr.source!=='direct')lines.push(labels.source+': '+sourceLabel);
-      if(attr.campaign)lines.push((locale==='pt'?'Campanha':locale==='he'?'קמפיין':'Campaign')+': '+attr.campaign);
-      const affiliateRef=qs.get('ref')||qs.get('affiliate')||null;
-      if(affiliateRef)lines.push((locale==='pt'?'Referência':locale==='he'?'קוד הפניה':'Referral')+': '+affiliateRef);
       lines.push((locale==='pt'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname);
+      const requestAnalytics={page,context:'portugal_availability_request',route,date,people:people||null,guide_language:guide};
+      await createSession('whatsapp_clicked',requestAnalytics);
+      track('whatsapp_clicked',requestAnalytics);
       location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
     });
   }
