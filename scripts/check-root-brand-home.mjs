@@ -15,6 +15,12 @@ requireText(html,'<h1>Choose how you want to explore.</h1>','root homepage H1 mi
 requireText(html,'href="/budapest/"','root homepage must link Budapest');
 requireText(html,'href="/portugal/"','root homepage must link Portugal');
 requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
+requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" property="og:image"','root social card must use a VOY PRO parent-brand asset');
+requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" name="twitter:image"','root Twitter card must use a VOY PRO parent-brand asset');
+requireText(html,'name="twitter:title"','root Twitter card title missing');
+requireText(html,'name="twitter:description"','root Twitter card description missing');
+forbidText(html,'content="https://voy-pro.com/assets/images/budapest/img12.jpg" property="og:image"','root OG image must not be Budapest-only');
+forbidText(html,'content="https://voy-pro.com/assets/images/budapest/img12.jpg" name="twitter:image"','root Twitter image must not be Budapest-only');
 requireText(html,'"@type":"Organization"','root homepage must declare VOY PRO Organization schema');
 requireText(html,'"@type":"WebSite"','root homepage must declare the parent WebSite entity');
 requireText(html,'"@type":"WebPage"','root homepage must declare the root WebPage entity');
