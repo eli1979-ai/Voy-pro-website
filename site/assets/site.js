@@ -654,6 +654,19 @@
       babies:`Babies ${babyMin}–${babyMax}`,
     };
   }
+  function riderPolicyUnavailableLabel(){
+    return locale==='he'?'פרטי הזכאות לרכיבה אינם זמינים כרגע'
+      :locale==='hu'?'Az önálló vezetés feltételei jelenleg nem érhetők el'
+      :locale==='pt'?'Os critérios de condução estão temporariamente indisponíveis'
+      :'Riding eligibility details are temporarily unavailable';
+  }
+  function agePolicyUnavailableLabel(){
+    return locale==='he'?'כללי הגיל העדכניים אינם זמינים כרגע — ניתן לפנות לצוות המקומי'
+      :locale==='hu'?'Az aktuális korhatárok jelenleg nem érhetők el — kérjük, lépj kapcsolatba a helyi csapattal'
+      :locale==='pt'?'As regras de idade estão temporariamente indisponíveis — contacte a equipa local'
+      :'Current age rules are temporarily unavailable — please contact the local team';
+  }
+
   function agePolicyText(){
     const policy=budapestPolicy();
     if(!policy)return null;
@@ -677,7 +690,12 @@
     }
     const policy=budapestPolicy();
     document.querySelectorAll('[data-runtime-rider-policy]').forEach(node=>{
-      if(!policy){node.textContent=labels.riders;return;}
+      if(!policy){
+        node.textContent=riderPolicyUnavailableLabel();
+        node.dataset.runtimeState='unavailable';
+        return;
+      }
+      node.dataset.runtimeState='ready';
       const standard=Number(policy.standard_min_age);
       const assessment=Number(policy.assessment_min_age);
       node.textContent=locale==='he'
@@ -687,7 +705,10 @@
           :`Independent riding is normally ${standard}+; age ${assessment} by suitability assessment`;
     });
     const liveAgePolicyText=agePolicyText();
-    if(liveAgePolicyText)document.querySelectorAll('[data-runtime-age-policy]').forEach(node=>{node.textContent=liveAgePolicyText;});
+    document.querySelectorAll('[data-runtime-age-policy]').forEach(node=>{
+      node.textContent=liveAgePolicyText||agePolicyUnavailableLabel();
+      node.dataset.runtimeState=liveAgePolicyText?'ready':'unavailable';
+    });
   }
 
   await hydrateDestinationRuntime();
