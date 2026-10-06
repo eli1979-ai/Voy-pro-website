@@ -107,6 +107,9 @@ const runtimeForbidden=[
   ['maxIndependentRiders:12','static capacity fallback'],
   ['const riderOptions=Array.from({length:11}','static special-request rider range'],
   ['18:00','static Budapest departure time in runtime copy'],
+  ['Your places are held for 10 minutes while you complete the booking.','static hold TTL customer copy'],
+  ['המקומות נשמרים ל־10 דקות','static Hebrew hold TTL customer copy'],
+  ['A helyeket 10 percig tartjuk','static Hungarian hold TTL customer copy'],
 ];
 for(const [needle,label] of runtimeForbidden){
   if(runtimeJs.includes(needle))failures.push('site/assets/site.js: '+label+' remained: '+needle);
@@ -116,6 +119,7 @@ for(const required of [
   'form._updateGuideLanguages=(products=[])=>',
   'function riderPolicyLabels()',
   'function applyDestinationRuntimeUI()',
+  'startHoldTimer(hold.expires_at)',
 ]){
   if(!runtimeJs.includes(required))failures.push('site/assets/site.js: required live business-data marker missing: '+required);
 }
