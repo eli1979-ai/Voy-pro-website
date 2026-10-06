@@ -16,6 +16,14 @@ requireText(html,'href="/budapest/"','root homepage must link Budapest');
 requireText(html,'href="/portugal/"','root homepage must link Portugal');
 requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
 requireText(html,'"@type":"Organization"','root homepage must declare VOY PRO Organization schema');
+requireText(html,'"@type":"WebSite"','root homepage must declare the parent WebSite entity');
+requireText(html,'"@type":"WebPage"','root homepage must declare the root WebPage entity');
+requireText(html,'"@id":"https://voy-pro.com/#organization"','root Organization must have a stable entity id');
+requireText(html,'"@id":"https://voy-pro.com/#website"','root WebSite must have a stable entity id');
+requireText(html,'"publisher":{"@id":"https://voy-pro.com/#organization"}','parent WebSite must point to the VOY PRO Organization');
+requireText(html,'"@id":"https://voy-pro.com/#destinations"','root page must expose a destination ItemList');
+requireText(html,'"url":"https://voy-pro.com/budapest/"','root destination graph must link Budapest');
+requireText(html,'"url":"https://voy-pro.com/portugal/"','root destination graph must link Portugal');
 forbidText(html,'data-runtime-price','root homepage must not act like a destination booking page');
 forbidText(html,'id="booking"','root homepage must not own destination booking flow');
 
