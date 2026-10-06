@@ -557,6 +557,16 @@
     scheduleEventFlush(q.length>=8||['booking_completed','capacity_request_created','whatsapp_clicked'].includes(event));
   }
   function recentEvents(){return analyticsAllowed()&&bookingEnabled?(safeJSON(getStore(EVENT_KEY),[])||[]):[];}
+  const BOOKING_STARTED_KEY='voy_booking_started_v1';
+  function trackBookingStarted(metadata={}){
+    if(!analyticsAllowed()||!bookingEnabled)return;
+    try{
+      if(sessionStorage.getItem(BOOKING_STARTED_KEY)==='1')return;
+      sessionStorage.setItem(BOOKING_STARTED_KEY,'1');
+    }catch(e){}
+    track('booking_started',metadata);
+  }
+
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushEventQueue({keepalive:true});});
   window.addEventListener('pagehide',()=>{flushEventQueue({keepalive:true});});
   track('page_view',{title:document.title}); if(segment!=='default') track('personalization_applied',{segment});
@@ -1575,7 +1585,7 @@
       const party=composition.riders_16_plus+composition.child_passengers_3_15+composition.baby_passengers_1_2;
       saveSelectionRecovery(experience,String(data.get('date')),composition,isPrivate,guideLanguage);
       status.textContent=t('Checking availability…','בודקים זמינות…');
-      await createSession('availability_search',{experience_id:experience.id,selected_date:data.get('date'),party_size:party,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage,page});track('availability_search',{date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});
+      await createSession('availability_search',{experience_id:experience.id,selected_date:data.get('date'),party_size:party,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage,page});trackBookingStarted({date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});track('availability_search',{date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});
       const q=new URLSearchParams({date:String(data.get('date')),riders_16_plus:String(composition.riders_16_plus),child_passengers_3_15:String(composition.child_passengers_3_15),baby_passengers_1_2:String(composition.baby_passengers_1_2),is_private:String(isPrivate),guide_language:guideLanguage});
       try{
         const out=await api('/experiences/'+encodeURIComponent(experience.id)+'/availability?'+q.toString(),{method:'GET'});
