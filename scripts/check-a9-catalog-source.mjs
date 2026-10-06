@@ -23,6 +23,9 @@ requireText("setCatalogUnavailableUI(selects)","catalog failure must switch to a
 requireText("submit.disabled=true","booking submit must be disabled before/when canonical catalog is unavailable");
 requireText("catalogLoadingLabel()","runtime must show a neutral loading state before canonical catalog arrives");
 requireText("catalogUnavailableLabel()","runtime must show a neutral unavailable state on catalog failure");
+requireText("liveDurationLabel(p.durationMinutes)","tour-card duration must hydrate from the FBM catalog durationMinutes field");
+requireText("isDurationPlaceholder(duration)","catalog failure must replace live-duration placeholders without overwriting non-live labels");
+requireText("durationUnavailableLabel()","catalog failure must expose a truthful unavailable duration state");
 
 if(failures.length){
   console.error('A9.2b catalog source-of-truth guard failed.');
