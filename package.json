@@ -3,7 +3,7 @@
   "version": "1.47.23",
   "private": true,
   "scripts": {
-    "build": "node scripts/check-fbm-consumer-contract.mjs && node scripts/check-a9-destination-runtime.mjs && node scripts/check-a9-catalog-source.mjs && node scripts/check-a9-static-business-fallbacks.mjs && node scripts/check-budapest-reputation.mjs && node scripts/check-budapest-age-policy.mjs && node scripts/check-private-tour-seo.mjs && node scripts/check-group-corporate-seo.mjs && node scripts/check-a9-manage-runtime.mjs && node scripts/check-voy-brand-assets.mjs && node scripts/check-manage-waiver-handoff.mjs && node scripts/check-manage-rider-waiver-intake.mjs && node scripts/check-payment-success-return.mjs && node scripts/check-mobile-safe-area.mjs && rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node scripts/render-budapest-age-policy.mjs && node --check dist/assets/site.js",
+    "build": "node scripts/check-production-integrity.mjs && node scripts/check-fbm-consumer-contract.mjs && node scripts/check-a9-destination-runtime.mjs && node scripts/check-a9-catalog-source.mjs && node scripts/check-a9-static-business-fallbacks.mjs && node scripts/check-budapest-reputation.mjs && node scripts/check-budapest-age-policy.mjs && node scripts/check-private-tour-seo.mjs && node scripts/check-group-corporate-seo.mjs && node scripts/check-a9-manage-runtime.mjs && node scripts/check-voy-brand-assets.mjs && node scripts/check-manage-waiver-handoff.mjs && node scripts/check-manage-rider-waiver-intake.mjs && node scripts/check-payment-success-return.mjs && node scripts/check-mobile-safe-area.mjs && rm -rf dist && mkdir -p dist && cp -R site/. dist/ && node scripts/render-budapest-age-policy.mjs && node --check dist/assets/site.js",
     "verify:launch": "node scripts/verify-launch-readiness.mjs",
     "qa:site": "node scripts/qa-site.mjs",
     "verify:fbm-contract": "node scripts/check-fbm-consumer-contract.mjs",
@@ -11,6 +11,7 @@
     "verify:a9-catalog": "node scripts/check-a9-catalog-source.mjs",
     "verify:a9-static": "node scripts/check-a9-static-business-fallbacks.mjs",
     "verify:a9-manage": "node scripts/check-a9-manage-runtime.mjs",
-    "verify:mobile-safe-area": "node scripts/check-mobile-safe-area.mjs"
+    "verify:mobile-safe-area": "node scripts/check-mobile-safe-area.mjs",
+    "verify:production-integrity": "node scripts/check-production-integrity.mjs"
   }
 }
