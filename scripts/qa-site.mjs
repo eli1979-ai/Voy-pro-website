@@ -18,12 +18,12 @@ const warn=(file,msg)=>warnings.push(file+': '+msg);
 
 const sitemap=read(path.join(site,'sitemap.xml'));
 const sitemapUrls=[...sitemap.matchAll(/<loc>(https:\/\/voy-pro\.com\/[^<]*)<\/loc>/g)].map(m=>m[1]);
-if(sitemapUrls.length!==39) errors.push('sitemap.xml: expected 39 URLs, found '+sitemapUrls.length);
+if(sitemapUrls.length!==40) errors.push('sitemap.xml: expected 40 URLs, found '+sitemapUrls.length);
 
 function urlToFile(urlOrPath){
   const u=new URL(urlOrPath,'https://voy-pro.com');
   if(u.origin!=='https://voy-pro.com') return null;
-  if(u.pathname==='/') return '__root_redirect__';
+  if(u.pathname==='/') return 'index.html';
   const pathname=decodeURIComponent(u.pathname).replace(/^\//,'');
   if(pathname.endsWith('/')) return pathname+'index.html';
   if(path.extname(pathname)) return pathname;
@@ -64,11 +64,11 @@ for(const url of sitemapUrls){
   const links=linkTags(html);
   const alts=links.filter(x=>x.a.rel==='alternate'&&x.a.hreflang);
   const altLangs=new Set(alts.map(x=>x.a.hreflang));
-  const expected=url.includes('/portugal/')?['en','he','pt','x-default']:['en','he','hu','x-default'];
+  const expected=new URL(url).pathname==='/'?[]:url.includes('/portugal/')?['en','he','pt','x-default']:['en','he','hu','x-default'];
   for(const lang of expected) if(!altLangs.has(lang)) fail(file,'missing hreflang '+lang);
   for(const alt of alts){
     const target=urlToFile(alt.a.href);
-    if(target!=='__root_redirect__'&&!htmlMap.has(target)) fail(file,'hreflang target missing: '+alt.a.href);
+    if(!htmlMap.has(target)) fail(file,'hreflang target missing: '+alt.a.href);
   }
 }
 
@@ -95,8 +95,7 @@ for(const [file,html] of htmlMap){
       const u=new URL(href,'https://voy-pro.com');
       if(u.origin!=='https://voy-pro.com') continue;
       const target=urlToFile(u.href);
-      if(target==='__root_redirect__') continue;
-      if(!target||!htmlMap.has(target)){
+            if(!target||!htmlMap.has(target)){
         if(!u.pathname.startsWith('/assets/')) fail(file,'internal link target missing: '+href);
         continue;
       }

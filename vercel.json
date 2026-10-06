@@ -4,13 +4,6 @@
   "outputDirectory": "dist",
   "trailingSlash": true,
   "cleanUrls": false,
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/budapest/",
-      "permanent": true
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
