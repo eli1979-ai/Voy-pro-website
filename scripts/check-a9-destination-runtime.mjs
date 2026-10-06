@@ -15,6 +15,9 @@ requireText("const budapestPolicy=()=>destinationRuntime?.rider_policy||null;","
 requireText("const budapestMeetingPoint=()=>destinationRuntime?.meeting_point||null;","site.js must derive meeting point from destination runtime state");
 requireText("await hydrateDestinationRuntime();","destination runtime must load before operational Budapest UI is initialized");
 requireText("applyDestinationRuntimeUI();","destination runtime values must hydrate Budapest form/hero UI");
+requireText("riderPolicyUnavailableLabel()","runtime must expose a truthful rider-policy unavailable state");
+requireText("agePolicyUnavailableLabel()","runtime must expose a truthful age-policy unavailable state");
+requireText("node.dataset.runtimeState='unavailable'","policy runtime must mark unavailable states explicitly");
 requireText("const meeting=budapestMeetingPoint();","calendar/confirmation meeting-point flows must use canonical runtime meeting data");
 
 forbidText("Városház utca 14, 1052 Budapest, Hungary","site.js must not embed the Budapest meeting-point address");
