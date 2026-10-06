@@ -64,6 +64,9 @@ if(futureMap.length<6) throw new Error('Future migration reference is unexpected
 if(futureMap.slice(1).some(line=>/,301,|,308,/.test(line))) throw new Error('Future migration map must stay deferred during parallel launch.');
 
 const vercel=JSON.parse(read(path.join(root,'vercel.json')));
-if(!vercel.redirects?.some(r=>r.source==='/'&&r.destination==='/budapest/'&&r.permanent===true)) throw new Error('Root redirect must be permanent.');
+if(vercel.redirects?.some(r=>r.source==='/')) throw new Error('VOY PRO root must be served as the parent homepage, not redirected to a destination.');
+const rootHome=read(path.join(site,'index.html'));
+if(canonicalFromHTML(rootHome)!=='https://voy-pro.com/') throw new Error('VOY PRO parent homepage canonical is invalid.');
+if(!rootHome.includes('href="/budapest/"')||!rootHome.includes('href="/portugal/"')) throw new Error('VOY PRO parent homepage must expose both active destinations.');
 
 console.log('Parallel launch readiness OK:', htmlFiles.length, 'HTML files,', sitemapUrls.length, 'VOY PRO sitemap URLs.');
