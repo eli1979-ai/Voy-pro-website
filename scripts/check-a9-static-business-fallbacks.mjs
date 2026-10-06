@@ -56,6 +56,19 @@ const forbidden=[
   ['Vezetők 16+','Hungarian static rider age label'],
   ['Gyermekek 3–15','Hungarian static child age label'],
   ['Kisgyermekek 1–2','Hungarian static baby age label'],
+  ['Live tour duration','unbound live-duration claim'],
+  ['Eligibility confirmed live','unbound live-eligibility claim'],
+  ['Private minimum confirmed live','unbound live-private-minimum claim'],
+  ['Private minimum shown live','unbound live-private-minimum claim'],
+  ['Live private upgrade','unbound live-private-upgrade claim'],
+  ['משך הסיור מוצג בזמן אמת','Hebrew unbound live-duration claim'],
+  ['הזכאות מאושרת בזמן אמת','Hebrew unbound live-eligibility claim'],
+  ['המינימום מאושר בזמן אמת','Hebrew unbound live-private-minimum claim'],
+  ['מינימום פרטי מוצג בזמן אמת','Hebrew unbound live-private-minimum claim'],
+  ['Élő túraidőtartam','Hungarian unbound live-duration claim'],
+  ['Jogosultság élőben megerősítve','Hungarian unbound live-eligibility claim'],
+  ['Privát minimum élőben megerősítve','Hungarian unbound live-private-minimum claim'],
+  ['Privát minimum élőben','Hungarian unbound live-private-minimum claim'],
 ];
 
 const forbiddenPatterns=[
@@ -74,7 +87,7 @@ const forbiddenPatterns=[
   [/12\s*רוכבים/,'Hebrew static rider capacity'],
   [/Kb\.\s*2 óra|~\s*2 óra/i,'Hungarian static tour duration'],
   [/16 éves|16\+/i,'Hungarian static rider age'],
-  [/2\s*vezető/i,'Hungarian static private-tour minimum'],
+  [/(?:Minimum\s*)?2\s*(?:vezető|fő)|2\s*főtől/i,'Hungarian static private-tour minimum'],
   [/12\s*fő/i,'Hungarian static rider capacity'],
 ];
 
