@@ -270,11 +270,6 @@
     const corporateRequest=locale==='hu'?`Szia, céges vagy csapatépítő EZRaider programot tervezünk Budapesten. Szeretnénk egyeztetni a létszámot, az időzítést, az útvonalat és a szervezési részleteket.`:t(`Hi, we’re planning a corporate or team-building EZRaider event in Budapest. We’d like to coordinate group size, timing, route and event details.`,`היי, אנחנו מתכננים פעילות חברה או גיבוש עם EZRaider בבודפשט ורוצים לתאם את גודל הקבוצה, לוח הזמנים, המסלול ופרטי האירוע.`);
     const lines=[context==='booking_confirmation'?bookingConfirmed:context==='private_flexible'?privateFlexible:context==='extended'?extended:context==='group'?groupRequest:context==='corporate'?corporateRequest:generic];
     const detailLines=[];
-    const affiliateRef=qs.get('ref')||qs.get('affiliate')||null;
-    const sourceLabel=[attr.source,attr.medium].filter(Boolean).join('/');
-    if(sourceLabel&&attr.source!=='direct')detailLines.push(t(`Source: ${sourceLabel}`,`מקור הפניה: ${sourceLabel}`));
-    if(attr.campaign)detailLines.push(t(`Campaign: ${attr.campaign}`,`קמפיין: ${attr.campaign}`));
-    if(affiliateRef)detailLines.push(t(`Referral: ${affiliateRef}`,`קוד הפניה: ${affiliateRef}`));
     if(details.booking_reference)detailLines.push(t(`Booking reference: ${details.booking_reference}`,`מספר הזמנה: ${details.booking_reference}`));
     if(details.experience_title)detailLines.push(t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
     const confirmedBooking=context==='booking_confirmation';
