@@ -27,13 +27,13 @@
   const routePath=(location.pathname||'/').toLowerCase();
   const routeLocale=routePath.startsWith('/he/')?'he':routePath.startsWith('/hu/')?'hu':routePath.startsWith('/pt/')?'pt':null;
   const isPortugalPage=routePath.includes('/portugal/');
+  const isBudapestPage=routePath.includes('/budapest/');
   const isLegalPage=routePath.includes('/legal/');
-  const destinationId=isPortugalPage?'portugal-marvao':'budapest';
+  const destinationId=isPortugalPage?'portugal-marvao':isBudapestPage?'budapest':'network';
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  const bookingEnabled=!!(!isLegalPage&&cfg.bookingEnabled&&apiRoot&&clientKey);
-  const isBudapestPage=routePath.includes('/budapest/');
+  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
@@ -262,7 +262,7 @@
   }
   function whatsAppUrl(context='',overrides={}){
     const details={...currentRequestDetails(),...overrides};
-    const generic=isPortugalPage?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):(locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és egy budapesti túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`));
+    const generic=isPortugalPage?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):isBudapestPage?(locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és egy budapesti túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`)):`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like help choosing a destination or experience.`;
     const privateFlexible=locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és privát budapesti túrát szeretnék kérni rugalmas indulási idővel.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to request a private Budapest tour at a flexible departure time.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבקש סיור פרטי בבודפשט בשעת יציאה גמישה.`);
     const extended=locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és a hosszabb Buda + Margitsziget túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check the Extended Buda + Margaret tour.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק את הסיור הארוך בודה + מרגיט.`);
     const bookingConfirmed=locale==='hu'?`Szia, van egy megerősített VOY PRO Budapest foglalásom, és segítséget szeretnék kérni vele kapcsolatban.`:t(`Hi, I have a confirmed VOY PRO Budapest booking and I’d like help with it.`,`היי, יש לי הזמנה מאושרת ל־VOY PRO Budapest ואני רוצה עזרה בנוגע להזמנה.`);
@@ -354,7 +354,9 @@
     const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls','mobile-nav-sheet');btn.setAttribute('aria-haspopup','dialog');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
     const sheet=document.createElement('div');sheet.id='mobile-nav-sheet';sheet.className='mobile-nav-sheet';sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-label',locale==='he'?'תפריט ניווט':locale==='pt'?'Menu de navegação':locale==='hu'?'Navigációs menü':'Navigation menu');sheet.hidden=true;
     const closeMenuLabel=locale==='he'?'סגירת תפריט':locale==='pt'?'Fechar menu':locale==='hu'?'Menü bezárása':t('Close menu','סגירת תפריט');
-    if(isPortugalPage){
+    if(!isPortugalPage&&!isBudapestPage){
+      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>Choose destination</b><a href="/budapest/">Budapest · Hungary</a><a href="/portugal/">Portugal · Marvão</a><a href="/manage/">Manage Booking</a><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">Ask VOY PRO</a><a href="/#destinations" class="btn">Choose destination</a></div>`;
+    }else if(isPortugalPage){
       const portugalHome=locale==='he'?'/he/portugal/':locale==='pt'?'/pt/portugal/':'/portugal/';
       const budapestHome=locale==='he'?'/he/budapest/':'/budapest/';
       const heading=locale==='he'?'פורטוגל · מרבאו':locale==='pt'?'Portugal · Marvão':'Portugal · Marvão';
@@ -373,6 +375,8 @@
     const close=()=>{sheet.hidden=true;btn.setAttribute('aria-expanded','false');document.body.classList.remove('nav-open')};
     btn.onclick=()=>{sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
   }
+  document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});
+
   function rescueMarkup(message){return `${message}<div class="status-actions"><a class="btn secondary" href="#" data-inline-wa>${t('Ask us on WhatsApp','פנייה ב‑WhatsApp')}</a><a class="btn secondary" href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('View Buda tour','לצפייה בסיור בודה')}</a></div>`}
   function bindInlineWhatsApp(root=document){root.querySelectorAll('[data-inline-wa]').forEach(a=>{a.href=whatsAppUrl();a.onclick=()=>track('whatsapp_clicked',{page,context:'booking_rescue'})})}
   function budapestDate(offsetDays=0){
