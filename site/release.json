@@ -1,12 +1,12 @@
 {
   "app": "voy-pro-website-v2",
-  "version": "1.48.35",
+  "version": "1.48.36",
   "target": "staging",
-  "built_at": "2026-10-07T06:25:00.000Z",
+  "built_at": "2026-10-07T06:35:00.000Z",
   "booking_enabled": true,
   "seo_indexable": false,
   "sitemap_urls": 40,
-  "based_on": "1.48.34",
+  "based_on": "1.48.35",
   "build_model": "consolidated-source",
   "brand_assets": "official-voy-drive-v1"
 }
