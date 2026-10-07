@@ -329,7 +329,7 @@ jobs:
           }
           if(!/const isPortugalPage=routePath\.includes\('\/portugal\/'\)/.test(js)) throw new Error('Portugal route guard missing');
           if(!/bindPortugalRequestFlow/.test(js)||/a\[href\*="pombais\.pt"\]/.test(js)) throw new Error('Portugal request runtime invalid');
-          if(!/const destinationId=isPortugalPage\?'portugal-marvao':'budapest'/.test(js)) throw new Error('Destination-aware runtime missing');
+          if(!/const destinationId=isPortugalPage\?'portugal-marvao':isBudapestPage\?'budapest':'network'/.test(js)) throw new Error('Destination-aware runtime missing');
           if(!/destinationClients\[destinationId\]/.test(js)||!/destinationId==='budapest'&&cfg\.clientKey/.test(js)) throw new Error('Destination client isolation missing');
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
