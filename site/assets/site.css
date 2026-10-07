@@ -335,7 +335,7 @@ header .destination-switch{display:none!important}
 .intent-bridge-card a:hover{text-decoration:underline}
 .intent-bridge-cta{margin-top:18px}
 .intent-hub{background:#fff}
-.intent-hub-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.intent-hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .intent-hub-card{display:flex;flex-direction:column;text-decoration:none;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:18px;min-height:205px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
 .intent-hub-card:hover{transform:translateY(-2px);border-color:#b7cfde;box-shadow:0 14px 28px rgba(13,21,29,.07)}
 .intent-hub-card h3{font-size:19px;line-height:1.2;margin:0 0 8px}
