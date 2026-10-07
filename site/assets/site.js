@@ -401,16 +401,22 @@
   let visitorId = getStore('voy_visitor_id') || uuid();
   if(analyticsAllowed()) setStore('voy_visitor_id',visitorId);
   const referrer = document.referrer || '';
+  function analyticsReferrer(value){
+    try{
+      const u=new URL(String(value||''));
+      return u.origin+u.pathname;
+    }catch(e){return null;}
+  }
   const inferredSource = qs.get('utm_source') || (referrer.includes('google.')?'google':referrer.includes('bing.')?'bing':referrer.includes('tripadvisor.')?'tripadvisor':referrer.includes('getyourguide.')?'getyourguide':referrer?'referral':'direct');
   const inferredMedium = qs.get('utm_medium') || ((inferredSource==='google'||inferredSource==='bing')?'organic':referrer?'referral':'none');
   const attr = {
     touch_id: uuid(),
     source: inferredSource, medium: inferredMedium,
     campaign: qs.get('utm_campaign') || null, content: qs.get('utm_content') || null,
-    term: qs.get('utm_term') || null, referrer: referrer || null,
+    term: qs.get('utm_term') || null, referrer: analyticsReferrer(referrer),
     gclid:qs.get('gclid')||null, gbraid:qs.get('gbraid')||null, wbraid:qs.get('wbraid')||null,
     fbclid:qs.get('fbclid')||null, msclkid:qs.get('msclkid')||null, ttclid:qs.get('ttclid')||null,
-    landing_page: location.pathname + location.search, captured_at: now()
+    landing_page: location.pathname, captured_at: now()
   };
   const first = safeJSON(getStore('voy_first_attribution'));
   if(analyticsAllowed()){
