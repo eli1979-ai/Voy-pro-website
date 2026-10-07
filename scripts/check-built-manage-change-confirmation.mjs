@@ -13,7 +13,7 @@ requireText("'/change',{method:'POST'",'Manage departure change mutation missing
 forbidText("b.onclick=()=>changeDeparture(s.id);",'one-click departure mutation remains');
 
 let inlineScripts=0;
-for(const match of html.matchAll(/<script(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)<\\/script>/gi)){
+for(const match of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)){
   const code=match[1].trim();
   if(!code)continue;
   inlineScripts++;
