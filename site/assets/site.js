@@ -1293,14 +1293,15 @@
       if(note)note.textContent=paymentMethodHelp(select.value);
     };
     select._voySyncPayment=sync;
-    select.addEventListener('change',sync);
+    let paymentSelectionTouched=false;
+    select.addEventListener('change',()=>{paymentSelectionTouched=true;sync();});
     try{
       const caps=await api('/payments/capabilities',{method:'GET',timeoutMs:5000});
       paymentCapabilities=caps||paymentCapabilities;
       const onlineReady=Boolean(caps?.online_card);
       if(payNow){
         payNow.disabled=!onlineReady;
-        if(onlineReady){
+        if(onlineReady&&!paymentSelectionTouched){
           payNow.defaultSelected=true;
           payNow.selected=true;
         }
@@ -1604,6 +1605,9 @@
   async function changeAncillaryQuantity(productId,delta){
     const node=document.querySelector('[data-ancillary-upsell]');
     if(node?.getAttribute('aria-busy')==='true')return;
+    const checkoutKey=bookingState.idempotencyKey;
+    const slotId=String(bookingState.slot?.id||'');
+    const selectionGeneration=checkoutPreparationGeneration;
     const active=document.activeElement;
     const id=String(productId);
     const focusIntent=active?.dataset?.ancillaryMinus===id?'minus':active?.dataset?.ancillaryAdd===id?'add':'plus';
@@ -1622,18 +1626,27 @@
     renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
     try{
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({
-        slot_id:bookingState.slot.id,group_composition:bookingState.composition,
+        slot_id:slotId,group_composition:bookingState.composition,
         is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,promo_code:bookingState.promoCode||campaignPromo
       })});
+      if(selectionGeneration!==checkoutPreparationGeneration||bookingState.idempotencyKey!==checkoutKey||String(bookingState.slot?.id||'')!==slotId)return;
+      assertCheckoutQuote(quote);
       bookingState.quote=quote;renderStandardCheckoutSummary();renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
       const live=document.querySelector('[data-ancillary-live]');
       if(live)live.textContent=`${ancillaryDisplayName(offer)}: ${ancillaryText('quantity')} ${next}`;
       track(next>current?'ancillary_added':'ancillary_removed',{product_id:productId,sku:offer.sku,quantity:next,product_kind:offer.product_kind,quote_total:quote.total,currency:quote.currency});
     }catch(e){
+      if(selectionGeneration!==checkoutPreparationGeneration||bookingState.idempotencyKey!==checkoutKey||String(bookingState.slot?.id||'')!==slotId)return;
       bookingState.extras=previous;renderAncillaryOffers();restoreAncillaryControlFocus(productId,focusIntent);syncAncillaryPaymentAvailability();
       const status=document.querySelector('[data-checkout-status]');
-      if(status)status.textContent=e?.code==='ANCILLARY_OUT_OF_SEASON'?t('This extra is not available for the selected date.','התוספת אינה זמינה בתאריך שנבחר.'):t('That extra is no longer available. Your booking selection was not changed.','התוספת כבר אינה זמינה. בחירת הסיור לא השתנתה.');
-    }finally{if(node)node.removeAttribute('aria-busy');}
+      if(status)status.textContent=e?.code==='QUOTE_INVALID'
+        ?t('The updated total could not be verified. Your previous extras selection was restored. Please try again.','לא ניתן לאמת את הסכום המעודכן. בחירת התוספות הקודמת שוחזרה. נסו שוב.')
+        :e?.code==='ANCILLARY_OUT_OF_SEASON'
+          ?t('This extra is not available for the selected date.','התוספת אינה זמינה בתאריך שנבחר.')
+          :t('That extra is no longer available. Your booking selection was not changed.','התוספת כבר אינה זמינה. בחירת הסיור לא השתנתה.');
+    }finally{
+      if(selectionGeneration===checkoutPreparationGeneration&&bookingState.idempotencyKey===checkoutKey&&String(bookingState.slot?.id||'')===slotId&&node)node.removeAttribute('aria-busy');
+    }
   }
 
   async function prepareStandardCheckout(slot,composition,date,experience,isPrivate=false,guideLanguage=''){
@@ -1798,6 +1811,24 @@
     const cal=root?.querySelector('[data-calendar-booking]');if(cal){cal.href=calendarUrlForBooking(booking);cal.target='_blank';cal.rel='noopener';}
   }
 
+  function setCheckoutSubmissionLock(locked){
+    const shell=document.querySelector('#live-checkout-shell');
+    const controls=[
+      ...(shell?.querySelectorAll('#live-checkout-form input,#live-checkout-form select,#live-checkout-form button,[data-checkout-edit]')||[]),
+      ...(shell?.querySelectorAll('[data-ancillary-upsell] button')||[])
+    ];
+    [...new Set(controls)].forEach(control=>{
+      if(locked){
+        if(control.dataset.submitLockWasDisabled==null)control.dataset.submitLockWasDisabled=control.disabled?'true':'false';
+        control.disabled=true;
+      }else if(control.dataset.submitLockWasDisabled!=null){
+        control.disabled=control.dataset.submitLockWasDisabled==='true';
+        delete control.dataset.submitLockWasDisabled;
+      }
+    });
+    if(shell) shell.toggleAttribute('data-submit-locked',locked);
+  }
+
   const checkoutForm=document.querySelector('#live-checkout-form');
   if(checkoutForm){checkoutForm.addEventListener('submit',async e=>{
     e.preventDefault();const st=document.querySelector('[data-checkout-status]');
@@ -1807,8 +1838,9 @@
     if(!customer.full_name||!customer.email||!customer.phone){st.textContent=t('Please complete name, email and phone.','יש להשלים שם, אימייל וטלפון.');return;}
     if(checkoutForm.dataset.submitting==='true')return;
     checkoutForm.dataset.submitting='true';checkoutForm.setAttribute('aria-busy','true');
-    const submitButton=checkoutForm.querySelector('button[type="submit"]');if(submitButton)submitButton.disabled=true;
-    const sid=getStore('voy_session_id'); const idem=bookingState.idempotencyKey||(bookingState.idempotencyKey='voy_'+uuid());let terminal=false;
+    setCheckoutSubmissionLock(true);
+    const submitButton=checkoutForm.querySelector('button[type="submit"]');
+    const sid=getStore('voy_session_id'); const idem=bookingState.idempotencyKey||(bookingState.idempotencyKey='voy_'+uuid());let terminal=false;let recoverExpiredHold=false;
     try{
       if(bookingState.capacityRequest){
         st.textContent=t('Sending request…','שולחים בקשה…');
@@ -1842,13 +1874,19 @@
       patchSession({stage:holdExpired?'hold_expired':'booking_failed',error_code:err?.code||String(err?.status||'booking_failed')});
       if(holdExpired){
         terminal=true;
-        lockExpiredCheckout({focusRecovery:true});
+        recoverExpiredHold=true;
       }
       const msg=holdExpired?t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.'):err.code==='STAFF_CONFIRMATION_REQUIRED'?t('This booking needs an additional confirmation. Please search again and send a request.','להזמנה הזו נדרש אישור נוסף. יש לחפש מחדש ולשלוח בקשה.'):t('The booking could not be completed. No online card charge was made.','לא ניתן להשלים את ההזמנה. לא בוצע חיוב מקוון.');
       st.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(st);
-      if(holdExpired)document.querySelector('[data-checkout-edit]')?.focus({preventScroll:true});
     }
-    finally{checkoutForm.dataset.submitting='';checkoutForm.removeAttribute('aria-busy');if(!terminal&&submitButton)submitButton.disabled=false;}
+    finally{
+      checkoutForm.dataset.submitting='';checkoutForm.removeAttribute('aria-busy');
+      if(!terminal)setCheckoutSubmissionLock(false);
+      else if(recoverExpiredHold){
+        setCheckoutSubmissionLock(false);
+        lockExpiredCheckout({focusRecovery:true});
+      }
+    }
   });}
 
   function initPaymentReturnNotice(){
