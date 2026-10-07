@@ -827,11 +827,20 @@
   document.querySelectorAll('[data-review-source]').forEach(a=>a.addEventListener('click',()=>track('trust_source_clicked',{provider:a.dataset.reviewSource})));
   document.querySelectorAll('[data-related]').forEach(a=>a.addEventListener('click',()=>track('related_tour_clicked',{target:a.getAttribute('href')})));
   document.querySelectorAll('[data-tour-detail]').forEach(a=>a.addEventListener('click',()=>track('tour_detail_clicked',{target:a.getAttribute('href'),source:'tour_picker'})));
+  function analyticsLinkTarget(value){
+    const raw=String(value||'').trim();
+    if(!raw)return null;
+    try{
+      const u=new URL(raw,location.origin);
+      if(!/^https?:$/.test(u.protocol))return null;
+      return u.origin===location.origin?u.pathname:u.origin+u.pathname;
+    }catch(e){return null;}
+  }
   document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>{
     const name=el.dataset.track;
     if(name==='whatsapp_clicked') createSession('whatsapp_clicked',{page});
     else if(name==='booking_cta') createSession('booking_intent',{page});
-    track(name==='booking_cta'?'hero_cta_clicked':name,{label:(el.textContent||'').trim().slice(0,120),href:el.getAttribute('href')});
+    track(name==='booking_cta'?'hero_cta_clicked':name,{label:(el.textContent||'').trim().slice(0,120),target:analyticsLinkTarget(el.getAttribute('href'))});
   }));
   document.querySelectorAll('[data-wa]').forEach(a=>{a.href=whatsAppUrl();const refresh=()=>{a.href=whatsAppUrl();};a.addEventListener('pointerdown',refresh);a.addEventListener('click',refresh);});
   document.querySelectorAll('[data-special-request]').forEach(a=>a.addEventListener('click',()=>{
