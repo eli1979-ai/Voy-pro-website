@@ -4,8 +4,8 @@ const css=fs.readFileSync('site/assets/site.css','utf8');
 const js=fs.readFileSync('site/assets/site.js','utf8');
 const failures=[];
 
-if(!/@media\(max-width:800px\)\{\s*header \.navlinks>\.language-picker\{display:none\}\s*\}/m.test(css)){
-  failures.push('mobile header must hide the duplicated desktop language picker');
+if(!/@media\(max-width:800px\)\{\s*header \.navlinks>\.language-picker\{display:none!important\}\s*\}/m.test(css)){
+  failures.push('mobile header must hide the duplicated desktop language picker with !important so it overrides the earlier mobile visibility rule');
 }
 if(!/@media\(max-width:370px\)\{\s*header \.location-switcher\{display:none\}\s*\}/m.test(css)){
   failures.push('very narrow mobile header must move the location switcher into the menu');
