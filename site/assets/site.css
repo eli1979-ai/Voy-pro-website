@@ -601,10 +601,22 @@ footer .brand{
 .parent-hero-mosaic .parent-hero-grid img:first-child{object-position:center 72%}
 .parent-hero-mosaic .parent-hero-grid img:last-child{object-position:center 76%;border-inline-start:2px solid rgba(255,255,255,.72)}
 
-/* v1.48.46 — narrow mobile header overflow */
+/* v1.48.76 — persistent top language strip without mobile header overflow */
 @media(max-width:800px){
-  header .navlinks>.language-picker{display:none!important}
+  header .navlinks{min-width:0}
+  header .navlinks>.language-picker{display:inline-flex!important;flex:0 1 auto;min-width:0;gap:2px;margin-inline-start:0;padding:1px}
+  header .navlinks>.language-picker .lang-switch{display:inline-flex!important;padding:5px 5px;font-size:10px;line-height:1;white-space:nowrap}
 }
-@media(max-width:370px){
+@media(max-width:520px){
   header .location-switcher{display:none}
+}
+@media(max-width:380px){
+  .nav{gap:6px}
+  header .navlinks>.language-picker{gap:1px;padding:0}
+  header .navlinks>.language-picker .lang-switch{padding:5px 4px;font-size:9px}
+}
+@media(max-width:330px){
+  .nav>.brand{font-size:16px}
+  .nav-menu-toggle{padding:7px 8px;font-size:10px}
+  header .navlinks>.language-picker .lang-switch{padding:4px 3px;font-size:8.5px}
 }
