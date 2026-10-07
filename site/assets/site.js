@@ -595,7 +595,7 @@
     document.body.classList.add('consent-open');
     if(force) bar.querySelector('[data-consent-essential]').focus();
     bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});document.body.classList.remove('consent-open');bar.remove();returnFocusTo?.focus();});
-    bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{setConsent({analytics:true,marketing:false});document.body.classList.remove('consent-open');bar.remove();location.reload();});
+    bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{const wasAnalytics=analyticsAllowed();setConsent({analytics:true,marketing:false});document.body.classList.remove('consent-open');bar.remove();returnFocusTo?.focus();if(!wasAnalytics)resumeAnalyticsAfterConsent();});
   }
   function initConsent(){
     showConsentPreferences(false);
@@ -725,6 +725,30 @@
 
   await hydrateDestinationRuntime();
   applyDestinationRuntimeUI();
+
+  async function resumeAnalyticsAfterConsent(){
+    if(!analyticsAllowed()||!bookingEnabled)return;
+    const existingFirst=safeJSON(getStore('voy_first_attribution'));
+    const firstTouch=existingFirst||attr;
+    setStore('voy_visitor_id',visitorId);
+    if(!existingFirst)setStore('voy_first_attribution',JSON.stringify(firstTouch));
+    setStore('voy_last_attribution',JSON.stringify(attr));
+    setStore('voy_segment',segment);
+    setStore('voy_experiments',JSON.stringify(experiments));
+    const sid=getStore('voy_session_id');
+    if(sid){
+      try{
+        await api('/attribution/sync',{method:'POST',body:JSON.stringify({
+          session_id:sid,
+          visitor_id:visitorId,
+          attribution:{first_touch:firstTouch,last_touch:attr}
+        })});
+      }catch(e){}
+    }
+    track('page_view',{title:document.title,consent_transition:true});
+    if(segment!=='default')track('personalization_applied',{segment,consent_transition:true});
+    scheduleEventFlush(true);
+  }
 
   async function createSession(stage, extra={}){
     if(!bookingEnabled) return null;
