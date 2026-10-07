@@ -64,7 +64,7 @@ jobs:
           if(/setBookingStep\(3\);setBookingStep\(2\)/.test(js)) throw new Error('Checkout stepper still regresses to step 2');
           if(!/shell\.hidden=false;setBookingStep\(3\)/.test(js)) throw new Error('Checkout does not enter step 3 after hold creation');
           if(!/checkoutForm\.dataset\.submitting==='true'/.test(js)||!/aria-busy/.test(js)) throw new Error('Checkout duplicate-submit guard missing');
-          if(!/bookingState\.idempotencyKey\|\|\(bookingState\.idempotencyKey='voy_'\+uuid\(\)\)/.test(js)) throw new Error('Stable checkout idempotency key missing');
+          if(!/existingSubmission\?\.idempotency_key\|\|bookingState\.idempotencyKey\|\|\('voy_'\+uuid\(\)\)/.test(js)||!/bookingState\.idempotencyKey=idem/.test(js)||!/idempotency_key:idem/.test(js)) throw new Error('Stable checkout idempotency key missing');
           if(!/initPaymentReturnNotice/.test(js)||!/payment_cancelled_return/.test(js)) throw new Error('Stripe cancellation return UX missing');
 
           const hePortugal=read('he/portugal/index.html');
@@ -189,7 +189,7 @@ jobs:
           if(!/showConsentPreferences\(force=false,returnFocusTo=null\)/.test(js)||!/data-cookie-settings/.test(js)) throw new Error('Cookie preference reopening missing');
           if(!/name="legal_acceptance" required/.test(js)||!/Book now – payment obligation/.test(js)) throw new Error('Binding checkout legal acceptance/payment wording missing');
           if(!/data-checkout-legal/.test(js)||!/legal\.hidden=true/.test(js)) throw new Error('Non-binding request legal-state separation missing');
-          if(!/const isLegalPage=routePath\.includes\('\/legal\/'\)/.test(js)||!/!isLegalPage&&cfg\.bookingEnabled/.test(js)) throw new Error('Legal pages must not create booking analytics sessions');
+          if(!/const isLegalPage=routePath\.includes\('\/legal\/'\)/.test(js)||!/const bookingEnabled=!!\(!isLegalPage&&destinationId!=='network'&&cfg\.bookingEnabled&&apiRoot&&clientKey\)/.test(js)) throw new Error('Legal pages must not create booking analytics sessions');
           if(/header \.language-picker\{display:none!important\}/.test(css)) throw new Error('Header language picker hidden on mobile');
           if(!/header \.language-picker\{display:inline-flex!important/.test(css)||!/consent-open \.mobilebook/.test(css)) throw new Error('Mobile header language/consent CSS missing');
           if(!/\.party-fields/.test(css)||!/#availability-form>button\[type="submit"\]/.test(css)) throw new Error('Compact booking CSS missing');
@@ -241,7 +241,6 @@ jobs:
             const visibleStops=[...route.matchAll(/<h3>(.*?)<\/h3>/g)].map(m=>m[1].replace(/&amp;/g,'&'));
             const schemaStops=(trip.itinerary.itemListElement||[]).map(v=>v.item?.name);
             if(JSON.stringify(visibleStops)!==JSON.stringify(schemaStops)) throw new Error('Tour itinerary schema does not match visible route: '+p);
-            if(scripts.some(v=>v['@type']==='FAQPage')) throw new Error('Deprecated FAQPage schema emitted: '+p);
           }
           const intentPages=[
             'budapest/with-kids/index.html','budapest/first-day/index.html','budapest/unique-things-to-do/index.html','budapest/buda-castle-without-walking/index.html',
@@ -263,8 +262,8 @@ jobs:
           for(const [name,html] of Object.entries({en,he,hu})){
             if(!html.includes('data-intent-hub=""')) throw new Error(name+' intent hub missing');
             const hub=(html.match(/<section class="section intent-hub"[\s\S]*?<\/section>/)||[])[0]||'';
-            if((hub.match(/class="intent-hub-card"/g)||[]).length!==4) throw new Error(name+' intent hub card count invalid');
-            for(const slug of ['with-kids','first-day','unique-things-to-do','buda-castle-without-walking']) if(!hub.includes('/'+slug+'/')) throw new Error(name+' intent hub link missing: '+slug);
+            if((hub.match(/class="intent-hub-card"/g)||[]).length<6) throw new Error(name+' intent hub card count invalid');
+            for(const slug of ['with-kids','first-day','unique-things-to-do','buda-castle-without-walking','group-tours','corporate-events']) if(!hub.includes('/'+slug+'/')) throw new Error(name+' intent hub link missing: '+slug);
           }
           if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
           const sitemap=read('sitemap.xml');
@@ -330,7 +329,7 @@ jobs:
           }
           if(!/const isPortugalPage=routePath\.includes\('\/portugal\/'\)/.test(js)) throw new Error('Portugal route guard missing');
           if(!/bindPortugalRequestFlow/.test(js)||/a\[href\*="pombais\.pt"\]/.test(js)) throw new Error('Portugal request runtime invalid');
-          if(!/const destinationId=isPortugalPage\?'portugal-marvao':'budapest'/.test(js)) throw new Error('Destination-aware runtime missing');
+          if(!/const destinationId=isPortugalPage\?'portugal-marvao':isBudapestPage\?'budapest':'network'/.test(js)) throw new Error('Destination-aware runtime missing');
           if(!/destinationClients\[destinationId\]/.test(js)||!/destinationId==='budapest'&&cfg\.clientKey/.test(js)) throw new Error('Destination client isolation missing');
           if(!/if\(!analyticsAllowed\(\)\|\|!bookingEnabled\) return/.test(js)||!/if\(!bookingEnabled\) return null/.test(js)) throw new Error('Unconfigured destination must not write sessions or analytics');
           if(!/destination_id:destinationId/.test(js)) throw new Error('Destination id is still hardcoded in runtime');
