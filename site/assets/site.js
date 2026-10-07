@@ -245,6 +245,16 @@
     if(additions!=null&&additions!==0) fallback.push({label:t('Additions','תוספות'),amount:Math.abs(additions),type:'surcharge',currency});
     return fallback;
   }
+  function assertCheckoutQuote(quote){
+    const total=finiteNumber(quote?.total);
+    const currency=String(quote?.currency||'').trim();
+    if(total==null||total<0||!/^[A-Za-z]{3}$/.test(currency)){
+      const err=new Error('Live quote could not be verified.');
+      err.code='QUOTE_INVALID';
+      throw err;
+    }
+    return {total,currency};
+  }
   function renderQuoteBreakdown(quote){
     const currency=quote?.currency||'EUR';
     const lines=normalizedQuoteLines(quote);
@@ -1587,6 +1597,7 @@
     try{
       setBookingStep(2);status.textContent=t('Checking price and reserving your places…','בודקים מחיר ושומרים את המקומות שלכם…');
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,extras:[],promo_code:campaignPromo})});
+      assertCheckoutQuote(quote);
       const hold=await api('/holds',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage})});
       bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:campaignPromo,idempotencyKey:'voy_'+uuid(),extras:[],ancillaryOffers:[]};
       const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;setBookingStep(3);
@@ -1600,7 +1611,7 @@
       patchSession({stage:'checkout_ready',selected_date:date,selected_time:slot.time,slot_id:slot.id,quote_id:quote.id,hold_id:hold.id,hold_expires_at:hold.expires_at,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});
     }catch(e){
       const privateConflict=['PRIVATE_DEPARTURE_NOT_EMPTY','PRIVATE_HOLD_MISMATCH','PRIVATE_DEPARTURE_RESERVED'].includes(e.code);
-      const msg=e.code==='ANCILLARY_NOT_CONFIGURED'?t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.'):privateConflict?t('This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.','כבר לא ניתן להפוך את היציאה הזו לפרטית. בחרו שעה אחרת או בקשו מהצוות שעה גמישה לסיור פרטי.'):t('Could not hold this departure. Please choose another time.','לא ניתן לשמור את היציאה. בחרו שעה אחרת.');
+      const msg=e.code==='QUOTE_INVALID'?t('The live price could not be verified. Please search again or contact the local team.','לא ניתן לאמת את המחיר החי. נסו לחפש שוב או פנו לצוות המקומי.'):e.code==='ANCILLARY_NOT_CONFIGURED'?t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.'):privateConflict?t('This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.','כבר לא ניתן להפוך את היציאה הזו לפרטית. בחרו שעה אחרת או בקשו מהצוות שעה גמישה לסיור פרטי.'):t('Could not hold this departure. Please choose another time.','לא ניתן לשמור את היציאה. בחרו שעה אחרת.');
       status.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(status);
     }
   }
