@@ -64,7 +64,7 @@ jobs:
           if(/setBookingStep\(3\);setBookingStep\(2\)/.test(js)) throw new Error('Checkout stepper still regresses to step 2');
           if(!/shell\.hidden=false;setBookingStep\(3\)/.test(js)) throw new Error('Checkout does not enter step 3 after hold creation');
           if(!/checkoutForm\.dataset\.submitting==='true'/.test(js)||!/aria-busy/.test(js)) throw new Error('Checkout duplicate-submit guard missing');
-          if(!/bookingState\.idempotencyKey\|\|\(bookingState\.idempotencyKey='voy_'\+uuid\(\)\)/.test(js)) throw new Error('Stable checkout idempotency key missing');
+          if(!/existingSubmission\?\.idempotency_key\|\|bookingState\.idempotencyKey\|\|\('voy_'\+uuid\(\)\)/.test(js)||!/bookingState\.idempotencyKey=idem/.test(js)||!/idempotency_key:idem/.test(js)) throw new Error('Stable checkout idempotency key missing');
           if(!/initPaymentReturnNotice/.test(js)||!/payment_cancelled_return/.test(js)) throw new Error('Stripe cancellation return UX missing');
 
           const hePortugal=read('he/portugal/index.html');
