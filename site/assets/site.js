@@ -647,7 +647,7 @@
     const timer=controller?setTimeout(()=>controller.abort(),timeoutMs):null;
     const {timeoutMs:_timeoutMs,...fetchOptions}=options;
     try{
-      const r=await fetch(apiRoot+path,{...fetchOptions,headers,signal:externalSignal||controller?.signal});
+      const r=await fetch(apiRoot+path,{...fetchOptions,headers,signal:externalSignal||controller?.signal,cache:fetchOptions.cache||'no-store'});
       const text=await r.text(); let data=null; try{data=text?JSON.parse(text):null}catch(e){data={error:text||r.statusText};}
       if(!r.ok){const err=new Error(data?.error||('HTTP '+r.status));err.status=r.status;err.code=data?.code;err.data=data;throw err;}
       return data;
