@@ -1734,7 +1734,7 @@
       if(paymentMethod==='pay_now_card'){
         st.textContent=t('Opening secure card payment…','פותחים תשלום מאובטח בכרטיס…');
         const payment=await api('/payments/intents',{method:'POST',headers:{'Idempotency-Key':idem},body:JSON.stringify({payment_type:'online',payment_method:'pay_now_card',hold_id:bookingState.hold.id,session_id:sid,customer,selected_date:bookingState.date,slot_time:bookingState.slot.time,experience_title:bookingState.experience.title,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,currency:bookingState.quote?.currency||'EUR',extras:bookingState.extras||[],promo_code:bookingState.promoCode||null})});
-        if(!payment?.checkout_url)throw Object.assign(new Error('Secure card payment could not be started.'),{code:'PAYMENT_START_FAILED'});
+        if(!isStripeCheckoutUrl(payment?.checkout_url))throw Object.assign(new Error('Secure card payment could not be started.'),{code:'PAYMENT_START_FAILED'});
         terminal=true;rememberPaymentRetry(payment);patchSession({stage:'payment_redirect',payment_provider:'stripe',payment_checkout_id:payment.id,booking_id:payment.booking_id,booking_reference:payment.booking_reference});
         location.assign(payment.checkout_url);
         return;
