@@ -1621,7 +1621,7 @@
       status.textContent=t('Your places are temporarily held while you complete the booking.','המקומות נשמרים זמנית בזמן השלמת ההזמנה.');
       shell.querySelector('[data-checkout-heading]')?.focus({preventScroll:true});
       shell.scrollIntoView({behavior:'smooth',block:'center'});
-      track('hold_created',{hold_id:hold.id,slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage,promo_code_applied:quote.promo_code_applied||campaignPromo||null,discount:quote.discount||0});
+      track('hold_created',{slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage,promo_code_applied:quote.promo_code_applied||campaignPromo||null,discount:quote.discount||0});
       patchSession({stage:'checkout_ready',selected_date:date,selected_time:slot.time,slot_id:slot.id,quote_id:quote.id,hold_id:hold.id,hold_expires_at:hold.expires_at,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});
     }catch(e){
       const privateConflict=['PRIVATE_DEPARTURE_NOT_EMPTY','PRIVATE_HOLD_MISMATCH','PRIVATE_DEPARTURE_RESERVED'].includes(e.code);
