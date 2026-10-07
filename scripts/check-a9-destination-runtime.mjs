@@ -12,7 +12,8 @@ function forbidText(text,label){
 
 requireText("api('/destinations/budapest'","site.js must consume the canonical Budapest destination endpoint");
 requireText("const budapestPolicy=()=>destinationRuntime?.rider_policy||null;","site.js must derive rider policy from destination runtime state");
-requireText("const budapestMeetingPoint=()=>destinationRuntime?.meeting_point||null;","site.js must derive meeting point from destination runtime state");
+requireText("const meeting=destinationRuntime?.meeting_point;","site.js must derive meeting point from destination runtime state");
+requireText("maps_url:safeHttpsUrl(meeting.maps_url)","site.js must sanitize the runtime meeting-point Maps URL before rendering");
 requireText("await hydrateDestinationRuntime();","destination runtime must load before operational Budapest UI is initialized");
 requireText("applyDestinationRuntimeUI();","destination runtime values must hydrate Budapest form/hero UI");
 requireText("riderPolicyUnavailableLabel()","runtime must expose a truthful rider-policy unavailable state");
