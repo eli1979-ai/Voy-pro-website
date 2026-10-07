@@ -11,7 +11,7 @@ requireText("control.dataset.submitLockWasDisabled=control.disabled?'true':'fals
 requireText('setCheckoutSubmissionLock(true);','checkout mutations are not locked before the async submit begins');
 requireText('if(!terminal)enableCheckoutRetryActions();','recoverable submit failures do not expose safe retry actions while keeping the payload locked');
 requireText('recoverExpiredHold=true;','expired-hold recovery path is not distinguished from terminal success');
-requireText('setCheckoutSubmissionLock(false);\n        lockExpiredCheckout({focusRecovery:true});','expired-hold recovery does not restore Change selection before applying the stale-checkout lock');
+requireText('setCheckoutSubmissionLock(false);\n        bookingState.submissionSnapshot=null;\n        lockExpiredCheckout({focusRecovery:true});','expired-hold recovery must clear the retry snapshot, restore Change selection and then apply the stale-checkout lock');
 
 if(failures.length){
   console.error('Checkout submit mutation lock guard failed.');
