@@ -6,8 +6,8 @@ const html=fs.readFileSync(file,'utf8');
 const failures=[];
 const requireText=(text,label)=>{if(!html.includes(text))failures.push(label);};
 
-requireText("if(cancel.dataset.busy==='true')return;cancel.dataset.busy='true';cancel.disabled=true",'cancellation mutation lacks single-flight lock');
-requireText("delete cancel.dataset.busy;cancel.disabled=false",'failed cancellation does not release the lock');
+requireText("if(cancel.dataset.busy==='true'||document.getElementById('manage-change-status')?.dataset.busy==='true')return;",'cancellation mutation lacks single-flight/cross-mutation lock');
+requireText("delete cancel.dataset.busy;cancel.disabled=false;if(cancelDate)cancelDate.disabled=false;if(cancelSearch)cancelSearch.disabled=false;",'failed cancellation does not release the mutation/cross-control lock');
 requireText("'/cancel',{method:'POST'",'cancellation POST missing');
 
 let inlineScripts=0;

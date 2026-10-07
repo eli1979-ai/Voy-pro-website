@@ -10,9 +10,9 @@ const forbidText=(text,label)=>{if(html.includes(text))failures.push(label);};
 requireText("b.onclick=()=>changeDeparture(s.id,s.time,date);",'change buttons do not pass the selected departure context');
 requireText("async function changeDeparture(id,time,date){const dateLabel=manageDateLabel(date),timeLabel=manageTimeLabel(time);if(!confirm(",'departure mutation lacks explicit confirmation');
 requireText("'/change',{method:'POST'",'Manage departure change mutation missing');
-requireText("if(st?.dataset.busy==='true')return;st.dataset.busy='true'",'departure change lacks an in-flight lock');
+requireText("if(st?.dataset.busy==='true'||document.getElementById('manage-cancel')?.dataset.busy==='true')return;",'departure change lacks an in-flight/cross-mutation lock');
 requireText("changeButtons.forEach(b=>b.disabled=true)",'departure choices are not disabled during mutation');
-requireText("delete st.dataset.busy;changeButtons.forEach(b=>b.disabled=false)",'failed departure changes do not release the mutation lock');
+requireText("delete st.dataset.busy;changeButtons.forEach(b=>b.disabled=false);if(changeCancel)changeCancel.disabled=false;if(changeDate)changeDate.disabled=false;if(changeSearch)changeSearch.disabled=false;",'failed departure changes do not release the mutation/cross-control lock');
 forbidText("b.onclick=()=>changeDeparture(s.id);",'one-click departure mutation remains');
 forbidText(' await load();','duplicate/immediate Manage reload remains after departure change');
 
