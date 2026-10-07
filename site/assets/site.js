@@ -1261,7 +1261,17 @@
   hydratePaymentMethods();
   let holdTimer=null;
   function releaseHold(){const id=bookingState.hold?.id;if(id&&bookingEnabled){api('/holds/'+encodeURIComponent(id),{method:'DELETE'}).catch(()=>{});}bookingState.hold=null;if(holdTimer)clearInterval(holdTimer);}
-  function startHoldTimer(expires){const node=document.querySelector('[data-hold-timer]');if(!node)return;if(holdTimer)clearInterval(holdTimer);const tick=()=>{const left=Math.max(0,new Date(expires).getTime()-Date.now());if(!left){node.textContent=t('Hold expired — select the departure again.','שמירת המקום פגה — יש לבחור שעה מחדש.');clearInterval(holdTimer);bookingState.hold=null;patchSession({stage:'hold_expired',hold_expired_at:now()});return;}const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);node.textContent=t(`Your places are held for ${m}:${String(s).padStart(2,'0')}`,`המקומות נשמרים למשך ${m}:${String(s).padStart(2,'0')}`);};tick();holdTimer=setInterval(tick,1000);}
+  function lockExpiredCheckout({focusRecovery=false}={}){
+    bookingState.hold=null;
+    if(holdTimer)clearInterval(holdTimer);
+    const checkout=document.querySelector('#live-checkout-form');
+    const submit=checkout?.querySelector('button[type="submit"]');
+    if(submit)submit.disabled=true;
+    checkout?.setAttribute('data-hold-expired','true');
+    setBookingStep(1);
+    if(focusRecovery)document.querySelector('[data-checkout-edit]')?.focus({preventScroll:true});
+  }
+  function startHoldTimer(expires){const node=document.querySelector('[data-hold-timer]');if(!node)return;if(holdTimer)clearInterval(holdTimer);const tick=()=>{const left=Math.max(0,new Date(expires).getTime()-Date.now());if(!left){node.textContent=t('Hold expired — select the departure again.','שמירת המקום פגה — יש לבחור שעה מחדש.');lockExpiredCheckout();patchSession({stage:'hold_expired',hold_expired_at:now()});return;}const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);node.textContent=t(`Your places are held for ${m}:${String(s).padStart(2,'0')}`,`המקומות נשמרים למשך ${m}:${String(s).padStart(2,'0')}`);};tick();holdTimer=setInterval(tick,1000);}
 
   function setBookingStep(step){
     document.querySelectorAll('[data-booking-step]').forEach(el=>{
@@ -1286,6 +1296,7 @@
     const legal=form?.querySelector('[data-checkout-legal]'); if(legal){legal.hidden=false;const box=legal.querySelector('input');if(box){box.required=true;box.checked=false;}}
     const submit=form?.querySelector('button[type="submit"]'); if(submit) submit.textContent=t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');
     const st=shell.querySelector('[data-checkout-status]'); if(st) st.textContent='';
+    if(form){form.removeAttribute('data-hold-expired');const submit=form.querySelector('button[type="submit"]');if(submit)submit.disabled=false;}
   }
 
   function renderPartySummary(composition){
@@ -1720,10 +1731,8 @@
       const holdExpired=err.code==='HOLD_EXPIRED';
       patchSession({stage:holdExpired?'hold_expired':'booking_failed',error_code:err?.code||String(err?.status||'booking_failed')});
       if(holdExpired){
-        bookingState.hold=null;
-        if(holdTimer)clearInterval(holdTimer);
         terminal=true;
-        setBookingStep(1);
+        lockExpiredCheckout({focusRecovery:true});
       }
       const msg=holdExpired?t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.'):err.code==='STAFF_CONFIRMATION_REQUIRED'?t('This booking needs an additional confirmation. Please search again and send a request.','להזמנה הזו נדרש אישור נוסף. יש לחפש מחדש ולשלוח בקשה.'):t('The booking could not be completed. No online card charge was made.','לא ניתן להשלים את ההזמנה. לא בוצע חיוב מקוון.');
       st.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(st);
