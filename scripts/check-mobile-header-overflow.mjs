@@ -3,22 +3,20 @@ import fs from 'node:fs';
 const css=fs.readFileSync('site/assets/site.css','utf8');
 const js=fs.readFileSync('site/assets/site.js','utf8');
 const failures=[];
+const need=(condition,label)=>{if(!condition)failures.push(label);};
 
-if(!/@media\(max-width:800px\)\{\s*header \.navlinks>\.language-picker\{display:none!important\}\s*\}/m.test(css)){
-  failures.push('mobile header must hide the duplicated desktop language picker with !important so it overrides the earlier mobile visibility rule');
-}
-if(!/@media\(max-width:370px\)\{\s*header \.location-switcher\{display:none\}\s*\}/m.test(css)){
-  failures.push('very narrow mobile header must move the location switcher into the menu');
-}
-if(!/document\.querySelectorAll\('\.language-picker \.lang-switch'\)/.test(js) || !/data-mobile-language-row/.test(js)){
-  failures.push('mobile navigation must retain the language choices when the header picker is hidden');
-}
-if(!/isPortugalPage[\s\S]*Budapest/.test(js) || !/Explore Budapest[\s\S]*Portugal · Marvão/.test(js)){
-  failures.push('mobile navigation must retain cross-destination access when the narrow header location chip is hidden');
-}
+need(!css.includes('header .navlinks>.language-picker{display:none!important}'),'mobile header still hides the language picker');
+need(css.includes('header .navlinks>.language-picker{\n    display:inline-flex!important;'),'mobile header does not force the language picker visible');
+need(css.includes('header .language-picker .lang-switch::after{\n    content:attr(hreflang);'),'mobile language labels are not compact hreflang codes');
+need(css.includes('@media(max-width:390px){')&&css.includes('header .brand{width:104px}'),'narrow-mobile brand does not shrink enough to protect header width');
+need(css.includes('@media(max-width:370px){\n  header .location-switcher{display:none}\n}'),'very narrow mobile header must hide only the location switcher');
+need(!js.includes('data-mobile-language-row'),'mobile menu still contains a duplicate language row');
+need(!js.includes("document.querySelectorAll('.language-picker .lang-switch')"),'mobile menu still clones header language links');
+need(js.includes('isPortugalPage')&&js.includes('Explore Budapest')&&js.includes('Portugal · Marvão'),'mobile menu lost cross-destination access when languages moved back to the header');
+
 if(failures.length){
-  console.error('Mobile header overflow guard failed.');
-  for(const failure of failures) console.error('- '+failure);
+  console.error('Mobile header language guard failed.');
+  for(const failure of failures)console.error('- '+failure);
   process.exit(1);
 }
-console.log('Mobile header overflow guard OK: redundant header controls collapse on narrow screens while language/location remain in the mobile menu.');
+console.log('Mobile header language guard OK: languages stay in the top header with compact codes and no duplicate menu row.');

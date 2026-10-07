@@ -601,9 +601,47 @@ footer .brand{
 .parent-hero-mosaic .parent-hero-grid img:first-child{object-position:center 72%}
 .parent-hero-mosaic .parent-hero-grid img:last-child{object-position:center 76%;border-inline-start:2px solid rgba(255,255,255,.72)}
 
-/* v1.48.46 — narrow mobile header overflow */
+/* mobile header — keep language selector visible without overflow */
 @media(max-width:800px){
-  header .navlinks>.language-picker{display:none!important}
+  .wrap.nav{padding-inline:10px}
+  .nav{gap:6px}
+  header .brand{width:118px;height:38px}
+  .navlinks{gap:4px;min-width:0;margin-inline-start:auto;flex:0 0 auto}
+  header .navlinks>.language-picker{
+    display:inline-flex!important;
+    flex:0 0 auto;
+    gap:1px;
+    margin-inline-start:0;
+    padding:1px;
+    max-width:82px;
+  }
+  header .language-picker .lang-switch{
+    display:inline-flex!important;
+    align-items:center;
+    justify-content:center;
+    width:24px;
+    min-width:0;
+    height:28px;
+    padding:0!important;
+    overflow:hidden;
+    font-size:0!important;
+    line-height:1;
+  }
+  header .language-picker .lang-switch::after{
+    content:attr(hreflang);
+    text-transform:uppercase;
+    font-size:9px;
+    line-height:1;
+  }
+  .location-switcher summary{padding:6px 7px;font-size:10px}
+  .nav-menu-toggle{padding:7px 8px;font-size:10px}
+}
+@media(max-width:390px){
+  .wrap.nav{padding-inline:8px}
+  .nav{gap:4px}
+  header .brand{width:104px}
+  header .language-picker .lang-switch{width:22px}
+  .nav-menu-toggle{padding:7px}
 }
 @media(max-width:370px){
   header .location-switcher{display:none}
