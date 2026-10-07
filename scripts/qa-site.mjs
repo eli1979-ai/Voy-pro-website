@@ -16,9 +16,10 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+const release=JSON.parse(read(path.join(site,'release.json')));
 const sitemap=read(path.join(site,'sitemap.xml'));
 const sitemapUrls=[...sitemap.matchAll(/<loc>(https:\/\/voy-pro\.com\/[^<]*)<\/loc>/g)].map(m=>m[1]);
-if(sitemapUrls.length!==40) errors.push('sitemap.xml: expected 40 URLs, found '+sitemapUrls.length);
+if(sitemapUrls.length!==release.sitemap_urls) errors.push('sitemap.xml: expected '+release.sitemap_urls+' URLs, found '+sitemapUrls.length);
 
 function urlToFile(urlOrPath){
   const u=new URL(urlOrPath,'https://voy-pro.com');
