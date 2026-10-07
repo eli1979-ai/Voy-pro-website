@@ -40,9 +40,13 @@
    babies:he?`פעוטות ${babyMin}–${babyMax}`:hu?`Kisgyermekek ${babyMin}–${babyMax}`:`Babies ${babyMin}–${babyMax}`
   };
  }
+ function safeHttpsUrl(value){
+  try{const u=new URL(String(value||''));return u.protocol==='https:'?u.toString():''}catch(e){return ''}
+ }
  function manageMeetingPoint(){
   const meeting=destinationRuntime?.meeting_point;
-  return meeting&&meeting.address?meeting:null;
+  if(!meeting?.address)return null;
+  return {address:String(meeting.address),maps_url:safeHttpsUrl(meeting.maps_url)};
  }
  const paymentIsSettled=()=>['paid','partially_paid'].includes(String(booking?.payment_status||''));
  const cleanPaymentReturn=()=>{if(!paymentReturn)return;const clean=new URL(location.href);clean.searchParams.delete('payment');history.replaceState({},'',clean.pathname+(clean.searchParams.toString()?'?'+clean.searchParams.toString():'')+(clean.hash||''));};
