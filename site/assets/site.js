@@ -965,7 +965,7 @@
     const dateField=form.querySelector('input[name="date"]')?.closest('.field');
     if(!dateField)return;
     const field=document.createElement('div');field.className='field guide-language-field';field.dataset.guideLanguageField='';
-    field.innerHTML=`<label>${t('Guide language','שפת הדרכה')}</label><select name="guide_language" required aria-required="true"><option value="">${t('Choose guide language','בחרו שפת הדרכה')}</option></select><small>${t('Every booking must include the requested guiding language.','בכל הזמנה יש לבחור את שפת ההדרכה המבוקשת.')}</small>`;
+    field.innerHTML=`<label for="booking-guide-language">${t('Guide language','שפת הדרכה')}</label><select id="booking-guide-language" name="guide_language" required aria-required="true"><option value="">${t('Choose guide language','בחרו שפת הדרכה')}</option></select><small>${t('Every booking must include the requested guiding language.','בכל הזמנה יש לבחור את שפת ההדרכה המבוקשת.')}</small>`;
     dateField.insertAdjacentElement('afterend',field);
     const select=field.querySelector('select');
     form._updateGuideLanguages=(product,{preserve=true}={})=>{
