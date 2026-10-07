@@ -1296,10 +1296,12 @@
     };
     select._voySyncPayment=sync;
     let paymentSelectionTouched=false;
+    const paymentSelectionFrozen=()=>select.closest('#live-checkout-form')?.dataset.submitting==='true'||Boolean(select.closest('#live-checkout-shell')?.hasAttribute('data-submit-locked'));
     select.addEventListener('change',()=>{paymentSelectionTouched=true;sync();});
     try{
       const caps=await api('/payments/capabilities',{method:'GET',timeoutMs:5000});
       paymentCapabilities=caps||paymentCapabilities;
+      if(paymentSelectionFrozen())return;
       const onlineReady=Boolean(caps?.online_card);
       if(payNow){
         payNow.disabled=!onlineReady;
@@ -1314,6 +1316,7 @@
       }
       sync();
     }catch{
+      if(paymentSelectionFrozen())return;
       if(payNow)payNow.disabled=true;
       if(availability){
         availability.hidden=false;
