@@ -554,12 +554,16 @@
     if(!queued.length) return;
     const batch=queued.slice(0,25);
     eventFlushInFlight=true;
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),5000);
     try{
       const response=await fetch(apiRoot+'/marketing/events',{
         method:'POST',
         headers:authHeaders(),
         body:JSON.stringify({session_id:getStore('voy_session_id')||null,events:batch}),
         keepalive,
+        signal:controller.signal,
+        cache:'no-store',
       });
       if(!response.ok) return;
       const sentIds=new Set(batch.map(item=>item?.event_id));
@@ -569,6 +573,7 @@
     }catch(e){
       // Analytics delivery must never interrupt booking.
     }finally{
+      clearTimeout(timer);
       eventFlushInFlight=false;
       const remaining=safeJSON(getStore(EVENT_KEY),[])||[];
       if(remaining.length&&!keepalive) scheduleEventFlush(false);
