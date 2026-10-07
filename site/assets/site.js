@@ -102,12 +102,26 @@
   function clearPaymentRetry(){
     try{sessionStorage.removeItem(PAYMENT_RETRY_KEY)}catch(e){}
   }
+  const ANALYTICS_STORAGE_KEYS=['voy_visitor_id','voy_first_attribution','voy_last_attribution','voy_segment','voy_experiments','voy_event_queue_v1'];
+  function clearAnalyticsState(){
+    ANALYTICS_STORAGE_KEYS.forEach(k=>{
+      memoryStore.delete(k);
+      try{localStorage.removeItem(k)}catch(e){}
+    });
+    for(const k of [...memoryStore.keys()]){
+      if(k.startsWith('voy_exp_'))memoryStore.delete(k);
+    }
+    try{
+      for(let i=localStorage.length-1;i>=0;i--){
+        const k=localStorage.key(i);
+        if(k&&k.startsWith('voy_exp_'))localStorage.removeItem(k);
+      }
+    }catch(e){}
+  }
   function setConsent(next){
     consent={decided:true,analytics:!!next.analytics,marketing:!!next.marketing,updated_at:new Date().toISOString()};
     try{localStorage.setItem(CONSENT_KEY,JSON.stringify(consent))}catch(e){}
-    if(!consent.analytics){
-      ['voy_visitor_id','voy_first_attribution','voy_last_attribution','voy_segment','voy_experiments','voy_event_queue_v1'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});
-    }
+    if(!consent.analytics)clearAnalyticsState();
     document.documentElement.dataset.analyticsConsent=consent.analytics?'granted':'denied';
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
