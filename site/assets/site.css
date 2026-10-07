@@ -603,7 +603,7 @@ footer .brand{
 
 /* v1.48.46 — narrow mobile header overflow */
 @media(max-width:800px){
-  header .navlinks>.language-picker{display:none}
+  header .navlinks>.language-picker{display:none!important}
 }
 @media(max-width:370px){
   header .location-switcher{display:none}
