@@ -262,8 +262,8 @@ jobs:
           for(const [name,html] of Object.entries({en,he,hu})){
             if(!html.includes('data-intent-hub=""')) throw new Error(name+' intent hub missing');
             const hub=(html.match(/<section class="section intent-hub"[\s\S]*?<\/section>/)||[])[0]||'';
-            if((hub.match(/class="intent-hub-card"/g)||[]).length!==4) throw new Error(name+' intent hub card count invalid');
-            for(const slug of ['with-kids','first-day','unique-things-to-do','buda-castle-without-walking']) if(!hub.includes('/'+slug+'/')) throw new Error(name+' intent hub link missing: '+slug);
+            if((hub.match(/class="intent-hub-card"/g)||[]).length<6) throw new Error(name+' intent hub card count invalid');
+            for(const slug of ['with-kids','first-day','unique-things-to-do','buda-castle-without-walking','group-tours','corporate-events']) if(!hub.includes('/'+slug+'/')) throw new Error(name+' intent hub link missing: '+slug);
           }
           if(!/\.intent-bridge-grid/.test(css)||!/\.intent-hub-grid/.test(css)) throw new Error('Intent cluster CSS missing');
           const sitemap=read('sitemap.xml');
