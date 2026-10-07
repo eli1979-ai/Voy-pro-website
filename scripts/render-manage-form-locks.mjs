@@ -19,10 +19,10 @@ mutateBlock(
   block=>{
     const prevent='e.preventDefault();';
     const close='}});';
-    if(!block.includes(prevent)||!block.endsWith(close+' ')){console.error('Manage form-lock renderer: contact anchors not found.');process.exit(1);}
+    const closeAt=block.lastIndexOf(close);
+    if(!block.includes(prevent)||closeAt<0){console.error('Manage form-lock renderer: contact anchors not found.');process.exit(1);}
     block=block.replace(prevent,prevent+"if(cf.dataset.busy==='true')return;cf.dataset.busy='true';const submit=cf.querySelector('button[type=\"submit\"]');if(submit)submit.disabled=true;");
     const finallyCode="finally{delete cf.dataset.busy;if(submit)submit.disabled=false}";
-    const closeAt=block.lastIndexOf(close);
     return block.slice(0,closeAt)+"}"+finallyCode+"});"+block.slice(closeAt+close.length);
   },
   'contact'
