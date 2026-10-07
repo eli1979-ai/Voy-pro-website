@@ -1000,6 +1000,13 @@
     if(form&&typeof form._updateGuideLanguages==='function')form._updateGuideLanguages(product);
   }
 
+  let availabilitySearchGeneration=0;
+  let checkoutPreparationGeneration=0;
+  let checkoutPreparationActiveGeneration=null;
+  function invalidateCheckoutPreparation(){
+    checkoutPreparationGeneration++;
+    document.querySelector('#slotlist')?.removeAttribute('aria-busy');
+  }
   function ensurePrivateUpgrade(form){
     if(!form||form.querySelector('[data-private-upgrade]')) return;
     const experienceField=form.querySelector('select[name="experience"]')?.closest('.field');
@@ -1018,6 +1025,8 @@
         btn.classList.toggle('is-active',active);btn.setAttribute('aria-pressed',String(active));
       });
       if(!silent){
+        availabilitySearchGeneration++;
+        invalidateCheckoutPreparation();
         releaseHold();
         document.querySelector('#live-checkout-shell')?.setAttribute('hidden','');
         const slots=document.querySelector('#slotlist');if(slots)slots.innerHTML='';
@@ -1627,10 +1636,10 @@
     }finally{if(node)node.removeAttribute('aria-busy');}
   }
 
-  let checkoutPreparationPending=false;
   async function prepareStandardCheckout(slot,composition,date,experience,isPrivate=false,guideLanguage=''){
-    if(checkoutPreparationPending)return;
-    checkoutPreparationPending=true;
+    const preparationGeneration=checkoutPreparationGeneration;
+    if(checkoutPreparationActiveGeneration===preparationGeneration)return;
+    checkoutPreparationActiveGeneration=preparationGeneration;
     const slotList=document.querySelector('#slotlist');
     const enabledSlots=[...(slotList?.querySelectorAll('.slot')||[])].filter(btn=>!btn.disabled);
     if(slotList)slotList.setAttribute('aria-busy','true');
@@ -1641,8 +1650,13 @@
     try{
       setBookingStep(2);status.textContent=t('Checking price and reserving your places…','בודקים מחיר ושומרים את המקומות שלכם…');
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,extras:[],promo_code:campaignPromo})});
+      if(preparationGeneration!==checkoutPreparationGeneration)return;
       assertCheckoutQuote(quote);
       const hold=await api('/holds',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage})});
+      if(preparationGeneration!==checkoutPreparationGeneration){
+        api('/holds/'+encodeURIComponent(hold.id),{method:'DELETE'}).catch(()=>{});
+        return;
+      }
       bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:campaignPromo,idempotencyKey:'voy_'+uuid(),extras:[],ancillaryOffers:[]};
       const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;setBookingStep(3);
       renderStandardCheckoutSummary();
@@ -1655,13 +1669,16 @@
       patchSession({stage:'checkout_ready',selected_date:date,selected_time:slot.time,slot_id:slot.id,quote_id:quote.id,hold_id:hold.id,hold_expires_at:hold.expires_at,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});
       completed=true;
     }catch(e){
+      if(preparationGeneration!==checkoutPreparationGeneration)return;
       const privateConflict=['PRIVATE_DEPARTURE_NOT_EMPTY','PRIVATE_HOLD_MISMATCH','PRIVATE_DEPARTURE_RESERVED'].includes(e.code);
       const msg=e.code==='QUOTE_INVALID'?t('The live price could not be verified. Please search again or contact the local team.','לא ניתן לאמת את המחיר החי. נסו לחפש שוב או פנו לצוות המקומי.'):e.code==='ANCILLARY_NOT_CONFIGURED'?t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.'):privateConflict?t('This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.','כבר לא ניתן להפוך את היציאה הזו לפרטית. בחרו שעה אחרת או בקשו מהצוות שעה גמישה לסיור פרטי.'):t('Could not hold this departure. Please choose another time.','לא ניתן לשמור את היציאה. בחרו שעה אחרת.');
       status.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(status);
     }finally{
-      checkoutPreparationPending=false;
-      if(slotList)slotList.removeAttribute('aria-busy');
-      if(!completed)enabledSlots.forEach(btn=>btn.disabled=false);
+      if(checkoutPreparationActiveGeneration===preparationGeneration){
+        checkoutPreparationActiveGeneration=null;
+        if(slotList)slotList.removeAttribute('aria-busy');
+        if(!completed&&preparationGeneration===checkoutPreparationGeneration)enabledSlots.forEach(btn=>btn.disabled=false);
+      }
     }
   }
 
@@ -1682,10 +1699,10 @@
   const form=document.querySelector('#availability-form');
   if(form){
     const status=document.querySelector('#availability-status'), slots=document.querySelector('#slotlist');
-    let availabilitySearchGeneration=0;
     const availabilitySelectionNames=new Set(['experience','date','adults','children','babies','guide_language']);
     const invalidateAvailabilityResults=({announce=false}={})=>{
       availabilitySearchGeneration++;
+      invalidateCheckoutPreparation();
       releaseHold();
       document.querySelector('#live-checkout-shell')?.setAttribute('hidden','');
       slots.innerHTML='';
@@ -1712,6 +1729,7 @@
     form.addEventListener('submit',async e=>{
       e.preventDefault();
       const searchGeneration=++availabilitySearchGeneration;
+      invalidateCheckoutPreparation();
       releaseHold();document.querySelector('#live-checkout-shell')?.setAttribute('hidden','');slots.innerHTML='';
       const data=new FormData(form); const experience=productCache.byId[data.get('experience')];
       if(!experience){status.innerHTML=rescueMarkup(t('Online booking is not available for this route right now. Please contact the local team.','לא ניתן להשלים כרגע את ההזמנה הזו באתר. אפשר לפנות לצוות המקומי.'));bindInlineWhatsApp(status);return;}
