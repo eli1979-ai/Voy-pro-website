@@ -8,7 +8,9 @@ const forbidText=(text,label)=>{if(html.includes(text))failures.push(label);};
 
 requireText("timeZone:'Europe/Budapest'",'Manage date helper is not Budapest-local');
 requireText('min="${manageBudapestDate(0)}"','Manage change-date input does not use Budapest-local minimum');
+requireText('data-rider-dob required type="date" max="${manageBudapestDate(0)}" autocomplete="bday"','Rider birth-date input does not cap future dates using the Budapest operating date');
 forbidText('min="${new Date().toISOString().slice(0,10)}"','UTC-based Manage minimum date remains');
+forbidText('max="${new Date().toISOString().slice(0,10)}"','UTC-based rider birth-date maximum remains');
 
 let inlineScripts=0;
 for(const match of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)){
@@ -24,4 +26,4 @@ if(failures.length){
   for(const failure of failures)console.error('- '+failure);
   process.exit(1);
 }
-console.log('Manage Budapest-date guard OK: booking changes use the Budapest operating date and final inline scripts compile.');
+console.log('Manage Budapest-date guard OK: booking changes and rider birth-date limits use the Budapest operating date and final inline scripts compile.');
