@@ -12,6 +12,7 @@ requireText("controller=externalSignal?null:new AbortController()",'Manage API w
 requireText("Number(opt.timeoutMs||8000)",'Manage API wrapper lacks bounded default timeout');
 requireText("er.code='REQUEST_TIMEOUT'",'Manage API wrapper lacks timeout error normalization');
 requireText("finally{if(timer)clearTimeout(timer)}",'Manage API wrapper does not clear timeout timer');
+requireText("cache:fetchOpt.cache||'no-store'",'Manage API wrapper lacks no-store cache policy');
 forbidText("const api=async(path,opt={})=>{const r=await fetch(c.apiRoot+path,{...opt,headers:{...h,...(opt.headers||{})}});",'unbounded Manage API wrapper remains');
 
 let inlineScripts=0;
@@ -28,4 +29,4 @@ if(failures.length){
   for(const failure of failures)console.error('- '+failure);
   process.exit(1);
 }
-console.log('Built Manage API timeout guard OK: FBM calls are bounded and '+inlineScripts+' inline script(s) compile.');
+console.log('Built Manage API privacy/reliability guard OK: FBM calls are bounded, no-store, and '+inlineScripts+' inline script(s) compile.');
