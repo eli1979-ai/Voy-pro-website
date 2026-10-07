@@ -134,7 +134,7 @@ if(!/sessionStorage\.setItem\(PAYMENT_RETRY_KEY/.test(js)) errors.push('assets/s
 if(!/u\.hostname==='checkout\.stripe\.com'/.test(js)) errors.push('assets/site.js: Stripe retry URL host validation missing');
 if(!/rememberPaymentRetry\(payment\);patchSession\(\{stage:'payment_redirect'/.test(js)) errors.push('assets/site.js: active Stripe checkout is not remembered before redirect');
 if(!/data-payment-retry/.test(js)||!/payment_retry_clicked/.test(js)) errors.push('assets/site.js: cancelled-payment retry action missing');
-if(!/qs\.get\('payment'\)==='success'\)\{clearPaymentRetry\(\);return;\}/.test(js)) errors.push('assets/site.js: stale Stripe retry state is not cleared after success');
+if(!/qs\.get\('payment'\)==='success'\)\{clearPaymentRetry\(\);(?:resetBookingStarted\(\);)?return;\}/.test(js)) errors.push('assets/site.js: stale Stripe retry state is not cleared after success');
 
 // Check gallery, social, structured-data and runtime image references offline.
 const imageSources=walk(site).filter(p=>/\.(?:html|css|js)$/.test(p));
