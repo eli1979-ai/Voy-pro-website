@@ -322,16 +322,21 @@
     if(!form)return;
     const labels=locale==='he'?{
       route:'מסלול',date:'תאריך מועדף',people:'משתתפים',language:'שפת הדרכה',name:'שם',notes:'הערות',
-      missing:'יש להשלים מסלול, תאריך, שפת הדרכה ושם.'
+      missing:'יש להשלים מסלול, תאריך, שפת הדרכה ושם.',
+      past:'יש לבחור את התאריך של היום או תאריך עתידי.'
     }:locale==='pt'?{
       route:'Passeio',date:'Data preferida',people:'Pessoas',language:'Idioma do guia',name:'Nome',notes:'Notas',
-      missing:'Preencha o passeio, a data, o idioma e o nome.'
+      missing:'Preencha o passeio, a data, o idioma e o nome.',
+      past:'Escolha a data de hoje ou uma data futura.'
     }:{
       route:'Tour',date:'Preferred date',people:'People',language:'Guide language',name:'Name',notes:'Notes',
-      missing:'Please complete tour, date, guide language and name.'
+      missing:'Please complete tour, date, guide language and name.',
+      past:'Choose today or a future date.'
     };
     const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
     const routeSelect=form.querySelector('[name="route"]');
+    const dateInput=form.querySelector('[name="date"]');
+    if(dateInput)dateInput.min=portugalDate(0);
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
       if(routeSelect&&routeNames[route])routeSelect.value=route;
@@ -348,6 +353,11 @@
       const status=form.querySelector('[data-portugal-request-status]');
       if(!route||!date||!guide||!name){
         if(status)status.textContent=labels.missing;
+        return;
+      }
+      if(date<portugalDate(0)){
+        if(status)status.textContent=labels.past;
+        dateInput?.focus({preventScroll:true});
         return;
       }
       const intro=locale==='he'
@@ -406,6 +416,13 @@
   function budapestDate(offsetDays=0){
     const dt=new Date(Date.now()+offsetDays*86400000);
     const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
+    const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+    return `${v.year}-${v.month}-${v.day}`;
+  }
+
+  function portugalDate(offsetDays=0){
+    const dt=new Date(Date.now()+offsetDays*86400000);
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
     const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));
     return `${v.year}-${v.month}-${v.day}`;
   }
