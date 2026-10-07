@@ -9,7 +9,7 @@ requireText("#live-checkout-form input,#live-checkout-form select,#live-checkout
 requireText("[data-ancillary-upsell] button",'ancillary mutation controls are not included in the submit lock');
 requireText("control.dataset.submitLockWasDisabled=control.disabled?'true':'false';",'submit lock does not preserve prior disabled state');
 requireText('setCheckoutSubmissionLock(true);','checkout mutations are not locked before the async submit begins');
-requireText('if(!terminal)setCheckoutSubmissionLock(false);','recoverable submit failures do not restore prior control state');
+requireText('if(!terminal)enableCheckoutRetryActions();','recoverable submit failures do not expose safe retry actions while keeping the payload locked');
 requireText('recoverExpiredHold=true;','expired-hold recovery path is not distinguished from terminal success');
 requireText('setCheckoutSubmissionLock(false);\n        lockExpiredCheckout({focusRecovery:true});','expired-hold recovery does not restore Change selection before applying the stale-checkout lock');
 
@@ -18,4 +18,4 @@ if(failures.length){
   for(const failure of failures)console.error('- '+failure);
   process.exit(1);
 }
-console.log('Checkout submit mutation lock guard OK: customer, payment, extras and selection controls cannot mutate an in-flight booking payload.');
+console.log('Checkout submit mutation lock guard OK: mutable payload controls stay locked through in-flight work and safe retry.');

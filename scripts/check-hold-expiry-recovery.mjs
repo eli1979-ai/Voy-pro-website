@@ -11,8 +11,8 @@ requireText("if(holdTimer)clearInterval(holdTimer)","expired checkout must stop 
 requireText("terminal=true","expired checkout must keep the stale submit path terminal");
 requireText("recoverExpiredHold=true","expired checkout must use the dedicated recovery branch");
 requireText("setBookingStep(1)","expired checkout must return the journey to selection");
-requireText("if(!terminal)setCheckoutSubmissionLock(false);","non-terminal failures must restore mutable checkout controls");
-requireText("setCheckoutSubmissionLock(false);\n        lockExpiredCheckout({focusRecovery:true});","expired hold must restore Change selection before re-locking stale checkout submission");
+requireText("if(!terminal)enableCheckoutRetryActions();","non-terminal failures must preserve the submitted payload and expose safe retry actions");
+requireText("setCheckoutSubmissionLock(false);\n        bookingState.submissionSnapshot=null;\n        lockExpiredCheckout({focusRecovery:true});","expired hold must clear the retry snapshot and restore Change selection before re-locking stale checkout submission");
 requireText("document.querySelector('[data-checkout-edit]')?.focus","expired checkout must direct focus to the selection recovery action");
 
 if(failures.length){
