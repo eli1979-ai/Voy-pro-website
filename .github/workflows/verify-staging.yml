@@ -201,7 +201,9 @@ jobs:
             ['hu',hu,'/hu/budapest/tours/buda-castle-ezraider-tour/','/hu/budapest/tours/margaret-island-ezraider-tour/','/hu/budapest/tours/buda-margaret-extended-tour/','/hu/budapest/private-tours/']
           ];
           for(const [name,html,...targets] of discoveryPages){
-            if((html.match(/class="tour-detail-link"/g)||[]).length!==4) throw new Error(name+' tour detail card links missing');
+            const detailLinkCount=(html.match(/class="tour-detail-link"/g)||[]).length;
+            const discoveryCardCount=(html.match(/class="tour-choice-card/g)||[]).length;
+            if(detailLinkCount!==discoveryCardCount) throw new Error(name+' tour detail card links do not match card count');
             for(const target of targets) if(!html.includes('data-tour-detail="" href="'+target+'"')) throw new Error(name+' direct tour link missing: '+target);
             if((html.match(/data-select-experience=""/g)||[]).length<2) throw new Error(name+' availability selectors missing');
           }
