@@ -322,16 +322,21 @@
     if(!form)return;
     const labels=locale==='he'?{
       route:'מסלול',date:'תאריך מועדף',people:'משתתפים',language:'שפת הדרכה',name:'שם',notes:'הערות',
-      missing:'יש להשלים מסלול, תאריך, שפת הדרכה ושם.'
+      missing:'יש להשלים מסלול, תאריך, שפת הדרכה ושם.',
+      past:'יש לבחור את התאריך של היום או תאריך עתידי.'
     }:locale==='pt'?{
       route:'Passeio',date:'Data preferida',people:'Pessoas',language:'Idioma do guia',name:'Nome',notes:'Notas',
-      missing:'Preencha o passeio, a data, o idioma e o nome.'
+      missing:'Preencha o passeio, a data, o idioma e o nome.',
+      past:'Escolha a data de hoje ou uma data futura.'
     }:{
       route:'Tour',date:'Preferred date',people:'People',language:'Guide language',name:'Name',notes:'Notes',
-      missing:'Please complete tour, date, guide language and name.'
+      missing:'Please complete tour, date, guide language and name.',
+      past:'Choose today or a future date.'
     };
     const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
     const routeSelect=form.querySelector('[name="route"]');
+    const dateInput=form.querySelector('[name="date"]');
+    if(dateInput)dateInput.min=portugalDate(0);
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
       if(routeSelect&&routeNames[route])routeSelect.value=route;
@@ -348,6 +353,11 @@
       const status=form.querySelector('[data-portugal-request-status]');
       if(!route||!date||!guide||!name){
         if(status)status.textContent=labels.missing;
+        return;
+      }
+      if(date<portugalDate(0)){
+        if(status)status.textContent=labels.past;
+        dateInput?.focus({preventScroll:true});
         return;
       }
       const intro=locale==='he'
@@ -389,7 +399,7 @@
       const budapest=locale==='he'?'בודפשט':locale==='pt'?'Budapeste':'Budapest';
       sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${heading}</b><a href="${portugalHome}#tours">${tours}</a><a href="${portugalHome}#request">${request}</a><a href="${budapestHome}">${budapest}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">WhatsApp · VOY PRO</a><a href="${portugalHome}#request" class="btn">${request}</a></div>`;
     }else{
-      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/#tours':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">${t('Ask us on WhatsApp','פנייה ב-WhatsApp')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;
+      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/with-kids/':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">${t('Ask us on WhatsApp','פנייה ב-WhatsApp')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;
     }
     document.body.appendChild(sheet);
     const langRow=sheet.querySelector('[data-mobile-language-row]');
@@ -406,6 +416,13 @@
   function budapestDate(offsetDays=0){
     const dt=new Date(Date.now()+offsetDays*86400000);
     const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
+    const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));
+    return `${v.year}-${v.month}-${v.day}`;
+  }
+
+  function portugalDate(offsetDays=0){
+    const dt=new Date(Date.now()+offsetDays*86400000);
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
     const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));
     return `${v.year}-${v.month}-${v.day}`;
   }
@@ -1553,16 +1570,21 @@
     if(!target)target=byData('ancillaryPlus')||byData('ancillaryAdd')||byData('ancillaryMinus');
     if(target)target.focus({preventScroll:true});
   }
+  let ancillaryLoadGeneration=0;
   async function loadAncillaryOffers(){
+    const generation=++ancillaryLoadGeneration;
     bookingState.ancillaryOffers=[];bookingState.extras=[];
     const node=document.querySelector('[data-ancillary-upsell]');if(node){node.hidden=true;node.innerHTML='';}
     if(!bookingEnabled||!bookingState.slot?.id)return;
+    const slotId=String(bookingState.slot.id);
     try{
-      const offers=await api('/ancillary/offers',{method:'POST',body:JSON.stringify({slot_id:bookingState.slot.id})});
+      const offers=await api('/ancillary/offers',{method:'POST',body:JSON.stringify({slot_id:slotId})});
+      if(generation!==ancillaryLoadGeneration||String(bookingState.slot?.id||'')!==slotId)return;
       bookingState.ancillaryOffers=Array.isArray(offers)?offers:[];
       renderAncillaryOffers();
-      if(bookingState.ancillaryOffers.length)track('ancillary_offers_viewed',{slot_id:bookingState.slot.id,count:bookingState.ancillaryOffers.length,destination_id:destinationId});
+      if(bookingState.ancillaryOffers.length)track('ancillary_offers_viewed',{slot_id:slotId,count:bookingState.ancillaryOffers.length,destination_id:destinationId});
     }catch(e){
+      if(generation!==ancillaryLoadGeneration||String(bookingState.slot?.id||'')!==slotId)return;
       bookingState.ancillaryOffers=[];
       if(node){
         node.hidden=false;
@@ -1605,7 +1627,15 @@
     }finally{if(node)node.removeAttribute('aria-busy');}
   }
 
+  let checkoutPreparationPending=false;
   async function prepareStandardCheckout(slot,composition,date,experience,isPrivate=false,guideLanguage=''){
+    if(checkoutPreparationPending)return;
+    checkoutPreparationPending=true;
+    const slotList=document.querySelector('#slotlist');
+    const enabledSlots=[...(slotList?.querySelectorAll('.slot')||[])].filter(btn=>!btn.disabled);
+    if(slotList)slotList.setAttribute('aria-busy','true');
+    enabledSlots.forEach(btn=>btn.disabled=true);
+    let completed=false;
     releaseHold(); resetCheckoutMode();
     const status=document.querySelector('#availability-status');
     try{
@@ -1623,10 +1653,15 @@
       shell.scrollIntoView({behavior:'smooth',block:'center'});
       track('hold_created',{slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage,promo_code_applied:quote.promo_code_applied||campaignPromo||null,discount:quote.discount||0});
       patchSession({stage:'checkout_ready',selected_date:date,selected_time:slot.time,slot_id:slot.id,quote_id:quote.id,hold_id:hold.id,hold_expires_at:hold.expires_at,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});
+      completed=true;
     }catch(e){
       const privateConflict=['PRIVATE_DEPARTURE_NOT_EMPTY','PRIVATE_HOLD_MISMATCH','PRIVATE_DEPARTURE_RESERVED'].includes(e.code);
       const msg=e.code==='QUOTE_INVALID'?t('The live price could not be verified. Please search again or contact the local team.','לא ניתן לאמת את המחיר החי. נסו לחפש שוב או פנו לצוות המקומי.'):e.code==='ANCILLARY_NOT_CONFIGURED'?t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.'):privateConflict?t('This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.','כבר לא ניתן להפוך את היציאה הזו לפרטית. בחרו שעה אחרת או בקשו מהצוות שעה גמישה לסיור פרטי.'):t('Could not hold this departure. Please choose another time.','לא ניתן לשמור את היציאה. בחרו שעה אחרת.');
       status.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(status);
+    }finally{
+      checkoutPreparationPending=false;
+      if(slotList)slotList.removeAttribute('aria-busy');
+      if(!completed)enabledSlots.forEach(btn=>btn.disabled=false);
     }
   }
 

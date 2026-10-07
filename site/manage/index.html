@@ -196,7 +196,7 @@
     <label class="waiver-customer-choice"><input type="radio" name="booking-rider-choice" value="${esc(r.id)}" ${r.is_booking_customer?'checked':''} ${signed?'disabled':''}> <span>${T('The person who made the booking is this rider','המזמין הוא הרוכב הזה','A foglalást készítő személy ez a résztvevő')}</span></label>
     <div class="checkout-fields">
      <div class="field"><label for="rider-name-${index}">${T('Full name','שם מלא','Teljes név')}</label><input id="rider-name-${index}" data-rider-name required minlength="2" autocomplete="name" value="${esc(r.full_name||'')}" ${signed?'disabled':''}></div>
-     <div class="field"><label for="rider-dob-${index}">${T('Date of birth','תאריך לידה','Születési dátum')}</label><input id="rider-dob-${index}" data-rider-dob required type="date" value="${esc(r.date_of_birth||'')}" ${signed?'disabled':''}></div>
+     <div class="field"><label for="rider-dob-${index}">${T('Date of birth','תאריך לידה','Születési dátum')}</label><input id="rider-dob-${index}" data-rider-dob required type="date" max="${new Date().toISOString().slice(0,10)}" autocomplete="bday" value="${esc(r.date_of_birth||'')}" ${signed?'disabled':''}></div>
     </div>
     <div class="field"><label for="rider-method-${index}">${T('How will this rider sign?','כיצד הרוכב יחתום?','Hogyan írja alá ez a résztvevő?')}</label>
      <select id="rider-method-${index}" data-rider-method ${signed?'disabled':''}>
