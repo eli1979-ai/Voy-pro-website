@@ -103,11 +103,13 @@
     try{sessionStorage.removeItem(PAYMENT_RETRY_KEY)}catch(e){}
   }
   const ANALYTICS_STORAGE_KEYS=['voy_visitor_id','voy_first_attribution','voy_last_attribution','voy_segment','voy_experiments','voy_event_queue_v1'];
+  const ANALYTICS_SESSION_KEYS=['voy_booking_started_v1'];
   function clearAnalyticsState(){
     ANALYTICS_STORAGE_KEYS.forEach(k=>{
       memoryStore.delete(k);
       try{localStorage.removeItem(k)}catch(e){}
     });
+    ANALYTICS_SESSION_KEYS.forEach(k=>{try{sessionStorage.removeItem(k)}catch(e){}});
     for(const k of [...memoryStore.keys()]){
       if(k.startsWith('voy_exp_'))memoryStore.delete(k);
     }
