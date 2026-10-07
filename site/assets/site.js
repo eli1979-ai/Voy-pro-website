@@ -670,7 +670,14 @@
     }
   }
   const budapestPolicy=()=>destinationRuntime?.rider_policy||null;
-  const budapestMeetingPoint=()=>destinationRuntime?.meeting_point||null;
+  function safeHttpsUrl(value){
+    try{const u=new URL(String(value||''));return u.protocol==='https:'?u.toString():''}catch(e){return ''}
+  }
+  const budapestMeetingPoint=()=>{
+    const meeting=destinationRuntime?.meeting_point;
+    if(!meeting?.address)return null;
+    return {address:String(meeting.address),maps_url:safeHttpsUrl(meeting.maps_url)};
+  };
   function riderPolicyLabels(){
     const policy=budapestPolicy();
     if(!policy){
