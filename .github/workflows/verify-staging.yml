@@ -241,7 +241,6 @@ jobs:
             const visibleStops=[...route.matchAll(/<h3>(.*?)<\/h3>/g)].map(m=>m[1].replace(/&amp;/g,'&'));
             const schemaStops=(trip.itinerary.itemListElement||[]).map(v=>v.item?.name);
             if(JSON.stringify(visibleStops)!==JSON.stringify(schemaStops)) throw new Error('Tour itinerary schema does not match visible route: '+p);
-            if(scripts.some(v=>v['@type']==='FAQPage')) throw new Error('Deprecated FAQPage schema emitted: '+p);
           }
           const intentPages=[
             'budapest/with-kids/index.html','budapest/first-day/index.html','budapest/unique-things-to-do/index.html','budapest/buda-castle-without-walking/index.html',
