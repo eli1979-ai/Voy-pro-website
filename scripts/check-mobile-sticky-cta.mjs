@@ -9,7 +9,7 @@ for(const [file,label] of [
   ['site/hu/budapest/index.html','Induló ár']
 ]){
   const html=fs.readFileSync(file,'utf8');
-  const bar=(html.match(/<div class="mobilebook"><div class="mobile-price-copy">[\\s\\S]*?<a class="btn"/)||[])[0]||'';
+  const bar=(html.match(/<div class="mobilebook"><div class="mobile-price-copy">[\s\S]*?<a class="btn"/)||[])[0]||'';
   check(bar.includes('<small>'+label+'</small>'),file+': mobile starting price label missing');
   check(bar.includes('<b data-runtime-price="">'),file+': FBM live amount binding missing');
   check(bar.includes('★★★★★ 5.0 · Google'),file+': trust content changed');
