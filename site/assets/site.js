@@ -1476,7 +1476,7 @@
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
       rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
       decrease:'Decrease quantity',increase:'Increase quantity',quantity:'Quantity',selectedExtras:'Selected extras',
-      loadError:'Extras could not be loaded right now. You can continue booking without them.'
+      loadError:'Extras could not be loaded right now. You can continue booking without them.',limitReached:'Maximum available quantity reached'
     },
     he:{
       kicker:'משדרגים את החוויה',title:'משדרגים את הרכיבה לפני שיוצאים',
@@ -1486,7 +1486,7 @@
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
       rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
       decrease:'הפחתת כמות',increase:'הגדלת כמות',quantity:'כמות',selectedExtras:'תוספות שנבחרו',
-      loadError:'לא הצלחנו לטעון כרגע את התוספות. אפשר להמשיך בהזמנה בלעדיהן.'
+      loadError:'לא הצלחנו לטעון כרגע את התוספות. אפשר להמשיך בהזמנה בלעדיהן.',limitReached:'הגעתם לכמות המרבית הזמינה'
     },
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Tedd még jobbá a túrát indulás előtt',
@@ -1496,7 +1496,7 @@
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
       decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség',selectedExtras:'Kiválasztott extrák',
-      loadError:'A kiegészítőket most nem sikerült betölteni. A foglalást nélkülük is folytathatod.'
+      loadError:'A kiegészítőket most nem sikerült betölteni. A foglalást nélkülük is folytathatod.',limitReached:'Elérted a maximálisan elérhető mennyiséget'
     }
   };
   const ancillaryText=(key)=>ANCILLARY_COPY[locale]?.[key]||ANCILLARY_COPY.en[key]||key;
@@ -1580,6 +1580,19 @@
     if(locale==='hu')return available===1?'1 darab érhető el ehhez az induláshoz':'2 darab érhető el ehhez az induláshoz';
     return available===1?'1 available for this departure':'2 available for this departure';
   }
+  function ancillaryQuantityLimit(offer){
+    // The backend owns stock and per-booking limits. In particular, zero
+    // means unavailable (never coerce it to one). Missing caps retain the
+    // existing UI default; malformed advertised caps fail closed.
+    const cap=value=>{
+      if(value==null)return 99;
+      if(typeof value!=='number'&&typeof value!=='string')return 0;
+      if(typeof value==='string'&&!value.trim())return 0;
+      const numeric=Number(value);
+      return Number.isFinite(numeric)?Math.max(0,Math.floor(numeric)):0;
+    };
+    return Math.min(cap(offer?.available_quantity),cap(offer?.max_per_booking));
+  }
   function syncAncillaryPaymentAvailability(){
     const select=document.querySelector('#live-checkout-form [name="payment_method"]');
     if(select&&typeof select._voySyncPayment==='function')select._voySyncPayment();
@@ -1626,9 +1639,7 @@
     if(!offers.length){node.hidden=true;node.innerHTML='';return;}
     node.hidden=false;
     const cards=offers.map(offer=>{
-      const available=offer.available_quantity==null?99:Math.max(0,Number(offer.available_quantity||0));
-      const maxConfigured=offer.max_per_booking==null?99:Math.max(1,Number(offer.max_per_booking||1));
-      const max=Math.max(0,Math.min(available,maxConfigured));
+      const max=ancillaryQuantityLimit(offer);
       const qty=Math.min(selectedAncillaryQuantity(offer.product_id),max);
       const unavailable=max<=0;
       const price=money(Number(offer.price_minor||0)/100,offer.currency||bookingState.quote?.currency||'EUR');
@@ -1651,7 +1662,7 @@
                 <div class="ancillary-qty" aria-label="${escapeHTML(ancillaryDisplayName(offer))}">
                   <button type="button" data-ancillary-minus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('decrease'))}: ${escapeHTML(ancillaryDisplayName(offer))}">−</button>
                   <span aria-label="${escapeHTML(ancillaryText('quantity'))}: ${qty}">${qty}</span>
-                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(ancillaryText('increase'))}: ${escapeHTML(ancillaryDisplayName(offer))}">+</button>
+                  <button type="button" data-ancillary-plus="${escapeHTML(offer.product_id)}" aria-label="${escapeHTML(qty>=max?ancillaryText('limitReached'):ancillaryText('increase'))}: ${escapeHTML(ancillaryDisplayName(offer))}" ${qty>=max?`disabled title="${escapeHTML(ancillaryText('limitReached'))}"`:''}>+</button>
                 </div>
               </div>`}
         </div></article>`;
@@ -1710,9 +1721,7 @@
     const focusIntent=active?.dataset?.ancillaryMinus===id?'minus':active?.dataset?.ancillaryAdd===id?'add':'plus';
     const offer=(bookingState.ancillaryOffers||[]).find(x=>String(x.product_id)===id);
     if(!offer||!bookingState.slot?.id)return;
-    const available=offer.available_quantity==null?99:Math.max(0,Number(offer.available_quantity||0));
-    const maxConfigured=offer.max_per_booking==null?99:Math.max(1,Number(offer.max_per_booking||1));
-    const max=Math.max(0,Math.min(available,maxConfigured));
+    const max=ancillaryQuantityLimit(offer);
     const current=selectedAncillaryQuantity(productId);
     const next=Math.max(0,Math.min(max,current+delta));
     if(next===current)return;
