@@ -763,3 +763,23 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
   .compact-booking-whatsapp svg{width:25px;height:25px}
   .compact-booking-whatsapp .compact-booking-whatsapp-label{display:none}
 }
+
+/* W2.4 — concise B2B enquiry planner, scoped to Budapest groups/corporate pages. */
+.b2b-planner-section{background:#f5f8fa;scroll-margin-top:90px}
+.b2b-planner-shell{display:grid;grid-template-columns:minmax(0,.75fr) minmax(0,1.35fr);gap:24px;align-items:start}
+.b2b-planner-intro h2{max-width:520px}
+.b2b-planner-intro p{max-width:460px}
+.b2b-planner{background:#fff;border:1px solid #d8e5eb;border-radius:20px;padding:23px;box-shadow:0 16px 35px rgba(12,44,64,.06)}
+.b2b-planner-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.b2b-planner-fields label{display:flex;flex-direction:column;gap:6px;color:#162b38;font-size:13px;font-weight:750;min-width:0}
+.b2b-planner-fields input,.b2b-planner-fields select,.b2b-planner-fields textarea{box-sizing:border-box;width:100%;border:1px solid #aebfca;border-radius:11px;padding:11px 12px;background:#fff;color:#11212c;font:inherit;font-weight:450;min-height:44px}
+.b2b-planner-fields textarea{resize:vertical;min-height:80px}
+.b2b-field-wide{grid-column:1/-1}
+.b2b-english-check{display:flex;gap:10px;align-items:flex-start;margin-top:15px;font-size:13px;font-weight:650}
+.b2b-english-check input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:#0d4d7c}
+.b2b-planner-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:17px}
+.b2b-planner-actions p{margin:0;font-size:12px;color:#485c68;line-height:1.6}
+.b2b-planner-actions a{color:#0d4d7c;text-decoration:underline}
+.b2b-planner-note{margin:14px 0 5px;color:#334e60;font-size:12px;line-height:1.55}
+.b2b-planner-privacy{display:block;color:#647784;line-height:1.55}
+@media(max-width:800px){.b2b-planner-shell{grid-template-columns:1fr;gap:14px}.b2b-planner{padding:17px}.b2b-planner-fields{grid-template-columns:1fr;gap:12px}.b2b-planner-actions .btn{width:100%}}

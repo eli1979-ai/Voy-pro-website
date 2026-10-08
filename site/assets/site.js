@@ -937,6 +937,56 @@
     });
   }
   ensureSpecialRequestBuilder();
+
+  // W2.4: public B2B enquiry planner. WhatsApp is explicitly the delivery step;
+  // no CRM write, accepted-lead acknowledgement, or contact-data analytics is implied.
+  function bindB2BEnquiryPlanner(){
+    document.querySelectorAll('form[data-b2b-planner]').forEach(form=>{
+      const kind=form.dataset.b2bPlanner;
+      if(!['group','corporate'].includes(kind))return;
+      const date=form.querySelector('input[name="requested_date"]');
+      if(date)date.min=budapestDate(0);
+      const btn=form.querySelector('[data-b2b-open]');
+      if(!btn)return;
+      btn.addEventListener('click',()=>{
+        // Native HTML validity is deliberately checked here, since the button is
+        // type=button to prevent a JS-disabled form from submitting private data.
+        if(date)date.setCustomValidity('');
+        if(!form.reportValidity())return;
+        const fd=new FormData(form);
+        const field=(key,max=500)=>String(fd.get(key)||'').trim().slice(0,max);
+        const size=Number(field('headcount',6));
+        if(!Number.isSafeInteger(size)||size<1||size>10000)return;
+        const language=field('guide_language',12);
+        if(!['en','he','hu','es','other'].includes(language))return;
+        const dateValue=field('requested_date',10);
+        if(dateValue&&dateValue<budapestDate(0)){date.setCustomValidity('Choose a current or future date');date.reportValidity();return;}
+        const labels={
+          en:{intro:'Hi VOY PRO Budapest, I would like help planning a',group:'group EZRaider experience.',corporate:'corporate/team-building event.',date:'Preferred date',size:'Participants',window:'Preferred time window',language:'Preferred guiding language',english:'English also possible',private:'Private group preferred',company:'Company',name:'Organizer',notes:'Notes',source:'Enquiry page'},
+          he:{intro:'שלום VOY PRO בודפשט, אשמח לתכנן',group:'סיור EZRaider לקבוצה.',corporate:'פעילות גיבוש או אירוע חברה.',date:'תאריך מועדף',size:'משתתפים',window:'חלון שעות',language:'שפת הדרכה מועדפת',english:'גם אנגלית מתאימה',private:'מעדיפים קבוצה פרטית',company:'חברה',name:'איש קשר',notes:'פרטים נוספים',source:'עמוד הפנייה'},
+          hu:{intro:'Szia VOY PRO Budapest, szeretnék egyeztetni egy',group:'csoportos EZRaider túrát.',corporate:'céges/csapatépítő programot.',date:'Dátum',size:'Résztvevők',window:'Előnyben részesített időszak',language:'Kért idegenvezetési nyelv',english:'Angol is megfelelő',private:'Privát csoportot szeretnénk',company:'Cég',name:'Kapcsolattartó',notes:'Megjegyzések',source:'Érdeklődés oldala'}
+        };
+        const l=labels[locale]||labels.en;
+        const lines=[l.intro+' '+l[kind],l.size+': '+size];
+        if(dateValue)lines.push(l.date+': '+dateValue);
+        const windowValue=field('time_window',12);
+        if(windowValue&&windowValue!=='flexible')lines.push(l.window+': '+windowValue);
+        lines.push(l.language+': '+language);
+        if(fd.get('english_ok')==='yes')lines.push(l.english+': yes');
+        if(field('private_preference',12)==='private')lines.push(l.private+': yes');
+        for(const [key,label,max] of [['company',l.company,90],['organizer',l.name,70],['notes',l.notes,500]]){
+          const value=field(key,max);
+          if(value)lines.push(label+': '+value);
+        }
+        lines.push(l.source+': '+location.pathname);
+        // Intentionally do not persist private text, company, or customer name
+        // in analytics/session storage or submit it to an unverified backend.
+        track('b2b_whatsapp_planner_opened',{context:kind,page,participants:size,guide_language:language,source:'b2b_planner'});
+        location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+      });
+    });
+  }
+  bindB2BEnquiryPlanner();
   const aliasesFrom=(value)=>String(value||'').split(',').map(x=>x.trim()).filter(Boolean);
   function productByAliases(value,products=null){
     const aliases=aliasesFrom(value);
