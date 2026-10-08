@@ -2,6 +2,8 @@ import fs from 'node:fs';
 const css=fs.readFileSync('site/assets/site.css','utf8');
 const failures=[];
 const checks=[
+  ['mobile Portugal tour grid must use a shrinkable track',/\.portugal-page \.portugal-tour-grid\{grid-template-columns:minmax\(0,1fr\)\}/],
+  ['mobile Portugal tour cards must wrap long text',/\.portugal-page \.portugal-tour-card\{box-sizing:border-box;overflow-wrap:anywhere\}/],
   ['mobile Marvao grid must use a shrinkable track',/\.portugal-page \.marvao-route-grid\{grid-template-columns:minmax\(0,1fr\)\}/],
   ['route cards must fit their container',/\.portugal-page \.marvao-route-card\{min-width:0;max-width:100%;box-sizing:border-box\}/],
   ['photo carousel must scroll inside its card',/\.portugal-page \.marvao-route-card \.route-photo-strip\{min-width:0;max-width:100%;width:100%;box-sizing:border-box\}/],
