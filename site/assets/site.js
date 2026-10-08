@@ -313,7 +313,7 @@
     if(details.payment_method){const paymentName=details.payment_method==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):details.payment_method==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום');detailLines.push(t(`Payment: ${paymentName}`,`תשלום: ${paymentName}`));}
     if(details.total!=null)detailLines.push(t(`Total: ${money(details.total,details.currency||'EUR')}`,`סה״כ: ${money(details.total,details.currency||'EUR')}`));
     if(detailLines.length)lines.push('',...detailLines);
-    return 'https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+    return 'https://wa.me/'+(isPortugalPage?'351935695004':'36300993099')+'?text='+encodeURIComponent(lines.join('\n'));
   }
 
   function bindPortugalRequestFlow(){
