@@ -1429,7 +1429,7 @@
     setBookingStep(1);
     if(focusRecovery)document.querySelector('[data-checkout-edit]')?.focus({preventScroll:true});
   }
-  function startHoldTimer(expires){const node=document.querySelector('[data-hold-timer]');if(!node)return;if(holdTimer)clearInterval(holdTimer);const expiresAtMs=Date.parse(String(expires||''));if(!Number.isFinite(expiresAtMs)){node.textContent=t('Hold could not be verified — select the departure again.','לא ניתן לאמת את שמירת המקום — יש לבחור שעה מחדש.');releaseHold();lockExpiredCheckout({focusRecovery:true});patchSession({stage:'hold_expired',hold_expired_at:now(),hold_expiry_unverified:true});return;}const tick=()=>{const left=Math.max(0,expiresAtMs-Date.now());if(!left){node.textContent=t('Hold expired — select the departure again.','שמירת המקום פגה — יש לבחור שעה מחדש.');lockExpiredCheckout();patchSession({stage:'hold_expired',hold_expired_at:now()});return;}const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);node.textContent=t(`Your places are held for ${m}:${String(s).padStart(2,'0')}`,`המקומות נשמרים למשך ${m}:${String(s).padStart(2,'0')}`);};tick();holdTimer=setInterval(tick,1000);}
+  function startHoldTimer(expires){const node=document.querySelector('[data-hold-timer]');if(!node){releaseHold();lockExpiredCheckout({focusRecovery:true});return false;}if(holdTimer)clearInterval(holdTimer);const expiresAtMs=Date.parse(String(expires||''));if(!Number.isFinite(expiresAtMs)){node.textContent=t('Hold could not be verified — select the departure again.','לא ניתן לאמת את שמירת המקום — יש לבחור שעה מחדש.');releaseHold();lockExpiredCheckout({focusRecovery:true});patchSession({stage:'hold_expired',hold_expired_at:now(),hold_expiry_unverified:true});return false;}const tick=()=>{const left=Math.max(0,expiresAtMs-Date.now());if(!left){node.textContent=t('Hold expired — select the departure again.','שמירת המקום פגה — יש לבחור שעה מחדש.');lockExpiredCheckout();patchSession({stage:'hold_expired',hold_expired_at:now()});return false;}const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);node.textContent=t(`Your places are held for ${m}:${String(s).padStart(2,'0')}`,`המקומות נשמרים למשך ${m}:${String(s).padStart(2,'0')}`);return true;};if(!tick())return false;holdTimer=setInterval(tick,1000);return true;}
 
   function setBookingStep(step){
     document.querySelectorAll('[data-booking-step]').forEach(el=>{
@@ -1770,8 +1770,13 @@
       bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:campaignPromo,idempotencyKey:'voy_'+uuid(),extras:[],ancillaryOffers:[]};
       const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;setBookingStep(3);
       renderStandardCheckoutSummary();
+      // A newly returned hold may already be expired or have no verifiable
+      // expiry. Never display a checkout-ready state or load paid extras then.
+      if(!startHoldTimer(hold.expires_at)){
+        status.textContent=t('The temporary hold could not be verified. Choose the departure again.','לא ניתן לאמת את שמירת המקום. יש לבחור את היציאה מחדש.');
+        return;
+      }
       loadAncillaryOffers();
-      startHoldTimer(hold.expires_at);
       status.textContent=t('Your places are temporarily held while you complete the booking.','המקומות נשמרים זמנית בזמן השלמת ההזמנה.');
       shell.querySelector('[data-checkout-heading]')?.focus({preventScroll:true});
       shell.scrollIntoView({behavior:'smooth',block:'center'});
