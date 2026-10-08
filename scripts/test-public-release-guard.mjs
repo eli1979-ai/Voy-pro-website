@@ -11,13 +11,13 @@ const write = (name, content) => fs.writeFileSync(path.join(root, name), content
 try {
   write('release.json', JSON.stringify({target:'production',seo_indexable:true,booking_enabled:true}));
   write('assets/runtime-config.js', "window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'https://api.example.com/v1',clientKey:'voy_bud_public_x123'};");
-  write('robots.txt', 'User-agent: *\\nAllow: /\\nSitemap: https://voy-pro.com/sitemap.xml\\n');
+  write('robots.txt', 'User-agent: *\nAllow: /\nSitemap: https://voy-pro.com/sitemap.xml\n');
   write('sitemap.xml', '<urlset><url><loc>https://voy-pro.com/</loc></url></urlset>');
   write('index.html', '<meta name="robots" content="index,follow"><link href="https://voy-pro.com/" rel="canonical">');
 
   assert.deepEqual(assessPublicRelease(root), [], 'valid public fixture must pass');
   write('release.json', JSON.stringify({target:'staging',seo_indexable:false,booking_enabled:true}));
-  write('robots.txt', 'User-agent: *\\nDisallow: /\\n');
+  write('robots.txt', 'User-agent: *\nDisallow: /\n');
   write('assets/runtime-config.js', "window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'https://backend-staging.example.com/api',clientKey:'voy_bud_stg_x123'};");
   const failures = assessPublicRelease(root).join(' | ');
   for (const expected of ['release.target', 'release.seo_indexable', 'Disallow:', 'sitemap', 'API points to staging', 'staging key']) {
