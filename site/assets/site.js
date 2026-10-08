@@ -889,7 +889,8 @@
   document.querySelectorAll('[data-wa]').forEach(a=>{a.href=whatsAppUrl();const refresh=()=>{a.href=whatsAppUrl();};a.addEventListener('pointerdown',refresh);a.addEventListener('click',refresh);});
   document.querySelectorAll('[data-special-request]').forEach(a=>a.addEventListener('click',()=>{
     const context=a.dataset.specialRequest||'private_flexible';
-    a.href=whatsAppUrl(context);
+    // Preserve a page-authored structured enquiry; fall back to the generic request template elsewhere.
+    if(!/^https:\/\/wa\.me\/\d+\?text=\S+/.test(a.getAttribute('href')||'')) a.href=whatsAppUrl(context);
     createSession('whatsapp_clicked',{page,context,...currentRequestDetails()});
     track('special_request_clicked',{context,page,...currentRequestDetails()});
   }));
