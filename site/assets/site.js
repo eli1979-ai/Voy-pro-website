@@ -951,6 +951,7 @@
       btn.addEventListener('click',()=>{
         // Native HTML validity is deliberately checked here, since the button is
         // type=button to prevent a JS-disabled form from submitting private data.
+        if(date)date.setCustomValidity('');
         if(!form.reportValidity())return;
         const fd=new FormData(form);
         const field=(key,max=500)=>String(fd.get(key)||'').trim().slice(0,max);
@@ -960,7 +961,6 @@
         if(!['en','he','hu','es','other'].includes(language))return;
         const dateValue=field('requested_date',10);
         if(dateValue&&dateValue<budapestDate(0)){date.setCustomValidity('Choose a current or future date');date.reportValidity();return;}
-        if(date)date.setCustomValidity('');
         const labels={
           en:{intro:'Hi VOY PRO Budapest, I would like help planning a',group:'group EZRaider experience.',corporate:'corporate/team-building event.',date:'Preferred date',size:'Participants',window:'Preferred time window',language:'Preferred guiding language',english:'English also possible',private:'Private group preferred',company:'Company',name:'Organizer',notes:'Notes',source:'Enquiry page'},
           he:{intro:'שלום VOY PRO בודפשט, אשמח לתכנן',group:'סיור EZRaider לקבוצה.',corporate:'פעילות גיבוש או אירוע חברה.',date:'תאריך מועדף',size:'משתתפים',window:'חלון שעות',language:'שפת הדרכה מועדפת',english:'גם אנגלית מתאימה',private:'מעדיפים קבוצה פרטית',company:'חברה',name:'איש קשר',notes:'פרטים נוספים',source:'עמוד הפנייה'},
@@ -982,7 +982,7 @@
         // Intentionally do not persist private text, company, or customer name
         // in analytics/session storage or send it to the staging FBM backend.
         track('b2b_whatsapp_planner_opened',{context:kind,page,participants:size,guide_language:language,source:'b2b_planner'});
-        location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\\n'));
+        location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
       });
     });
   }
