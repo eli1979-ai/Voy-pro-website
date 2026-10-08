@@ -655,7 +655,7 @@ footer .brand{
 }
 .tour-picker#destinations .destination-card::before {
   content:"";position:absolute;inset:0;z-index:-1;
-  background-image:linear-gradient(180deg,rgba(9,24,38,.74),rgba(9,24,38,.72) 48%,rgba(5,17,29,.91)),var(--destination-photo);
+  background-image:linear-gradient(180deg,rgba(9,24,38,.28) 0%,rgba(9,24,38,.35) 52%,rgba(5,17,29,.68) 100%),var(--destination-photo);
   background-size:cover;background-repeat:no-repeat;background-position:center,var(--destination-focus,center);
   transition:transform .35s ease;
 }
@@ -664,18 +664,19 @@ footer .brand{
   --destination-photo:url("https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Budapest_Parliament_Sunset_Danube_River_Panorama_2026.jpg/960px-Budapest_Parliament_Sunset_Danube_River_Panorama_2026.jpg");--destination-focus:center 55%;
 }
 .tour-picker#destinations .destination-card--marvao{
-  --destination-photo:url("https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8b/Marv%C3%A3o_27.jpg/960px-Marv%C3%A3o_27.jpg");--destination-focus:center 49%;
+  --destination-photo:url("https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Castelo_de_Marv%C3%A3o_-_Panor%C3%A2mica_geral.jpg/960px-Castelo_de_Marv%C3%A3o_-_Panor%C3%A2mica_geral.jpg");--destination-focus:center 43%;
 }
 .tour-picker#destinations .destination-card--prague{
   --destination-photo:url("https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Prague_Castle_from_Charles_Bridge%2C_August_2025.jpg/960px-Prague_Castle_from_Charles_Bridge%2C_August_2025.jpg");--destination-focus:center 48%;
 }
 .tour-picker#destinations .destination-card--coming-soon::before{
-  background-image:linear-gradient(180deg,rgba(15,29,41,.82),rgba(15,29,41,.83) 55%,rgba(8,22,33,.94)),var(--destination-photo);filter:saturate(.75);
+  background-image:linear-gradient(180deg,rgba(15,29,41,.38),rgba(15,29,41,.46) 55%,rgba(8,22,33,.73)),var(--destination-photo);filter:saturate(.75);
 }
 .tour-picker#destinations .destination-card>:is(.tour-choice-top,h3,p,.tour-highlights,.tour-choice-bottom){position:relative;z-index:1}
 .tour-picker#destinations .destination-card :is(h3,h3 a,.tour-duration,.tour-choice-bottom strong,.tour-choice-bottom small,.tour-choice-bottom span){color:#fff}
-.tour-picker#destinations .destination-card :is(h3,p,.tour-choice-bottom strong){text-shadow:0 1px 3px rgba(0,0,0,.25)}
-.tour-picker#destinations .destination-card>p{color:#f3f8fb}
+.tour-picker#destinations .destination-card :is(h3,p,.tour-choice-bottom strong){text-shadow:0 1px 4px rgba(0,0,0,.85),0 0 12px rgba(0,0,0,.42)}
+.tour-picker#destinations .destination-card>p{color:#fff}
+.tour-picker#destinations .destination-card .tour-duration,.tour-picker#destinations .destination-card .tour-choice-bottom :is(small,span){text-shadow:0 1px 4px rgba(0,0,0,.85)}
 .tour-picker#destinations .destination-card .tour-tag{color:#fff;background:rgba(9,24,38,.5);border:1px solid rgba(255,255,255,.3)}
 .tour-picker#destinations .destination-card .tour-tag.green{background:rgba(19,73,55,.62)}
 .tour-picker#destinations .destination-card .tour-highlights span{color:#fff;background:rgba(9,24,38,.46);border-color:rgba(255,255,255,.35)}
@@ -692,6 +693,22 @@ footer .brand{
 @media(max-width:800px){
 .tour-picker#destinations .destination-card{min-height:300px}
 .tour-picker#destinations .destination-card::before{
-background-image:linear-gradient(180deg,rgba(9,24,38,.8),rgba(9,24,38,.79) 48%,rgba(5,17,29,.95)),var(--destination-photo)}
+background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,rgba(5,17,29,.70)),var(--destination-photo)}
 }
 @media(prefers-reduced-motion:reduce){.tour-picker#destinations .destination-card::before{transition:none}}
+
+/* On the brand homepage the floating WhatsApp CTA must not block the destination imagery. */
+.home-whatsapp{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.home-whatsapp svg{width:21px;height:21px;fill:currentColor;flex-shrink:0}
+@media(max-width:800px){
+  .home-whatsapp{
+    box-sizing:border-box;width:52px;height:52px;min-width:52px;min-height:52px;
+    right:calc(12px + env(safe-area-inset-right,0px));
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));
+    padding:0;border-radius:50%;
+    box-shadow:0 8px 24px rgba(0,0,0,.24);
+  }
+  .rtl .home-whatsapp{right:auto;left:calc(12px + env(safe-area-inset-left,0px))}
+  .home-whatsapp .home-whatsapp-label{display:none}
+  .home-whatsapp svg{width:25px;height:25px}
+}
