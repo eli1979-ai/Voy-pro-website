@@ -18,7 +18,7 @@ requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
 requireText(html,'class="hero-photo-frame parent-hero-mosaic"','root hero must use the destination-neutral mosaic');
 requireText(html,'src="/assets/images/budapest/img12.jpg"','root hero must represent Budapest');
 requireText(html,'src="/assets/images/portugal/marvao-01.jpg"','root hero must represent Marvão');
-requireText(html,'Budapest · Marvão · VOY PRO','root hero caption must represent the parent destination set');
+requireText(html,'Hungary · Budapest · Portugal · Marvão','root hero caption must represent the parent destination set');
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" property="og:image"','root social card must use a VOY PRO parent-brand asset');
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" name="twitter:image"','root Twitter card must use a VOY PRO parent-brand asset');
 requireText(html,'name="twitter:title"','root Twitter card title missing');
