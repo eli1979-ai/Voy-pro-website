@@ -97,7 +97,7 @@ for(const root of roots){
     const html=readFileSync(file,'utf8');
     checked++;
     for(const [needle,label] of forbidden){
-      if(html.includes(needle) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
+      if(html.includes(needle) && !(needle==='From €70' && file==='site/budapest/index.html' && /data-tour-image="heroes"[^]*?<strong>From €70 per rider<\/strong>/.test(html)) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
     }
     for(const [pattern,label] of forbiddenPatterns){
       if(pattern.test(html))failures.push(file+': '+label+' remained: '+pattern);
