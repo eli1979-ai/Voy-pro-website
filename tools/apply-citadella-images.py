@@ -7,13 +7,16 @@ site = root / "site"
 assets = Path(__file__).resolve().parent.parent / "assets/images/budapest"
 dest = site / "assets/images/budapest"
 assert dest.is_dir(), f"Not a VOY PRO site: {dest}"
+expected = ["citadella-riders.jpg", "citadella-liberty-statue.jpg", "citadella-sunset.jpg", "citadella-panorama.jpg"]
+missing = [name for name in expected if not (assets / name).is_file()]
+assert not missing, f"Missing original photos: {missing}"
 for source in assets.glob("citadella-*.jpg"):
     shutil.copy2(source, dest / source.name)
 
 card = site / "budapest/index.html"
 s = card.read_text(encoding="utf-8")
-old = """data-tour-image="citadella" style="--tour-card-image:url('/assets/images/budapest/img02.jpg')""""
-new = """data-tour-image="citadella" style="--tour-card-image:url('/assets/images/budapest/citadella-riders.jpg')""""
+old = 'data-tour-image="citadella" style="--tour-card-image:url(\'/assets/images/budapest/img02.jpg\')"'
+new = 'data-tour-image="citadella" style="--tour-card-image:url(\'/assets/images/budapest/citadella-riders.jpg\')"'
 assert old in s or new in s, "Cannot find Citadella tour card"
 card.write_text(s.replace(old, new), encoding="utf-8")
 
