@@ -378,7 +378,7 @@
       const requestAnalytics={page,context:'portugal_availability_request',route,date,people:people||null,guide_language:guide};
       await createSession('whatsapp_clicked',requestAnalytics);
       track('whatsapp_clicked',requestAnalytics);
-      location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+      location.href='https://wa.me/351935695004?text='+encodeURIComponent(lines.join('\n'));
     });
   }
   bindPortugalRequestFlow();
