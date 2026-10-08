@@ -1044,15 +1044,25 @@
     const dateField=form.querySelector('input[name="date"]')?.closest('.field');
     if(!dateField)return;
     const field=document.createElement('div');field.className='field guide-language-field';field.dataset.guideLanguageField='';
-    field.innerHTML=`<label for="booking-guide-language">${t('Guide language','שפת הדרכה')}</label><select id="booking-guide-language" name="guide_language" required aria-required="true"><option value="">${t('Choose guide language','בחרו שפת הדרכה')}</option></select><small>${t('Every booking must include the requested guiding language.','בכל הזמנה יש לבחור את שפת ההדרכה המבוקשת.')}</small>`;
+    const languageHelp=locale==='hu'
+      ?'Válaszd ki a csoportodnak megfelelő idegenvezetési nyelvet. Nem választunk ki nyelvet automatikusan.'
+      :t('Choose the guiding language that works for your group. We do not select a language automatically.','בחרו את שפת ההדרכה המתאימה לקבוצה. לא נבחרת שפה באופן אוטומטי.');
+    field.innerHTML=`<label for="booking-guide-language">${t('Guide language','שפת הדרכה')}</label><select id="booking-guide-language" name="guide_language" required aria-required="true" aria-describedby="booking-guide-language-help" disabled><option value="">${t('Choose guide language','בחרו שפת הדרכה')}</option></select><small id="booking-guide-language-help">${escapeHTML(languageHelp)}</small>`;
     dateField.insertAdjacentElement('afterend',field);
     const select=field.querySelector('select');
     form._updateGuideLanguages=(product,{preserve=true}={})=>{
       const before=preserve?String(select.value||''):'';
       const languages=guideLanguagesForProduct(product);
-      select.innerHTML=`<option value="">${t('Choose guide language','בחרו שפת הדרכה')}</option>`+languages.map(code=>`<option value="${escapeHTML(code)}">${escapeHTML(guideLanguageLabel(code))}</option>`).join('');
-      const smartDefault=languages.includes(locale)?locale:(languages.includes('en')?'en':languages[0]||'');
-      if(before&&languages.includes(before))select.value=before;else if(smartDefault)select.value=smartDefault;
+      const placeholder=languages.length
+        ?t('Choose guide language','בחרו שפת הדרכה')
+        :locale==='hu'?'A nyelvi lehetőségek nem érhetők el – lépj kapcsolatba a csapatunkkal'
+          :t('Guide languages unavailable – contact our team','שפות ההדרכה אינן זמינות כרגע – פנו לצוות שלנו');
+      select.innerHTML=`<option value="">${escapeHTML(placeholder)}</option>`+languages.map(code=>`<option value="${escapeHTML(code)}">${escapeHTML(guideLanguageLabel(code))}</option>`).join('');
+      // Preserve a language only when the guest explicitly selected it before
+      // and the newly selected tour still offers it. Never silently default
+      // to English, the site locale, or the first available option.
+      select.value=before&&languages.includes(before)?before:'';
+      select.disabled=!languages.length;
       field.dataset.availableLanguages=languages.join(',');
     };
     form._updateGuideLanguages(null,{preserve:false});
@@ -1825,7 +1835,14 @@
       const composition={riders_16_plus:Number(data.get('adults')||0),child_passengers_3_15:Number(data.get('children')||0),baby_passengers_1_2:Number(data.get('babies')||0),request_15yo_independent_assessment:false};
       const isPrivate=String(data.get('is_private')||'')==='true';
       const guideLanguage=String(data.get('guide_language')||'').trim().toLowerCase();
-      if(!guideLanguage){status.textContent=t('Choose the guide language for your tour.','בחרו את שפת ההדרכה לסיור.');return;}
+      if(!guideLanguage){
+        const languageSelect=form.querySelector('select[name="guide_language"]');
+        status.textContent=languageSelect?.disabled
+          ?(locale==='hu'?'Az idegenvezetési nyelvek most nem ellenőrizhetők. Kérjük, lépj kapcsolatba a csapatunkkal.':t('Guide languages cannot be verified right now. Please contact our local team.','לא ניתן לאמת כרגע שפות הדרכה. אנא פנו לצוות המקומי.'))
+          :(locale==='hu'?'Válaszd ki a túra idegenvezetési nyelvét.':t('Choose the guide language for your tour.','בחרו את שפת ההדרכה לסיור.'));
+        if(languageSelect&&!languageSelect.disabled)languageSelect.focus({preventScroll:true});
+        return;
+      }
       const allowedGuideLanguages=guideLanguagesForProduct(experience);
       if(!allowedGuideLanguages.includes(guideLanguage)){status.textContent=t('That guide language is not available for this branch.','שפת ההדרכה הזו אינה זמינה בסניף זה.');return;}
       const privateMin=Number(experience.privateMinRiders);

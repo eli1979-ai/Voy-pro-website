@@ -86,7 +86,10 @@ jobs:
           if(/EZRaider OS|\bFBM\b|\bstaging\b|לתפעול|sample times|team check/i.test([en,he,hu,js].join('\n'))) throw new Error('Internal copy leaked into public UI');
           // Budapest pricing is canonical FBM data. Static price fallbacks are intentionally forbidden by A9.2c.
           if(!/data-mobile-language-row/.test(js)||!/consent-open/.test(js)) throw new Error('Mobile navigation/consent hardening missing');
-          if(!/optimizeHomeConversion/.test(js)||!/enhanceBookingFormLayout/.test(js)||!/smartDefault/.test(js)) throw new Error('Conversion funnel runtime missing');
+          if(!/optimizeHomeConversion/.test(js)||!/enhanceBookingFormLayout/.test(js)
+            ||!js.includes("select.value=before&&languages.includes(before)?before:'';")
+            ||!js.includes("select.disabled=!languages.length;")
+            ||js.includes('const smartDefault=')) throw new Error('Conversion funnel or explicit guide-language choice runtime missing');
           for(const [name,html] of Object.entries({en,he,hu})){
             const picker=html.indexOf('class="section tour-picker"'), booking=html.indexOf('class="section booking"'), gallery=html.indexOf('photo-gallery-section');
             if(!(picker>=0&&booking>picker&&gallery>booking)) throw new Error(name+' homepage conversion order regressed');
