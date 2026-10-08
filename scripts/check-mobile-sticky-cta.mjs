@@ -20,8 +20,13 @@ check(js.includes("if(!(isBudapestPage||isPortugalPage)||!document.querySelector
 check(js.includes("link.classList.add('compact-booking-whatsapp')"),'Compact WhatsApp runtime missing');
 check(js.includes("link.setAttribute('aria-label'"),'Accessible WhatsApp name missing');
 check(css.includes('.compact-booking-whatsapp .compact-booking-whatsapp-label{display:none}'),'Mobile-only label reduction missing');
-check(css.includes('bottom:calc(126px + env(safe-area-inset-bottom,0px))'),'WhatsApp sticky-bar clearance missing');
+check(css.includes('bottom:var(--booking-whatsapp-bottom,calc(104px + env(safe-area-inset-bottom,0px)))'),'WhatsApp sticky-bar clearance missing');
 check(css.includes('.rtl .compact-booking-whatsapp'),'RTL placement missing');
+check(js.includes("const rect=bar.getBoundingClientRect();"),'Floating WhatsApp should measure actual bar top');
+check(js.includes("window.innerHeight-rect.top+12"),'WhatsApp must maintain 12px clearance to bar');
+check(js.includes("link.style.setProperty('--booking-whatsapp-bottom',clearance+'px')"),'Floating WhatsApp CSS var not updated');
+check(js.includes("new ResizeObserver(syncFloatingGap).observe(bar)"),'WhatsApp should adapt to bar height changes');
+check(js.includes("window.addEventListener('resize',syncFloatingGap"),'WhatsApp should adapt on viewport resize');
 check(css.includes('@media(max-width:800px)'),'Mobile breakpoint missing');
 if(failures.length){console.error('Mobile sticky CTA checks FAIL:\n'+failures.join('\n'));process.exit(1)}
 console.log('Mobile sticky bar pricing and accessible compact WhatsApp checks OK (EN/HE/HU).');

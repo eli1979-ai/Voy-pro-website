@@ -26,7 +26,7 @@ for(const prefix of ['','pt/','he/']){
 }
 check(js.includes("if(!(isBudapestPage||isPortugalPage)||!document.querySelector('.mobilebook'))return;"),'Portugal/Budapest float runtime missing');
 check(js.includes("return 'https://wa.me/'+(isPortugalPage?'351935695004':'36300993099')"),'Destination WhatsApp routing regressed');
-check(css.includes('bottom:calc(126px + env(safe-area-inset-bottom,0px))'),'Budapest float not moved closer to CTA');
+check(css.includes('bottom:var(--booking-whatsapp-bottom,calc(104px + env(safe-area-inset-bottom,0px)))'),'Floating WhatsApp CSS anchor absent');
 check(css.includes('bottom:calc(18px + env(safe-area-inset-bottom,0px))'),'New tours float not near bottom');
 check(css.includes('.rtl .tour-floating-whatsapp'),'Tour RTL positioning missing');
 if(errors.length){console.error('Destination WA/footer check failed:\n'+errors.join('\n'));process.exit(1)}
