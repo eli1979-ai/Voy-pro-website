@@ -12,7 +12,8 @@ for(const prefix of ['','he/','hu/']){
     check(html.includes('data-cookie-settings'),name+': legal/footer controls missing');
     const float=html.match(/<a class="whatsapp tour-floating-whatsapp"[^>]*href="(https:\/\/wa\.me\/36300993099[^"]+)"/);
     check(Boolean(float),name+': missing route-specific Budapest WhatsApp');
-    check(Boolean(float&&decodeURIComponent(float[1]).toLowerCase().includes(slug.includes('citadella')?'citadella':'square')),name+': wrong WhatsApp tour context');
+    const originalTourWhatsApp=[...html.matchAll(/href="(https:\/\/wa\.me\/36300993099[^"]+)"/g)].map(match=>match[1]);
+    check(Boolean(float&&originalTourWhatsApp.length>=2&&originalTourWhatsApp[0]===float[1]),name+': floating WhatsApp must retain the original localized tour message');
     check(html.includes('<svg aria-hidden="true"'),name+': missing WhatsApp icon');
     check(html.indexOf('</footer>')>html.indexOf('</main>'),name+': footer must follow main');
   }
