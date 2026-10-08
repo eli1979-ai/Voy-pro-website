@@ -754,7 +754,7 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 @media(max-width:800px){
   .compact-booking-whatsapp{
     box-sizing:border-box;width:52px;height:52px;min-width:52px;min-height:52px;
-    bottom:calc(126px + env(safe-area-inset-bottom,0px));
+    bottom:var(--booking-whatsapp-bottom,calc(104px + env(safe-area-inset-bottom,0px)));
     right:calc(12px + env(safe-area-inset-right,0px));
     padding:0;border-radius:50%;
     box-shadow:0 8px 24px rgba(0,0,0,.24);
