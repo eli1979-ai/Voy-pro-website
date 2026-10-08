@@ -118,6 +118,19 @@ jobs:
               if(!img.startsWith('/assets/images/')) throw new Error('Tour card image must be local: '+p+' '+id);
             }
           }
+          // Advanced tour is approval-only: keep localized discovery and neutral enquiries.
+          for(const lang of ['','he/','hu/']){
+            const landing=read(lang+'budapest/index.html');
+            const detailPath=lang+'budapest/tours/citadella-advanced-ezraider-tour/index.html';
+            const detail=read(detailPath);
+            const detailUrl='/'+lang+'budapest/tours/citadella-advanced-ezraider-tour/';
+            if(!landing.includes('href="'+detailUrl+'"')) throw new Error('Localized Citadella discovery link missing: '+lang);
+            if(!landing.includes('data-tour-image="citadella"')) throw new Error('Citadella card image missing: '+lang);
+            const links=[landing,detail].flatMap(html=>[...html.matchAll(/https:\/\/wa\.me\/36300993099\?text=([^"'\s<>]+)/g)].map(m=>decodeURIComponent(m[1])));
+            const enquiries=links.filter(message=>/Citadella/i.test(message));
+            if(enquiries.length<2) throw new Error('Citadella contextual enquiries missing: '+lang);
+            if(enquiries.some(message=>/I have completed|השלמתי סיור|Már teljesítettem/i.test(message))) throw new Error('Citadella enquiry assumes eligibility: '+lang);
+          }
           const routeOrderChecks=[
             ['budapest/tours/buda-castle-ezraider-tour/index.html','Buda Castle &amp; Royal Palace','Clark Ádám Square','Matthias Church'],
             ['he/budapest/tours/buda-castle-ezraider-tour/index.html','טירת בודה והארמון המלכותי','כיכר אדם קלארק','כנסיית מתיאש'],
