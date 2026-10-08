@@ -133,13 +133,13 @@ jobs:
             if(!(a>=0&&b>a&&d>b)) throw new Error('Buda route order regression: '+p);
           }
           const budapestRoutePages=[
-            ['budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
+            ['budapest/tours/buda-castle-ezraider-tour/index.html',8,true],
             ['budapest/tours/margaret-island-ezraider-tour/index.html',6,false],
             ['budapest/tours/buda-margaret-extended-tour/index.html',9,true],
-            ['he/budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
+            ['he/budapest/tours/buda-castle-ezraider-tour/index.html',8,true],
             ['he/budapest/tours/margaret-island-ezraider-tour/index.html',6,false],
             ['he/budapest/tours/buda-margaret-extended-tour/index.html',9,true],
-            ['hu/budapest/tours/buda-castle-ezraider-tour/index.html',7,true],
+            ['hu/budapest/tours/buda-castle-ezraider-tour/index.html',8,true],
             ['hu/budapest/tours/margaret-island-ezraider-tour/index.html',6,false],
             ['hu/budapest/tours/buda-margaret-extended-tour/index.html',9,true]
           ];
