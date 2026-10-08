@@ -638,3 +638,12 @@ footer .brand{
   .portugal-page .marvao-route-grid{grid-template-columns:minmax(0,1fr)}
   .portugal-page .marvao-route-card{min-width:0;max-width:100%;box-sizing:border-box}
 }
+
+/* Portugal destination: tour cards must not force mobile viewport overflow. */
+.portugal-page .portugal-tour-grid,
+.portugal-page .portugal-tour-card,
+.portugal-page .portugal-request-grid{min-width:0;max-width:100%}
+@media(max-width:900px){
+  .portugal-page .portugal-tour-grid{grid-template-columns:minmax(0,1fr)}
+  .portugal-page .portugal-tour-card{box-sizing:border-box;overflow-wrap:anywhere}
+}
