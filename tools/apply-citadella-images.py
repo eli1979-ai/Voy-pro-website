@@ -7,29 +7,29 @@ site = root / "site"
 assets = Path(__file__).resolve().parent.parent / "assets/images/budapest"
 dest = site / "assets/images/budapest"
 assert dest.is_dir(), f"Not a VOY PRO site: {dest}"
-expected = ["citadella-riders.jpg", "citadella-liberty-statue.jpg", "citadella-sunset.jpg", "citadella-panorama.jpg"]
+expected = ["IMG-20261006-WA0091.jpg", "IMG-20261006-WA0089.jpg", "IMG-20261006-WA0092.jpg", "IMG-20261006-WA0093.jpg"]
 missing = [name for name in expected if not (assets / name).is_file()]
 assert not missing, f"Missing original photos: {missing}"
-for source in assets.glob("citadella-*.jpg"):
+for source in assets.glob("IMG-20261006-WA*.jpg"):
     shutil.copy2(source, dest / source.name)
 
 card = site / "budapest/index.html"
 s = card.read_text(encoding="utf-8")
 old = 'data-tour-image="citadella" style="--tour-card-image:url(\'/assets/images/budapest/img02.jpg\')"'
-new = 'data-tour-image="citadella" style="--tour-card-image:url(\'/assets/images/budapest/citadella-riders.jpg\')"'
+new = 'data-tour-image="citadella" style="--tour-card-image:url(\'/assets/images/budapest/IMG-20261006-WA0091.jpg\')"'
 assert old in s or new in s, "Cannot find Citadella tour card"
 card.write_text(s.replace(old, new), encoding="utf-8")
 
 for lang in ["", "he/", "hu/"]:
     path = site / lang / "budapest/tours/citadella-advanced-ezraider-tour/index.html"
     s = path.read_text(encoding="utf-8")
-    s = s.replace("https://voy-pro.com/assets/images/budapest/img12.jpg", "/assets/images/budapest/citadella-riders.jpg")
+    s = s.replace("https://voy-pro.com/assets/images/budapest/img12.jpg", "/assets/images/budapest/IMG-20261006-WA0091.jpg")
     gallery = '<section class="section citadella-gallery"><div class="wrap"><h2>Citadella · EZRaider views</h2><div class="citadella-gallery-grid">'
     for file, alt in [
-        ("citadella-riders.jpg", "EZRaider riders above Budapest"),
-        ("citadella-liberty-statue.jpg", "Liberty Statue at Citadella"),
-        ("citadella-sunset.jpg", "Sunset near Citadella"),
-        ("citadella-panorama.jpg", "Budapest panorama from Gellért Hill"),
+        ("IMG-20261006-WA0091.jpg", "EZRaider riders above Budapest"),
+        ("IMG-20261006-WA0089.jpg", "Liberty Statue at Citadella"),
+        ("IMG-20261006-WA0092.jpg", "Sunset near Citadella"),
+        ("IMG-20261006-WA0093.jpg", "Budapest panorama from Gellért Hill"),
     ]:
         gallery += f'<figure><img src="/assets/images/budapest/{file}" alt="{alt}" loading="lazy" decoding="async"/></figure>'
     gallery += "</div></div></section>"
