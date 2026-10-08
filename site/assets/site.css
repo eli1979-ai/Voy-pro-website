@@ -754,7 +754,7 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 @media(max-width:800px){
   .compact-booking-whatsapp{
     box-sizing:border-box;width:52px;height:52px;min-width:52px;min-height:52px;
-    bottom:calc(142px + env(safe-area-inset-bottom,0px));
+    bottom:calc(126px + env(safe-area-inset-bottom,0px));
     right:calc(12px + env(safe-area-inset-right,0px));
     padding:0;border-radius:50%;
     box-shadow:0 8px 24px rgba(0,0,0,.24);
@@ -783,3 +783,13 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 .b2b-planner-note{margin:14px 0 5px;color:#334e60;font-size:12px;line-height:1.55}
 .b2b-planner-privacy{display:block;color:#647784;line-height:1.55}
 @media(max-width:800px){.b2b-planner-shell{grid-template-columns:1fr;gap:14px}.b2b-planner{padding:17px}.b2b-planner-fields{grid-template-columns:1fr;gap:12px}.b2b-planner-actions .btn{width:100%}}
+
+/* v1.48.87: mobile floating WhatsApp on new request-only Budapest tours. */
+.tour-floating-whatsapp{display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.tour-floating-whatsapp svg{width:21px;height:21px;fill:currentColor;display:block;flex:none}
+@media(max-width:800px){
+.tour-floating-whatsapp{box-sizing:border-box;width:52px;height:52px;min-height:52px;min-width:52px;bottom:calc(18px + env(safe-area-inset-bottom,0px));right:calc(12px + env(safe-area-inset-right,0px));padding:0;border-radius:50%;box-shadow:0 8px 24px rgba(0,0,0,.24)}
+.rtl .tour-floating-whatsapp{right:auto;left:calc(12px + env(safe-area-inset-left,0px))}
+.tour-floating-whatsapp svg{width:25px;height:25px}
+.tour-floating-whatsapp-label{display:none}
+}

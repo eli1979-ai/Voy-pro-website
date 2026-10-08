@@ -536,11 +536,11 @@
 
   function compactStickyBookingWhatsapp(){
     // Only pages with a Budapest mobile booking bar need the smaller floating action.
-    if(!isBudapestPage||!document.querySelector('.mobilebook'))return;
+    if(!(isBudapestPage||isPortugalPage)||!document.querySelector('.mobilebook'))return;
     const link=document.querySelector('a.whatsapp:not(.home-whatsapp)');
     if(!link||link.classList.contains('compact-booking-whatsapp'))return;
     link.classList.add('compact-booking-whatsapp');
-    link.setAttribute('aria-label',locale==='he'?'שיחה עם צוות VOY PRO ב-WhatsApp':locale==='hu'?'VOY PRO ügyfélszolgálat WhatsAppon':'Chat with VOY PRO on WhatsApp');
+    link.setAttribute('aria-label',isPortugalPage?(locale==='he'?'שיחה עם צוות מרבאו ב־WhatsApp':locale==='pt'?'Conversar com a equipa de Marvão no WhatsApp':'Chat with the Marvão team on WhatsApp'):(locale==='he'?'שיחה עם צוות VOY PRO ב-WhatsApp':locale==='hu'?'VOY PRO ügyfélszolgálat WhatsAppon':'Chat with VOY PRO on WhatsApp'));
     link.innerHTML="<svg aria-hidden=\"true\" viewBox=\"0 0 24 24\" focusable=\"false\"><path d=\"M20.5 3.5A11.6 11.6 0 0 0 12.1 0C5.7 0 .4 5.2.4 11.6c0 2 .5 4 1.6 5.7L0 24l6.9-1.8c1.6.9 3.4 1.4 5.2 1.4 6.4 0 11.6-5.2 11.6-11.6 0-3.1-1.2-6-3.2-8.2Zm-8.4 18.1c-1.7 0-3.4-.5-4.8-1.4l-.4-.2-4.1 1.1 1.1-4-.3-.4a9.6 9.6 0 0 1-1.5-5.1c0-5.3 4.3-9.6 9.6-9.6a9.6 9.6 0 0 1 0 19.2Zm5.3-7.1c-.3-.1-1.7-.8-2-1-.3-.1-.5-.1-.7.2-.2.3-.8 1-.9 1.1-.2.2-.3.2-.6.1a7.8 7.8 0 0 1-2.3-1.4 8.7 8.7 0 0 1-1.6-2c-.2-.3 0-.4.1-.6l.5-.5c.2-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-.9-2.1c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5 0-.8.3s-1 1-1 2.4 1.1 2.8 1.2 3c.2.2 2.1 3.2 5.1 4.4.7.3 1.3.4 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.7-.7 1.9-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.4Z\"/></svg>"+'<span class="compact-booking-whatsapp-label">WhatsApp</span>';
   }
   compactStickyBookingWhatsapp();
