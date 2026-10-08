@@ -626,3 +626,15 @@ footer .brand{
 .citadella-gallery-grid figure{margin:0;overflow:hidden;border-radius:16px;aspect-ratio:3/4;background:#e8eef1}
 .citadella-gallery-grid img{width:100%;height:100%;object-fit:cover;display:block}
 @media(max-width:760px){.citadella-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}
+
+/* Marvao mobile: keep itinerary grid tracks and horizontal photo carousels inside viewport. */
+.portugal-page .marvao-route-grid,
+.portugal-page .marvao-route-card,
+.portugal-page .marvao-route-card .route-visual-restored,
+.portugal-page .marvao-route-card .route-schematic-panel{min-width:0;max-width:100%}
+.portugal-page .marvao-route-card .route-photo-strip{min-width:0;max-width:100%;width:100%;box-sizing:border-box}
+.portugal-page .marvao-route-card .route-schematic-canvas{min-width:0;max-width:100%}
+@media(max-width:900px){
+  .portugal-page .marvao-route-grid{grid-template-columns:minmax(0,1fr)}
+  .portugal-page .marvao-route-card{min-width:0;max-width:100%;box-sizing:border-box}
+}
