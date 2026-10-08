@@ -49,7 +49,7 @@ for(const page of pages){
   if(directWhatsApp<3){
     failures.push(page.file+': expected at least 3 prominent '+page.context+' WhatsApp request CTAs');
   }
-  if(!html.includes('href="https://wa.me/36300993099"')){
+  if(!/href="https:\/\/wa\.me\/36300993099(?:\?text=[^"]*)?"/.test(html)){
     failures.push(page.file+': Budapest WhatsApp fallback link missing');
   }
   if(!html.includes('#booking')){
