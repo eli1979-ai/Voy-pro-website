@@ -107,7 +107,7 @@ jobs:
             if(!read(p).includes('class="special-request-panel" id="request"')) throw new Error('Extended request anchor missing: '+p);
           }
           const tourCardPages=[
-            ['budapest/index.html',4],['he/budapest/index.html',4],['hu/budapest/index.html',4],
+            ['budapest/index.html',6],['he/budapest/index.html',4],['hu/budapest/index.html',4],
             ['portugal/index.html',3],['he/portugal/index.html',3],['pt/portugal/index.html',3]
           ];
           for(const [p,expected] of tourCardPages){
