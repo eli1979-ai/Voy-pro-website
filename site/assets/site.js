@@ -980,7 +980,7 @@
         }
         lines.push(l.source+': '+location.pathname);
         // Intentionally do not persist private text, company, or customer name
-        // in analytics/session storage or send it to the staging FBM backend.
+        // in analytics/session storage or submit it to an unverified backend.
         track('b2b_whatsapp_planner_opened',{context:kind,page,participants:size,guide_language:language,source:'b2b_planner'});
         location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
       });
