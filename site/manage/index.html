@@ -275,6 +275,24 @@
    ${sameDevicePending&&handoffUrl?`<div class="waiver-start-signing"><a class="btn" id="waiver-start-signing" href="${esc(handoffUrl)}" rel="noreferrer">${T('Start signing waivers','התחלת חתימה על כתבי הוויתור','Nyilatkozatok aláírásának indítása')}</a><p class="small muted">${T('Pass this device between the riders. Each rider signs their own waiver separately.','העבירו את המכשיר בין הרוכבים. כל רוכב חותם על כתב הוויתור שלו בנפרד.','Add át az eszközt a résztvevők között. Minden résztvevő külön írja alá a saját nyilatkozatát.')}</p></div>`:''}
   </div>`;
  }
+ function confirmedRiderSnapshot(data,reference,submitted,signed){
+  if(!data||!reference||data.booking_reference!==reference||!Array.isArray(data.riders)
+   ||!submitted.length||data.riders.length!==submitted.length)return false;
+  const actual=new Map(data.riders.map(r=>[String(r.id||''),r]));
+  if(actual.size!==submitted.length)return false;
+  const email=v=>String(v??'').trim().toLowerCase(),phone=v=>String(v??'').replace(/\D/g,'');
+  return submitted.every(w=>{
+   const r=actual.get(String(w.id||''));
+   if(!r)return false;
+   if(signed.has(String(w.id)))return r.status==='signed';
+   return String(r.full_name||'').trim()===String(w.full_name||'').trim()
+    &&String(r.date_of_birth||'')===String(w.date_of_birth||'')
+    &&email(r.email)===email(w.email)&&phone(r.phone)===phone(w.phone)
+    &&Boolean(r.is_booking_customer)===Boolean(w.is_booking_customer)
+    &&String(r.waiver_signing_method||'')===String(w.waiver_signing_method||'')
+    &&String(r.waiver_contact_preference||'')===String(w.waiver_contact_preference||'');
+  });
+ }
  function refreshRiderContact(card){
   const method=card.querySelector('[data-rider-method]')?.value||'unassigned';
   const wrap=card.querySelector('[data-rider-contact-wrap]');
