@@ -13,7 +13,6 @@ if(!html.includes(confirmAnchor)||!html.includes(beforeCatch)){
   process.exit(1);
 }
 html=html.replace(confirmAnchor,confirmAnchor+lockInsert).replace(beforeCatch,afterCatch);
-html=html.replace(confirmAnchor,confirmAnchor+lockInsert).replace(beforeCatch,afterCatch);
 
 // The cancellation POST has no documented success payload; only a fresh canonical
 // Manage Booking read can confirm that this exact booking was cancelled.
@@ -68,4 +67,4 @@ html=html.replace(successAnchor,successReplacement)
          .replace('function bind(){',helper+'function bind(){');
 
 fs.writeFileSync(file,html);
-console.log('Rendered single-flight lock for Manage Booking cancellation.');
+console.log('Rendered verified cancellation state, ambiguous-outcome recovery and single-flight lock for Manage Booking.');
