@@ -270,10 +270,28 @@
     <div class="waiver-rider-list">${cards}</div>
     <label class="waiver-customer-choice waiver-customer-none"><input type="radio" name="booking-rider-choice" value="" ${noCustomerChecked?'checked':''}> <span>${T('The person who made the booking is not riding','המזמין אינו אחד הרוכבים','A foglalást készítő személy nem vesz részt a túrán')}</span></label>
     ${!allSigned?`<button class="btn secondary" type="submit">${T('Save rider details','שמירת פרטי הרוכבים','Résztvevői adatok mentése')}</button>`:''}
-    <div class="status" id="waiver-riders-status" hidden></div>
+    <div class="status" id="waiver-riders-status" role="status" aria-live="polite" hidden></div>
    </form>
    ${sameDevicePending&&handoffUrl?`<div class="waiver-start-signing"><a class="btn" id="waiver-start-signing" href="${esc(handoffUrl)}" rel="noreferrer">${T('Start signing waivers','התחלת חתימה על כתבי הוויתור','Nyilatkozatok aláírásának indítása')}</a><p class="small muted">${T('Pass this device between the riders. Each rider signs their own waiver separately.','העבירו את המכשיר בין הרוכבים. כל רוכב חותם על כתב הוויתור שלו בנפרד.','Add át az eszközt a résztvevők között. Minden résztvevő külön írja alá a saját nyilatkozatát.')}</p></div>`:''}
   </div>`;
+ }
+ function confirmedRiderSnapshot(data,reference,submitted,signed){
+  if(!data||!reference||data.booking_reference!==reference||!Array.isArray(data.riders)
+   ||!submitted.length||data.riders.length!==submitted.length)return false;
+  const actual=new Map(data.riders.map(r=>[String(r.id||''),r]));
+  if(actual.size!==submitted.length)return false;
+  const email=v=>String(v??'').trim().toLowerCase(),phone=v=>String(v??'').replace(/\D/g,'');
+  return submitted.every(w=>{
+   const r=actual.get(String(w.id||''));
+   if(!r)return false;
+   if(signed.has(String(w.id)))return r.status==='signed';
+   return String(r.full_name||'').trim()===String(w.full_name||'').trim()
+    &&String(r.date_of_birth||'')===String(w.date_of_birth||'')
+    &&email(r.email)===email(w.email)&&phone(r.phone)===phone(w.phone)
+    &&Boolean(r.is_booking_customer)===Boolean(w.is_booking_customer)
+    &&String(r.waiver_signing_method||'')===String(w.waiver_signing_method||'')
+    &&String(r.waiver_contact_preference||'')===String(w.waiver_contact_preference||'');
+  });
  }
  function refreshRiderContact(card){
   const method=card.querySelector('[data-rider-method]')?.value||'unassigned';
@@ -399,8 +417,15 @@
      };
     });
     try{
+     const signedIds=new Set([...riderForm.querySelectorAll('.waiver-rider-card[data-signed="true"]')].map(card=>card.dataset.riderId));
+     const expectedReference=booking?.reference;
      const out=await api('/manage/'+encodeURIComponent(token)+'/riders',{method:'PATCH',body:JSON.stringify({riders})});
-     riderIntake={...(riderIntake||{}),...out,riders:Array.isArray(out.riders)?out.riders:riders};
+     if(!confirmedRiderSnapshot(out,expectedReference,riders,signedIds))
+      throw Object.assign(new Error('Rider response unverified'),{code:'RIDER_RESPONSE_UNVERIFIED'});
+     const fresh=await api('/manage/'+encodeURIComponent(token)+'/riders',{timeoutMs:2500});
+     if(!confirmedRiderSnapshot(fresh,expectedReference,riders,signedIds))
+      throw Object.assign(new Error('Rider read unverified'),{code:'RIDER_RESPONSE_UNVERIFIED'});
+     riderIntake=fresh;
      render();
      const savedStatus=document.getElementById('waiver-riders-status');
      if(savedStatus){
@@ -408,6 +433,20 @@
       savedStatus.textContent=T('Rider details saved. You can now start signing.','פרטי הרוכבים נשמרו. כעת ניתן להתחיל בחתימה.','A résztvevői adatok mentve. Most megkezdhető az aláírás.');
      }
     }catch(err){
+     if(!['RIDER_TOO_YOUNG','SIGNED_RIDER_LOCKED','MANAGE_RIDERS_INVALID','MANAGE_RIDER_NOT_FOUND','MANAGE_RIDERS_PAYLOAD_INVALID'].includes(String(err.code||''))){
+      riderForm.dataset.riderSaveUnverified='true';
+      riderForm.querySelectorAll('input,select,button').forEach(control=>control.disabled=true);
+      if(status){
+       status.textContent=T('We could not verify whether rider details were saved. Refresh the booking before another attempt or contact support.','לא הצלחנו לאמת אם פרטי הרוכבים נשמרו. רעננו את ההזמנה לפני ניסיון נוסף או פנו לתמיכה.','Nem tudtuk ellenőrizni a mentést. Újabb próbálkozás előtt frissítsd a foglalást, vagy kérj segítséget.');
+       const reload=document.createElement('button');reload.type='button';reload.className='btn secondary';
+       reload.textContent=T('Refresh booking','רענון הזמנה','Foglalás frissítése');
+       reload.onclick=()=>location.reload();
+       status.appendChild(document.createTextNode(' '));status.appendChild(reload);
+       const support=document.createElement('a');support.className='btn secondary';support.href=supportWhatsApp();support.textContent='WhatsApp';
+       status.appendChild(document.createTextNode(' '));status.appendChild(support);
+      }
+      return;
+     }
      if(status){
       const msg=err.code==='RIDER_TOO_YOUNG'
        ?T('A rider under 15 cannot be registered for independent riding.','לא ניתן לרשום רוכב מתחת לגיל 15 לרכיבה עצמאית.','15 év alatti résztvevő nem regisztrálható önálló vezetésre.')
