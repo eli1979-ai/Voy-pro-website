@@ -42,7 +42,7 @@
   const qs = new URLSearchParams(location.search);
   const campaignPromo=(qs.get('promo')||'').trim().toUpperCase()||null;
   // Affiliate referral is booking-essential state, not analytics attribution.
-  const AFFILIATE_SESSION_KEY='voy_active_affiliate_ref_v1';
+  const AFFILIATE_SESSION_KEY='voy_active_affiliate_ref_v1:'+destinationId;
   const affiliateQuery=(qs.get('affiliate')||'').trim().toUpperCase();
   const validAffiliateCode=code=>/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(String(code||''));
   if(affiliateQuery&&validAffiliateCode(affiliateQuery)){
