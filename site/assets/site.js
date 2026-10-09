@@ -969,13 +969,29 @@
       const kind=form.dataset.b2bPlanner;
       if(!['group','corporate'].includes(kind))return;
       const date=form.querySelector('input[name="requested_date"]');
-      if(date)date.min=budapestDate(0);
+      const dateErrorLabel=locale==='he'
+        ?'יש לבחור תאריך מהיום והלאה.'
+        :locale==='hu'?'Válassz mai vagy későbbi dátumot.':'Choose today or a future date.';
+      const syncDateMinimum=()=>{if(date)date.min=budapestDate(0);};
+      if(date){
+        syncDateMinimum();
+        date.addEventListener('focus',syncDateMinimum);
+        date.addEventListener('change',()=>date.setCustomValidity(''));
+      }
       const btn=form.querySelector('[data-b2b-open]');
       if(!btn)return;
       btn.addEventListener('click',()=>{
         // Native HTML validity is deliberately checked here, since the button is
         // type=button to prevent a JS-disabled form from submitting private data.
-        if(date)date.setCustomValidity('');
+        syncDateMinimum();
+        if(date){
+          date.setCustomValidity('');
+          if(date.value&&date.value<budapestDate(0)){
+            date.setCustomValidity(dateErrorLabel);
+            date.reportValidity();
+            return;
+          }
+        }
         if(!form.reportValidity())return;
         const fd=new FormData(form);
         const field=(key,max=500)=>String(fd.get(key)||'').trim().slice(0,max);
@@ -984,7 +1000,7 @@
         const language=field('guide_language',12);
         if(!['en','he','hu','es','other'].includes(language))return;
         const dateValue=field('requested_date',10);
-        if(dateValue&&dateValue<budapestDate(0)){date.setCustomValidity('Choose a current or future date');date.reportValidity();return;}
+        if(dateValue&&dateValue<budapestDate(0)){if(date){date.setCustomValidity(dateErrorLabel);date.reportValidity();}return;}
         const labels={
           en:{intro:'Hi VOY PRO Budapest, I would like help planning a',group:'group EZRaider experience.',corporate:'corporate/team-building event.',date:'Preferred date',size:'Participants',window:'Preferred time window',language:'Preferred guiding language',english:'English also possible',private:'Private group preferred',company:'Company',name:'Organizer',notes:'Notes',source:'Enquiry page'},
           he:{intro:'שלום VOY PRO בודפשט, אשמח לתכנן',group:'סיור EZRaider לקבוצה.',corporate:'פעילות גיבוש או אירוע חברה.',date:'תאריך מועדף',size:'משתתפים',window:'חלון שעות',language:'שפת הדרכה מועדפת',english:'גם אנגלית מתאימה',private:'מעדיפים קבוצה פרטית',company:'חברה',name:'איש קשר',notes:'פרטים נוספים',source:'עמוד הפנייה'},
