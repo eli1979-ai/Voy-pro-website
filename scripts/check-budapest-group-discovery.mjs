@@ -49,7 +49,7 @@ for(const {locale,prefix,home} of vehicleFiles){
     'property="og:image"', 'name="description"', 'data-ez-video-player',
     'href="'+manufacturer+'"','family-child-seat-closeup.jpg',
     'Thule Yepp 2 Maxi Rack Mount','Thule Yepp Junior',
-    'https://www.thule.com/', 'class="ez-safety"', 'id="safety"',
+    'https://www.thule.com/', 'class="section ez-safety"', 'id="safety"',
     'href="/'+prefix+'budapest/#booking"', 'data-intent="vehicle"',
     'src="/assets/ezraider-guide.js"', 'href="/assets/ezraider-guide.css"'
   ])if(!html.includes(marker))failures.push(path+': missing '+marker);
