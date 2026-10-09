@@ -810,3 +810,11 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
   background:#fff4ed;
   color:#793a2b;
 }
+
+/* v1.48.98: booking-specific confirmed extras, including RTL and mobile wrap. */
+.manage-ancillaries .manage-ancillary-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.manage-ancillary-item{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;justify-content:space-between;background:#f5f8fa;border:1px solid #dde7ed;border-radius:12px;padding:12px 14px}
+.manage-ancillary-item>span:first-child{display:flex;flex-direction:column;gap:3px;flex:1 1 170px}
+.manage-ancillary-item small{font-size:.8em;opacity:.76}
+.manage-ancillary-quantity{font-size:.9em}
+.manage-ancillary-item>b{white-space:nowrap;font-variant-numeric:tabular-nums}
