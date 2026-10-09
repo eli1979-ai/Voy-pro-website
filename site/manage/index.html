@@ -129,11 +129,18 @@
  function paymentMethodLabel(value){
   const method=String(value||'');
   const labels={
-   pay_now_card:T('Paid online by card','שולם מראש בכרטיס','Online kártyával fizetve'),
+   pay_now_card:T('Online card','כרטיס באינטרנט','Online bankkártya'),
    pay_arrival_card:T('Card on arrival','כרטיס במקום','Kártya a helyszínen'),
    pay_arrival_cash:T('Cash on arrival','מזומן במקום','Készpénz a helyszínen')
   };
   return labels[method]||method.replaceAll('_',' ');
+ }
+ function paymentAmountsMarkup(b){
+  const valid=value=>value!=null&&value!==''&&Number.isFinite(Number(value))&&Number(value)>=0;
+  const currency=b?.currency||'EUR';
+  const paid=valid(b?.paid_amount)?'<span>'+T('Amount paid','סכום ששולם','Fizetett összeg')+' · '+esc(manageMoney(b.paid_amount,currency))+'</span>':'';
+  const due=valid(b?.balance_due)?'<span>'+T('Balance due','יתרה לתשלום','Fennmaradó összeg')+' · '+esc(manageMoney(b.balance_due,currency))+'</span>':'';
+  return paid+due;
  }
  function supportWhatsApp(){
   const intro=he?'היי, יש לי הזמנה ב־VOY PRO Budapest ואני צריך עזרה בנוגע אליה.':hu?'Szia, van egy VOY PRO Budapest foglalásom, és segítséget szeretnék kérni.':'Hi, I have a VOY PRO Budapest booking and I need help with it.';
@@ -145,7 +152,8 @@
  function paymentReturnMarkup(){
   if(!paymentReturn)return '';
   if(paymentReturnSettled||paymentIsSettled()){
-   return '<div class="notice" role="status">'+T('Payment received. Your booking payment status is updated.','התשלום התקבל. סטטוס התשלום בהזמנה עודכן.','A fizetés megérkezett. A foglalás fizetési állapota frissült.')+'</div>';
+   const partial=String(booking?.payment_status||'')==='partially_paid';
+   return '<div class="notice" role="status">'+(partial?T('Partial payment received. Your outstanding balance appears below.','התקבל תשלום חלקי. יתרת התשלום מוצגת בהמשך.','Részleges fizetés érkezett. A fennmaradó összeg lent látható.'):T('Payment received. Your booking payment status is updated.','התשלום התקבל. סטטוס התשלום בהזמנה עודכן.','A fizetés megérkezett. A foglalás fizetési állapota frissült.'))+'</div>';
   }
   if(paymentReturnPending){
    return '<div class="notice" role="status">'+T('You returned from secure card checkout. We are checking your booking payment status…','חזרתם ממסך התשלום המאובטח. אנחנו בודקים כעת את מצב התשלום בהזמנה…','Visszatértél a biztonságos kártyás fizetésből. Ellenőrizzük a foglalás fizetési állapotát…')+'</div>';
@@ -246,7 +254,7 @@
   const gc=booking.group_composition||{},partyLabels=managePartyLabels(),meeting=manageMeetingPoint();
   box.innerHTML=paymentReturnMarkup()+(optionsUnavailable?'<div class="notice" role="status">'+T('Some booking changes are temporarily unavailable. Your booking and payment status are still shown below.','חלק מאפשרויות שינוי ההזמנה אינן זמינות כרגע. פרטי ההזמנה ומצב התשלום עדיין מוצגים בהמשך.','Egyes foglalásmódosítások átmenetileg nem érhetők el. A foglalási és fizetési állapot lent továbbra is látható.')+'</div>':'')+`<div class="manage-head"><div><small>${T('BOOKING','הזמנה')}</small><h2>${esc(booking.reference)}</h2><p>${esc(experienceLabel(booking))}</p></div><span class="manage-status">${esc(bookingStatusLabel(booking.status))}</span></div>
   <div class="manage-summary"><div><small>${T('Date','תאריך')}</small><b>${esc(manageDateLabel(booking.selected_date))}</b></div><div><small>${T('Time','שעה')}</small><b>${esc(manageTimeLabel(booking.slot_time))}</b></div><div><small>${T('Guests','משתתפים')}</small><b>${esc(booking.party_size)}</b></div><div><small>${T('Guide language','שפת הדרכה')}</small><b>${esc(guideLabel(booking.guide_language))}</b></div><div><small>${T('Total','סה״כ')}</small><b>${esc(manageMoney(booking.total,booking.currency||'EUR'))}</b></div></div>
-  <div class="manage-detail-strip"><span>${esc(partyLabels.riders)} · ${esc(gc.riders_16_plus||0)}</span>${Number(gc.child_passengers_3_15||0)>0?`<span>${esc(partyLabels.children)} · ${esc(gc.child_passengers_3_15)}</span>`:''}${Number(gc.baby_passengers_1_2||0)>0?`<span>${esc(partyLabels.babies)} · ${esc(gc.baby_passengers_1_2)}</span>`:''}<span>${T('Payment','תשלום')} · ${esc(paymentStatusLabel(booking.payment_status))}</span>${booking.payment_method?`<span>${T('Payment method','אמצעי תשלום','Fizetési mód')} · ${esc(paymentMethodLabel(booking.payment_method))}</span>`:''}${Number(booking.balance_due||0)>0?`<span>${T('Balance due','יתרה לתשלום')} · ${esc(manageMoney(booking.balance_due,booking.currency||'EUR'))}</span>`:''}${meeting?`<span>${T('Meeting point','נקודת מפגש','Találkozási pont')} · ${esc(meeting.address)}</span>`:''}</div>
+  <div class="manage-detail-strip"><span>${esc(partyLabels.riders)} · ${esc(gc.riders_16_plus||0)}</span>${Number(gc.child_passengers_3_15||0)>0?`<span>${esc(partyLabels.children)} · ${esc(gc.child_passengers_3_15)}</span>`:''}${Number(gc.baby_passengers_1_2||0)>0?`<span>${esc(partyLabels.babies)} · ${esc(gc.baby_passengers_1_2)}</span>`:''}<span>${T('Payment','תשלום')} · ${esc(paymentStatusLabel(booking.payment_status))}</span>${booking.payment_method?`<span>${T('Payment method','אמצעי תשלום','Fizetési mód')} · ${esc(paymentMethodLabel(booking.payment_method))}</span>`:''}${paymentAmountsMarkup(booking)}${meeting?`<span>${T('Meeting point','נקודת מפגש','Találkozási pont')} · ${esc(meeting.address)}</span>`:''}</div>
   <div class="manage-actions"><button class="btn secondary" type="button" id="manage-copy-ref">${T('Copy reference','העתקת מספר')}</button>${meeting?.maps_url?`<a class="btn secondary" href="${esc(meeting.maps_url)}" target="_blank" rel="noopener">${T('Open meeting point','פתיחת נקודת המפגש','Találkozási pont megnyitása')}</a>`:''}<a class="btn alt" href="${supportWhatsApp()}">WhatsApp</a><a class="btn secondary" href="${hu?'/hu/budapest/':he?'/he/budapest/':'/budapest/'}">${T('Back to Budapest','חזרה לבודפשט')}</a></div><p class="manage-security-note">${T('Keep this Manage Booking link private. Anyone with the link may be able to access this booking.','שמרו את קישור ניהול ההזמנה פרטי. מי שמחזיק בקישור עשוי לקבל גישה להזמנה.')}</p>
   <div class="manage-block"><h3>${T('Contact details','פרטי קשר')}</h3><form id="manage-contact"><div class="checkout-fields"><div class="field"><label for="manage-email">${T('Email','אימייל')}</label><input id="manage-email" name="email" type="email" autocomplete="email" value="${esc(booking.customer?.email||'')}"></div><div class="field"><label for="manage-phone">${T('Phone','טלפון')}</label><input id="manage-phone" name="phone" type="tel" autocomplete="tel" value="${esc(booking.customer?.phone||'')}"></div></div><button class="btn secondary" type="submit">${T('Update contact details','עדכון פרטי קשר')}</button><div class="status" data-contact-status role="status" aria-live="polite" hidden></div></form></div>
   ${riderWaiverMarkup()}
