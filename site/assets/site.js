@@ -41,6 +41,17 @@
   if(locale==='he'){document.documentElement.dir='rtl';document.body?.classList.add('rtl')}else{document.documentElement.removeAttribute('dir');}
   const qs = new URLSearchParams(location.search);
   const campaignPromo=(qs.get('promo')||'').trim().toUpperCase()||null;
+  // Affiliate referral is booking-essential state, not analytics attribution.
+  const AFFILIATE_SESSION_KEY='voy_active_affiliate_ref_v1';
+  const affiliateQuery=(qs.get('affiliate')||'').trim().toUpperCase();
+  const validAffiliateCode=code=>/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(String(code||''));
+  if(affiliateQuery&&validAffiliateCode(affiliateQuery)){
+    try{sessionStorage.setItem(AFFILIATE_SESSION_KEY,affiliateQuery);}catch(e){}
+  }
+  let affiliateCode=validAffiliateCode(affiliateQuery)?affiliateQuery:null;
+  if(!affiliateCode){try{const prev=sessionStorage.getItem(AFFILIATE_SESSION_KEY);if(validAffiliateCode(prev))affiliateCode=prev;}catch(e){}}
+  const initialPromoCode=affiliateCode||campaignPromo||null;
+  const effectivePromoCode=()=>affiliateCode||(bookingState?.promoCode||initialPromoCode||null);
   const now = () => new Date().toISOString();
   const safeJSON = (s, fallback=null) => { try{return JSON.parse(s)}catch(e){return fallback} };
 
@@ -1704,7 +1715,7 @@
       :`<span class="checkout-standard-flag">${t('Scheduled tour','סיור רגיל')}</span>`;
     const sum=shell.querySelector('[data-checkout-summary]');
     const checkoutTourTitle=localizedBudapestExperienceTitle(bookingState.experience);
-    if(sum)sum.innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(checkoutTourTitle)}</b><span>${escapeHTML(confirmationDateLabel(bookingState.date))} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
+    if(sum)sum.innerHTML=`${affiliateCode?`<p class="muted" data-affiliate-applied>${escapeHTML(t('Partner offer applied automatically','הטבת שותף הופעלה אוטומטית'))}</p>`:''}<div class="checkout-summary-head"><div><b>${escapeHTML(checkoutTourTitle)}</b><span>${escapeHTML(confirmationDateLabel(bookingState.date))} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span></div>${privateLabel}</div>${renderPartySummary(bookingState.composition)}<div class="party-summary"><span>${t('Guide language','שפת הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span></div>${renderSelectedAncillarySummary()}${renderQuoteBreakdown(bookingState.quote)}`;
   }
   function selectedAncillaryQuantity(productId){
     const hit=(bookingState.extras||[]).find(x=>String(x.product_id)===String(productId));
@@ -1812,7 +1823,7 @@
     try{
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({
         slot_id:slotId,group_composition:bookingState.composition,
-        is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,promo_code:bookingState.promoCode||campaignPromo
+        is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,promo_code:effectivePromoCode()
       })});
       if(selectionGeneration!==checkoutPreparationGeneration||bookingState.idempotencyKey!==checkoutKey||String(bookingState.slot?.id||'')!==slotId)return;
       assertCheckoutQuote(quote);
@@ -1847,7 +1858,7 @@
     const status=document.querySelector('#availability-status');
     try{
       setBookingStep(2);status.textContent=t('Checking price and reserving your places…','בודקים מחיר ושומרים את המקומות שלכם…');
-      const quote=await api('/quotes',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,extras:[],promo_code:campaignPromo})});
+      const quote=await api('/quotes',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,extras:[],promo_code:initialPromoCode})});
       if(preparationGeneration!==checkoutPreparationGeneration)return;
       assertCheckoutQuote(quote);
       const hold=await api('/holds',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage})});
@@ -1855,9 +1866,9 @@
         api('/holds/'+encodeURIComponent(hold.id),{method:'DELETE'}).catch(()=>{});
         return;
       }
-      bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:campaignPromo,idempotencyKey:'voy_'+uuid(),extras:[],ancillaryOffers:[]};
+      bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:initialPromoCode,idempotencyKey:'voy_'+uuid(),extras:[],ancillaryOffers:[]};
       const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;setBookingStep(3);
-      renderStandardCheckoutSummary();
+      renderStandardCheckoutSummary();ensureSingleCouponControl();
       // A newly returned hold may already be expired or have no verifiable
       // expiry. Never display a checkout-ready state or load paid extras then.
       if(!startHoldTimer(hold.expires_at)){
@@ -1868,7 +1879,7 @@
       status.textContent=t('Your places are temporarily held while you complete the booking.','המקומות נשמרים זמנית בזמן השלמת ההזמנה.');
       shell.querySelector('[data-checkout-heading]')?.focus({preventScroll:true});
       shell.scrollIntoView({behavior:'smooth',block:'center'});
-      track('hold_created',{slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage,promo_code_applied:quote.promo_code_applied||campaignPromo||null,discount:quote.discount||0});
+      track('hold_created',{slot_id:slot.id,quote_total:quote.total,currency:quote.currency,is_private:isPrivate,guide_language:guideLanguage,promo_code_applied:quote.promo_code_applied||initialPromoCode||null,discount:quote.discount||0});
       patchSession({stage:'checkout_ready',selected_date:date,selected_time:slot.time,slot_id:slot.id,quote_id:quote.id,hold_id:hold.id,hold_expires_at:hold.expires_at,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});
       completed=true;
     }catch(e){
@@ -1894,7 +1905,7 @@
     const form=shell.querySelector('#live-checkout-form');const pay=form.querySelector('[name="payment_method"]').closest('.field');pay.hidden=true;
     const legal=form.querySelector('[data-checkout-legal]');if(legal){legal.hidden=true;const box=legal.querySelector('input');if(box){box.required=false;box.checked=false;}}
     form.querySelector('button[type="submit"]').textContent=t('Send confirmation request','שליחת בקשת אישור');
-    bookingState={slot,composition,quote:null,hold:null,experience,date,capacityRequest:true,isPrivate,guideLanguage,idempotencyKey:'voy_'+uuid()};
+    bookingState={slot,composition,quote:null,hold:null,experience,date,capacityRequest:true,isPrivate,guideLanguage,promoCode:initialPromoCode,idempotencyKey:'voy_'+uuid()};ensureSingleCouponControl();
     shell.querySelector('[data-checkout-heading]')?.focus({preventScroll:true});
     shell.scrollIntoView({behavior:'smooth',block:'center'});
   }
@@ -2133,7 +2144,7 @@
         currency:bookingState.quote?.currency||'EUR',
         extras:clone(bookingState.extras)||[],
         ancillary_details:clone(selectedAncillaryDetails())||[],
-        promo_code:bookingState.promoCode||null,
+        promo_code:effectivePromoCode(),
         attribution:analyticsAllowed()?clone(attr):null,
         capacity_request:Boolean(bookingState.capacityRequest)
       };
@@ -2145,7 +2156,7 @@
     try{
       if(bookingState.capacityRequest){
         st.textContent=t('Sending request…','שולחים בקשה…');
-        const req=await api('/booking-capacity-requests',{method:'POST',headers:{'Idempotency-Key':submission.idempotency_key},body:JSON.stringify({session_id:submission.session_id,destination_id:submission.destination_id,experience_id:submission.experience_id,experience_slug:submission.experience_slug,experience_title:submission.experience_title,slot_id:submission.slot_id,selected_date:submission.selected_date,slot_time:submission.slot_time,party_size:submission.party_size,group_composition:submission.group_composition,is_private:submission.is_private,guide_language:submission.guide_language,customer:submission.customer,...(submission.attribution?{attribution:submission.attribution}:{})})});
+        const req=await api('/booking-capacity-requests',{method:'POST',headers:{'Idempotency-Key':submission.idempotency_key},body:JSON.stringify({session_id:submission.session_id,destination_id:submission.destination_id,experience_id:submission.experience_id,experience_slug:submission.experience_slug,experience_title:submission.experience_title,slot_id:submission.slot_id,selected_date:submission.selected_date,slot_time:submission.slot_time,party_size:submission.party_size,group_composition:submission.group_composition,is_private:submission.is_private,guide_language:submission.guide_language,customer:submission.customer,promo_code:submission.promo_code,...(submission.attribution?{attribution:submission.attribution}:{})})});
         terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon" aria-hidden="true">✓</div><h3 tabindex="-1">${t('Request sent','הבקשה נשלחה')}</h3><p>${t('Reference','מספר פנייה')}: <b>${escapeHTML(req.reference)}</b></p><p>${t('The Budapest team will confirm the vehicles and guides needed for your group.','צוות בודפשט יאשר את הצוות והכלים הנדרשים.')}</p><div class="success-actions"><a class="btn alt" href="${whatsAppUrl()}">WhatsApp</a><a class="btn secondary" href="${localeBudapestHome()}">${t('Back to Budapest','חזרה לבודפשט')}</a></div>`;st.querySelector('h3')?.focus({preventScroll:true});checkoutForm.querySelectorAll('input,select,button').forEach(el=>el.disabled=true);track('capacity_request_created',{is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});patchSession({stage:'capacity_request_created',capacity_request_id:req.id,capacity_request_reference:req.reference});resetBookingStarted();delStore('voy_recovery_state');return;
       }
       if(!bookingState.hold?.id||String(bookingState.hold.id)!==String(submission.hold_id||'')){st.textContent=t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור את היציאה מחדש.');return;}
