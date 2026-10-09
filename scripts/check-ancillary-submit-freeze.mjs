@@ -8,9 +8,10 @@ requireText("const checkoutFrozen=document.querySelector('#live-checkout-shell')
 requireText("if(checkoutFrozen)node.querySelectorAll('button').forEach(btn=>btn.disabled=true);",'ancillary buttons created after submit are not disabled');
 requireText("if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;",'ancillary mutation handler can still change state after submit');
 requireText('ancillary_details:clone(selectedAncillaryDetails())||[],','submission snapshot does not freeze display details for submitted extras');
-requireText('extras:submission.ancillary_details||[]','booking WhatsApp confirmation still reads mutable live ancillary state');
-requireText('renderConfirmationAncillarySummary(submission.ancillary_details||[])','onscreen confirmation still reads mutable live ancillary state');
-requireText('function renderConfirmationAncillarySummary(items=selectedAncillaryDetails()){','confirmation renderer does not support immutable submitted ancillary details');
+requireText('extras:confirmedExtras.items','booking WhatsApp confirmation must use verified booking extras');
+requireText('renderConfirmationAncillarySummary(confirmedExtras.items)','onscreen confirmation must use verified booking extras');
+requireText('function renderConfirmationAncillarySummary(items=selectedAncillaryDetails()){','confirmation renderer must accept authoritative extras');
+requireText('const confirmedExtras=confirmedAncillaryDetails(booking,submission.extras);','confirmation must reconcile the submitted extras against the server booking');
 
 if(failures.length){
   console.error('Ancillary submit freeze guard failed.');

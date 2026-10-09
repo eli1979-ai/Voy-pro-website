@@ -52,7 +52,8 @@ for(const text of [
 ]){
  assert.ok(confirmedSection.includes(text),'confirmation UI missing authoritative '+text);
 }
-assert.ok(confirmedSection.includes('submission.ancillary_details||[]'),'immutable submitted extras preserved');
+assert.ok(confirmedSection.includes('confirmedExtras.items'),'confirmation must show server-returned extras rather than a pre-submit selection');
+assert.ok(confirmedSection.includes('const confirmedExtras=confirmedAncillaryDetails(booking,submission.extras);'),'server extras must be compared to the immutable submitted selection');
 assert.ok(js.includes("const date=String(booking?.selected_date||bookingState.date||'');"),'calendar should use server date first');
 assert.ok(js.includes("const time=String(booking?.slot_time||bookingState.slot?.time||'');"),'calendar should use server time first');
 assert.ok(js.includes("headers:{'Idempotency-Key':submission.idempotency_key}"),'ambiguous responses must keep retry idempotent');
