@@ -51,7 +51,7 @@
   let affiliateCode=validAffiliateCode(affiliateQuery)?affiliateQuery:null;
   if(!affiliateCode){try{const prev=sessionStorage.getItem(AFFILIATE_SESSION_KEY);if(validAffiliateCode(prev))affiliateCode=prev;}catch(e){}}
   const initialPromoCode=affiliateCode||campaignPromo||null;
-  const effectivePromoCode=()=>affiliateCode||(bookingState?.promoCode||initialPromoCode||null);
+  const effectivePromoCode=()=>affiliateCode||(bookingState&&Object.prototype.hasOwnProperty.call(bookingState,'promoCode')?bookingState.promoCode:initialPromoCode);
   const now = () => new Date().toISOString();
   const safeJSON = (s, fallback=null) => { try{return JSON.parse(s)}catch(e){return fallback} };
 
@@ -1478,6 +1478,96 @@
     }
   }
   let bookingState={slot:null,composition:null,quote:null,hold:null,experience:null,date:null,isPrivate:false,guideLanguage:null,idempotencyKey:null,extras:[],ancillaryOffers:[]};
+
+  function ensureSingleCouponControl(){
+    const shell=document.querySelector('#live-checkout-shell');
+    const form=shell?.querySelector('#live-checkout-form');
+    if(!form)return;
+    let panel=form.querySelector('[data-affiliate-coupon-panel]');
+    if(!panel){
+      panel=document.createElement('div');
+      panel.className='field';
+      panel.dataset.affiliateCouponPanel='';
+      const legal=form.querySelector('[data-checkout-legal]');
+      if(legal)legal.insertAdjacentElement('beforebegin',panel);
+      else form.insertAdjacentElement('afterbegin',panel);
+    }
+    // The referral link is the only allowed discount source; do not render a coupon input.
+    if(affiliateCode){
+      panel.hidden=true;
+      panel.replaceChildren();
+      return;
+    }
+    panel.hidden=false;
+    panel.replaceChildren();
+    const label=document.createElement('label');
+    label.textContent=t('Discount coupon (optional)','קופון הנחה (לא חובה)');
+    const input=document.createElement('input');
+    input.type='text';
+    input.autocomplete='off';
+    input.maxLength=40;
+    input.dataset.singleCoupon='';
+    input.value=bookingState.promoCode||'';
+    input.placeholder=t('Enter one code','הזינו קופון אחד');
+    label.appendChild(input);
+    panel.appendChild(label);
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='btn secondary';
+    button.dataset.applySingleCoupon='';
+    button.textContent=t('Apply code','הפעלת קופון');
+    panel.appendChild(button);
+    const status=document.createElement('p');
+    status.className='muted';
+    status.setAttribute('role','status');
+    status.setAttribute('aria-live','polite');
+    panel.appendChild(status);
+    button.addEventListener('click',async()=>{
+      if(shell.hasAttribute('data-submit-locked')||bookingState.submissionSnapshot)return;
+      const next=String(input.value||'').trim().toUpperCase();
+      if(next&&!/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(next)){
+        status.textContent=t('Enter one valid coupon code.','יש להזין קופון תקין אחד.');
+        return;
+      }
+      const previous=bookingState.promoCode||null;
+      if(next===(previous||'')){
+        status.textContent=t('This code is already applied.','הקופון הזה כבר הופעל.');
+        return;
+      }
+      button.disabled=true;
+      status.textContent=t('Checking coupon and price…','בודקים את הקופון והמחיר…');
+      try{
+        if(next){
+          const result=await api('/promotions/validate',{method:'POST',body:JSON.stringify({
+            code:next,slot_id:bookingState.slot?.id||null
+          })});
+          if(!result?.valid)throw new Error(result?.message||'Coupon not valid');
+        }
+        if(!bookingState.capacityRequest){
+          if(!bookingState.slot?.id)throw new Error('Departure selection required');
+          const quote=await api('/quotes',{method:'POST',body:JSON.stringify({
+            slot_id:bookingState.slot.id,
+            group_composition:bookingState.composition,
+            is_private:Boolean(bookingState.isPrivate),
+            extras:bookingState.extras||[],
+            promo_code:next||null
+          })});
+          assertCheckoutQuote(quote);
+          bookingState.quote=quote;
+        }
+        bookingState.promoCode=next||null;
+        if(!bookingState.capacityRequest){
+          renderStandardCheckoutSummary();
+          renderAncillaryOffers();
+        }
+        status.textContent=next?t('Coupon applied. Total updated.','הקופון הופעל והמחיר עודכן.'):t('Coupon removed.','הקופון הוסר.');
+      }catch(e){
+        bookingState.promoCode=previous;
+        status.textContent=t('Coupon unavailable. Your price is unchanged.','הקופון אינו זמין. המחיר נותר ללא שינוי.');
+      }finally{button.disabled=false;}
+    });
+  }
+
   hydratePaymentMethods();
   let holdTimer=null;
   function releaseHold(){const id=bookingState.hold?.id;if(id&&bookingEnabled){api('/holds/'+encodeURIComponent(id),{method:'DELETE'}).catch(()=>{});}bookingState.hold=null;if(holdTimer)clearInterval(holdTimer);}
