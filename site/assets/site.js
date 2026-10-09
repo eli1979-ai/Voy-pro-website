@@ -2201,6 +2201,11 @@
     const ancillary=document.querySelector('[data-ancillary-upsell]');
     if(ancillary?.getAttribute('aria-busy')==='true'){if(st)st.textContent=ancillaryText('updating');return;}
     if(checkoutForm.querySelector('[data-affiliate-coupon-panel]')?.getAttribute('aria-busy')==='true'){if(st)st.textContent=t('Please finish applying your coupon first.','יש להשלים את בדיקת הקופון לפני אישור ההזמנה.');return;}
+    const typedCoupon=checkoutForm.querySelector('[data-single-coupon]');
+    if(typedCoupon&&!affiliateCode&&String(typedCoupon.value||'').trim().toUpperCase()!==String(bookingState.promoCode||'')){
+      if(st)st.textContent=t('Apply or clear the coupon code before confirming the price.','יש להפעיל או לנקות את הקופון לפני אישור המחיר.');
+      typedCoupon.focus();return;
+    }
     if(checkoutForm.dataset.submitting==='true')return;
     const existingSubmission=bookingState.submissionSnapshot||null;
     let customer=existingSubmission?.customer||null;
