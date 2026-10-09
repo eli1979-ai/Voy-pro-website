@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import vm from 'node:vm';
 const errors=[];
 const check=(ok,msg)=>{if(!ok)errors.push(msg)};
 const types=['group-tours','corporate-events'];
@@ -24,6 +25,57 @@ check(js.includes("if(!form.reportValidity())return"),'Native validation missing
 check(js.includes("if(!Number.isSafeInteger(size)||size<1||size>10000)return"),'Headcount guard missing');
 check(js.includes("source:'b2b_planner'"),'Non-PII attribution missing');
 check(!js.includes("fetch('/api/v1/commercial-enquiries'"),'Do not introduce unverified CRM write');
+// Exercise the live planner handler without opening WhatsApp or creating a real booking.
+const plannerStart=js.indexOf('function bindB2BEnquiryPlanner()');
+const plannerEnd=js.indexOf('  const aliasesFrom=',plannerStart);
+check(plannerStart>=0&&plannerEnd>plannerStart,'Cannot isolate B2B date handling');
+if(plannerStart>=0&&plannerEnd>plannerStart){
+ const plannerScript=js.slice(plannerStart,plannerEnd);
+ for(const [locale,expectedError] of [
+  ['en','Choose today or a future date.'],
+  ['he','יש לבחור תאריך מהיום והלאה.'],
+  ['hu','Válassz mai vagy későbbi dátumot.']
+ ])for(const kind of ['group','corporate']){
+  const clock={today:'2026-10-09'};
+  const date={value:'2026-10-09',min:'',error:'',events:{},
+   addEventListener(event,cb){this.events[event]=cb;},
+   setCustomValidity(message){this.error=message;},
+   reportValidity(){this.errorPresented=this.error;return !this.error;}
+  };
+  let clicked;
+  const btn={addEventListener(type,handler){if(type==='click')clicked=handler;}};
+  const form={dataset:{b2bPlanner:kind},querySelector(selector){
+   return selector==='input[name="requested_date"]'?date:selector==='[data-b2b-open]'?btn:null;
+  },reportValidity(){return !date.error;}};
+  const formValues={headcount:'12',guide_language:'en',time_window:'flexible',english_ok:'',private_preference:'flexible',company:'',organizer:'',notes:''};
+  const context={
+   document:{querySelectorAll:selector=>selector==='form[data-b2b-planner]'?[form]:[]},
+   locale,budapestDate:()=>clock.today,FormData:class{get(key){return key==='requested_date'?date.value:formValues[key]??null;}},
+   track:()=>{context.tracks++;},tracks:0,
+   location:{pathname:'/'+locale+'/budapest/'+kind+'/',href:''},page:'/budapest/',encodeURIComponent
+  };
+  try{vm.runInNewContext(plannerScript,context,{timeout:1000});}
+  catch(error){errors.push(locale+'/'+kind+': planner cannot execute: '+error.message);continue;}
+  check(typeof clicked==='function',locale+'/'+kind+': planner button handler missing');
+  if(typeof clicked!=='function')continue;
+  check(date.min==='2026-10-09',locale+'/'+kind+': initial Budapest minimum date missing');
+  clock.today='2026-10-10'; // Page left open across Budapest midnight.
+  date.events.focus?.();
+  check(date.min==='2026-10-10',locale+'/'+kind+': minimum date not refreshed after midnight');
+  clicked();
+  check(date.error===expectedError,locale+'/'+kind+': expired-date error not localized');
+  check(context.location.href==='',locale+'/'+kind+': invalid date opened WhatsApp');
+  check(context.tracks===0,locale+'/'+kind+': invalid enquiry was tracked as opened');
+  date.value='2026-10-10';
+  date.events.change?.();
+  check(date.error==='',locale+'/'+kind+': date error not cleared after correction');
+  clicked();
+  check(context.location.href.startsWith('https://wa.me/36300993099?text='),locale+'/'+kind+': valid date did not hand off to WhatsApp');
+  check(decodeURIComponent(context.location.href).includes('2026-10-10'),locale+'/'+kind+': corrected date not included in message');
+  check(context.tracks===1,locale+'/'+kind+': valid handoff analytics count wrong');
+ }
+}
+
 const css=fs.readFileSync('site/assets/site.css','utf8');
 check(css.includes('.b2b-planner-fields')&&css.includes('@media(max-width:800px)'), 'Responsive design missing');
 if(errors.length){console.error(errors.join('\n'));process.exit(1)}
