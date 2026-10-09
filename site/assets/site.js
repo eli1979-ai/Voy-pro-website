@@ -1087,7 +1087,7 @@
 
 
   function validateGroupComposition(form,composition){
-    // Validate what the guest actually selected; FBM alone decides passenger
+    // Validate what the guest actually selected; the server decides passenger
     // seats, capacity and pricing, so no additional business caps are invented.
     const fields=[['adults','riders_16_plus'],['children','child_passengers_3_15'],['babies','baby_passengers_1_2']];
     const invalid=locale==='he'?'בחרו מספר משתתפים תקין לפני בדיקת הזמינות.'
