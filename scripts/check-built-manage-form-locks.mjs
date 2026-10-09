@@ -9,6 +9,7 @@ requireText("if(cf.dataset.busy==='true')return;cf.dataset.busy='true'",'contact
 requireText("delete cf.dataset.busy;if(submit)submit.disabled=false",'contact update does not release its lock');
 requireText("if(riderForm.dataset.busy==='true')return;riderForm.dataset.busy='true'",'rider/waiver save lacks single-flight lock');
 requireText("delete riderForm.dataset.busy;if(submit)submit.disabled=false",'rider/waiver save does not release its lock');
+requireText("if(riderForm.dataset.riderSaveUnverified!=='true'){delete riderForm.dataset.busy;if(submit)submit.disabled=false}",'unverified rider save releases single-flight lock');
 requireText("'/riders',{method:'PATCH'",'rider/waiver PATCH missing');
 
 let inlineScripts=0;
