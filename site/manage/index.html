@@ -361,9 +361,15 @@
      };
     });
     try{
+     const signedIds=new Set([...riderForm.querySelectorAll('.waiver-rider-card[data-signed="true"]')].map(card=>card.dataset.riderId));
+     const expectedReference=booking?.reference;
      const out=await api('/manage/'+encodeURIComponent(token)+'/riders',{method:'PATCH',body:JSON.stringify({riders})});
-     if(!out||out.booking_reference!==booking?.reference||!Array.isArray(out.riders)||out.riders.length!==riders.length)throw new Error('Rider save not verified');
-      riderIntake=out;
+     if(!confirmedRiderSnapshot(out,expectedReference,riders,signedIds))
+      throw Object.assign(new Error('Rider response unverified'),{code:'RIDER_RESPONSE_UNVERIFIED'});
+     const fresh=await api('/manage/'+encodeURIComponent(token)+'/riders',{timeoutMs:2500});
+     if(!confirmedRiderSnapshot(fresh,expectedReference,riders,signedIds))
+      throw Object.assign(new Error('Rider read unverified'),{code:'RIDER_RESPONSE_UNVERIFIED'});
+     riderIntake=fresh;
      render();
      const savedStatus=document.getElementById('waiver-riders-status');
      if(savedStatus){
