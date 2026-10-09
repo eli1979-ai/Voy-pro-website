@@ -1535,6 +1535,8 @@
         return;
       }
       button.disabled=true;
+      panel.setAttribute('aria-busy','true');
+      const checkoutKey=bookingState.idempotencyKey;
       status.textContent=t('Checking coupon and price…','בודקים את הקופון והמחיר…');
       try{
         if(next){
@@ -1553,8 +1555,10 @@
             promo_code:next||null
           })});
           assertCheckoutQuote(quote);
+          if(checkoutKey!==bookingState.idempotencyKey)return;
           bookingState.quote=quote;
         }
+        if(checkoutKey!==bookingState.idempotencyKey)return;
         bookingState.promoCode=next||null;
         if(!bookingState.capacityRequest){
           renderStandardCheckoutSummary();
@@ -1564,7 +1568,7 @@
       }catch(e){
         bookingState.promoCode=previous;
         status.textContent=t('Coupon unavailable. Your price is unchanged.','הקופון אינו זמין. המחיר נותר ללא שינוי.');
-      }finally{button.disabled=false;}
+      }finally{button.disabled=false;panel.removeAttribute('aria-busy');}
     });
   }
 
@@ -2196,6 +2200,7 @@
     e.preventDefault();const st=document.querySelector('[data-checkout-status]');
     const ancillary=document.querySelector('[data-ancillary-upsell]');
     if(ancillary?.getAttribute('aria-busy')==='true'){if(st)st.textContent=ancillaryText('updating');return;}
+    if(checkoutForm.querySelector('[data-affiliate-coupon-panel]')?.getAttribute('aria-busy')==='true'){if(st)st.textContent=t('Please finish applying your coupon first.','יש להשלים את בדיקת הקופון לפני אישור ההזמנה.');return;}
     if(checkoutForm.dataset.submitting==='true')return;
     const existingSubmission=bookingState.submissionSnapshot||null;
     let customer=existingSubmission?.customer||null;
