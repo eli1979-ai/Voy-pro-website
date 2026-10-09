@@ -344,7 +344,8 @@
     });
     try{
      const out=await api('/manage/'+encodeURIComponent(token)+'/riders',{method:'PATCH',body:JSON.stringify({riders})});
-     riderIntake={...(riderIntake||{}),...out,riders:Array.isArray(out.riders)?out.riders:riders};
+     if(!out||out.booking_reference!==booking?.reference||!Array.isArray(out.riders)||out.riders.length!==riders.length)throw new Error('Rider save not verified');
+      riderIntake=out;
      render();
      const savedStatus=document.getElementById('waiver-riders-status');
      if(savedStatus){
