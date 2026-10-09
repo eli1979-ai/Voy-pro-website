@@ -37,5 +37,4 @@ assert.ok(block.includes('payment status cannot be verified on this page'),'No-r
 assert.ok(block.includes("if(retry){"),'Existing Stripe session retry path must be preserved');
 assert.ok(block.includes("const retryHref=escapeHTML(retry.checkout_url);"),'Return retry must reuse original secure session');
 assert.ok(source.includes("headers:{'Idempotency-Key':submission.idempotency_key}"),'Server request must continue to reuse existing idempotency key');
-assert.ok(source.includes('paymentReturn=q')===false||true,'noop');
 console.log('PASS: ambiguous booking/card errors and cancelled Stripe returns avoid unsupported charge claims in EN/HE/HU; retry and idempotency preserved.');
