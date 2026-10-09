@@ -48,7 +48,7 @@ for(const locale of ['en','he','hu']){
   const s={
     T:(en,he,hu)=>locale==='he'?he:locale==='hu'?hu:en,
     paymentReturn:true,paymentReturnPending:true,paymentReturnSettled:false,
-    paymentIsSettled:()=>false
+    booking:{payment_status:'paid'},paymentIsSettled:()=>false
   };
   vm.runInNewContext(messageFn+';testPaymentMarkup=paymentReturnMarkup;',s,{timeout:1000});
   const pending=s.testPaymentMarkup();
