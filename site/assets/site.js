@@ -1085,6 +1085,57 @@
     if(form&&typeof form._updateGuideLanguages==='function')form._updateGuideLanguages(product);
   }
 
+
+  function validateGroupComposition(form,composition){
+    // Validate what the guest actually selected; the server decides passenger
+    // seats, capacity and pricing, so no additional business caps are invented.
+    const fields=[['adults','riders_16_plus'],['children','child_passengers_3_15'],['babies','baby_passengers_1_2']];
+    const invalid=locale==='he'?'בחרו מספר משתתפים תקין לפני בדיקת הזמינות.'
+      :locale==='hu'?'Válassz érvényes létszámot az elérhetőség ellenőrzése előtt.'
+      :'Select valid group quantities before checking availability.';
+    for(const [name,key] of fields){
+      const select=form?.querySelector('select[name="'+name+'"]');
+      const value=composition?.[key];
+      if(!select||!Number.isSafeInteger(value)||value<(name==='adults'?1:0)||
+        ![...select.options].some(option=>String(option.value)===String(select.value)&&Number(option.value)===value)){
+        return {valid:false,message:invalid};
+      }
+    }
+    return {valid:true,message:''};
+  }
+  function ensureGroupCompositionPreview(form){
+    if(!form||form.querySelector('[data-group-composition-preview]'))return;
+    const lastField=form.querySelector('select[name="babies"]')?.closest('.field');
+    if(!lastField)return;
+    const preview=document.createElement('div');
+    preview.className='booking-group-preview';
+    preview.dataset.groupCompositionPreview='';
+    preview.setAttribute('role','status');
+    preview.setAttribute('aria-live','polite');
+    lastField.insertAdjacentElement('afterend',preview);
+    const update=()=>{
+      const counts={
+        riders_16_plus:Number(form.querySelector('select[name="adults"]')?.value),
+        child_passengers_3_15:Number(form.querySelector('select[name="children"]')?.value),
+        baby_passengers_1_2:Number(form.querySelector('select[name="babies"]')?.value),
+      };
+      const check=validateGroupComposition(form,counts);
+      preview.dataset.valid=String(check.valid);
+      if(!check.valid){preview.textContent=check.message;return;}
+      const labels=riderPolicyLabels();
+      const total=counts.riders_16_plus+counts.child_passengers_3_15+counts.baby_passengers_1_2;
+      const totalLabel=locale==='he'?'סה״כ משתתפים':locale==='hu'?'Összes résztvevő':'Total participants';
+      const note=locale==='he'?'זמינות כיסאות הנוסעים והמחיר הסופי מאושרים בבדיקת זמינות.'
+        :locale==='hu'?'Az utasülések elérhetőségét és a végső árat az elérhetőség-ellenőrzés erősíti meg.'
+        :'Passenger seat availability and final price are confirmed during live availability.';
+      preview.textContent=`${labels.riders}: ${counts.riders_16_plus} · ${labels.children}: ${counts.child_passengers_3_15} · ${labels.babies}: ${counts.baby_passengers_1_2} · ${totalLabel}: ${total}. ${note}`;
+    };
+    form.addEventListener('change',event=>{
+      if(['adults','children','babies'].includes(event.target?.name))update();
+    });
+    update();
+  }
+
   let availabilitySearchGeneration=0;
   let checkoutPreparationGeneration=0;
   let checkoutPreparationActiveGeneration=null;
@@ -1840,6 +1891,7 @@
     ensurePrivateUpgrade(form);
     ensureGuideLanguageField(form);
     enhanceBookingFormLayout(form);
+    ensureGroupCompositionPreview(form);
     hydrateCatalog().then(()=>{
       if(qs.get('mode')==='private'){
         const mode=document.querySelector('[data-private-upgrade]');
@@ -1860,6 +1912,8 @@
       const data=new FormData(form); const experience=productCache.byId[data.get('experience')];
       if(!experience){status.innerHTML=rescueMarkup(t('Online booking is not available for this route right now. Please contact the local team.','לא ניתן להשלים כרגע את ההזמנה הזו באתר. אפשר לפנות לצוות המקומי.'));bindInlineWhatsApp(status);return;}
       const composition={riders_16_plus:Number(data.get('adults')||0),child_passengers_3_15:Number(data.get('children')||0),baby_passengers_1_2:Number(data.get('babies')||0),request_15yo_independent_assessment:false};
+      const compositionCheck=validateGroupComposition(form,composition);
+      if(!compositionCheck.valid){status.textContent=compositionCheck.message;return;}
       const isPrivate=String(data.get('is_private')||'')==='true';
       const guideLanguage=String(data.get('guide_language')||'').trim().toLowerCase();
       if(!guideLanguage){

@@ -793,3 +793,20 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 .tour-floating-whatsapp svg{width:25px;height:25px}
 .tour-floating-whatsapp-label{display:none}
 }
+
+/* v1.48.92: show the composition actually sent to FBM, without implying seat inventory. */
+.booking-group-preview{
+  grid-column:1/-1;
+  padding:12px 15px;
+  border:1px solid #cddde6;
+  border-radius:12px;
+  background:#f2f8fb;
+  color:#213f50;
+  font-size:.9rem;
+  line-height:1.55;
+}
+.booking-group-preview[data-valid="false"]{
+  border-color:#cc8d76;
+  background:#fff4ed;
+  color:#793a2b;
+}
