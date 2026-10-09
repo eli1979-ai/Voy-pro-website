@@ -941,7 +941,20 @@
             },
             "manage_token": "manage-token",
             "created_at": "2026-10-03T10:00:00.000Z",
-            "updated_at": "2026-10-03T10:00:00.000Z"
+            "updated_at": "2026-10-03T10:00:00.000Z",
+            "ancillary_items_status": "available",
+            "ancillary_items": [
+              {
+                "product_id": "anc-1",
+                "sku": "GOPRO",
+                "name": "GoPro rental",
+                "quantity": 1,
+                "unit_price_minor": 3000,
+                "total_minor": 3000,
+                "currency": "EUR",
+                "status": "reserved"
+              }
+            ]
           },
           "required_fields": [
             "reference",
