@@ -5,7 +5,11 @@ let html=fs.readFileSync(file,'utf8');
 
 const helperAnchor=" function render(){";
 const helper=` function applyPaymentReturnMutationLock(){
-  if(!paymentReturnPending)return;
+  if(!paymentReturnPending){
+   box.removeAttribute('aria-busy');
+   box.removeAttribute('data-payment-return-lock');
+   return;
+  }
   box.setAttribute('aria-busy','true');
   box.setAttribute('data-payment-return-lock','true');
   box.querySelectorAll('form input,form select,form button,#manage-date,#manage-search,#manage-slots button,#manage-cancel').forEach(control=>{

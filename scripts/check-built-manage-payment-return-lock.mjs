@@ -6,7 +6,9 @@ const failures=[];
 const requireText=(text,label)=>{if(!html.includes(text))failures.push(label);};
 
 requireText('function applyPaymentReturnMutationLock(){','Manage payment-return mutation-lock helper is missing');
-requireText('if(!paymentReturnPending)return;','Manage mutation lock is not scoped to active payment reconciliation');
+requireText('if(!paymentReturnPending){','Manage mutation lock is not scoped to active payment reconciliation');
+requireText("box.removeAttribute('aria-busy');",'Manage payment busy state is not released');
+requireText("box.removeAttribute('data-payment-return-lock');",'Manage payment marker is not released');
 requireText("box.setAttribute('aria-busy','true');",'Manage payment reconciliation does not expose a busy container state');
 requireText("box.setAttribute('data-payment-return-lock','true');",'Manage payment reconciliation lock marker is missing');
 requireText("box.querySelectorAll('form input,form select,form button,#manage-date,#manage-search,#manage-slots button,#manage-cancel').forEach(control=>{",'Manage mutation controls are not covered by the payment-reconciliation lock');

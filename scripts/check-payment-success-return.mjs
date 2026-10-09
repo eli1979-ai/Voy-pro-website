@@ -11,13 +11,15 @@ function requireText(token){
 for(const token of [
   "paymentReturn=q.get('payment')==='success'",
   "['paid','partially_paid'].includes",
+  "api('/manage/'+encodeURIComponent(token)+'/options').catch(()=>{optionsUnavailable=true;return {can_change_datetime:false,cancellation:{allowed:false}};})",
+  "optionsUnavailable?'<div class=\"notice\" role=\"status\">'",
   'async function reconcilePaymentReturn()',
   'for(let attempt=0;attempt<5;attempt++)',
   'setTimeout(resolve,800)',
   "clean.searchParams.delete('payment')",
   'Payment received. Your booking payment status is updated.',
-  'Payment completed in Stripe. We are confirming it in your booking now',
-  'Payment was submitted and is still being confirmed.',
+  'You returned from secure card checkout. We are checking your booking payment status',
+  'Payment status is not confirmed yet.',
 ]){
   requireText(token);
 }
