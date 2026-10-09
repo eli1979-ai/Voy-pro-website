@@ -37,7 +37,7 @@ mutateBlock(
     const tail='\n    }\n   });\n  }\n  ';
     if(!block.includes(prevent)||!block.includes(tail)){console.error('Manage form-lock renderer: rider anchors not found.');process.exit(1);}
     block=block.replace(prevent,prevent+"if(riderForm.dataset.busy==='true')return;riderForm.dataset.busy='true';const submit=riderForm.querySelector('button[type=\"submit\"]');if(submit)submit.disabled=true;");
-    return block.replace(tail,"\n    }finally{delete riderForm.dataset.busy;if(submit)submit.disabled=false}\n   });\n  }\n  ");
+    return block.replace(tail,"\n    }finally{if(riderForm.dataset.riderSaveUnverified!=='true'){delete riderForm.dataset.busy;if(submit)submit.disabled=false}}\n   });\n  }\n  ");
   },
   'rider/waiver'
 );
