@@ -18,12 +18,13 @@ mutateBlock(
   "const riderForm=document.getElementById('waiver-riders-form')",
   block=>{
     const prevent='e.preventDefault();';
-    const close='}});';
+    const close='});';
     const closeAt=block.lastIndexOf(close);
     if(!block.includes(prevent)||closeAt<0){console.error('Manage form-lock renderer: contact anchors not found.');process.exit(1);}
-    block=block.replace(prevent,prevent+"if(cf.dataset.busy==='true')return;cf.dataset.busy='true';const submit=cf.querySelector('button[type=\"submit\"]');if(submit)submit.disabled=true;");
-    const finallyCode="finally{delete cf.dataset.busy;if(submit)submit.disabled=false}";
-    return block.slice(0,closeAt)+"}"+finallyCode+"});"+block.slice(closeAt+close.length);
+    block=block.replace(prevent,prevent+"if(cf.dataset.busy==='true')return;cf.dataset.busy='true';const submit=cf.querySelector('button[type=\"submit\"]');if(submit)submit.disabled=true;const contactFields=[...cf.querySelectorAll('input')];contactFields.forEach(field=>field.readOnly=true);");
+    const finalAt=block.lastIndexOf(close);
+    const finallyCode="finally{if(cf.dataset.contactUnverified!=='true'){delete cf.dataset.busy;if(submit)submit.disabled=false;contactFields.forEach(field=>field.readOnly=false)}}";
+    return block.slice(0,finalAt)+finallyCode+block.slice(finalAt);
   },
   'contact'
 );
