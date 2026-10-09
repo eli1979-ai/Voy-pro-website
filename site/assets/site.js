@@ -2017,6 +2017,23 @@
     shell.setAttribute('data-submit-retry','true');
   }
 
+  function checkoutFailureMessage(err,paymentMethod){
+    if(err?.code==='HOLD_EXPIRED')
+      return t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.');
+    if(err?.code==='STAFF_CONFIRMATION_REQUIRED')
+      return t('This booking needs an additional confirmation. Please search again and send a request.','להזמנה הזו נדרש אישור נוסף. יש לחפש מחדש ולשלוח בקשה.');
+    // A network failure or server error can happen after a booking/payment
+    // request was accepted. Only the server can verify the final outcome.
+    if(paymentMethod==='pay_now_card'){
+      if(locale==='he')return 'לא הצלחנו לאמת את תוצאת בקשת התשלום. אפשר לנסות שוב את אותה בקשה, עם אותם פרטים, או לפנות לצוות לפני פתיחת הזמנה חדשה. מצב החיוב טרם אומת.';
+      if(locale==='hu')return 'Nem tudtuk ellenőrizni a kártyás fizetési kérés eredményét. Próbáld újra ugyanazt a kérést a meglévő adatokkal, vagy egyeztess a csapatunkkal új foglalás indítása előtt. A fizetés állapota nincs megerősítve.';
+      return 'We could not verify the outcome of the card payment request. Retry this same request with the same details, or contact our team before starting another booking. Payment status has not been confirmed.';
+    }
+    if(locale==='he')return 'לא הצלחנו לאמת אם ההזמנה הושלמה. אפשר לנסות שוב את אותה בקשה או לפנות לצוות לפני יצירת הזמנה נוספת.';
+    if(locale==='hu')return 'Nem tudtuk ellenőrizni, hogy a foglalás létrejött-e. Próbáld újra ugyanazt a kérést, vagy egyeztess a csapatunkkal új foglalás indítása előtt.';
+    return 'We could not verify whether the booking completed. Retry this same request or contact our team before creating another booking.';
+  }
+
   const checkoutForm=document.querySelector('#live-checkout-form');
   if(checkoutForm){checkoutForm.addEventListener('submit',async e=>{
     e.preventDefault();const st=document.querySelector('[data-checkout-status]');
@@ -2103,7 +2120,7 @@
         terminal=true;
         recoverExpiredHold=true;
       }
-      const msg=holdExpired?t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.'):err.code==='STAFF_CONFIRMATION_REQUIRED'?t('This booking needs an additional confirmation. Please search again and send a request.','להזמנה הזו נדרש אישור נוסף. יש לחפש מחדש ולשלוח בקשה.'):t('The booking could not be completed. No online card charge was made.','לא ניתן להשלים את ההזמנה. לא בוצע חיוב מקוון.');
+      const msg=checkoutFailureMessage(err,paymentMethod);
       st.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(st);
     }
     finally{
@@ -2129,8 +2146,8 @@
     const status=document.querySelector('#availability-status');
     if(status){
       const message=retry
-        ?t('Card payment was cancelled. No charge was made. Your secure Stripe checkout is still available, so you can retry the card payment without creating a new booking.','תשלום הכרטיס בוטל ולא בוצע חיוב. התשלום המאובטח ב-Stripe עדיין זמין, ולכן אפשר לנסות שוב בלי ליצור הזמנה חדשה.')
-        :t('Card payment was cancelled. No successful online card payment was completed. Restore your selection to recheck availability, or contact us on WhatsApp for help.','תשלום הכרטיס בוטל. לא הושלם תשלום מקוון מוצלח. אפשר לשחזר את הבחירה ולבדוק זמינות מחדש, או לפנות אלינו ב-WhatsApp לעזרה.');
+        ?(locale==='he'?'חזרתם ממסך התשלום. לא ניתן לאמת מכאן אם בוצע חיוב. אם לא שילמתם, אפשר לחזור לאותו מסך תשלום מאובטח; אחרת, בדקו עם הצוות לפני ניסיון נוסף.':locale==='hu'?'Visszatértél a kártyás fizetésből. Innen nem ellenőrizhető, történt-e terhelés. Ha nem fizettél, visszatérhetsz ugyanahhoz a biztonságos fizetéshez; egyébként egyeztess a csapattal újabb próbálkozás előtt.':'You returned from card checkout. This page cannot verify whether a charge was processed. If you did not pay, you can return to the same secure checkout; otherwise, contact our team before trying again.')
+        :(locale==='he'?'חזרתם ממסך התשלום, אך איננו יכולים לאמת כאן את מצב החיוב. לפני פתיחת הזמנה חדשה, בדקו עם הצוות ב־WhatsApp; ניתן גם לשחזר את הבחירה ולבדוק זמינות.':locale==='hu'?'Visszatértél a kártyás fizetésből, de a terhelés állapota innen nem ellenőrizhető. Új foglalás előtt egyeztess csapatunkkal WhatsAppon; ezután visszaállíthatod a választást és ellenőrizheted az elérhetőséget.':'You returned from card checkout, but the payment status cannot be verified on this page. Contact our team on WhatsApp before starting a new booking; you can also restore your selection to check availability.');
       let markup=rescueMarkup(message);
       if(retry){
         const retryLabel=t('Retry card payment','חזרה לתשלום בכרטיס');
