@@ -6,7 +6,7 @@ assert.match(code,/sessionStorage\.setItem\(AFFILIATE_SESSION_KEY,affiliateQuery
 assert.match(code,/AFFILIATE_SESSION_KEY='voy_active_affiliate_ref_v1:'\+destinationId/,'partner attribution must be scoped by branch');
 assert.match(code,/const initialPromoCode=affiliateCode\|\|campaignPromo\|\|null/,'affiliate link must override promotional query params');
 assert.match(code,/if\(affiliateCode\)\{[\s\S]{0,100}panel\.hidden=true/,'hide coupon field whenever a partner link is active');
-assert.match(code,/panel\.querySelector\('\[data-apply-single-coupon\]'\)/,'direct visitors can apply one coupon');
+assert.match(code,/button\.addEventListener\('click',async/,'direct visitors can apply one coupon');
 assert.match(code,/api\('\/promotions\/validate'/,'coupon is validated on the server');
 assert.match(code,/api\('\/quotes'/,'price is recalculated after coupon entry');
 assert.match(code,/promo_code:submission\.promo_code/,'referral must follow human confirmation requests');
