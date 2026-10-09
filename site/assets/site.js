@@ -1947,9 +1947,37 @@
     });
   }else{hydrateCatalog();}
 
+  function verifiedBookingConfirmation(booking){
+    // Never label a response as confirmed unless the server supplied enough
+    // information to show its actual booking and a usable management link.
+    const reference=typeof booking?.reference==='string'?booking.reference.trim():'';
+    const token=typeof booking?.manage_token==='string'&&booking.manage_token.trim()
+      ?booking.manage_token.trim()
+      :typeof booking?.secure_token==='string'?booking.secure_token.trim():'';
+    const total=booking?.total!=null&&booking.total!==''?finiteNumber(booking.total):null;
+    const currency=String(booking?.currency||'').trim();
+    const date=String(booking?.selected_date||'').trim();
+    const time=String(booking?.slot_time||'').trim();
+    const paymentStatus=String(booking?.payment_status||'').trim();
+    if(booking?.status!=='confirmed'||!reference||!token||total==null||total<0||
+       !/^[A-Za-z]{3}$/.test(currency)||!/^\d{4}-\d{2}-\d{2}$/.test(date)||
+       !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time)||!paymentStatus){
+      const err=new Error('Booking response could not be verified.');
+      err.code='BOOKING_CONFIRMATION_UNVERIFIED';
+      throw err;
+    }
+    return {
+      reference,token,total,currency,date,time,paymentStatus,
+      composition:booking.group_composition&&typeof booking.group_composition==='object'
+        ?booking.group_composition:bookingState.composition,
+      guideLanguage:booking.guide_language||bookingState.guideLanguage,
+      isPrivate:typeof booking.is_private==='boolean'?booking.is_private:Boolean(bookingState.isPrivate)
+    };
+  }
+
   function calendarUrlForBooking(booking){
-    const date=String(bookingState.date||booking?.selected_date||'');
-    const time=String(bookingState.slot?.time||booking?.slot_time||'');
+    const date=String(booking?.selected_date||bookingState.date||'');
+    const time=String(booking?.slot_time||bookingState.slot?.time||'');
     const m=date.match(/^(\d{4})-(\d{2})-(\d{2})$/),tm=time.match(/^(\d{1,2}):(\d{2})/);
     if(!m||!tm)return '#';
     const liveDuration=Number(bookingState.experience?.durationMinutes);
@@ -2103,14 +2131,15 @@
         return;
       }
       const booking=await api('/bookings',{method:'POST',headers:{'Idempotency-Key':submission.idempotency_key},body:JSON.stringify({hold_id:submission.hold_id,session_id:submission.session_id,customer:submission.customer,payment_method:submission.payment_method,selected_date:submission.selected_date,slot_time:submission.slot_time,experience_title:submission.experience_title,is_private:submission.is_private,guide_language:submission.guide_language,extras:submission.extras,promo_code:submission.promo_code})});
+      const confirmed=verifiedBookingConfirmation(booking);
       clearInterval(holdTimer); bookingState.hold=null; delStore('voy_recovery_state');
-      const manageToken=booking.manage_token||booking.secure_token||'';const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':'';const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
-      const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:booking.reference,experience_title:localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title),date:confirmationDateLabel(bookingState.date||booking.selected_date),requested_time:confirmationTimeLabel(bookingState.slot?.time||booking.slot_time),riders:bookingState.composition?.riders_16_plus||0,children:bookingState.composition?.child_passengers_3_15||0,babies:bookingState.composition?.baby_passengers_1_2||0,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage||booking.guide_language,payment_method:paymentMethod,extras:submission.ancillary_details||[],total:booking.total,currency:booking.currency||'EUR'});
+      const manageToken=confirmed.token;const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':'';const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
+      const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:confirmed.reference,experience_title:localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title),date:confirmationDateLabel(confirmed.date),requested_time:confirmationTimeLabel(confirmed.time),riders:confirmed.composition?.riders_16_plus||0,children:confirmed.composition?.child_passengers_3_15||0,babies:confirmed.composition?.baby_passengers_1_2||0,is_private:confirmed.isPrivate,guide_language:confirmed.guideLanguage,payment_method:paymentMethod,extras:submission.ancillary_details||[],total:confirmed.total,currency:confirmed.currency});
       const confirmationMeetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':'Meeting point';
       const confirmationMapsLabel=locale==='he'?'פתיחה ב־Google Maps':locale==='hu'?'Megnyitás a Google Térképen':'Open in Google Maps';
-      const confirmationTotal=finiteNumber(booking.total);
+      const confirmationTotal=confirmed.total;
       const confirmationTour=localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title);
-      terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon" aria-hidden="true">✓</div><h3 tabindex="-1">${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(booking.reference)}</b></div>${confirmationTour?`<div class="confirmation-tour"><span>${t('Tour','סיור')}</span><strong>${escapeHTML(confirmationTour)}</strong></div>`:''}${renderPartySummary(bookingState.composition)}${confirmationTotal!=null?`<div class="confirmation-total"><span>${t('Total','סה״כ')}</span><strong>${escapeHTML(money(confirmationTotal,booking.currency||'EUR'))}</strong></div>`:''}<div class="party-summary confirmation-meta"><span>${t('Date','תאריך')} · ${escapeHTML(confirmationDateLabel(bookingState.date))}</span><span>${t('Time','שעה')} · ${escapeHTML(confirmationTimeLabel(bookingState.slot.time))}</span>${bookingState.isPrivate?`<span>${t('Private tour','סיור פרטי')}</span>`:''}<span>${t('Guide','הדרכה')} · ${escapeHTML(guideLanguageLabel(bookingState.guideLanguage))}</span><span>${t('Payment','תשלום')} · ${paymentMethod==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):paymentMethod==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום')}</span></div>${renderConfirmationAncillarySummary(submission.ancillary_details||[])}${(()=>{const meeting=budapestMeetingPoint();if(!meeting?.address)return '';return `<div class="confirmation-meeting-point"><div><small>${escapeHTML(confirmationMeetingLabel)}</small><b>${escapeHTML(meeting.address)}</b></div>${meeting.maps_url?`<a class="btn secondary" href="${escapeHTML(meeting.maps_url)}" target="_blank" rel="noopener">${escapeHTML(confirmationMapsLabel)}</a>`:''}</div>`;})()}<div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}" target="_blank" rel="noopener">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
+      terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon" aria-hidden="true">✓</div><h3 tabindex="-1">${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(confirmed.reference)}</b></div>${confirmationTour?`<div class="confirmation-tour"><span>${t('Tour','סיור')}</span><strong>${escapeHTML(confirmationTour)}</strong></div>`:''}${renderPartySummary(confirmed.composition)}${confirmationTotal!=null?`<div class="confirmation-total"><span>${t('Total','סה״כ')}</span><strong>${escapeHTML(money(confirmationTotal,confirmed.currency))}</strong></div>`:''}<div class="party-summary confirmation-meta"><span>${t('Date','תאריך')} · ${escapeHTML(confirmationDateLabel(confirmed.date))}</span><span>${t('Time','שעה')} · ${escapeHTML(confirmationTimeLabel(confirmed.time))}</span>${confirmed.isPrivate?`<span>${t('Private tour','סיור פרטי')}</span>`:''}<span>${t('Guide','הדרכה')} · ${escapeHTML(guideLanguageLabel(confirmed.guideLanguage))}</span><span>${t('Payment','תשלום')} · ${paymentMethod==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):paymentMethod==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום')}</span></div>${renderConfirmationAncillarySummary(submission.ancillary_details||[])}${(()=>{const meeting=budapestMeetingPoint();if(!meeting?.address)return '';return `<div class="confirmation-meeting-point"><div><small>${escapeHTML(confirmationMeetingLabel)}</small><b>${escapeHTML(meeting.address)}</b></div>${meeting.maps_url?`<a class="btn secondary" href="${escapeHTML(meeting.maps_url)}" target="_blank" rel="noopener">${escapeHTML(confirmationMapsLabel)}</a>`:''}</div>`;})()}<div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}" target="_blank" rel="noopener">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
       bindConfirmationActions(st,booking);st.querySelector('h3')?.focus({preventScroll:true});checkoutForm.querySelectorAll('input,select,button:not([data-copy-booking-ref])').forEach(el=>el.disabled=true);document.querySelector('.mobilebook')?.setAttribute('hidden','');
       track('booking_completed',{booking_value:booking.total,value_semantics:'booked_gmv',currency:booking.currency,payment_method:paymentMethod,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,promo_code_applied:booking.promo_code_applied||bookingState.promoCode||null,discount:booking.discount||0});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});resetBookingStarted();
     }catch(err){
