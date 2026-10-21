@@ -1,7 +1,7 @@
 (()=>{'use strict';
   const player=document.querySelector('[data-ez-video-player]');
   if(!player)return;
-  const allowed=new Set(['1i2IQSShkQ8','fMcnMk6gzYA','NHWLOcUc8Vg']);
+  const allowed=new Set(['1i2IQSShkQ8','fMcnMk6gzYA']);
   const buttons=[...player.querySelectorAll('[data-ez-video]')];
   const stage=player.querySelector('[data-ez-video-screen]');
   const watch=player.querySelector('[data-ez-watch]');

@@ -23,7 +23,8 @@ const vehicleFiles=[
 ];
 const manufacturer='https://ezraider.com/';
 const manufacturerManual='https://ezraider.com/wp-content/uploads/2026/01/ezraider-user-manual-en.pdf';
-const videos=['1i2IQSShkQ8','fMcnMk6gzYA','NHWLOcUc8Vg'];
+const videos=['1i2IQSShkQ8','fMcnMk6gzYA'];
+const disallowedVideo='NHWLOcUc8Vg';
 const styles=fs.readFileSync('site/assets/ezraider-guide.css','utf8');
 const videoJs=fs.readFileSync('site/assets/ezraider-guide.js','utf8');
 try{new vm.Script(videoJs,{filename:'ezraider-guide.js'});}
@@ -67,6 +68,7 @@ try {
     failures.push('Switching EZRaider clips did not reload muted autoplay');
 } catch(error){failures.push('EZRaider autoplay player runtime failed: '+error.message);}
 
+if(videoJs.includes(disallowedVideo))failures.push('Unlicensed urban riding video remains in allowed player IDs');
 if(videoJs.includes("document.write")||videoJs.includes("eval("))failures.push('EZRaider player uses unsafe dynamic execution');
 for(const marker of ['.ez-video-screen','.ez-hero-video-title','.ez-seat-model-image','.ez-seat-grid','@media(max-width:620px)','prefers-reduced-motion'])
   if(!styles.includes(marker))failures.push('EZRaider layout missing '+marker);
@@ -108,6 +110,22 @@ for(const {locale,prefix,home} of vehicleFiles){
   }
   if(!html.includes('class="ez-seat-credit"'))
     failures.push(path+': official seat product photo credit missing');
+  // Family photo is a real VOY PRO asset already used on the family-tour pages,
+  // displayed AFTER the independent product descriptions rather than as a seat image.
+  const familySection=(html.match(/<section class="section ez-family" id="child-seats">([\s\S]*?)<\/section>/)||[])[1]||'';
+  const photoMarker='src="/assets/images/budapest/family-group-ride.jpg"';
+  if((familySection.split(photoMarker).length-1)!==1)
+    failures.push(path+': expected one existing family-group-ride photograph after the child seat models');
+  if(!familySection.includes('ez-seat-family-group"')||!familySection.includes('<figcaption>'))
+    failures.push(path+': real VOY PRO family photo is missing its own clearly labeled figure');
+  if(familySection.indexOf(photoMarker)<familySection.indexOf('class="ez-seat-note"')||
+     familySection.indexOf(photoMarker)<familySection.indexOf('data-ez-child-seat="junior"'))
+    failures.push(path+': family photo must follow both seat descriptions and suitability note');
+  if(!/<img[^>]+family-group-ride\.jpg"[^>]+alt="[^"]+"/.test(familySection))
+    failures.push(path+': family photo requires meaningful alt text');
+  if(html.includes(disallowedVideo))failures.push(path+': unapproved third video still appears on page');
+  if((html.match(/data-ez-video="/g)||[]).length!==2)
+    failures.push(path+': video selector must contain exactly two options');
   if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
   if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
