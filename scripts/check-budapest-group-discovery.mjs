@@ -22,6 +22,7 @@ const vehicleFiles=[
   {locale:'hu',prefix:'hu/',home:'site/hu/budapest/index.html'}
 ];
 const manufacturer='https://ezraider.com/';
+const manufacturerManual='https://ezraider.com/wp-content/uploads/2026/01/ezraider-user-manual-en.pdf';
 const videos=['1i2IQSShkQ8','fMcnMk6gzYA','NHWLOcUc8Vg'];
 const styles=fs.readFileSync('site/assets/ezraider-guide.css','utf8');
 const videoJs=fs.readFileSync('site/assets/ezraider-guide.js','utf8');
@@ -47,12 +48,13 @@ for(const {locale,prefix,home} of vehicleFiles){
   for(const marker of [
     'lang="'+locale+'"','rel="canonical" href="'+url+'"',
     'property="og:image"', 'name="description"', 'data-ez-video-player',
-    'href="'+manufacturer+'"','family-child-seat-closeup.jpg',
+    'href="'+manufacturer+'"','href="'+manufacturerManual+'"','family-child-seat-closeup.jpg',
     'Thule Yepp 2 Maxi Rack Mount','Thule Yepp Junior',
     'https://www.thule.com/', 'class="section ez-safety"', 'id="safety"',
     'href="/'+prefix+'budapest/#booking"', 'data-intent="vehicle"',
     'src="/assets/ezraider-guide.js"', 'href="/assets/ezraider-guide.css"'
   ])if(!html.includes(marker))failures.push(path+': missing '+marker);
+  if(html.includes('https://www.ezraider.com/wp-content/uploads/2021/09/EZRaider-en.pdf'))failures.push(path+': outdated manufacturer manual redirect link remains');
   if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
   if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
