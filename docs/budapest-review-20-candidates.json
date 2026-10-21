@@ -442,7 +442,7 @@
         "publication_status": "owner_rights_confirmed_original_verbatim_pending",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
-        "full_review_status": "reviewer_seen_but_complete_body_not_recovered",
+        "full_review_status": "full_text_seen_only_in_third_party_google_mirror",
         "platform_review_verification": "not_confirmed_directly_in_google_business_profile",
         "exact_calendar_date_status": "not_available_from_relative_age",
         "review_specific_google_permalink": null
@@ -554,7 +554,7 @@
     "first_party_platform_reviews_located": 13,
     "third_party_mirrors_located": 7,
     "original_full_texts_cleared_for_republication": 3,
-    "note": "All 20 selected reviewer identities have some source trace: 10 official Tripadvisor reviews (each with a review-title hyperlink, but only 3 individual pages fetchable), 3 official GetYourGuide reviews with verbatim supplier email originals, and 7 Google names only on third-party mirror snapshots. Google original review links/exact dates unverified; six Google review bodies seen in mirror, Inbal Y. body not recovered. Three Tripadvisor dates disagree by one day on regional/older snapshots. Owner confirmed full republication rights. Do not turn on public 20-review ticker until original full bodies, exact metadata (or approved missing-date policy), and trusted source URLs are prepared.",
+    "note": "Audited all 20 selected identities and found full review bodies in some source representation: 10 original-language Tripadvisor reviews on the official review listings, 3 original-language GetYourGuide reviews in supplier notifications confirmed against the official product listing, and 7 Google-sourced review bodies copied into an outside review aggregator. The aggregator is not Google; the seven Google items remain unverified at their original platform, with no exact calendar dates or per-review Google links. Only the three supplier notification bodies are safely stored verbatim in this repository's non-public documentation. Three Tripadvisor posting dates differ by one day between regional snapshots; both observations retained. Owner confirms rights to republish; public ticker manifest remains unapproved until 20 authentic exact texts are supplied/validated and display metadata policy settled.",
     "individual_source_permalink_candidates": 10,
     "individual_source_permalinks_verified": 3,
     "original_review_texts_recovered_from_operator_notifications": 3,
@@ -562,8 +562,16 @@
     "tripadvisor_official_title_hyperlinks_collected": 10,
     "tripadvisor_individual_pages_opened": 3,
     "tripadvisor_regional_date_discrepancies": 3,
-    "google_mirrored_review_bodies_found": 6,
-    "google_reviewer_found_without_complete_body": 1
+    "google_mirrored_review_bodies_found": 7,
+    "google_reviewer_found_without_complete_body": 0,
+    "full_review_body_visible_or_recovered_for_20_candidates": 20,
+    "original_texts_saved_in_operator_audit": 3,
+    "full_text_confidence_breakdown": {
+      "tripadvisor_on_platform_original_language_visible": 10,
+      "getyourguide_original_source_from_supplier_email": 3,
+      "google_full_body_only_in_third_party_mirror": 7,
+      "google_directly_verified_on_google_maps": 0
+    }
   },
   "owner_republication_authorization": {
     "confirmed_by": "VOY PRO business owner",
