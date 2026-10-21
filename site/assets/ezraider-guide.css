@@ -22,3 +22,25 @@
 .ez-seat-tour-photo figcaption{font-size:.83rem;color:#345561;padding:10px 15px}
 @media(max-width:920px){.ez-seat-grid{grid-template-columns:1fr}.ez-hero-video-title{margin-top:8px}}
 @media(max-width:620px){.ez-hero-visual .ez-video-screen{aspect-ratio:16/9}.ez-hero-visual .ez-video-option{flex:unset}.ez-hero-visual .ez-video-shell{padding:9px}.ez-seat-model-image img{height:215px}.ez-seat-tour-photo img{max-height:310px}}
+
+
+/* Video is first in both DOM and visual order, including narrow screens. */
+.ez-hero{padding:clamp(18px,3vw,42px) 0 clamp(36px,5vw,64px)}
+.ez-hero-grid{grid-template-columns:minmax(0,1.22fr) minmax(0,.82fr);align-items:start}
+.ez-hero-visual{order:0}
+.ez-hero-copy{order:1;min-width:0;align-self:center}
+.ez-hero-visual .ez-video-shell{box-shadow:0 18px 50px #0005}
+.ez-hero-visual .ez-video-screen iframe{display:block;width:100%;height:100%}
+@media(max-width:920px){
+ .ez-hero-grid{grid-template-columns:minmax(0,1fr);gap:26px}
+ .ez-hero-visual{order:0}
+ .ez-hero-copy{order:1}
+}
+@media(max-width:620px){
+ .ez-hero{padding:12px 0 38px}
+ .ez-hero-grid{gap:24px}
+ .ez-hero-video-title{font-size:.98rem}
+ .ez-hero-visual .ez-video-shell{padding:7px;border-radius:14px}
+ .ez-hero-visual .ez-video-switch{gap:5px}
+ .ez-hero-visual .ez-video-option{padding:10px 8px}
+}
