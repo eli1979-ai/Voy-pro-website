@@ -818,3 +818,44 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 .manage-ancillary-item small{font-size:.8em;opacity:.76}
 .manage-ancillary-quantity{font-size:.9em}
 .manage-ancillary-item>b{white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Affiliate widget presentation only. Booking, pricing, consent and payment stay
+   inside the original VOY PRO runtime. Requires a dedicated frame-ancestors
+   policy before third-party iframes can be activated. */
+body.voy-affiliate-booking-embed{
+  background:#f6f8fa;
+  min-width:0;
+}
+body.voy-affiliate-booking-embed > header,
+body.voy-affiliate-booking-embed > footer,
+body.voy-affiliate-booking-embed > .mobilebook,
+body.voy-affiliate-booking-embed > .sticky-mobile-cta,
+body.voy-affiliate-booking-embed .floating-whatsapp,
+body.voy-affiliate-booking-embed .tour-floating-whatsapp,
+body.voy-affiliate-booking-embed .skip-link,
+body.voy-affiliate-booking-embed main > :not(#booking){
+  display:none!important;
+}
+body.voy-affiliate-booking-embed main,
+body.voy-affiliate-booking-embed #booking{
+  margin:0;
+  padding:12px 0 28px;
+  max-width:none;
+}
+body.voy-affiliate-booking-embed #booking .booking-grid{
+  display:block;
+  max-width:760px;
+  margin-inline:auto;
+}
+body.voy-affiliate-booking-embed #booking .booking-grid > :not(:first-child){
+  display:none!important;
+}
+body.voy-affiliate-booking-embed #booking .booking-grid > :first-child{
+  width:100%;
+  max-width:none;
+  min-width:0;
+}
+@media(max-width:650px){
+  body.voy-affiliate-booking-embed #booking{padding:6px 0 20px}
+  body.voy-affiliate-booking-embed #booking .wrap{padding-inline:10px}
+}
