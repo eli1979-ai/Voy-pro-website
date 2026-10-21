@@ -12,4 +12,6 @@ assert.match(code,/api\('\/quotes'/,'price is recalculated after coupon entry');
 assert.match(code,/promo_code:submission\.promo_code/,'referral must follow human confirmation requests');
 assert.match(code,/promo_code:effectivePromoCode\(\)/,'no discount stacking in the checkout request');
 assert.match(code,/checkoutForm\.querySelector\('\[data-affiliate-coupon-panel\]'\)/,'block submission during coupon validation');
+assert.match(code,/if\(\!bookingState\.capacityRequest\)[\s\S]*?hold_id:bookingState\.hold\.id[\s\S]*?promo_code:next\|\|null/,'private coupon re-quote must use the active hold');
+assert.match(code,/bookingState\.isPrivate&&bookingState\.hold\?\.id\?\{hold_id:bookingState\.hold\.id\}:\{\}/,'held re-quote must be private-only');
 console.log('affiliate referral and single-coupon website contract passed');
