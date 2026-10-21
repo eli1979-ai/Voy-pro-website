@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Run from the repository root so static launch checks use the checked-in site.
 const root=process.cwd();
 const site=path.join(root,'site');
 const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
