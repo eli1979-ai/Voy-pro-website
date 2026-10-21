@@ -1568,6 +1568,9 @@
             group_composition:bookingState.composition,
             is_private:Boolean(bookingState.isPrivate),
             extras:bookingState.extras||[],
+            // A private hold reserves the whole departure. Refresh its own quote;
+            // a fresh departure quote would reject the existing private hold.
+            ...(bookingState.isPrivate&&bookingState.hold?.id?{hold_id:bookingState.hold.id}:{}),
             promo_code:next||null
           })});
           assertCheckoutQuote(quote);
@@ -1933,7 +1936,9 @@
     try{
       const quote=await api('/quotes',{method:'POST',body:JSON.stringify({
         slot_id:slotId,group_composition:bookingState.composition,
-        is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,promo_code:effectivePromoCode()
+        is_private:Boolean(bookingState.isPrivate),extras:bookingState.extras,
+        ...(bookingState.isPrivate&&bookingState.hold?.id?{hold_id:bookingState.hold.id}:{}),
+        promo_code:effectivePromoCode()
       })});
       if(selectionGeneration!==checkoutPreparationGeneration||bookingState.idempotencyKey!==checkoutKey||String(bookingState.slot?.id||'')!==slotId)return;
       assertCheckoutQuote(quote);

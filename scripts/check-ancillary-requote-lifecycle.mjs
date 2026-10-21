@@ -14,6 +14,7 @@ const staleCheck="selectionGeneration!==checkoutPreparationGeneration||bookingSt
 if(js.split(staleCheck).length-1<2)failures.push('ancillary success and error paths do not reject stale checkout work');
 requireText("if(selectionGeneration===checkoutPreparationGeneration&&bookingState.idempotencyKey===checkoutKey&&String(bookingState.slot?.id||'')===slotId&&node)node.removeAttribute('aria-busy');",'stale ancillary request can clear busy state for a newer checkout');
 
+requireText("...(bookingState.isPrivate&&bookingState.hold?.id?{hold_id:bookingState.hold.id}:{})",'private ancillary re-quote must pass the current hold instead of re-checking blocked availability');
 if(failures.length){
   console.error('Ancillary re-quote lifecycle guard failed.');
   for(const failure of failures)console.error('- '+failure);
