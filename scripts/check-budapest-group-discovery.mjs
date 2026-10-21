@@ -55,6 +55,7 @@ for(const {locale,prefix,home} of vehicleFiles){
     'src="/assets/ezraider-guide.js"', 'href="/assets/ezraider-guide.css"'
   ])if(!html.includes(marker))failures.push(path+': missing '+marker);
   if(html.includes('https://www.ezraider.com/wp-content/uploads/2021/09/EZRaider-en.pdf'))failures.push(path+': outdated manufacturer manual redirect link remains');
+  if(/(?:around ages 1.?3|גילאי 1.?3|1.?3 éves)/.test(html))failures.push(path+': child-seat suitability must not use unsupported local age band');
   if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
   if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
