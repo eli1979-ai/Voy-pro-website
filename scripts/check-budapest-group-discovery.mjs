@@ -150,6 +150,63 @@ const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
 for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+prefix+'budapest/ezraider/'))
   failures.push('Sitemap missing EZRaider vehicle route for '+(prefix||'EN'));
 
+
+// Full-review ticker is fail-closed until the curated 20 verbatim reviews are supplied.
+const reviewRegistry=JSON.parse(fs.readFileSync('site/assets/budapest-approved-reviews.json','utf8'));
+const reviewScript=fs.readFileSync('site/assets/budapest-review-ticker.js','utf8');
+const reviewStyle=fs.readFileSync('site/assets/budapest-review-ticker.css','utf8');
+try{new vm.Script(reviewScript,{filename:'budapest-review-ticker.js'});}
+catch(error){failures.push('Full review ticker JS invalid: '+error.message);}
+const requiredReviewFields=['id','source','author','text','rating','review_url'];
+if(reviewRegistry.version!==1||!Array.isArray(reviewRegistry.reviews)||
+   !Array.isArray(reviewRegistry.required_review_fields)||
+   requiredReviewFields.some(field=>!reviewRegistry.required_review_fields.includes(field)))
+  failures.push('Approved review registry schema is missing required review fields');
+if(reviewRegistry.approved_for_publication===true){
+  if(reviewRegistry.reviews.length!==20)
+    failures.push('Never publish full review ticker with fewer or more than the 20 approved original reviews');
+  const seen=new Set(),platforms=new Set();
+  const domains={google_maps:/^https:\/\/(?:[a-z0-9.-]*\.)?google\.com\/|^https:\/\/maps\.app\.goo\.gl\//,
+    tripadvisor:/^https:\/\/(?:[a-z0-9.-]*\.)?tripadvisor\.com\//,
+    getyourguide:/^https:\/\/(?:[a-z0-9.-]*\.)?getyourguide\.com\//};
+  for(const r of reviewRegistry.reviews){
+    if(!r||typeof r!=='object'||!r.id||seen.has(r.id)||!r.author?.trim()||
+       !r.text?.trim()||r.text.trim().length<12||!Number.isInteger(r.rating)||r.rating<1||r.rating>5||
+       !domains[r.source]?.test(r.review_url||''))
+      failures.push('Invalid, unsourced, incomplete or duplicated full review in approved 20-review registry');
+    if(r?.id)seen.add(r.id);
+    if(r?.source)platforms.add(r.source);
+  }
+  if(platforms.size!==3)failures.push('Approved reviews must represent all three verified review platforms');
+}else if(reviewRegistry.approved_for_publication!==false||reviewRegistry.reviews.length!==0){
+  failures.push('Unapproved full review registry must remain empty and disabled (no unverified public testimonials)');
+}
+for(const localePage of [
+  ['site/budapest/index.html','en'],
+  ['site/he/budapest/index.html','he'],
+  ['site/hu/budapest/index.html','hu']
+]){
+  const [page,locale]=localePage,html=fs.readFileSync(page,'utf8');
+  const trustAt=html.indexOf('<section class="trust">');
+  const tickerAt=html.indexOf('data-review-ticker');
+  const toursAt=html.indexOf('class="section tour-picker"');
+  if(tickerAt<=trustAt||tickerAt<0||toursAt<=tickerAt)
+    failures.push(page+': full review ticker is not immediately after trust proof');
+  for(const marker of ['class="voy-review-ticker"','data-review-locale="'+locale+'"',
+    'data-review-track','data-review-prev','data-review-next','data-review-counter',
+    'src="/assets/budapest-review-ticker.js"','href="/assets/budapest-review-ticker.css"'])
+    if(!html.includes(marker))failures.push(page+': missing full review slider '+marker);
+  if(!/data-review-locale="(?:en|he|hu)" hidden/.test(html))
+    failures.push(page+': review ticker must stay hidden until 20 authentic full reviews are approved');
+}
+for(const marker of ['approved_for_publication!==true','data.reviews.length!==20',
+  'textContent=r.text','fetch(', "Object.hasOwn(sourceLabels,r.source)",
+  'prefers-reduced-motion','mouseenter','focusin','readOriginal'])
+  if(!reviewScript.includes(marker))failures.push('Full-review ticker missing '+marker);
+if(reviewScript.includes('.innerHTML')||reviewScript.includes('.slice(0,')||
+   reviewStyle.includes('line-clamp')||reviewStyle.includes('text-overflow:ellipsis'))
+  failures.push('Full review ticker may not shorten review text or inject unsanitized HTML');
+
 if(failures.length){
   console.error('Budapest group/corporate discovery guard failed.');
   for(const failure of failures) console.error('- '+failure);
