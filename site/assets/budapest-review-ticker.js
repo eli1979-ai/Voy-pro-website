@@ -59,7 +59,8 @@ function setupTicker(){
  const show=i=>{
   active=(i+cards.length)%cards.length;
   counter.textContent=(active+1)+' / '+cards.length;
-  cards[active].scrollIntoView({block:'nearest',inline:'start',behavior:reduced?'instant':'smooth'});
+  const delta=cards[active].getBoundingClientRect().left-track.getBoundingClientRect().left;
+  track.scrollBy({left:delta,behavior:reduced?'instant':'smooth'});
  };
  const stop=()=>{if(timer!==null)clearInterval(timer);timer=null;};
  const start=()=>{stop();if(!paused&&!reduced&&!document.hidden)timer=setInterval(()=>show(active+1),9500);};
