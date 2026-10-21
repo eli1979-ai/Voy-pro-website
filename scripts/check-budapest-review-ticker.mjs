@@ -24,7 +24,9 @@ const reviewValid=(review)=>review?.approved===true
   &&typeof review.id==='string'&&review.id.trim().length>=2
   &&typeof review.author==='string'&&review.author.trim().length>=2
   &&typeof review.full_text==='string'&&review.full_text.trim().length>=35
-  &&/^\d{4}-\d{2}-\d{2}$/.test(review.date||'')
+  &&(review.date===null||/^\d{4}-\d{2}-\d{2}$/.test(review.date||''))
+  &&['review','listing'].includes(review.link_kind)
+  &&review.source_verified===true&&review.full_text_verified===true
   &&Number.isInteger(review.rating)&&review.rating>=1&&review.rating<=5
   &&isValidSource(review);
 assert(manifest.schema_version===1&&manifest.location==='Budapest'&&manifest.expected_count===20,
@@ -33,7 +35,7 @@ assert(Array.isArray(manifest.reviews),'review manifest must be an array');
 assert(['approved','awaiting_verified_approval'].includes(manifest.status),'unexpected review approval status');
 if(manifest.status==='approved'){
   assert(manifest.reviews.length===20,'approved review list must contain exactly 20 entries');
-  assert(manifest.reviews.every(reviewValid),'approved reviews need full original text, reviewer, source URL, date, rating and approval');
+  assert(manifest.reviews.every(reviewValid),'approved reviews need a source-verified original full text, truthful source URL and link kind, optional verified date, rating and approval');
   assert(new Set(manifest.reviews.map(x=>x.id)).size===20,'approved reviews need unique IDs');
 }else{
   assert(manifest.reviews.length===0,'unapproved, incomplete testimonial sets must never be published');
@@ -95,7 +97,8 @@ const sample=Array.from({length:20},(_,i)=>({
   approved:true,id:'synthetic-review-'+i,
   author:'Test reviewer '+i,
   full_text:'Regression test fixture, not a real guest review. Complete quote number '+i+'. No part of this is shipped as website content.',
-  date:'2026-10-01',rating:5,source:'tripadvisor',
+  date:'2026-10-01',rating:5,source:'tripadvisor',link_kind:'review',
+  source_verified:true,full_text_verified:true,
   review_url:'https://www.tripadvisor.com/ShowUserReviews-test-'+i+'.html',
   language:'en'
 }));
@@ -117,6 +120,27 @@ approved.pause.events.click?.();
 assert(approved.root.classList.states.has('is-paused'),'pause button must stop the ticker');
 const invalid=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample.slice(0,19)});
 assert(invalid.root.hidden===true,'19 reviews must not be represented as the approved set of 20');
+
+// A confirmed platform review may lack an exact day or individual permalink.
+// Show only truthful metadata, and label a platform listing link as a listing.
+const listingSample=sample.map(x=>({...x}));
+listingSample[0]={...listingSample[0],source:'google',date:null,link_kind:'listing',
+  review_url:'https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest'};
+const listing=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:listingSample},'he');
+const listingCard=listing.track.children[0]?.children[0];
+assert(listing.root.hidden===false,'platform-verified review with no exact date may appear');
+assert(listingCard?.children[2]?.children[0]?.children.length===1,'never invent a date when the provider does not confirm it');
+assert(listingCard?.children[2]?.children[1]?.textContent==='לכל הביקורות באתר המקור',
+  'a listing link must not claim to point at an individual review');
+const unverified=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:listingSample.map((x,i)=>i===0?{...x,source_verified:false}:x)});
+assert(unverified.root.hidden===true,'mirrored or unverified reviews must never activate the public ticker');
+const misleading=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:listingSample.map((x,i)=>i===0?{...x,review_url:'https://www.google.com.evil.example/reviews'}:x)});
+assert(misleading.root.hidden===true,'reject forged platform URLs');
+const missingKind=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:listingSample.map((x,i)=>i===0?{...x,link_kind:undefined}:x)});
+assert(missingKind.root.hidden===true,'all source links must declare whether they lead to a review or listing');
 
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
 console.log('Budapest review ticker QA OK: localized placement, full-text accessibility, strict 20-source approval, safe withheld state.');
