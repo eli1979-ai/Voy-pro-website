@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "location": "Budapest",
+  "status": "draft_unpublished",
+  "expected_count": 20,
+  "selection": {
+    "tripadvisor": 10,
+    "google": 7,
+    "getyourguide": 3
+  },
+  "policy": "Internal publisher staging: do not serve as a public asset. Source-authorized unabridged text only. Three GetYourGuide original-language reviews were verified from operator-owned notification emails and against official listing; Google mirror copies are unverified. Never publish partly approved sets. Public manifest remains empty until all 20 pass review.",
+  "reviews": [
+    {
+      "id": "tripadvisor-1",
+      "author": "Katie M",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2026-08-08",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-2",
+      "author": "Stav G",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2026-07-06",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-3",
+      "author": "lihi F",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1032613008-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Public date intentionally omitted: conflicting regional snapshots"
+      }
+    },
+    {
+      "id": "tripadvisor-4",
+      "author": "אביעד כ",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-or20-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Public date intentionally omitted: conflicting regional snapshots"
+      }
+    },
+    {
+      "id": "tripadvisor-5",
+      "author": "Shoshi R",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2026-08-29",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1075469554-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-or10-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-6",
+      "author": "Explore27235187907",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2026-07-28",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-7",
+      "author": "ענת ל",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2025-11-23",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1040093361-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-or10-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-8",
+      "author": "אורטל פ",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2026-08-16",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-9",
+      "author": "Sightsee44633083977",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": "2025-11-16",
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "tripadvisor-10",
+      "author": "Flyer45428477043",
+      "source": "tripadvisor",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "review",
+      "review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "source_verified": true,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "official_platform_listing_only_text_pending",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Public date intentionally omitted: conflicting regional snapshots"
+      }
+    },
+    {
+      "id": "google-1",
+      "author": "Mor M.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "google-2",
+      "author": "Nir I.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "google-3",
+      "author": "Anne H.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "google-4",
+      "author": "Mike van de W.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "google-5",
+      "author": "Slavik G.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "google-6",
+      "author": "Yair G.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "google-7",
+      "author": "Inbal Y.",
+      "source": "google",
+      "rating": null,
+      "language": null,
+      "full_text": null,
+      "date": null,
+      "link_kind": "listing",
+      "review_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "source_verified": false,
+      "full_text_verified": false,
+      "approved": false,
+      "evidence": {
+        "status": "third_party_mirror_only_unconfirmed",
+        "email_review_notification_reference": null,
+        "source_url": "https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO",
+        "original_text_status": "pending_primary_source_text",
+        "notes": "Do not approve until matched directly against the source platform"
+      }
+    },
+    {
+      "id": "getyourguide-1",
+      "author": "Cornelia",
+      "source": "getyourguide",
+      "rating": 5,
+      "language": "fr",
+      "full_text": "tres belle expérience en famille la visite est accessible en famille avec enfant, notre fille de 6 ans et notre fils de 15 ans ans ans merci à Javier, pour la qualité de son accueil et sa gentillesse je recommande vivement cette activité",
+      "date": "2026-07-22",
+      "link_kind": "listing",
+      "review_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+      "source_verified": true,
+      "full_text_verified": true,
+      "approved": true,
+      "evidence": {
+        "status": "supplier_original_and_platform_reviewer_matched",
+        "email_review_notification_reference": "125744846",
+        "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+        "original_text_status": "exact_original_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "getyourguide-2",
+      "author": "Keren Emili",
+      "source": "getyourguide",
+      "rating": 5,
+      "language": "he",
+      "full_text": "חוויה מדהימה, נהנינו ממש מדריכים סבלניים, סיור מושקע ומקצועי דרך מצויינת לראות את החלק העתיק של בודה מבלי לשבור את הרגליים. מומלץ בחום!!!!! יהודה אחלה ממש",
+      "date": "2026-07-28",
+      "link_kind": "listing",
+      "review_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+      "source_verified": true,
+      "full_text_verified": true,
+      "approved": true,
+      "evidence": {
+        "status": "supplier_original_and_platform_reviewer_matched",
+        "email_review_notification_reference": "125957120",
+        "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+        "original_text_status": "exact_original_source_text",
+        "notes": null
+      }
+    },
+    {
+      "id": "getyourguide-3",
+      "author": "Yariv",
+      "source": "getyourguide",
+      "rating": 5,
+      "language": "he",
+      "full_text": "חוויה הכי כיפית ומהנה שהייתה לנו בבודפשט, יהודה המדריך אדיב, מקצועי בעל ידע היסטורי, והיה נחמד וסבלני לכל חברי הקבוצה, כלים מתוחזקים וקלים לתפעול, מומלץ בחום",
+      "date": "2026-10-11",
+      "link_kind": "listing",
+      "review_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+      "source_verified": true,
+      "full_text_verified": true,
+      "approved": true,
+      "evidence": {
+        "status": "supplier_original_and_platform_reviewer_matched",
+        "email_review_notification_reference": "128671395",
+        "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+        "original_text_status": "exact_original_source_text",
+        "notes": null
+      }
+    }
+  ]
+}
