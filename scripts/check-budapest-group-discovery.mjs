@@ -200,7 +200,7 @@ for(const localePage of [
     failures.push(page+': review ticker must stay hidden until 20 authentic full reviews are approved');
 }
 for(const marker of ['approved_for_publication!==true','data.reviews.length!==20',
-  'textContent=r.text','fetch(', "Object.hasOwn(sourceLabels,r.source)",
+  "el('blockquote','voy-review-full-text',r.text)",'fetch(', "Object.hasOwn(sourceLabels,r.source)",
   'prefers-reduced-motion','mouseenter','focusin','readOriginal'])
   if(!reviewScript.includes(marker))failures.push('Full-review ticker missing '+marker);
 if(reviewScript.includes('.innerHTML')||reviewScript.includes('.slice(0,')||
