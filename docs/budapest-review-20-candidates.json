@@ -18,7 +18,9 @@
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Review is readable in Hebrew on Tripadvisor. English Tripadvisor text is automatically translated."
+        "note": "Review is readable in Hebrew on Tripadvisor. English Tripadvisor text is automatically translated.",
+        "direct_review_url_status": "unverified_candidate",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -36,7 +38,9 @@
         "direct_review_url": null,
         "original_language_hint": "en",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "English-language review visible on Tripadvisor."
+        "note": "English-language review visible on Tripadvisor.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -54,7 +58,9 @@
         "direct_review_url": null,
         "original_language_hint": "en",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "English-language review visible on Tripadvisor."
+        "note": "English-language review visible on Tripadvisor.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -72,7 +78,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Found in older indexed Tripadvisor review page; publication date comes from that historical snapshot."
+        "note": "Found in older indexed Tripadvisor review page; publication date comes from that historical snapshot.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -90,7 +98,9 @@
         "direct_review_url": null,
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Hebrew version and author/date on Tripadvisor; English is machine-translated."
+        "note": "Hebrew version and author/date on Tripadvisor; English is machine-translated.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -108,7 +118,9 @@
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Original Hebrew displayed on Tripadvisor; English version is auto-translated."
+        "note": "Original Hebrew displayed on Tripadvisor; English version is auto-translated.",
+        "direct_review_url_status": "unverified_candidate",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -126,7 +138,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Reviewer and review found in older Tripadvisor snapshot; original language must be checked."
+        "note": "Reviewer and review found in older Tripadvisor snapshot; original language must be checked.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -144,7 +158,9 @@
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Original Hebrew shown by Tripadvisor."
+        "note": "Original Hebrew shown by Tripadvisor.",
+        "direct_review_url_status": "unverified_candidate",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -162,7 +178,9 @@
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Original Hebrew shown by Tripadvisor."
+        "note": "Original Hebrew shown by Tripadvisor.",
+        "direct_review_url_status": "unverified_candidate",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -180,7 +198,9 @@
         "direct_review_url": null,
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Review found; dates differ across Tripadvisor indexed snapshots (November 5 vs November 6, 2025); keep unset pending direct verification."
+        "note": "Review found; dates differ across Tripadvisor indexed snapshots (November 5 vs November 6, 2025); keep unset pending direct verification.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -198,7 +218,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Mor M. reviewer and text appear in a third-party mirror of Google reviews; original Google review and permanent URL not independently accessed."
+        "note": "Mor M. reviewer and text appear in a third-party mirror of Google reviews; original Google review and permanent URL not independently accessed.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -216,7 +238,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Nir I. reviewer and text appear in a third-party mirror of Google reviews; original Google review and permanent URL not independently accessed."
+        "note": "Nir I. reviewer and text appear in a third-party mirror of Google reviews; original Google review and permanent URL not independently accessed.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -234,7 +258,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Anne H. reviewer and text appear in a third-party mirror; relative posting time is not a reliable exact date."
+        "note": "Anne H. reviewer and text appear in a third-party mirror; relative posting time is not a reliable exact date.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -252,7 +278,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Mike van de W. reviewer and text appear in a third-party mirror; absolute date and individual Google review URL unverified."
+        "note": "Mike van de W. reviewer and text appear in a third-party mirror; absolute date and individual Google review URL unverified.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -270,7 +298,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Slavik G. reviewer and text appear in a third-party mirror; individual Google review not independently accessed."
+        "note": "Slavik G. reviewer and text appear in a third-party mirror; individual Google review not independently accessed.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -288,7 +318,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Yair G. reviewer and text appear in a third-party mirror; individual Google review not independently accessed."
+        "note": "Yair G. reviewer and text appear in a third-party mirror; individual Google review not independently accessed.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -306,7 +338,9 @@
         "direct_review_url": null,
         "original_language_hint": null,
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Inbal Y. reviewer and text appear in a third-party mirror; individual Google review not independently accessed."
+        "note": "Inbal Y. reviewer and text appear in a third-party mirror; individual Google review not independently accessed.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -324,7 +358,9 @@
         "direct_review_url": null,
         "original_language_hint": "fr",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Cornelia – France, verified booking on official GetYourGuide product page; English is a translation from French."
+        "note": "Cornelia – France, verified booking on official GetYourGuide product page; English is a translation from French.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -342,7 +378,9 @@
         "direct_review_url": null,
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Keren Emili – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew."
+        "note": "Keren Emili – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     },
     {
@@ -360,7 +398,9 @@
         "direct_review_url": null,
         "original_language_hint": "he",
         "needs_original_verbatim_and_reuse_clearance": true,
-        "note": "Yariv – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew."
+        "note": "Yariv – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew.",
+        "direct_review_url_status": "not_identified",
+        "publication_status": "requires_verified_original_and_reuse_authorization"
       }
     }
   ],
@@ -370,7 +410,8 @@
     "first_party_platform_reviews_located": 13,
     "third_party_mirrors_located": 7,
     "original_full_texts_cleared_for_republication": 0,
-    "individual_source_permalinks_identified": 4,
-    "note": "This is a source-presence audit, NOT verification of original verbatim text rights. No complete review body has been copied into this file. Platform URLs and third-party mirrors are evidence pointers, not substitutes for verified originals and individual links. The live site must remain hidden until the 20 original texts, dates, permissions and source links are cleared."
+    "note": "Platform listing appearances are evidence of reviewer identity, not verbatim-text verification or permission to reproduce. Four Tripadvisor ShowUserReviews URL candidates were constructed from indexed review identifiers; these could not be opened or independently confirmed, and must not be called verified direct permalinks. Google entries are from a mirror only. GetYourGuide English versions translate original Hebrew/French. Zero complete review bodies or direct permalinks are cleared for website publication.",
+    "individual_source_permalink_candidates": 4,
+    "individual_source_permalinks_verified": 0
   }
 }
