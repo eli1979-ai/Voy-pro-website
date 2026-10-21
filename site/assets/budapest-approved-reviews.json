@@ -3,6 +3,6 @@
   "location": "Budapest",
   "status": "awaiting_verified_approval",
   "expected_count": 20,
-  "description": "Only verbatim reviews approved by the operator and verified against the original review platform may be published. Keep the full original review text and source URL. Pending list intentionally empty; ticker stays hidden until all 20 are verified.",
+  "description": "Publish exactly 20 owner-approved, full, original, directly source-verified reviews only. `source_verified` and `full_text_verified` must both be true per review. `date` may be null when the exact day is unverified (no date is shown). `link_kind` must be `review` for an individual source page or `listing` for the platform's real business review listing (with an honest different link label). Review URLs must point to the correct platform. Pending list intentionally empty and stays hidden.",
   "reviews": []
 }
