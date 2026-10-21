@@ -10,9 +10,9 @@
   const sourceLabels={google:'Google Maps',tripadvisor:'Tripadvisor',getyourguide:'GetYourGuide'};
   const locale=document.documentElement.lang||'en';
   const texts={
-    en:{pause:'Pause reviews',play:'Resume reviews',source:'Read original review',stars:'out of 5 stars'},
-    he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית',stars:'מתוך 5 כוכבים'},
-    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés',stars:'az 5 csillagból'}
+    en:{pause:'Pause reviews',play:'Resume reviews',source:'Read original review',listing:'Browse reviews on source',stars:'out of 5 stars'},
+    he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית',listing:'לכל הביקורות באתר המקור',stars:'מתוך 5 כוכבים'},
+    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés',listing:'Összes értékelés a forrásnál',stars:'az 5 csillagból'}
   };
   const t=texts[locale]||texts.en;
   const validUrl=(value,source)=>{
@@ -26,7 +26,9 @@
     &&typeof item.id==='string'&&item.id.trim().length>=2
     &&typeof item.author==='string'&&item.author.trim().length>=2
     &&typeof item.full_text==='string'&&item.full_text.trim().length>=35
-    &&typeof item.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)
+    &&(item.date===null||(typeof item.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)))
+    &&['review','listing'].includes(item.link_kind)
+    &&item.source_verified===true&&item.full_text_verified===true
     &&Number.isInteger(item.rating)&&item.rating>=1&&item.rating<=5
     &&Object.prototype.hasOwnProperty.call(sourceHosts,item.source)
     &&validUrl(item.review_url,item.source);
@@ -49,11 +51,15 @@
     quote.dir='auto';
     const bottom=make('div','vp-review-bottom');
     const byline=make('div','vp-review-byline');
-    byline.append(make('span','vp-review-author',item.author),make('time','vp-review-date',item.date));
-    byline.lastChild.dateTime=item.date;
+    byline.append(make('span','vp-review-author',item.author));
+    if(item.date){
+      const date=make('time','vp-review-date',item.date);
+      date.dateTime=item.date;
+      byline.append(date);
+    }
     bottom.append(byline);
     if(!duplicate){
-      const link=make('a','',t.source);
+      const link=make('a','',item.link_kind==='listing'?t.listing:t.source);
       link.href=item.review_url;
       link.target='_blank';
       link.rel='noopener noreferrer';
