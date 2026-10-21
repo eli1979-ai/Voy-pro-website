@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "approved_for_publication": false,
+  "selection_note": "Reserved for the 20 customer reviews selected in the separate review-curation conversation. That earlier selection is presently recoverable only as descriptions, not verbatim full text. Leave disabled until each exact original review is verified and approved.",
+  "source_requirements": "For each item, use its complete original review as published (not summaries or machine translations), the real reviewer display name, actual platform, rating, and a grounded source URL. Do not fabricate authors, quotes, dates or review URLs.",
+  "required_review_fields": [
+    "id",
+    "source",
+    "author",
+    "text",
+    "rating",
+    "review_url"
+  ],
+  "valid_sources": [
+    "google_maps",
+    "tripadvisor",
+    "getyourguide"
+  ],
+  "reviews": []
+}
