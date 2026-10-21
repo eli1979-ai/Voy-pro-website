@@ -32,12 +32,41 @@ for(const marker of [
   "www.youtube-nocookie.com/embed/",
   "addEventListener('click'",
   "replaceChildren(frame)",
+  "autoplay=1&mute=1&playsinline=1",
+  "frame.loading='eager'",
   "aria-pressed",
   "youtube.com/watch?v="
 ])if(!videoJs.includes(marker))failures.push('EZRaider video player missing '+marker);
 for(const vid of videos){
   if(!videoJs.includes(vid))failures.push('EZRaider approved video ID missing from player: '+vid);
 }
+// The on-load behavior must actually mount an autoplay, muted iframe without a click.
+try {
+  const created=[];
+  const stage={replaceChildren(frame){this.child=frame;}};
+  const link={href:''};
+  const buttons=videos.map((id,i)=>({
+    dataset:{ezVideo:id,ezVideoTitle:'Video '+i},
+    events:{},addEventListener(type,listener){this.events[type]=listener;},
+    setAttribute(key,value){this[key]=value;},
+    classList:{toggle(){}}
+  }));
+  const player={querySelectorAll:(selector)=>selector==='[data-ez-video]'?buttons:[],
+    querySelector:(selector)=>selector==='[data-ez-video-screen]'?stage:selector==='[data-ez-watch]'?link:null};
+  const context={document:{
+    querySelector:(selector)=>selector==='[data-ez-video-player]'?player:null,
+    createElement:(tag)=>{const el={tag};created.push(el);return el;}
+  },Set};
+  vm.runInNewContext(videoJs,context,{timeout:1000});
+  if(created.length!==1||stage.child?.tag!=='iframe')failures.push('EZRaider player did not autoplay-load the first iframe');
+  if(!stage.child?.src?.includes('embed/'+videos[0]+'?autoplay=1&mute=1&playsinline=1'))
+    failures.push('EZRaider player did not autoplay the first video silently');
+  if(!stage.child?.allow?.includes('autoplay'))failures.push('EZRaider iframe lacks autoplay permission');
+  buttons[1].events.click?.();
+  if(stage.child?.src?.indexOf('embed/'+videos[1])<0||created.length!==2)
+    failures.push('Switching EZRaider clips did not reload muted autoplay');
+} catch(error){failures.push('EZRaider autoplay player runtime failed: '+error.message);}
+
 if(videoJs.includes("document.write")||videoJs.includes("eval("))failures.push('EZRaider player uses unsafe dynamic execution');
 for(const marker of ['.ez-video-screen','.ez-hero-video-title','.ez-seat-model-image','.ez-seat-grid','@media(max-width:620px)','prefers-reduced-motion'])
   if(!styles.includes(marker))failures.push('EZRaider layout missing '+marker);
@@ -48,7 +77,7 @@ for(const {locale,prefix,home} of vehicleFiles){
   for(const marker of [
     'lang="'+locale+'"','rel="canonical" href="'+url+'"',
     'property="og:image"', 'name="description"', 'data-ez-video-player',
-    'href="'+manufacturer+'"','href="'+manufacturerManual+'"','family-child-seat-closeup.jpg',
+    'href="'+manufacturer+'"','href="'+manufacturerManual+'"',
     'Thule Yepp 2 Maxi Rack Mount','Thule Yepp Junior',
     'https://www.thule.com/', 'class="section ez-safety"', 'id="safety"',
     'href="/'+prefix+'budapest/#booking"', 'data-intent="vehicle"',
@@ -59,6 +88,11 @@ for(const {locale,prefix,home} of vehicleFiles){
   const hero=(html.match(/<section class="ez-hero">([\s\S]*?)<\/section>/)||[])[1]||'';
   if(!hero.includes('id="see-ezraider"')||!hero.includes('data-ez-video-player'))
     failures.push(path+': interactive video is not in the first-screen hero');
+  if(hero.indexOf('data-ez-video-player')>=hero.indexOf('class="ez-hero-copy"'))
+    failures.push(path+': video must be first and precede the hero text');
+  if(html.includes('family-child-seat-closeup.jpg')||html.includes('class="ez-seat-tour-photo"'))
+    failures.push(path+': confusing child-on-seat photograph must be removed');
+  if(!html.includes('automatically')&&locale==='en')failures.push(path+': muted autoplay explanation missing');
   if(hero.includes('<figure class="ez-hero-visual">')||html.includes('class="section ez-video-section"'))
     failures.push(path+': redundant old static photo or standalone video section remains');
   if((html.match(/data-ez-video-player/g)||[]).length!==1)
@@ -67,13 +101,13 @@ for(const {locale,prefix,home} of vehicleFiles){
   if(seats.length!==2)failures.push(path+': both child seats must have separate product cards');
   for(const [model,label] of [['maxi','Thule Yepp 2 Maxi Rack Mount'],['junior','Thule Yepp Junior']]){
     const card=seats.find(card=>card.includes('data-ez-child-seat="'+model+'"'))||'';
-    if(!card.includes(label)||!card.includes('class="ez-seat-model-image"')||!/<img[^>]*src="https:\/\//.test(card))
+    if(!card.includes(label)||!card.includes('class="ez-seat-model-image"')||!/<img[^>]*src="https:\/\/www\.thule\.com\//.test(card))
       failures.push(path+': '+model+' child seat product image and label are missing');
     if(!/<img[^>]*alt="[^"]+"/.test(card))
       failures.push(path+': '+model+' child seat image missing descriptive alt');
   }
-  if(!html.includes('class="ez-seat-tour-photo"')||!html.includes('class="ez-seat-credit"'))
-    failures.push(path+': operational family photo or external-image attribution missing');
+  if(!html.includes('class="ez-seat-credit"'))
+    failures.push(path+': official seat product photo credit missing');
   if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
   if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
