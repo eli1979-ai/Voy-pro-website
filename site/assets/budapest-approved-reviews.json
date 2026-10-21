@@ -16,5 +16,87 @@
     "tripadvisor",
     "getyourguide"
   ],
-  "reviews": []
+  "reviews": [],
+  "selected_reviewer_candidates": [
+    {
+      "source": "tripadvisor",
+      "author": "Katie M"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "Stav G"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "lihi F"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "אביעד כ"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "Shoshi R"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "Explore27235187907"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "ענת ל"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "אורטל פ"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "Sightsee44633083977"
+    },
+    {
+      "source": "tripadvisor",
+      "author": "Flyer45428477043"
+    },
+    {
+      "source": "google_maps",
+      "author": "Mor M."
+    },
+    {
+      "source": "google_maps",
+      "author": "Nir I."
+    },
+    {
+      "source": "google_maps",
+      "author": "Anne H."
+    },
+    {
+      "source": "google_maps",
+      "author": "Mike van de W."
+    },
+    {
+      "source": "google_maps",
+      "author": "Slavik G."
+    },
+    {
+      "source": "google_maps",
+      "author": "Yair G."
+    },
+    {
+      "source": "google_maps",
+      "author": "Inbal Y."
+    },
+    {
+      "source": "getyourguide",
+      "author": "Cornelia"
+    },
+    {
+      "source": "getyourguide",
+      "author": "Keren Emili"
+    },
+    {
+      "source": "getyourguide",
+      "author": "Yariv"
+    }
+  ]
 }
