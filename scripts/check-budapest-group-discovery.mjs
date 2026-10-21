@@ -150,6 +150,32 @@ const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
 for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+prefix+'budapest/ezraider/'))
   failures.push('Sitemap missing EZRaider vehicle route for '+(prefix||'EN'));
 
+
+// The vehicle guide is shared across the VOY PRO network, but links preserve
+// destination-specific operating rules rather than implying Budapest tour rules apply in Marvão.
+for(const {page,href,locale,positionMarker} of [
+  {page:'site/index.html',href:'/budapest/ezraider/',locale:'en',positionMarker:'id="destinations"'},
+  {page:'site/portugal/index.html',href:'/budapest/ezraider/',locale:'en',positionMarker:'id="request"'},
+  {page:'site/pt/portugal/index.html',href:'/budapest/ezraider/',locale:'pt',positionMarker:'id="request"'},
+  {page:'site/he/portugal/index.html',href:'/he/budapest/ezraider/',locale:'he',positionMarker:'id="request"'}
+]){
+  const html=fs.readFileSync(page,'utf8');
+  const blocks=[...html.matchAll(/<section class="section ez-vehicle-bridge"[\s\S]*?<\/section>/g)];
+  if(blocks.length!==1){failures.push(page+': expected one visible EZRaider guide referral block');continue;}
+  const block=blocks[0][0];
+  if(blocks[0].index>=html.indexOf(positionMarker))
+    failures.push(page+': guide link should be visible before destination selection or Marvão booking');
+  if(!block.includes('href="'+href+'"'))
+    failures.push(page+': missing localized link to existing EZRaider guide: '+href);
+  if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||!block.includes('<h2 '))
+    failures.push(page+': guide referral must have clear copy and button');
+  if(locale==='pt'&&!block.includes('hreflang="en"'))
+    failures.push(page+': Portuguese visitors must be informed the existing vehicle guide is in English');
+  if(page.includes('/portugal/')&&
+      !(block.includes('Marvão')||block.includes('מרבאו')) )
+    failures.push(page+': Marvão referral must explain local tour rules differ from Budapest');
+}
+
 if(failures.length){
   console.error('Budapest group/corporate discovery guard failed.');
   for(const failure of failures) console.error('- '+failure);
