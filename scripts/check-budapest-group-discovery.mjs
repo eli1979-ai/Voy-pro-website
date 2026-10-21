@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const pages=[
   ['site/budapest/index.html','/budapest/group-tours/','/budapest/corporate-events/'],
@@ -14,6 +15,123 @@ for(const [file,groupHref,corporateHref] of pages){
   if(!hub.includes(`href="${groupHref}"`)) failures.push(`${file}: missing group-tour discovery link`);
   if(!hub.includes(`href="${corporateHref}"`)) failures.push(`${file}: missing corporate-event discovery link`);
 }
+// The EZRaider vehicle guide is a first-class, localized Budapest destination.
+const vehicleFiles=[
+  {locale:'en',prefix:'',home:'site/budapest/index.html'},
+  {locale:'he',prefix:'he/',home:'site/he/budapest/index.html'},
+  {locale:'hu',prefix:'hu/',home:'site/hu/budapest/index.html'}
+];
+const manufacturer='https://ezraider.com/';
+const manufacturerManual='https://ezraider.com/wp-content/uploads/2026/01/ezraider-user-manual-en.pdf';
+const videos=['1i2IQSShkQ8','fMcnMk6gzYA','NHWLOcUc8Vg'];
+const styles=fs.readFileSync('site/assets/ezraider-guide.css','utf8');
+const videoJs=fs.readFileSync('site/assets/ezraider-guide.js','utf8');
+try{new vm.Script(videoJs,{filename:'ezraider-guide.js'});}
+catch(error){failures.push('EZRaider interactive video script is invalid: '+error.message);}
+for(const marker of [
+  "www.youtube-nocookie.com/embed/",
+  "addEventListener('click'",
+  "replaceChildren(frame)",
+  "autoplay=1&mute=1&playsinline=1",
+  "frame.loading='eager'",
+  "aria-pressed",
+  "youtube.com/watch?v="
+])if(!videoJs.includes(marker))failures.push('EZRaider video player missing '+marker);
+for(const vid of videos){
+  if(!videoJs.includes(vid))failures.push('EZRaider approved video ID missing from player: '+vid);
+}
+// The on-load behavior must actually mount an autoplay, muted iframe without a click.
+try {
+  const created=[];
+  const stage={replaceChildren(frame){this.child=frame;}};
+  const link={href:''};
+  const buttons=videos.map((id,i)=>({
+    dataset:{ezVideo:id,ezVideoTitle:'Video '+i},
+    events:{},addEventListener(type,listener){this.events[type]=listener;},
+    setAttribute(key,value){this[key]=value;},
+    classList:{toggle(){}}
+  }));
+  const player={querySelectorAll:(selector)=>selector==='[data-ez-video]'?buttons:[],
+    querySelector:(selector)=>selector==='[data-ez-video-screen]'?stage:selector==='[data-ez-watch]'?link:null};
+  const context={document:{
+    querySelector:(selector)=>selector==='[data-ez-video-player]'?player:null,
+    createElement:(tag)=>{const el={tag};created.push(el);return el;}
+  },Set};
+  vm.runInNewContext(videoJs,context,{timeout:1000});
+  if(created.length!==1||stage.child?.tag!=='iframe')failures.push('EZRaider player did not autoplay-load the first iframe');
+  if(!stage.child?.src?.includes('embed/'+videos[0]+'?autoplay=1&mute=1&playsinline=1'))
+    failures.push('EZRaider player did not autoplay the first video silently');
+  if(!stage.child?.allow?.includes('autoplay'))failures.push('EZRaider iframe lacks autoplay permission');
+  buttons[1].events.click?.();
+  if(stage.child?.src?.indexOf('embed/'+videos[1])<0||created.length!==2)
+    failures.push('Switching EZRaider clips did not reload muted autoplay');
+} catch(error){failures.push('EZRaider autoplay player runtime failed: '+error.message);}
+
+if(videoJs.includes("document.write")||videoJs.includes("eval("))failures.push('EZRaider player uses unsafe dynamic execution');
+for(const marker of ['.ez-video-screen','.ez-hero-video-title','.ez-seat-model-image','.ez-seat-grid','@media(max-width:620px)','prefers-reduced-motion'])
+  if(!styles.includes(marker))failures.push('EZRaider layout missing '+marker);
+
+for(const {locale,prefix,home} of vehicleFiles){
+  const path='site/'+prefix+'budapest/ezraider/index.html';
+  const html=fs.readFileSync(path,'utf8'),url='https://voy-pro.com/'+prefix+'budapest/ezraider/',href='/'+prefix+'budapest/ezraider/';
+  for(const marker of [
+    'lang="'+locale+'"','rel="canonical" href="'+url+'"',
+    'property="og:image"', 'name="description"', 'data-ez-video-player',
+    'href="'+manufacturer+'"','href="'+manufacturerManual+'"',
+    'Thule Yepp 2 Maxi Rack Mount','Thule Yepp Junior',
+    'https://www.thule.com/', 'class="section ez-safety"', 'id="safety"',
+    'href="/'+prefix+'budapest/#booking"', 'data-intent="vehicle"',
+    'src="/assets/ezraider-guide.js"', 'href="/assets/ezraider-guide.css"'
+  ])if(!html.includes(marker))failures.push(path+': missing '+marker);
+  if(html.includes('https://www.ezraider.com/wp-content/uploads/2021/09/EZRaider-en.pdf'))failures.push(path+': outdated manufacturer manual redirect link remains');
+  if(/(?:around ages 1.?3|גילאי 1.?3|1.?3 éves)/.test(html))failures.push(path+': child-seat suitability must not use unsupported local age band');
+  const hero=(html.match(/<section class="ez-hero">([\s\S]*?)<\/section>/)||[])[1]||'';
+  if(!hero.includes('id="see-ezraider"')||!hero.includes('data-ez-video-player'))
+    failures.push(path+': interactive video is not in the first-screen hero');
+  if(hero.indexOf('data-ez-video-player')>=hero.indexOf('class="ez-hero-copy"'))
+    failures.push(path+': video must be first and precede the hero text');
+  if(html.includes('family-child-seat-closeup.jpg')||html.includes('class="ez-seat-tour-photo"'))
+    failures.push(path+': confusing child-on-seat photograph must be removed');
+  if(!html.includes('automatically')&&locale==='en')failures.push(path+': muted autoplay explanation missing');
+  if(hero.includes('<figure class="ez-hero-visual">')||html.includes('class="section ez-video-section"'))
+    failures.push(path+': redundant old static photo or standalone video section remains');
+  if((html.match(/data-ez-video-player/g)||[]).length!==1)
+    failures.push(path+': expected exactly one interactive video player');
+  const seats=(html.match(/<article class="ez-card ez-seat-model"[\s\S]*?<\/article>/g)||[]);
+  if(seats.length!==2)failures.push(path+': both child seats must have separate product cards');
+  for(const [model,label] of [['maxi','Thule Yepp 2 Maxi Rack Mount'],['junior','Thule Yepp Junior']]){
+    const card=seats.find(card=>card.includes('data-ez-child-seat="'+model+'"'))||'';
+    if(!card.includes(label)||!card.includes('class="ez-seat-model-image"')||!/<img[^>]*src="https:\/\/www\.thule\.com\//.test(card))
+      failures.push(path+': '+model+' child seat product image and label are missing');
+    if(!/<img[^>]*alt="[^"]+"/.test(card))
+      failures.push(path+': '+model+' child seat image missing descriptive alt');
+  }
+  if(!html.includes('class="ez-seat-credit"'))
+    failures.push(path+': official seat product photo credit missing');
+  if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
+  if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
+  for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
+  for(const code of ['en','he','hu']){
+    const translated=code==='en'?'':code+'/';
+    if(!html.includes('hreflang="'+code+'" href="https://voy-pro.com/'+translated+'budapest/ezraider/"'))
+      failures.push(path+': missing hreflang '+code);
+  }
+  const structured=[...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(m=>{try{return JSON.parse(m[1]);}catch{return null;}});
+  const faq=structured.find(j=>j?.['@type']==='FAQPage'),crumb=structured.find(j=>j?.['@type']==='BreadcrumbList');
+  if(!faq||faq.mainEntity?.length!==4)failures.push(path+': expected four real FAQ schema items');
+  if(crumb?.itemListElement?.[2]?.item!==url)failures.push(path+': breadcrumbs do not point to current page');
+  for(const [file,desc] of [
+    [home,'Budapest home'],['site/'+prefix+'budapest/with-kids/index.html','family page'],
+    ['site/'+prefix+'budapest/tours/buda-castle-ezraider-tour/index.html','Buda tour']
+  ]){
+    const content=fs.readFileSync(file,'utf8');
+    if(!content.includes('href="'+href+'"'))failures.push(file+': missing vehicle page discovery link ('+desc+')');
+  }
+}
+const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
+for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+prefix+'budapest/ezraider/'))
+  failures.push('Sitemap missing EZRaider vehicle route for '+(prefix||'EN'));
+
 if(failures.length){
   console.error('Budapest group/corporate discovery guard failed.');
   for(const failure of failures) console.error('- '+failure);
