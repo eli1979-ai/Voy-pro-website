@@ -20,7 +20,7 @@
     script.dataset.voyMounted='true';
     const target=document.getElementById(script.dataset.target||'voy-affiliate-booking');
     if(!target)return;
-    const root=target.attachShadow({mode:'open'});
+    const root=target.attachShadow({mode:'closed'});
     const affiliate=String(script.dataset.affiliate||'').trim().toUpperCase();
     const clientKey=String(script.dataset.clientKey||'').trim();
     let apiRoot;
@@ -119,7 +119,8 @@
     dateField.min=todayBudapest();
     dateField.value=dateField.min;
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
-    let retryKey=null,prepared=null,expiryTimer=null,readyForOnline=false;
+    let retryKey=null,expiryTimer=null,readyForOnline=false;
+    const selectedExtras=new Map();
     const setStatus=(message='',kind='')=>{status.textContent=message;status.className='status '+kind;};
     const setBusy=(value)=>{loading=value;$('#searchButton').disabled=value;$('#confirmButton').disabled=value;};
     const textNode=(name,value)=>{const el=document.createElement(name);el.textContent=String(value);return el;};
@@ -146,7 +147,8 @@
       if(expiryTimer)clearInterval(expiryTimer);
       expiryTimer=null;
       const old=hold;
-      hold=null;quote=null;chosenSlot=null;extras=[];offers=[];retryKey=null;prepared=null;
+      hold=null;quote=null;chosenSlot=null;extras=[];offers=[];retryKey=null;
+      selectedExtras.clear();setBusy(false);
       $('#results').classList.add('hidden');$('#checkout').classList.add('hidden');
       $('#slots').replaceChildren();$('#extras').replaceChildren();$('#price').replaceChildren();
       if(old?.id)api('/holds/'+encodeURIComponent(old.id),{method:'DELETE'}).catch(()=>{});
@@ -166,9 +168,9 @@
       parent.appendChild(textNode('div','Partner discount: '+money(quote.discount,quote.currency||'EUR')));
       const p=textNode('p','Total: '+money(quote.total,quote.currency||'EUR'));p.className='price';parent.appendChild(p);
     }
-    async function refreshQuote(){
+    async function refreshQuote({preserveGeneration=false}={}){
       if(!chosenSlot)return;
-      const version=++generation;
+      const version=preserveGeneration?generation:++generation;
       setBusy(true);
       try{
         const updated=await api('/quotes',{method:'POST',body:{
@@ -200,11 +202,9 @@
           if(!Number.isInteger(quantity)||quantity<0||quantity>Number(qty.max)){
             setStatus('Please enter a valid quantity.','error');qty.value='0';return;
           }
-          extras=offers.map(o=>({
-            product_id:o.product_id,
-            quantity:o.product_id===offer.product_id?quantity:
-              Number(panel.querySelector('[data-product-id="'+o.product_id+'"]')?.value||0),
-          })).filter(x=>x.quantity>0);
+          selectedExtras.set(offer.product_id,quantity);
+          extras=offers.map(o=>({product_id:o.product_id,quantity:selectedExtras.get(o.product_id)||0}))
+            .filter(x=>x.quantity>0);
           refreshQuote();
         });
         qty.dataset.productId=offer.product_id;
@@ -225,11 +225,10 @@
         const seconds=Math.max(0,Math.floor((new Date(hold.expires_at).getTime()-Date.now())/1000));
         $('#holdExpiry').textContent=seconds?'Your booking is held for '+Math.ceil(seconds/60)+' more minute(s).':'Your hold has expired; please choose a time again.';
         if(seconds===0){
-          const version=++generation;
+          ++generation;
           quote=null;hold=null;$('#confirmButton').disabled=true;$('#checkout').classList.add('hidden');
           setStatus('This hold has expired. Please check availability again.','error');
           clearInterval(expiryTimer);expiryTimer=null;
-          void version;
         }
       },1000);
     }
@@ -260,8 +259,9 @@
         if(version!==generation)return;
         if(!Array.isArray(offers))offers=[];
         renderOffers();
-        if(isPrivate())await refreshQuote();else renderQuote();
+        if(isPrivate())await refreshQuote({preserveGeneration:true});else renderQuote();
         if(version!==generation)return;
+        if(!quote)throw new Error('The held private price could not be confirmed.');
         $('#checkout').classList.remove('hidden');
         setStatus('Your partner discount has been applied.','success');
         watchExpiry();
