@@ -112,16 +112,16 @@ for(const {locale,prefix,home} of vehicleFiles){
     failures.push(path+': official seat product photo credit missing');
   // Family photo is a real VOY PRO asset already used on the family-tour pages,
   // displayed AFTER the independent product descriptions rather than as a seat image.
-  const familySection=(html.match(/<section class="section ez-family" id="child-seats">([\\s\\S]*?)<\\/section>/)||[])[1]||'';
+  const familySection=(html.match(/<section class="section ez-family" id="child-seats">([\s\S]*?)<\/section>/)||[])[1]||'';
   const photoMarker='src="/assets/images/budapest/family-group-ride.jpg"';
   if((familySection.split(photoMarker).length-1)!==1)
     failures.push(path+': expected one existing family-group-ride photograph after the child seat models');
-  if(!familySection.includes('class="ez-seat-family-group"')||!familySection.includes('<figcaption>'))
+  if(!familySection.includes('ez-seat-family-group"')||!familySection.includes('<figcaption>'))
     failures.push(path+': real VOY PRO family photo is missing its own clearly labeled figure');
   if(familySection.indexOf(photoMarker)<familySection.indexOf('class="ez-seat-note"')||
      familySection.indexOf(photoMarker)<familySection.indexOf('data-ez-child-seat="junior"'))
     failures.push(path+': family photo must follow both seat descriptions and suitability note');
-  if(!/<img[^>]+family-group-ride\\.jpg"[^>]+alt="[^"]+"/.test(familySection))
+  if(!/<img[^>]+family-group-ride\.jpg"[^>]+alt="[^"]+"/.test(familySection))
     failures.push(path+': family photo requires meaningful alt text');
   if(html.includes(disallowedVideo))failures.push(path+': unapproved third video still appears on page');
   if((html.match(/data-ez-video="/g)||[]).length!==2)
