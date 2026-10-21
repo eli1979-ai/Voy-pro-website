@@ -1,0 +1,22 @@
+/* Full-length verified customer reviews only. Never clip original words. */
+.voy-reviews[hidden]{display:none!important}
+.voy-reviews{background:#f5f8f9;border-bottom:1px solid #dde9ec;padding:30px 0 36px}
+.voy-reviews .wrap{max-width:1180px}
+.voy-reviews-heading{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 15px}
+.voy-reviews-heading h2{font-size:clamp(1.3rem,2vw,1.75rem);line-height:1.2;margin:0}
+.voy-reviews-heading p{font-size:.87rem;color:#405e68;margin:4px 0 0}
+.voy-reviews-controls{display:flex;gap:8px;align-items:center}
+.voy-reviews-controls button{cursor:pointer;border:1px solid #b2c6cd;border-radius:10px;background:white;color:#093544;font:inherit;font-weight:700;min-height:44px;min-width:44px;padding:6px 12px}
+.voy-reviews-controls button:focus-visible{outline:3px solid #0a9b9d;outline-offset:2px}
+.voy-reviews-controls [data-review-counter]{min-width:54px;text-align:center;font-size:.9rem;font-weight:700;color:#194b5c}
+.voy-review-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain;scrollbar-width:thin;padding:4px 4px 18px}
+.voy-review-card{flex:0 0 clamp(280px,57vw,610px);min-width:0;scroll-snap-align:start;background:#fff;border:1px solid #d8e3e7;border-radius:18px;padding:clamp(19px,3vw,29px);box-shadow:0 5px 19px #092d3c0c}
+.voy-review-top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:15px}
+.voy-review-stars{letter-spacing:2px;color:#af7821;font-size:1.07rem}
+.voy-review-platform{font-size:.86rem;font-weight:750;color:#224a59}
+.voy-review-quote{font-size:clamp(1rem,1.25vw,1.09rem);line-height:1.68;color:#172e37;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 19px}
+.voy-review-byline{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:.93rem;margin-bottom:10px}
+.voy-review-byline time{font-size:.82rem;color:#617782}
+.voy-review-link{color:#036579;text-decoration:underline;text-underline-offset:3px;font-size:.89rem;font-weight:700}
+@media(max-width:620px){.voy-reviews{padding:24px 0}.voy-review-card{flex-basis:calc(100% - 20px)}.voy-reviews-heading{align-items:flex-start}.voy-reviews-controls{width:100%;justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){.voy-review-track{scroll-behavior:auto!important}}
