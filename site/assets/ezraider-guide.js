@@ -1,1 +1,39 @@
-(()=>{'use strict';const el=document.querySelector('[data-ez-video-player]');if(!el)return;const safe={'1i2IQSShkQ8':true,'fMcnMk6gzYA':true,'NHWLOcUc8Vg':true};const buttons=[...el.querySelectorAll('[data-ez-video]')],stage=el.querySelector('[data-ez-video-screen]'),watch=el.querySelector('[data-ez-watch]');let selected=buttons[0];const reset=()=>{stage.replaceChildren();const play=document.createElement('button');play.type='button';play.className='ez-video-start';play.setAttribute('data-ez-play','');const glyph=document.createElement('span');glyph.className='ez-play-symbol';glyph.setAttribute('aria-hidden','true');glyph.textContent='▶';const label=document.createElement('strong');label.textContent=selected.dataset.ezVideoTitle;const sub=document.createElement('small');sub.textContent=document.documentElement.lang==='he'?'לחצו להפעלה':document.documentElement.lang==='hu'?'Kattints a lejátszáshoz':'Tap to play';play.setAttribute('aria-label',label.textContent);play.append(glyph,label,sub);stage.append(play);play.addEventListener('click',()=>{const id=selected.dataset.ezVideo;if(!safe[id])return;const frame=document.createElement('iframe');frame.title=selected.dataset.ezVideoTitle;frame.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0';frame.allow='accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';stage.replaceChildren(frame);});};for(const button of buttons)button.addEventListener('click',()=>{if(!safe[button.dataset.ezVideo])return;selected=button;for(const b of buttons){const active=b===button;b.setAttribute('aria-pressed',String(active));b.classList.toggle('is-active',active);}watch.href='https://www.youtube.com/watch?v='+button.dataset.ezVideo;reset();});reset();})();
+(()=>{'use strict';
+  const player=document.querySelector('[data-ez-video-player]');
+  if(!player)return;
+  const allowed=new Set(['1i2IQSShkQ8','fMcnMk6gzYA','NHWLOcUc8Vg']);
+  const buttons=[...player.querySelectorAll('[data-ez-video]')];
+  const stage=player.querySelector('[data-ez-video-screen]');
+  const watch=player.querySelector('[data-ez-watch]');
+  if(!stage||!watch||!buttons.length)return;
+  let selected=buttons[0];
+
+  const render=()=>{
+    const id=selected.dataset.ezVideo;
+    if(!allowed.has(id))return;
+    const frame=document.createElement('iframe');
+    frame.title=selected.dataset.ezVideoTitle||'EZRaider riding video';
+    frame.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&loop=1&playlist='+id;
+    frame.allow='autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+    frame.allowFullscreen=true;
+    frame.loading='eager';
+    frame.referrerPolicy='strict-origin-when-cross-origin';
+    stage.replaceChildren(frame);
+    watch.href='https://www.youtube.com/watch?v='+id;
+  };
+  for(const button of buttons){
+    button.addEventListener('click',()=>{
+      if(!allowed.has(button.dataset.ezVideo))return;
+      selected=button;
+      for(const other of buttons){
+        const active=other===button;
+        other.setAttribute('aria-pressed',String(active));
+        other.classList.toggle('is-active',active);
+      }
+      render();
+    });
+  }
+  // Muted inline autoplay is supported by modern browsers; browser/user
+  // preferences can still block playback, leaving the native player controls.
+  render();
+})();
