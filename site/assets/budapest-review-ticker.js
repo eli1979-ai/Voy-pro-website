@@ -73,6 +73,9 @@
       !Array.isArray(payload.reviews)||payload.reviews.length!==20)return;
     const reviews=payload.reviews;
     if(!reviews.every(validReview)||new Set(reviews.map(x=>x.id)).size!==20)return;
+    const counts={google:0,tripadvisor:0,getyourguide:0};
+    for(const review of reviews)counts[review.source]++;
+    if(counts.tripadvisor!==10||counts.google!==7||counts.getyourguide!==3)return;
     const first=make('div','vp-review-group');
     const second=make('div','vp-review-group');
     second.setAttribute('aria-hidden','true');
