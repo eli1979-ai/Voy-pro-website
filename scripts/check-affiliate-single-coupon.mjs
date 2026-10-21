@@ -14,4 +14,16 @@ assert.match(code,/promo_code:effectivePromoCode\(\)/,'no discount stacking in t
 assert.match(code,/checkoutForm\.querySelector\('\[data-affiliate-coupon-panel\]'\)/,'block submission during coupon validation');
 assert.match(code,/if\(\!bookingState\.capacityRequest\)[\s\S]*?hold_id:bookingState\.hold\.id[\s\S]*?promo_code:next\|\|null/,'private coupon re-quote must use the active hold');
 assert.match(code,/bookingState\.isPrivate&&bookingState\.hold\?\.id\?\{hold_id:bookingState\.hold\.id\}:\{\}/,'held re-quote must be private-only');
+const widget=readFileSync('site/assets/affiliate-booking-widget.js','utf8');
+const css=readFileSync('site/assets/site.css','utf8');
+assert.match(code,/qs\.get\('embed'\)==='booking'&&validAffiliateCode\(affiliateQuery\)/,'embed mode must require a valid explicit referral code');
+assert.match(code,/document\.body\.classList\.add\('voy-affiliate-booking-embed'\)/,'embedded checkout must use the isolated booking presentation');
+assert.match(code,/window\.parent\.postMessage\(\{/,'embedded checkout must report frame height without personal data');
+assert.match(widget,/script\.dataset\.affiliate/,'widget must get affiliate identity from its own script tag');
+assert.match(widget,/new URL\(script\.src,document\.baseURI\)/,'booking origin must be the trusted hosting site');
+assert.match(widget,/bookingUrl\.searchParams\.set\('affiliate',code\)/,'widget must preserve affiliate in booking URL');
+assert.match(widget,/bookingUrl\.searchParams\.set\('embed','booking'\)/,'widget must open compact hosted booking mode');
+assert.match(widget,/event\.source!==iframe\.contentWindow\|\|event\.origin!==providerOrigin/,'widget resize messages must be origin and source checked');
+assert.match(widget,/link\.target='_blank'/,'widget must provide a usable direct-booking fallback if framing is blocked');
+assert.match(css,/body\.voy-affiliate-booking-embed main > :not\(#booking\)/,'widget CSS must isolate booking rather than duplicating the booking UI');
 console.log('affiliate referral and single-coupon website contract passed');
