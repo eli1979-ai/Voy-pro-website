@@ -137,7 +137,8 @@ for(const c of sourceAudit.candidates||[]){
   const ev=c.source_evidence;
   if(!ev||!Object.hasOwn(evidenceKinds,ev.presence_status)||
       typeof ev.evidence_url!=='string'||!ev.evidence_url.startsWith('https://')||
-      ev.needs_original_verbatim_and_reuse_clearance!==true)
+      ev.publication_rights_status!=='owner_authorized'||
+      ev.owner_authorization_confirmed_on!=='2026-10-21')
     failures.push('review source audit lacks provenance/republishing caution for '+c.id);
   else evidenceKinds[ev.presence_status]++;
   if(ev?.direct_review_url){
@@ -149,8 +150,11 @@ for(const c of sourceAudit.candidates||[]){
   }else if(ev?.direct_review_url_status!=='not_identified'){
     failures.push('review without a permalink must explicitly declare no link verified: '+c.id);
   }
-  if(ev?.publication_status!=='requires_verified_original_and_reuse_authorization')
-    failures.push('review content must not be marked cleared for publication: '+c.id);
+  const expectedStatus=ev?.operator_original_text_evidence?.original_text
+    ?'owner_rights_confirmed_verbatim_original_recovered'
+    :'owner_rights_confirmed_original_verbatim_pending';
+  if(ev?.publication_status!==expectedStatus)
+    failures.push('review must retain correct rights and source-text validation status: '+c.id);
   const notification=ev?.operator_original_text_evidence;
   if(notification){
     if(c.platform!=='getyourguide'||notification.source_text_language!==ev.original_language_hint||
@@ -159,7 +163,7 @@ for(const c of sourceAudit.candidates||[]){
        notification.matched_against_official_platform_reviewer_and_date!==true||
        !notification.original_text?.trim()||
        notification.original_text.trim().length<70||
-       notification.permission_to_republish!=='not_yet_confirmed')
+       notification.permission_to_republish!=='confirmed_by_owner')
       failures.push('original supplier review evidence incomplete, unverified or prematurely approved: '+c.id);
     supplierOriginals++;
   }
@@ -177,9 +181,14 @@ assert(sourceAudit.source_audit.individual_source_permalinks_verified===0,
 assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_notifications===supplierOriginals &&
   supplierOriginals===3, 'three original-language GetYourGuide supplier reviews must stay attributed and unpublished');
 
-if(sourceAudit.source_audit.original_full_texts_cleared_for_republication===0){
+assert(sourceAudit.owner_republication_authorization?.status==='approved_by_owner',
+  'business owner has authorized reuse of all platform reviews');
+assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===supplierOriginals &&
+  sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===20-supplierOriginals,
+  'recovered original-text count is inconsistent');
+if(sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed>0){
   assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
-    'unauthorized full-review publication must remain disabled');
+    'do not activate 20-review ticker before all original texts and source records are ready');
 }
 
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
