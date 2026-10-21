@@ -209,8 +209,8 @@ for(const c of sourceAudit.candidates||[]){
        ev?.platform_review_verification!=='confirmed_directly_in_google_business_profile'||
        !ev?.operator_original_text_evidence?.original_text||
        ev?.exact_calendar_date_status!=='confirmed_by_google_api')
-       failures.push('Google Business Profile original review verification missing: '+c.id);
-    }else if(c.platform==='getyourguide'&&
+      failures.push('Google Business Profile original review verification missing: '+c.id);
+  }else if(c.platform==='getyourguide'&&
        ev?.full_review_status!=='original_language_text_recovered_from_supplier_notification'){
     failures.push('GetYourGuide original body source evidence missing: '+c.id);
   }
@@ -226,8 +226,137 @@ for(const c of sourceAudit.candidates||[]){
        !notification.original_text?.trim()||
        notification.original_text.trim().length<35||
        notification.permission_to_republish!=='confirmed_by_owner')
-       failures.push('original review evidence incomplete: '+c.id);
-    if(c.platform==='getyourguide'&&(!/^[0-9]{7,10}$/.test(notification.review_notification_reference||'')||
-       !/^\\d{4}-\\d{2}-\\d{2}$/.test(notification.notification_received_on||'')))
-       failures.push('GetYourGuide notification evidence incomplete: '+c.id);
+      failures.push('original review evidence incomplete: '+c.id);
+    if(c.platform==='getyourguide'){
+      if(!/^[0-9]{7,10}$/.test(notification.review_notification_reference||'')||
+         !/^\d{4}-\d{2}-\d{2}$/.test(notification.notification_received_on||''))
+        failures.push('GetYourGuide notification evidence incomplete: '+c.id);
+      supplierOriginals++;
+    }
+  }
+  if(ev?.observed_platform_date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(ev?.observed_platform_date||''))
+    failures.push('invalid observed review publication date '+c.id);
+}
+assert(sourceAudit.source_audit.first_party_platform_reviews_located===evidenceKinds.platform_review_found,
+  'first-party source audit count mismatch');
+assert(sourceAudit.source_audit.third_party_mirrors_located===evidenceKinds.third_party_google_copy_found,
+  'Google mirrored reviews must not be counted as first-party verified');
+assert(sourceAudit.source_audit.individual_source_permalink_candidates===directPermalinks &&
+  sourceAudit.source_audit.tripadvisor_official_title_hyperlinks_collected===directPermalinks &&
+  directPermalinks===10,'ten Tripadvisor review title links must be sourced and present');
+assert(sourceAudit.source_audit.individual_source_permalinks_verified===openedTripadvisorPages &&
+  sourceAudit.source_audit.tripadvisor_individual_pages_opened===openedTripadvisorPages &&
+  openedTripadvisorPages===3,'only three individual Tripadvisor review pages were directly opened');
+assert(sourceAudit.source_audit.google_mirrored_review_bodies_found===mirroredGoogleBodies &&
+  sourceAudit.source_audit.google_reviewer_found_without_complete_body===0 &&
+  mirroredGoogleBodies===0,'Google reviews were directly verified');
+const breakdown=sourceAudit.source_audit.full_text_confidence_breakdown;
+assert(breakdown?.tripadvisor_on_platform_original_language_visible===officialTripadvisorOriginals &&
+  breakdown?.getyourguide_original_source_from_supplier_email===supplierOriginals &&
+  breakdown?.google_full_body_only_in_third_party_mirror===mirroredGoogleBodies &&
+  breakdown?.google_directly_verified_on_google_maps===7,
+  'review text original-source confidence counts changed');
+assert(sourceAudit.source_audit.full_review_body_visible_or_recovered_for_20_candidates===20 &&
+  sourceAudit.source_audit.original_texts_saved_in_operator_audit===10,
+  '20 source review bodies located, but only three operator-source originals are stored');
+assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_notifications===supplierOriginals &&
+  supplierOriginals===3, 'three original-language GetYourGuide supplier reviews must stay attributed and unpublished');
 
+assert(sourceAudit.owner_republication_authorization?.status==='approved_by_owner',
+  'business owner has authorized reuse of all platform reviews');
+assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===supplierOriginals+7 &&
+  sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===20-supplierOriginals-7,
+  'recovered original-text count is inconsistent');
+if(sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed>0){
+  assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
+    'do not activate 20-review ticker before all original texts and source records are ready');
+}
+
+
+// Publisher staging is private to the repository docs, not shipped in /site or /dist.
+// Importing partially checked review candidates into the public manifest is forbidden.
+const staged=JSON.parse(fs.readFileSync('docs/budapest-review-20-staging.json','utf8'));
+assert(staged.schema_version===1&&staged.status==='draft_unpublished'&&staged.expected_count===20,
+  'the review content workspace must stay unpublished until the complete 20/20 gate passes');
+assert(JSON.stringify(staged.selection)===JSON.stringify({tripadvisor:10,google:7,getyourguide:3}),
+  'the selected 10/7/3 review mix must remain immutable');
+assert(Array.isArray(staged.reviews)&&staged.reviews.length===20,
+  'all original reviewers must exist in the staging roster');
+const stagedReviewIds=new Set();
+let verifiedFullTexts=0,unverifiedSources=0;
+for(let i=0;i<20;i++){
+  const c=sourceAudit.candidates[i],r=staged.reviews[i];
+  if(!r||!c||r.id!==c.id||r.author!==c.reviewer||r.source!==c.platform
+     ||stagedReviewIds.has(r.id)){
+    failures.push('staged reviewer source or order changed at item '+i);
+    continue;
+  }
+  stagedReviewIds.add(r.id);
+  const ev=c.source_evidence||{};
+  const eligible=r.full_text_verified===true;
+  const primarySource=ev.presence_status==='platform_review_found';
+  if(r.source_verified!==primarySource)
+    failures.push('a mirror must not be mistaken for first-party evidence for '+r.id);
+  if(r.link_kind!==(r.source==='tripadvisor'?'review':'listing'))
+    failures.push('incorrect honest source-link type for '+r.id);
+  if(!isValidSource(r)||r.review_url!==(r.source==='tripadvisor'
+      ?ev.direct_review_url:(ev.platform_product_review_listing||c.source_profile_url)))
+    failures.push('staged source URL was changed or is not a real matching platform URL: '+r.id);
+  if(r.date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(r.date))
+    failures.push('malformed date in staging for '+r.id);
+  if(ev.date_ambiguity&&r.date!==null)
+    failures.push('conflicting regional date must not be published for '+r.id);
+  if(!eligible){
+    if(r.approved!==false||r.full_text!==null||r.language!==null)
+      failures.push('unverified review text or language must stay absent for '+r.id);
+  }else{
+    verifiedFullTexts++;
+    if(!primarySource||!r.approved||typeof r.full_text!=='string'
+        ||r.full_text.trim().length<35||!r.language
+        ||!Number.isInteger(r.rating)||r.rating<1||r.rating>5)
+      failures.push('a source-verified original is missing approval or metadata: '+r.id);
+    const ownerOriginal=ev.operator_original_text_evidence?.original_text;
+    // Later Tripadvisor originals must be documented in the provenance record too.
+    if(!ownerOriginal||r.full_text!==ownerOriginal
+        ||r.language!==ev.operator_original_text_evidence.source_text_language
+        ||r.evidence?.email_review_notification_reference!==
+          ev.operator_original_text_evidence.review_notification_reference)
+      failures.push('staged review must equal its documented owner/source original: '+r.id);
+  }
+  if(!primarySource){
+    unverifiedSources++;
+    if(r.approved||eligible||r.rating!==null||r.date!==null)
+      failures.push('Google mirror-only candidate may not be approved or dated: '+r.id);
+  }
+}
+assert(stagedReviewIds.size===20,'all 20 unique shortlist identities must be preserved');
+assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_cleared_for_republication
+    &&verifiedFullTexts===10,
+  'verified full-text staging count must match the original operator source audit');
+assert(unverifiedSources===0,'all Google reviews must have first-party verification');
+assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
+  'staging must never cause unapproved testimonials to be deployed');
+
+
+// The publisher must report safely without changing the real visitor-facing manifest.
+const reportRun=spawnSync(process.execPath,
+  ['scripts/prepare-budapest-review-manifest.mjs','--report'],
+  {encoding:'utf8',timeout:10000});
+assert(reportRun.status===0,'safe publisher readiness report must execute successfully');
+try{
+  const report=JSON.parse(reportRun.stdout||'{}');
+  assert(report.selected_count===20&&report.required===20,
+    'publisher must require the full shortlist of 20 reviews');
+  assert(report.full_originals_verified===10&&report.publishable_now===10&&report.ready===false,
+    'publisher must not count third-party mirrored copies as verified originals');
+  assert(report.source_mix?.tripadvisor===10&&report.source_mix?.google===7&&
+    report.source_mix?.getyourguide===3,
+    'publisher must validate exact provider mix');
+  assert(Array.isArray(report.blockers)&&report.blockers.length>0,
+    'incomplete review source material must block publication');
+}catch(error){
+  failures.push('publisher readiness report is not valid JSON: '+error.message);
+}
+
+if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
+console.log('Budapest review ticker QA OK: localized placement, full-text accessibility, strict 20-source approval, safe withheld state.');
