@@ -29,7 +29,7 @@
   const reviewIsPublishable=(r)=>r&&r.approved===true&&r.verified===true&&
     typeof r.reviewer==='string'&&r.reviewer.trim().length>1&&
     typeof r.original_full_text==='string'&&r.original_full_text.trim().length>15&&
-    r.rating===5&&typeof r.review_date==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(r.review_date)&&
+    r.rating===5&&typeof r.review_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.review_date)&&
     safeUrl(r.verified_review_url,r.platform);
   const node=(tag,className,text)=>{
     const element=document.createElement(tag);
