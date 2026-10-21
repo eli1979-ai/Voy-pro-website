@@ -118,5 +118,45 @@ assert(approved.root.classList.states.has('is-paused'),'pause button must stop t
 const invalid=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample.slice(0,19)});
 assert(invalid.root.hidden===true,'19 reviews must not be represented as the approved set of 20');
 
+
+// Keep verified source-presence distinct from permission to republish full text.
+// The 20-person shortlist lives under docs/, outside publicly served site assets.
+const sourceAudit=JSON.parse(fs.readFileSync('docs/budapest-review-20-candidates.json','utf8'));
+assert(sourceAudit.candidates?.length===20,'curated source audit must retain all 20 original reviewers');
+assert(sourceAudit.source_audit?.records_total===20,'source audit count inconsistent');
+const evidenceKinds={platform_review_found:0,third_party_google_copy_found:0};
+let directPermalinks=0;
+const uniqueCandidates=new Set();
+for(const c of sourceAudit.candidates||[]){
+  if(!c?.id||uniqueCandidates.has(c.id)||!c.reviewer||!c.platform)
+    failures.push('review audit contains a duplicate or missing reviewer identity');
+  if(c?.id)uniqueCandidates.add(c.id);
+  if(c.approved!==false||c.full_text!==null)
+    failures.push('source presence must never substitute for an approved original full review');
+  const ev=c.source_evidence;
+  if(!ev||!Object.hasOwn(evidenceKinds,ev.presence_status)||
+      typeof ev.evidence_url!=='string'||!ev.evidence_url.startsWith('https://')||
+      ev.needs_original_verbatim_and_reuse_clearance!==true)
+    failures.push('review source audit lacks provenance/republishing caution for '+c.id);
+  else evidenceKinds[ev.presence_status]++;
+  if(ev?.direct_review_url){
+    if(!ev.direct_review_url.startsWith('https://www.tripadvisor.co.il/ShowUserReviews-'))
+      failures.push('unexpected unverified individual review URL '+c.id);
+    directPermalinks++;
+  }
+  if(ev?.observed_platform_date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(ev?.observed_platform_date||''))
+    failures.push('invalid observed review publication date '+c.id);
+}
+assert(sourceAudit.source_audit.first_party_platform_reviews_located===evidenceKinds.platform_review_found,
+  'first-party source audit count mismatch');
+assert(sourceAudit.source_audit.third_party_mirrors_located===evidenceKinds.third_party_google_copy_found,
+  'Google mirrored reviews must not be counted as first-party verified');
+assert(sourceAudit.source_audit.individual_source_permalinks_identified===directPermalinks,
+  'individual review permalink count mismatch');
+if(sourceAudit.source_audit.original_full_texts_cleared_for_republication===0){
+  assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
+    'unauthorized full-review publication must remain disabled');
+}
+
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
 console.log('Budapest review ticker QA OK: localized placement, full-text accessibility, strict 20-source approval, safe withheld state.');
