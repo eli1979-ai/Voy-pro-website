@@ -45,6 +45,25 @@
   const AFFILIATE_SESSION_KEY='voy_active_affiliate_ref_v1:'+destinationId;
   const affiliateQuery=(qs.get('affiliate')||'').trim().toUpperCase();
   const validAffiliateCode=code=>/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(String(code||''));
+  // Embedded affiliate checkout reuses the *same* VOY PRO booking application,
+  // API origin, partner coupon and canonical price engine as the full site.
+  const affiliateBookingEmbed=qs.get('embed')==='booking'&&validAffiliateCode(affiliateQuery)&&isBudapestPage;
+  if(affiliateBookingEmbed){
+    document.body.classList.add('voy-affiliate-booking-embed');
+    document.querySelector('meta[name="robots"]')?.setAttribute('content','noindex,nofollow');
+    const announceEmbedHeight=()=>{
+      if(window.parent===window)return;
+      window.parent.postMessage({
+        type:'voy-pro:affiliate-booking:height',
+        height:Math.ceil(document.documentElement.scrollHeight)
+      },'*'); // Only a numeric layout height, never customer/order details.
+    };
+    if(typeof ResizeObserver!=='undefined'){
+      const observer=new ResizeObserver(announceEmbedHeight);
+      observer.observe(document.body);
+    }
+    window.addEventListener('load',announceEmbedHeight,{once:true});
+  }
   if(affiliateQuery&&validAffiliateCode(affiliateQuery)){
     try{sessionStorage.setItem(AFFILIATE_SESSION_KEY,affiliateQuery);}catch(e){}
   }
