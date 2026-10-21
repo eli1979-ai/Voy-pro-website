@@ -140,10 +140,16 @@ for(const c of sourceAudit.candidates||[]){
     failures.push('review source audit lacks provenance/republishing caution for '+c.id);
   else evidenceKinds[ev.presence_status]++;
   if(ev?.direct_review_url){
-    if(!ev.direct_review_url.startsWith('https://www.tripadvisor.co.il/ShowUserReviews-'))
-      failures.push('unexpected unverified individual review URL '+c.id);
+    // Review IDs from indexed listings do not prove a constructed URL is a real permalink.
+    if(!ev.direct_review_url.startsWith('https://www.tripadvisor.co.il/ShowUserReviews-')||
+       ev.direct_review_url_status!=='unverified_candidate')
+      failures.push('uncorroborated direct review link cannot be marked verified: '+c.id);
     directPermalinks++;
+  }else if(ev?.direct_review_url_status!=='not_identified'){
+    failures.push('review without a permalink must explicitly declare no link verified: '+c.id);
   }
+  if(ev?.publication_status!=='requires_verified_original_and_reuse_authorization')
+    failures.push('review content must not be marked cleared for publication: '+c.id);
   if(ev?.observed_platform_date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(ev?.observed_platform_date||''))
     failures.push('invalid observed review publication date '+c.id);
 }
@@ -151,8 +157,10 @@ assert(sourceAudit.source_audit.first_party_platform_reviews_located===evidenceK
   'first-party source audit count mismatch');
 assert(sourceAudit.source_audit.third_party_mirrors_located===evidenceKinds.third_party_google_copy_found,
   'Google mirrored reviews must not be counted as first-party verified');
-assert(sourceAudit.source_audit.individual_source_permalinks_identified===directPermalinks,
-  'individual review permalink count mismatch');
+assert(sourceAudit.source_audit.individual_source_permalink_candidates===directPermalinks,
+  'candidate source link count mismatch');
+assert(sourceAudit.source_audit.individual_source_permalinks_verified===0,
+  'unopened, synthetically constructed review URLs must never be counted as verified');
 if(sourceAudit.source_audit.original_full_texts_cleared_for_republication===0){
   assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
     'unauthorized full-review publication must remain disabled');
