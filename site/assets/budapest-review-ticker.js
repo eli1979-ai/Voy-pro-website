@@ -6,7 +6,8 @@
   const viewport=root.querySelector('[data-vp-reviews-viewport]');
   const pause=root.querySelector('[data-vp-reviews-pause]');
   if(!track||!viewport||!pause)return;
-  const sourceHosts={google:'google.com',tripadvisor:'tripadvisor.com',getyourguide:'getyourguide.com'};
+  // Tripadvisor uses regional official review URLs. Explicit allowlist; never accept lookalikes.
+  const sourceHosts={google:['google.com'],tripadvisor:['tripadvisor.com','tripadvisor.co.uk','tripadvisor.co.il','tripadvisor.ie'],getyourguide:['getyourguide.com']};
   const sourceLabels={google:'Google Maps',tripadvisor:'Tripadvisor',getyourguide:'GetYourGuide'};
   const locale=document.documentElement.lang||'en';
   const texts={
@@ -18,8 +19,9 @@
   const validUrl=(value,source)=>{
     try{
       const url=new URL(value);
-      const host=sourceHosts[source];
-      return url.protocol==='https:'&&host&&(url.hostname===host||url.hostname.endsWith('.'+host));
+      const hosts=sourceHosts[source];
+      return url.protocol==='https:'&&Array.isArray(hosts)&&hosts.some(host=>
+        url.hostname===host||url.hostname.endsWith('.'+host));
     }catch{return false;}
   };
   const validReview=(item)=>item&&item.approved===true
