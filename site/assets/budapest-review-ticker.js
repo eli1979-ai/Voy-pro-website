@@ -26,7 +26,7 @@
     &&typeof item.id==='string'&&item.id.trim().length>=2
     &&typeof item.author==='string'&&item.author.trim().length>=2
     &&typeof item.full_text==='string'&&item.full_text.trim().length>=35
-    &&typeof item.date==='string'&&/^\\d{4}-\\d{2}-\\d{2}$/.test(item.date)
+    &&typeof item.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)
     &&Number.isInteger(item.rating)&&item.rating>=1&&item.rating<=5
     &&Object.prototype.hasOwnProperty.call(sourceHosts,item.source)
     &&validUrl(item.review_url,item.source);
