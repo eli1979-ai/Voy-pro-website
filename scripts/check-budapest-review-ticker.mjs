@@ -16,8 +16,10 @@ const isValidSource=(review)=>{
   if(!validSource[review.source]||!review.review_url)return false;
   try {
     const u=new URL(review.review_url);
-    const host=validSource[review.source];
-    return u.protocol==='https:'&&(u.hostname===host||u.hostname.endsWith('.'+host));
+    const officialRegionalTripadvisor=['tripadvisor.com','tripadvisor.co.uk','tripadvisor.co.il','tripadvisor.ie'];
+    const hosts=review.source==='tripadvisor'?officialRegionalTripadvisor:[validSource[review.source]];
+    return u.protocol==='https:'&&hosts.some(host=>
+      u.hostname===host||u.hostname.endsWith('.'+host));
   }catch{return false;}
 };
 const reviewValid=(review)=>review?.approved===true
