@@ -205,7 +205,7 @@
           selectedExtras.set(offer.product_id,quantity);
           extras=offers.map(o=>({product_id:o.product_id,quantity:selectedExtras.get(o.product_id)||0}))
             .filter(x=>x.quantity>0);
-          refreshQuote();
+          return refreshQuote();
         });
         qty.dataset.productId=offer.product_id;
         wrap.append(info,qty);panel.appendChild(wrap);
