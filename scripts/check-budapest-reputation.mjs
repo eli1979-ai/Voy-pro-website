@@ -68,7 +68,7 @@ if(reviewData.publication_status==='approved'){
 }else if(reviewData.reviews.length>0){
   failures.push('Unapproved reviews must not be retained in the public review dataset');
 }
-for(const marker of ["data.publication_status!=='approved'","reviews.length!==20","reviews.every(valid)","textContent=value","setInterval","prefers-reduced-motion"]){
+for(const marker of ["data?.publication_status!=='approved'","reviews.length!==20","reviews.every(valid)","textContent=value","setInterval","prefers-reduced-motion"]){
   if(!reviewRuntime.includes(marker))
     failures.push('Review ticker runtime missing integrity or accessibility guard: '+marker);
 }
