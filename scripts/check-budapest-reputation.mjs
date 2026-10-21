@@ -50,6 +50,45 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
   }
 }
 
+// Do not publish fabricated quotes, snippets presented as full reviews, or incomplete sets.
+const reviewsAsset='site/assets/budapest-approved-reviews.json';
+const reviewData=JSON.parse(fs.readFileSync(reviewsAsset,'utf8'));
+const reviewRuntime=fs.readFileSync('site/assets/budapest-review-ticker.js','utf8');
+const reviewCss=fs.readFileSync('site/assets/budapest-review-ticker.css','utf8');
+if(reviewData.schema_version!==1||!Array.isArray(reviewData.reviews))
+  failures.push('Review ticker data contract is malformed');
+if(reviewData.publication_status==='approved'){
+  if(reviewData.reviews.length!==20)
+    failures.push('Only 20 complete, verified reviews may be published');
+  for(const item of reviewData.reviews){
+    if(!item||!item.reviewer||!item.review_url||!item.platform||!item.date||
+       item.rating!==5||typeof item.text!=='string'||item.text.trim().length<20)
+      failures.push('Approved review is incomplete or unattributed');
+  }
+}else if(reviewData.reviews.length>0){
+  failures.push('Unapproved reviews must not be retained in the public review dataset');
+}
+for(const marker of ["data.publication_status!=='approved'","reviews.length!==20","reviews.every(valid)","textContent=value","setInterval","prefers-reduced-motion"]){
+  if(!reviewRuntime.includes(marker))
+    failures.push('Review ticker runtime missing integrity or accessibility guard: '+marker);
+}
+for(const marker of ['.voy-reviews[hidden]','.voy-review-card','.voy-review-quote','.voy-review-track','@media(max-width:620px)']){
+  if(!reviewCss.includes(marker))failures.push('Review ticker stylesheet missing: '+marker);
+}
+for(const file of ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html']){
+  const html=fs.readFileSync(file,'utf8');
+  const start=html.indexOf('<section class="trust">');
+  const end=html.indexOf('</section>',start)+10;
+  const pos=html.indexOf('data-review-ticker');
+  if(start<0||end<10||pos<end||pos>end+250)
+    failures.push(file+': reviews strip must sit directly after reputation ratings');
+  for(const token of ['class="voy-reviews"','data-review-ticker','data-review-track','data-review-prev','data-review-next','data-review-pause','hidden','/assets/budapest-review-ticker.css','/assets/budapest-review-ticker.js']){
+    if(!html.includes(token))failures.push(file+': missing full-review ticker element '+token);
+  }
+  if((html.match(/data-review-ticker/g)||[]).length!==1)
+    failures.push(file+': expected exactly one reviews ticker');
+}
+
 if(failures.length){
   console.error('Budapest reputation snapshot check failed.');
   for(const failure of failures)console.error('- '+failure);
