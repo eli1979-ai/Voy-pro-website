@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 
 const root=process.cwd();
@@ -152,6 +153,18 @@ for(const source of imageSources){
       fail(file,'local image missing or empty: '+image);
     }
   }
+}
+
+// The partner booking flow is executed with mocked FBM routes during every
+// site build / launch QA, not only scanned for static file presence.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-affiliate-booking-widget.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:10000,
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/affiliate-booking-widget.js',
+    'Affiliate widget checkout behavior regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
