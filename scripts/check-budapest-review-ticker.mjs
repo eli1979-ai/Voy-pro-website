@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {spawnSync} from 'node:child_process';
 
 const failures=[];
 const assert=(ok,message)=>{if(!ok)failures.push(message);};
@@ -333,6 +334,27 @@ assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_cleared_
 assert(unverifiedSources===7,'seven Google mirrors require first-party verification');
 assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
   'staging must never cause unapproved testimonials to be deployed');
+
+
+// The publisher must report safely without changing the real visitor-facing manifest.
+const reportRun=spawnSync(process.execPath,
+  ['scripts/prepare-budapest-review-manifest.mjs','--report'],
+  {encoding:'utf8',timeout:10000});
+assert(reportRun.status===0,'safe publisher readiness report must execute successfully');
+try{
+  const report=JSON.parse(reportRun.stdout||'{}');
+  assert(report.selected_count===20&&report.required===20,
+    'publisher must require the full shortlist of 20 reviews');
+  assert(report.full_originals_verified===3&&report.publishable_now===3&&report.ready===false,
+    'publisher must not count third-party mirrored copies as verified originals');
+  assert(report.source_mix?.tripadvisor===10&&report.source_mix?.google===7&&
+    report.source_mix?.getyourguide===3,
+    'publisher must validate exact provider mix');
+  assert(Array.isArray(report.blockers)&&report.blockers.length>0,
+    'incomplete review source material must block publication');
+}catch(error){
+  failures.push('publisher readiness report is not valid JSON: '+error.message);
+}
 
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
 console.log('Budapest review ticker QA OK: localized placement, full-text accessibility, strict 20-source approval, safe withheld state.');
