@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 
 const snapshot=JSON.parse(fs.readFileSync('site/assets/budapest-reputation.json','utf8'));
 const roots=['site/budapest','site/he/budapest','site/hu/budapest'];
@@ -48,6 +49,54 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
   for(const marker of ['Thule Yepp 2 Maxi','12041302','Thule Yepp Junior','/assets/images/budapest/family-child-seat-closeup.jpg','/assets/images/budapest/family-kids-ride.jpg','/assets/images/budapest/family-group-ride.jpg']){
     if(!html.includes(marker))failures.push(file+': family child-seat model/media marker missing: '+marker);
   }
+}
+
+
+// Customer testimonials may only appear when all 20 original full texts and
+// individual source links are reviewed. An incomplete roster stays hidden.
+const candidates=JSON.parse(fs.readFileSync('site/assets/budapest-review-candidates.json','utf8'));
+const reviewScript=fs.readFileSync('site/assets/budapest-review-ticker.js','utf8');
+const reviewStyle=fs.readFileSync('site/assets/budapest-review-ticker.css','utf8');
+try{new vm.Script(reviewScript,{filename:'budapest-review-ticker.js'});}
+catch(error){failures.push('Review ticker script does not parse: '+error.message);}
+if(candidates.schema!=='voy-pro.review-strip-candidates.v1'||candidates.reviews?.length!==20)
+  failures.push('Exactly 20 curated reviewer identities are required');
+const counts={tripadvisor:0,google:0,getyourguide:0};
+const seen=new Set();
+for(const review of candidates.reviews||[]){
+  if(seen.has(review.id))failures.push('Duplicate review candidate: '+review.id);
+  seen.add(review.id);
+  if(!Object.prototype.hasOwnProperty.call(counts,review.platform))
+    failures.push('Unexpected review source: '+review.platform);
+  else counts[review.platform]++;
+  if(!review.reviewer||!review.source_profile_url?.startsWith('https://'))
+    failures.push('Incomplete reviewer identity or platform profile: '+review.id);
+}
+if(counts.tripadvisor!==10||counts.google!==7||counts.getyourguide!==3)
+  failures.push('Curated reviews must preserve the 10/7/3 platform mix');
+const reviewReady=(candidates.reviews||[]).every(r=>
+  r.approved===true&&r.verified===true&&typeof r.original_full_text==='string'&&
+  r.original_full_text.trim().length>15&&r.verified_review_url?.startsWith('https://')&&
+  /^\d{4}-\d{2}-\d{2}$/.test(r.review_date||''));
+if(!reviewReady&&(candidates.reviews||[]).some(r=>r.approved===true))
+  failures.push('Do not approve a partial or unverified review strip');
+if(!reviewScript.includes('data-budapest-review-ticker')||
+   !reviewScript.includes('data.reviews.length!==20')||
+   !reviewScript.includes('data.reviews.every(reviewIsPublishable)'))
+  failures.push('Fail-closed full-review strip validation is missing');
+if(!reviewStyle.includes('.voy-review-section[hidden]'))
+  failures.push('Unverified review strip must remain hidden even under CSS styling');
+for(const home of ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html']){
+  const html=fs.readFileSync(home,'utf8');
+  const anchor=html.indexOf('class="trust"');
+  const slider=html.indexOf('data-budapest-review-ticker hidden');
+  const vehicle=html.indexOf('class="section ez-vehicle-bridge"');
+  if(anchor<0||slider<=anchor||vehicle<=slider)
+    failures.push(home+': review strip is not directly after reputation and before vehicle');
+  if(!html.includes('href="/assets/budapest-review-ticker.css"')||
+     !html.includes('src="/assets/budapest-review-ticker.js"')||
+     !html.includes('data-review-track')||!html.includes('data-review-pause'))
+    failures.push(home+': review strip stylesheet, script or accessible controls missing');
 }
 
 if(failures.length){
