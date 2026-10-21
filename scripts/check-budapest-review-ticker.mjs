@@ -126,6 +126,9 @@ assert(sourceAudit.candidates?.length===20,'curated source audit must retain all
 assert(sourceAudit.source_audit?.records_total===20,'source audit count inconsistent');
 const evidenceKinds={platform_review_found:0,third_party_google_copy_found:0};
 let directPermalinks=0;
+let openedTripadvisorPages=0;
+let mirroredGoogleBodies=0;
+let officialTripadvisorOriginals=0;
 let supplierOriginals=0;
 const uniqueCandidates=new Set();
 for(const c of sourceAudit.candidates||[]){
@@ -141,14 +144,24 @@ for(const c of sourceAudit.candidates||[]){
       ev.owner_authorization_confirmed_on!=='2026-10-21')
     failures.push('review source audit lacks provenance/republishing caution for '+c.id);
   else evidenceKinds[ev.presence_status]++;
-  if(ev?.direct_review_url){
-    // Review IDs from indexed listings do not prove a constructed URL is a real permalink.
-    if(!ev.direct_review_url.startsWith('https://www.tripadvisor.co.il/ShowUserReviews-')||
-       ev.direct_review_url_status!=='unverified_candidate')
-      failures.push('uncorroborated direct review link cannot be marked verified: '+c.id);
-    directPermalinks++;
-  }else if(ev?.direct_review_url_status!=='not_identified'){
-    failures.push('review without a permalink must explicitly declare no link verified: '+c.id);
+  if(c.platform==='tripadvisor'){
+    if(!ev?.direct_review_url?.match(/^https:\/\/www\.tripadvisor\.(?:co\.il|co\.uk|ie)\/ShowUserReviews-g274887-d24081931-r[0-9]+-/)||
+       ev?.platform_permalink_source!=='official Tripadvisor review title hyperlink, not synthesized'||
+       ev?.full_review_status!=='complete_original_visible_on_official_listing'||
+       !['individually_opened','officially_linked_but_not_independently_opened'].includes(ev?.direct_review_url_status))
+      failures.push('Tripadvisor review requires its original page title hyperlink, honest fetch status and full listing: '+c.id);
+    directPermalinks++;officialTripadvisorOriginals++;
+    if(ev?.direct_review_url_status==='individually_opened')openedTripadvisorPages++;
+  }else if(c.platform==='google'){
+    if(ev?.direct_review_url!==null||ev?.full_review_status!=='full_text_seen_only_in_third_party_google_mirror'||
+       ev?.platform_review_verification!=='not_confirmed_directly_in_google_business_profile'||
+       ev?.exact_calendar_date_status!=='not_available_from_relative_age'||
+       ev?.review_specific_google_permalink!==null)
+      failures.push('Google mirror evidence cannot be treated as direct platform verification: '+c.id);
+    mirroredGoogleBodies++;
+  }else if(c.platform==='getyourguide'&&
+       ev?.full_review_status!=='original_language_text_recovered_from_supplier_notification'){
+    failures.push('GetYourGuide original body source evidence missing: '+c.id);
   }
   const expectedStatus=ev?.operator_original_text_evidence?.original_text
     ?'owner_rights_confirmed_verbatim_original_recovered'
@@ -174,10 +187,24 @@ assert(sourceAudit.source_audit.first_party_platform_reviews_located===evidenceK
   'first-party source audit count mismatch');
 assert(sourceAudit.source_audit.third_party_mirrors_located===evidenceKinds.third_party_google_copy_found,
   'Google mirrored reviews must not be counted as first-party verified');
-assert(sourceAudit.source_audit.individual_source_permalink_candidates===directPermalinks,
-  'candidate source link count mismatch');
-assert(sourceAudit.source_audit.individual_source_permalinks_verified===0,
-  'unopened, synthetically constructed review URLs must never be counted as verified');
+assert(sourceAudit.source_audit.individual_source_permalink_candidates===directPermalinks &&
+  sourceAudit.source_audit.tripadvisor_official_title_hyperlinks_collected===directPermalinks &&
+  directPermalinks===10,'ten Tripadvisor review title links must be sourced and present');
+assert(sourceAudit.source_audit.individual_source_permalinks_verified===openedTripadvisorPages &&
+  sourceAudit.source_audit.tripadvisor_individual_pages_opened===openedTripadvisorPages &&
+  openedTripadvisorPages===3,'only three individual Tripadvisor review pages were directly opened');
+assert(sourceAudit.source_audit.google_mirrored_review_bodies_found===mirroredGoogleBodies &&
+  sourceAudit.source_audit.google_reviewer_found_without_complete_body===0 &&
+  mirroredGoogleBodies===7,'seven Google full review bodies have only third-party provenance');
+const breakdown=sourceAudit.source_audit.full_text_confidence_breakdown;
+assert(breakdown?.tripadvisor_on_platform_original_language_visible===officialTripadvisorOriginals &&
+  breakdown?.getyourguide_original_source_from_supplier_email===supplierOriginals &&
+  breakdown?.google_full_body_only_in_third_party_mirror===mirroredGoogleBodies &&
+  breakdown?.google_directly_verified_on_google_maps===0,
+  'review text original-source confidence counts changed');
+assert(sourceAudit.source_audit.full_review_body_visible_or_recovered_for_20_candidates===20 &&
+  sourceAudit.source_audit.original_texts_saved_in_operator_audit===3,
+  '20 source review bodies located, but only three operator-source originals are stored');
 assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_notifications===supplierOriginals &&
   supplierOriginals===3, 'three original-language GetYourGuide supplier reviews must stay attributed and unpublished');
 
