@@ -1,0 +1,187 @@
+{
+  "schema": "voy-pro.review-candidates.INTERNAL.v1",
+  "status": "unverified_candidates_only",
+  "note": "20 candidate identifiers recovered from concurrent review selection work. NOT approved for publication; none has source-verbatim review, individual review link or date. Keep this under docs/ and do not expose as website testimonial data.",
+  "candidates": [
+    {
+      "id": "tripadvisor-1",
+      "reviewer": "Katie M",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-2",
+      "reviewer": "Stav G",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-3",
+      "reviewer": "lihi F",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-4",
+      "reviewer": "אביעד כ",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-5",
+      "reviewer": "Shoshi R",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-6",
+      "reviewer": "Explore27235187907",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-7",
+      "reviewer": "ענת ל",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-8",
+      "reviewer": "אורטל פ",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-9",
+      "reviewer": "Sightsee44633083977",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "tripadvisor-10",
+      "reviewer": "Flyer45428477043",
+      "platform": "tripadvisor",
+      "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-1",
+      "reviewer": "Mor M.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-2",
+      "reviewer": "Nir I.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-3",
+      "reviewer": "Anne H.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-4",
+      "reviewer": "Mike van de W.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-5",
+      "reviewer": "Slavik G.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-6",
+      "reviewer": "Yair G.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "google-7",
+      "reviewer": "Inbal Y.",
+      "platform": "google",
+      "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "getyourguide-1",
+      "reviewer": "Cornelia",
+      "platform": "getyourguide",
+      "source_profile_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "getyourguide-2",
+      "reviewer": "Keren Emili",
+      "platform": "getyourguide",
+      "source_profile_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    },
+    {
+      "id": "getyourguide-3",
+      "reviewer": "Yariv",
+      "platform": "getyourguide",
+      "source_profile_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/",
+      "review_date": null,
+      "full_text": null,
+      "approved": false
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import './check-budapest-review-ticker.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 

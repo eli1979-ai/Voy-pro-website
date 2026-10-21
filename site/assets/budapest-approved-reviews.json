@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "location": "Budapest",
+  "status": "awaiting_verified_approval",
+  "expected_count": 20,
+  "description": "Only verbatim reviews approved by the operator and verified against the original review platform may be published. Keep the full original review text and source URL. Pending list intentionally empty; ticker stays hidden until all 20 are verified.",
+  "reviews": []
+}
