@@ -360,7 +360,16 @@
         "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Cornelia – France, verified booking on official GetYourGuide product page; English is a translation from French.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "requires_verified_original_and_reuse_authorization",
+        "operator_original_text_evidence": {
+          "source": "Supplier notification received from GetYourGuide to the VOY PRO owner's connected Gmail account",
+          "review_notification_reference": "125744846",
+          "notification_received_on": "2026-07-22",
+          "source_text_language": "fr",
+          "original_text": "tres belle expérience en famille la visite est accessible en famille avec enfant, notre fille de 6 ans et notre fils de 15 ans ans ans merci à Javier, pour la qualité de son accueil et sa gentillesse je recommande vivement cette activité",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "permission_to_republish": "not_yet_confirmed"
+        }
       }
     },
     {
@@ -380,7 +389,16 @@
         "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Keren Emili – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "requires_verified_original_and_reuse_authorization",
+        "operator_original_text_evidence": {
+          "source": "Supplier notification received from GetYourGuide to the VOY PRO owner's connected Gmail account",
+          "review_notification_reference": "125957120",
+          "notification_received_on": "2026-07-28",
+          "source_text_language": "he",
+          "original_text": "חוויה מדהימה, נהנינו ממש מדריכים סבלניים, סיור מושקע ומקצועי דרך מצויינת לראות את החלק העתיק של בודה מבלי לשבור את הרגליים. מומלץ בחום!!!!! יהודה אחלה ממש",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "permission_to_republish": "not_yet_confirmed"
+        }
       }
     },
     {
@@ -400,7 +418,16 @@
         "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Yariv – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "requires_verified_original_and_reuse_authorization",
+        "operator_original_text_evidence": {
+          "source": "Supplier notification received from GetYourGuide to the VOY PRO owner's connected Gmail account",
+          "review_notification_reference": "128671395",
+          "notification_received_on": "2026-10-12",
+          "source_text_language": "he",
+          "original_text": "חוויה הכי כיפית ומהנה שהייתה לנו בבודפשט, יהודה המדריך אדיב, מקצועי בעל ידע היסטורי, והיה נחמד וסבלני לכל חברי הקבוצה, כלים מתוחזקים וקלים לתפעול, מומלץ בחום",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "permission_to_republish": "not_yet_confirmed"
+        }
       }
     }
   ],
@@ -410,8 +437,9 @@
     "first_party_platform_reviews_located": 13,
     "third_party_mirrors_located": 7,
     "original_full_texts_cleared_for_republication": 0,
-    "note": "Platform listing appearances are evidence of reviewer identity, not verbatim-text verification or permission to reproduce. Four Tripadvisor ShowUserReviews URL candidates were constructed from indexed review identifiers; these could not be opened or independently confirmed, and must not be called verified direct permalinks. Google entries are from a mirror only. GetYourGuide English versions translate original Hebrew/French. Zero complete review bodies or direct permalinks are cleared for website publication.",
+    "note": "Platform listing appearances are evidence of reviewer identity, not verbatim-text verification or permission to reproduce. Four Tripadvisor ShowUserReviews URL candidates were constructed from indexed review identifiers; these could not be opened or independently confirmed, and must not be called verified direct permalinks. Google entries are from a mirror only. GetYourGuide English versions translate original Hebrew/French. Zero complete review bodies or direct permalinks are cleared for website publication. Three GetYourGuide original-language review bodies were recovered from supplier new-review notification emails and are stored ONLY in this non-deployed docs audit; permission to republish remains unconfirmed.",
     "individual_source_permalink_candidates": 4,
-    "individual_source_permalinks_verified": 0
+    "individual_source_permalinks_verified": 0,
+    "original_review_texts_recovered_from_operator_notifications": 3
   }
 }
