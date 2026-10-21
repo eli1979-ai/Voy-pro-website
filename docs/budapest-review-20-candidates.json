@@ -1,6 +1,6 @@
 {
   "schema": "voy-pro.review-candidates.INTERNAL.v1",
-  "status": "source_identity_audited_publication_blocked",
+  "status": "source_audit_ongoing_owner_publication_rights_confirmed",
   "note": "20 candidate identifiers recovered from concurrent review selection work. NOT approved for publication; none has source-verbatim review, individual review link or date. Keep this under docs/ and do not expose as website testimonial data.",
   "candidates": [
     {
@@ -17,10 +17,11 @@
         "observed_platform_date": "2026-08-08",
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Review is readable in Hebrew on Tripadvisor. English Tripadvisor text is automatically translated.",
         "direct_review_url_status": "unverified_candidate",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -37,10 +38,11 @@
         "observed_platform_date": "2026-07-06",
         "direct_review_url": null,
         "original_language_hint": "en",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "English-language review visible on Tripadvisor.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -57,10 +59,11 @@
         "observed_platform_date": "2025-09-29",
         "direct_review_url": null,
         "original_language_hint": "en",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "English-language review visible on Tripadvisor.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -77,10 +80,11 @@
         "observed_platform_date": "2026-01-02",
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Found in older indexed Tripadvisor review page; publication date comes from that historical snapshot.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -93,14 +97,15 @@
       "approved": false,
       "source_evidence": {
         "presence_status": "platform_review_found",
-        "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-or10-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "observed_platform_date": "2026-08-29",
         "direct_review_url": null,
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Hebrew version and author/date on Tripadvisor; English is machine-translated.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -117,10 +122,11 @@
         "observed_platform_date": "2026-07-28",
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Original Hebrew displayed on Tripadvisor; English version is auto-translated.",
         "direct_review_url_status": "unverified_candidate",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -133,14 +139,15 @@
       "approved": false,
       "source_evidence": {
         "presence_status": "platform_review_found",
-        "evidence_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-or20-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+        "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-or10-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "observed_platform_date": "2025-11-23",
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Reviewer and review found in older Tripadvisor snapshot; original language must be checked.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -157,10 +164,11 @@
         "observed_platform_date": "2026-08-16",
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Original Hebrew shown by Tripadvisor.",
         "direct_review_url_status": "unverified_candidate",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -177,10 +185,11 @@
         "observed_platform_date": "2025-11-16",
         "direct_review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Original Hebrew shown by Tripadvisor.",
         "direct_review_url_status": "unverified_candidate",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -194,13 +203,15 @@
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-        "observed_platform_date": null,
+        "observed_platform_date": "2025-11-06",
         "direct_review_url": null,
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Review found; dates differ across Tripadvisor indexed snapshots (November 5 vs November 6, 2025); keep unset pending direct verification.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21",
+        "date_source_note": "Tripadvisor Hebrew listing and /Reviews-or10/ archive present review under Nov 6 2025. Earlier Nov 5 was mismatched/unverified; the official review header shows Nov 6."
       }
     },
     {
@@ -217,10 +228,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Mor M. reviewer and text appear in a third-party mirror of Google reviews; original Google review and permanent URL not independently accessed.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -237,10 +249,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Nir I. reviewer and text appear in a third-party mirror of Google reviews; original Google review and permanent URL not independently accessed.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -257,10 +270,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Anne H. reviewer and text appear in a third-party mirror; relative posting time is not a reliable exact date.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -277,10 +291,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Mike van de W. reviewer and text appear in a third-party mirror; absolute date and individual Google review URL unverified.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -297,10 +312,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Slavik G. reviewer and text appear in a third-party mirror; individual Google review not independently accessed.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -317,10 +333,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Yair G. reviewer and text appear in a third-party mirror; individual Google review not independently accessed.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -337,10 +354,11 @@
         "observed_platform_date": null,
         "direct_review_url": null,
         "original_language_hint": null,
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Inbal Y. reviewer and text appear in a third-party mirror; individual Google review not independently accessed.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization"
+        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -357,10 +375,9 @@
         "observed_platform_date": "2026-07-22",
         "direct_review_url": null,
         "original_language_hint": "fr",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Cornelia – France, verified booking on official GetYourGuide product page; English is a translation from French.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "operator_original_text_evidence": {
           "source": "Supplier notification received from GetYourGuide to the VOY PRO owner's connected Gmail account",
           "review_notification_reference": "125744846",
@@ -368,8 +385,10 @@
           "source_text_language": "fr",
           "original_text": "tres belle expérience en famille la visite est accessible en famille avec enfant, notre fille de 6 ans et notre fils de 15 ans ans ans merci à Javier, pour la qualité de son accueil et sa gentillesse je recommande vivement cette activité",
           "matched_against_official_platform_reviewer_and_date": true,
-          "permission_to_republish": "not_yet_confirmed"
-        }
+          "permission_to_republish": "confirmed_by_owner"
+        },
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -386,10 +405,9 @@
         "observed_platform_date": "2026-07-28",
         "direct_review_url": null,
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Keren Emili – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "operator_original_text_evidence": {
           "source": "Supplier notification received from GetYourGuide to the VOY PRO owner's connected Gmail account",
           "review_notification_reference": "125957120",
@@ -397,8 +415,10 @@
           "source_text_language": "he",
           "original_text": "חוויה מדהימה, נהנינו ממש מדריכים סבלניים, סיור מושקע ומקצועי דרך מצויינת לראות את החלק העתיק של בודה מבלי לשבור את הרגליים. מומלץ בחום!!!!! יהודה אחלה ממש",
           "matched_against_official_platform_reviewer_and_date": true,
-          "permission_to_republish": "not_yet_confirmed"
-        }
+          "permission_to_republish": "confirmed_by_owner"
+        },
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     },
     {
@@ -415,10 +435,9 @@
         "observed_platform_date": "2026-10-11",
         "direct_review_url": null,
         "original_language_hint": "he",
-        "needs_original_verbatim_and_reuse_clearance": true,
         "note": "Yariv – Israel, verified booking on official GetYourGuide product page; English is translated from Hebrew.",
         "direct_review_url_status": "not_identified",
-        "publication_status": "requires_verified_original_and_reuse_authorization",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "operator_original_text_evidence": {
           "source": "Supplier notification received from GetYourGuide to the VOY PRO owner's connected Gmail account",
           "review_notification_reference": "128671395",
@@ -426,8 +445,10 @@
           "source_text_language": "he",
           "original_text": "חוויה הכי כיפית ומהנה שהייתה לנו בבודפשט, יהודה המדריך אדיב, מקצועי בעל ידע היסטורי, והיה נחמד וסבלני לכל חברי הקבוצה, כלים מתוחזקים וקלים לתפעול, מומלץ בחום",
           "matched_against_official_platform_reviewer_and_date": true,
-          "permission_to_republish": "not_yet_confirmed"
-        }
+          "permission_to_republish": "confirmed_by_owner"
+        },
+        "publication_rights_status": "owner_authorized",
+        "owner_authorization_confirmed_on": "2026-10-21"
       }
     }
   ],
@@ -436,10 +457,18 @@
     "records_total": 20,
     "first_party_platform_reviews_located": 13,
     "third_party_mirrors_located": 7,
-    "original_full_texts_cleared_for_republication": 0,
-    "note": "Platform listing appearances are evidence of reviewer identity, not verbatim-text verification or permission to reproduce. Four Tripadvisor ShowUserReviews URL candidates were constructed from indexed review identifiers; these could not be opened or independently confirmed, and must not be called verified direct permalinks. Google entries are from a mirror only. GetYourGuide English versions translate original Hebrew/French. Zero complete review bodies or direct permalinks are cleared for website publication. Three GetYourGuide original-language review bodies were recovered from supplier new-review notification emails and are stored ONLY in this non-deployed docs audit; permission to republish remains unconfirmed.",
+    "original_full_texts_cleared_for_republication": 3,
+    "note": "Business owner confirms rights to republish all selected reviews, so rights clearance is no longer a blocker. Three GetYourGuide original-language texts (supplier emails) verified and cleared to re-use; the remaining 17 full-texts need accurately captured original text, author/date and source validation before public rollout. Tripadvisor list pages display several originals, while Google review copies lack reliable exact dates and source-specific permalinks. The public manifest remains disabled until all 20 are ready.",
     "individual_source_permalink_candidates": 4,
     "individual_source_permalinks_verified": 0,
-    "original_review_texts_recovered_from_operator_notifications": 3
+    "original_review_texts_recovered_from_operator_notifications": 3,
+    "original_full_texts_missing_or_unconfirmed": 17
+  },
+  "owner_republication_authorization": {
+    "confirmed_by": "VOY PRO business owner",
+    "confirmed_on": "2026-10-21",
+    "scope": "All customer reviews of VOY PRO/EZRaider from Google Maps, Tripadvisor and GetYourGuide selected for the site",
+    "status": "approved_by_owner",
+    "note": "The owner explicitly confirmed full rights to republish their customer reviews from all platforms. Do not require a second permission approval for the same reviews. Separately verify exact original text, true reviewer identity/date and usable source link before enabling the 20-item slider."
   }
 }
