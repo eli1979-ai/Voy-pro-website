@@ -16,8 +16,11 @@ const isValidSource=(review)=>{
   if(!validSource[review.source]||!review.review_url)return false;
   try {
     const u=new URL(review.review_url);
-    const host=validSource[review.source];
-    return u.protocol==='https:'&&(u.hostname===host||u.hostname.endsWith('.'+host));
+    const hosts=review.source==='tripadvisor'
+      ?['tripadvisor.com','tripadvisor.co.uk','tripadvisor.co.il','tripadvisor.ie']
+      :[validSource[review.source]];
+    return u.protocol==='https:'&&hosts.some(host=>
+      u.hostname===host||u.hostname.endsWith('.'+host));
   }catch{return false;}
 };
 const reviewValid=(review)=>review?.approved===true
@@ -152,6 +155,16 @@ assert(misleading.root.hidden===true,'reject forged platform URLs');
 const missingKind=await simulate({schema_version:1,expected_count:20,status:'approved',
   reviews:listingSample.map((x,i)=>i===10?{...x,link_kind:undefined}:x)});
 assert(missingKind.root.hidden===true,'all source links must declare whether they lead to a review or listing');
+// Real regional Tripadvisor permalinks must work, but spoofed hosts must fail.
+const regionalSample=sample.map(x=>({...x}));
+regionalSample[0]={...regionalSample[0],review_url:
+  'https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-test.html'};
+const region=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:regionalSample});
+assert(region.root.hidden===false,'allow an official Tripadvisor regional permalink');
+const fakeRegion=regionalSample.map((x,i)=>i===0?{...x,
+  review_url:'https://www.tripadvisor.co.il.attacker.example/fake'}:x);
+const rejectedRegion=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:fakeRegion});
+assert(rejectedRegion.root.hidden===true,'do not accept spoofed Tripadvisor regional hosts');
 const wrongMix=await simulate({schema_version:1,expected_count:20,status:'approved',
   reviews:sample.map((x,i)=>i===10?{...x,source:'tripadvisor',
     review_url:'https://www.tripadvisor.com/ShowUserReviews-fixture'}:x)});
