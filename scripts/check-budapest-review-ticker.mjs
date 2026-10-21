@@ -300,7 +300,7 @@ for(let i=0;i<20;i++){
   if(r.link_kind!==(r.source==='tripadvisor'?'review':'listing'))
     failures.push('incorrect honest source-link type for '+r.id);
   if(!isValidSource(r)||r.review_url!==(r.source==='tripadvisor'
-      ?ev.direct_review_url:(ev.platform_product_review_listing||c.source_profile_url)))
+      ?ev.direct_review_url:(ev.platform_product_review_listing||ev.evidence_url||c.source_profile_url)))
     failures.push('staged source URL was changed or is not a real matching platform URL: '+r.id);
   if(r.date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(r.date))
     failures.push('malformed date in staging for '+r.id);
