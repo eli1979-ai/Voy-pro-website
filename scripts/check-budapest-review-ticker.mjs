@@ -126,6 +126,7 @@ assert(sourceAudit.candidates?.length===20,'curated source audit must retain all
 assert(sourceAudit.source_audit?.records_total===20,'source audit count inconsistent');
 const evidenceKinds={platform_review_found:0,third_party_google_copy_found:0};
 let directPermalinks=0;
+let supplierOriginals=0;
 const uniqueCandidates=new Set();
 for(const c of sourceAudit.candidates||[]){
   if(!c?.id||uniqueCandidates.has(c.id)||!c.reviewer||!c.platform)
@@ -150,6 +151,18 @@ for(const c of sourceAudit.candidates||[]){
   }
   if(ev?.publication_status!=='requires_verified_original_and_reuse_authorization')
     failures.push('review content must not be marked cleared for publication: '+c.id);
+  const notification=ev?.operator_original_text_evidence;
+  if(notification){
+    if(c.platform!=='getyourguide'||notification.source_text_language!==ev.original_language_hint||
+       !/^[0-9]{7,10}$/.test(notification.review_notification_reference||'')||
+       !/^\d{4}-\d{2}-\d{2}$/.test(notification.notification_received_on||'')||
+       notification.matched_against_official_platform_reviewer_and_date!==true||
+       !notification.original_text?.trim()||
+       notification.original_text.trim().length<70||
+       notification.permission_to_republish!=='not_yet_confirmed')
+      failures.push('original supplier review evidence incomplete, unverified or prematurely approved: '+c.id);
+    supplierOriginals++;
+  }
   if(ev?.observed_platform_date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(ev?.observed_platform_date||''))
     failures.push('invalid observed review publication date '+c.id);
 }
@@ -161,6 +174,9 @@ assert(sourceAudit.source_audit.individual_source_permalink_candidates===directP
   'candidate source link count mismatch');
 assert(sourceAudit.source_audit.individual_source_permalinks_verified===0,
   'unopened, synthetically constructed review URLs must never be counted as verified');
+assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_notifications===supplierOriginals &&
+  supplierOriginals===3, 'three original-language GetYourGuide supplier reviews must stay attributed and unpublished');
+
 if(sourceAudit.source_audit.original_full_texts_cleared_for_republication===0){
   assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
     'unauthorized full-review publication must remain disabled');
