@@ -305,7 +305,7 @@
           button.setAttribute('aria-pressed','false');
           button.addEventListener('click',()=>{
             for(const node of panel.querySelectorAll('button'))node.setAttribute('aria-pressed','false');
-            button.setAttribute('aria-pressed','true');selectSlot(slot);
+            button.setAttribute('aria-pressed','true');return selectSlot(slot);
           });
           if(allowed)sellable++;
           panel.appendChild(button);
