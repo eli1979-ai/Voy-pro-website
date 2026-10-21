@@ -46,6 +46,7 @@ class Element {
   append(...els){this.children.push(...els);}
   appendChild(el){this.children.push(el);return el;}
   replaceChildren(...els){this.children=[...els];}
+  querySelectorAll(selector){return selector==='button'?this.children.filter(x=>x.tagName==='button'):[];}
   scrollIntoView(){}
 }
 function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid'}={}){
