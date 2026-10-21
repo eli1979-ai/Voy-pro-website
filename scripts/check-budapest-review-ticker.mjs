@@ -218,5 +218,70 @@ if(sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed>0){
     'do not activate 20-review ticker before all original texts and source records are ready');
 }
 
+
+// Publisher staging is private to the repository docs, not shipped in /site or /dist.
+// Importing partially checked review candidates into the public manifest is forbidden.
+const staged=JSON.parse(fs.readFileSync('docs/budapest-review-20-staging.json','utf8'));
+assert(staged.schema_version===1&&staged.status==='draft_unpublished'&&staged.expected_count===20,
+  'the review content workspace must stay unpublished until the complete 20/20 gate passes');
+assert(JSON.stringify(staged.selection)===JSON.stringify({tripadvisor:10,google:7,getyourguide:3}),
+  'the selected 10/7/3 review mix must remain immutable');
+assert(Array.isArray(staged.reviews)&&staged.reviews.length===20,
+  'all original reviewers must exist in the staging roster');
+const stagedReviewIds=new Set();
+let verifiedFullTexts=0,unverifiedSources=0;
+for(let i=0;i<20;i++){
+  const c=sourceAudit.candidates[i],r=staged.reviews[i];
+  if(!r||!c||r.id!==c.id||r.author!==c.reviewer||r.source!==c.platform
+     ||stagedReviewIds.has(r.id)){
+    failures.push('staged reviewer source or order changed at item '+i);
+    continue;
+  }
+  stagedReviewIds.add(r.id);
+  const ev=c.source_evidence||{};
+  const eligible=r.full_text_verified===true;
+  const primarySource=ev.presence_status==='platform_review_found';
+  if(r.source_verified!==primarySource)
+    failures.push('a mirror must not be mistaken for first-party evidence for '+r.id);
+  if(r.link_kind!==(r.source==='tripadvisor'?'review':'listing'))
+    failures.push('incorrect honest source-link type for '+r.id);
+  if(!isValidSource(r)||r.review_url!==(r.source==='tripadvisor'
+      ?ev.direct_review_url:(ev.platform_product_review_listing||c.source_profile_url)))
+    failures.push('staged source URL was changed or is not a real matching platform URL: '+r.id);
+  if(r.date!==null&&!/^\d{4}-\d{2}-\d{2}$/.test(r.date))
+    failures.push('malformed date in staging for '+r.id);
+  if(ev.date_ambiguity&&r.date!==null)
+    failures.push('conflicting regional date must not be published for '+r.id);
+  if(!eligible){
+    if(r.approved!==false||r.full_text!==null||r.language!==null)
+      failures.push('unverified review text or language must stay absent for '+r.id);
+  }else{
+    verifiedFullTexts++;
+    if(!primarySource||!r.approved||typeof r.full_text!=='string'
+        ||r.full_text.trim().length<35||!r.language
+        ||!Number.isInteger(r.rating)||r.rating<1||r.rating>5)
+      failures.push('a source-verified original is missing approval or metadata: '+r.id);
+    const ownerOriginal=ev.operator_original_text_evidence?.original_text;
+    // Later Tripadvisor originals must be documented in the provenance record too.
+    if(!ownerOriginal||r.full_text!==ownerOriginal
+        ||r.language!==ev.operator_original_text_evidence.source_text_language
+        ||r.evidence?.email_review_notification_reference!==
+          ev.operator_original_text_evidence.review_notification_reference)
+      failures.push('staged review must equal its documented owner/source original: '+r.id);
+  }
+  if(!primarySource){
+    unverifiedSources++;
+    if(r.approved||eligible||r.rating!==null||r.date!==null)
+      failures.push('Google mirror-only candidate may not be approved or dated: '+r.id);
+  }
+}
+assert(stagedReviewIds.size===20,'all 20 unique shortlist identities must be preserved');
+assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_cleared_for_republication
+    &&verifiedFullTexts===3,
+  'verified full-text staging count must match the original operator source audit');
+assert(unverifiedSources===7,'seven Google mirrors require first-party verification');
+assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
+  'staging must never cause unapproved testimonials to be deployed');
+
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
 console.log('Budapest review ticker QA OK: localized placement, full-text accessibility, strict 20-source approval, safe withheld state.');
