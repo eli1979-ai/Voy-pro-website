@@ -77,8 +77,8 @@ for(const [page,locale] of locales){
     leftButton.includes('aria-hidden="true"')&&
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
-  assert(html.includes('/assets/budapest-review-ticker.js?v=20261022r3')&&
-    html.includes('/assets/budapest-review-ticker.css?v=20261022r3'),
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261022r4')&&
+    html.includes('/assets/budapest-review-ticker.css?v=20261022r4'),
     'every localized page must invalidate cached review JS and CSS together: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
     !html.includes('data-vp-reviews-right')===false,
@@ -107,13 +107,13 @@ catch(err){failures.push('review ticker script syntax: '+err.message);}
 // Runtime harness: synthetic data stays inside the regression test, NEVER on the website.
 function node(tag){
   return {
-    tagName:tag, children:[], attrs:{}, events:{},hidden:false,
+    tagName:tag, children:[], attrs:{}, events:{},eventOptions:{},hidden:false,
     classList:{states:new Set(),toggle(k){if(this.states.has(k)){this.states.delete(k);return false;}this.states.add(k);return true;},add(k){this.states.add(k);},remove(k){this.states.delete(k);},contains(k){return this.states.has(k);}},
     offsetWidth:1200,clientWidth:500,scrollLeft:0,
     setAttribute(k,v){this.attrs[k]=v;},
     append(...els){this.children.push(...els);},
     replaceChildren(...els){this.children=[...els];},
-    addEventListener(k,fn){this.events[k]=fn;},
+    addEventListener(k,fn,options){this.events[k]=fn;this.eventOptions[k]=options;},
     get lastChild(){return this.children[this.children.length-1];}
   };
 }
@@ -198,6 +198,64 @@ assert(approved.viewport.scrollLeft===1250,
 approved.viewport.events.pointerup?.();
 assert(!approved.viewport.classList.states.has('is-dragging'),
   'drag end must restore normal pointer interaction');
+// Mobile users must be able to begin a horizontal gesture directly over the
+// vertically scrollable review text, rather than aiming for a narrow gap.
+assert(css.includes('height:282px;touch-action:pan-y'),
+  'review cards must allow native vertical scrolling and JS horizontal swipes');
+assert(approved.viewport.eventOptions.touchmove?.passive===false,
+  'the card-horizontal swipe handler must be able to cancel native horizontal gestures');
+const swipeTarget={closest:selector=>selector==='.vp-review-card'?approved.track.children[0].children[0]:null};
+const makeTouch=(id,x,y)=>({identifier:id,clientX:x,clientY:y});
+const swipeStart=(model,id,x,y)=>model.viewport.events.touchstart({
+  target:swipeTarget,touches:[makeTouch(id,x,y)]
+});
+const swipeMove=(model,id,x,y,onPrevent)=>model.viewport.events.touchmove({
+  touches:[makeTouch(id,x,y)],cancelable:true,preventDefault:onPrevent
+});
+const afterMouseDrag=approved.viewport.scrollLeft;
+let canceledHorizontal=false;
+swipeStart(approved,11,400,160);
+swipeMove(approved,11,367,162,()=>{canceledHorizontal=true;});
+assert(canceledHorizontal&&approved.viewport.scrollLeft===afterMouseDrag+33,
+  'swipe left starting inside a text card must scroll the whole ribbon right');
+swipeMove(approved,11,339,163,()=>{canceledHorizontal=true;});
+assert(approved.viewport.scrollLeft===afterMouseDrag+61,
+  'further horizontal touch movement must continue to scroll the review ribbon');
+approved.viewport.events.touchend({changedTouches:[makeTouch(11,339,163)]});
+const afterTouchEnd=approved.viewport.scrollLeft;
+swipeMove(approved,11,300,163,()=>{throw Error('stale swipe gesture');});
+assert(approved.viewport.scrollLeft===afterTouchEnd,
+  'finished touches must never continue to change horizontal scrolling');
+let preventedVertical=false;
+const beforeVertical=approved.viewport.scrollLeft;
+swipeStart(approved,12,320,120);
+swipeMove(approved,12,317,160,()=>{preventedVertical=true;});
+swipeMove(approved,12,300,180,()=>{preventedVertical=true;});
+assert(!preventedVertical&&approved.viewport.scrollLeft===beforeVertical,
+  'vertical scrolling within a long review must remain native and not move the ribbon');
+approved.viewport.events.touchcancel();
+const beforeRight=approved.viewport.scrollLeft;
+swipeStart(approved,13,290,140);
+let canceledRight=false;
+swipeMove(approved,13,330,140,()=>{canceledRight=true;});
+assert(canceledRight&&approved.viewport.scrollLeft===beforeRight-40,
+  'swiping right from inside a review must move the ribbon left');
+approved.viewport.events.touchend({changedTouches:[makeTouch(13,330,140)]});
+const tapPosition=approved.viewport.scrollLeft;
+swipeStart(approved,14,220,150);
+approved.viewport.events.touchend({changedTouches:[makeTouch(14,220,150)]});
+assert(approved.viewport.scrollLeft===tapPosition,
+  'simple taps, including taps on original-review links, must not be hijacked');
+// Hebrew and Hungarian reviews use the exact same LTR physical gesture math.
+for(const language of ['he','hu']){
+  const localizedSwipe=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  const start=localizedSwipe.viewport.scrollLeft;
+  swipeStart(localizedSwipe,20,400,180);
+  swipeMove(localizedSwipe,20,350,181,()=>{});
+  assert(localizedSwipe.viewport.scrollLeft===start+50,
+    language+' review-card swipe must preserve physical left/right navigation');
+  localizedSwipe.viewport.events.touchend({changedTouches:[makeTouch(20,350,181)]});
+}
 approved.viewport.scrollLeft=3100;
 approved.viewport.events.scroll();
 assert(approved.viewport.scrollLeft===1900,'forward loop must wrap before reaching blank space');
