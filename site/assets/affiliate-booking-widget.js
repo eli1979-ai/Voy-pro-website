@@ -27,7 +27,7 @@
     try{
       apiRoot=new URL(String(script.dataset.apiRoot||'').trim());
       if(apiRoot.protocol!=='https:'||apiRoot.username||apiRoot.password||
-         apiRoot.search||apiRoot.hash)throw new Error('Invalid API origin');
+         apiRoot.search||apiRoot.hash||apiRoot.pathname!=='/')throw new Error('Invalid API origin');
       apiRoot=apiRoot.origin+apiRoot.pathname.replace(/\/$/,'');
     }catch{apiRoot=null;}
     const valid=Boolean(apiRoot&&clientKey&&VALID_CODE.test(affiliate));
@@ -133,7 +133,7 @@
     const isPrivate=()=>form.elements.private.checked;
     async function api(path,{method='GET',body,headers={}}={}){
       const response=await fetch(apiRoot+'/api/v1'+path,{
-        method,mode:'cors',credentials:'omit',cache:'no-store',
+        method,mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',
         headers:{'x-voy-client-key':clientKey,...(body?{'content-type':'application/json'}:{}),...headers},
         ...(body?{body:JSON.stringify(body)}:{}),
       });

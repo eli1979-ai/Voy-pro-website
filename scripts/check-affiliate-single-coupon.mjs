@@ -14,4 +14,11 @@ assert.match(code,/promo_code:effectivePromoCode\(\)/,'no discount stacking in t
 assert.match(code,/checkoutForm\.querySelector\('\[data-affiliate-coupon-panel\]'\)/,'block submission during coupon validation');
 assert.match(code,/if\(\!bookingState\.capacityRequest\)[\s\S]*?hold_id:bookingState\.hold\.id[\s\S]*?promo_code:next\|\|null/,'private coupon re-quote must use the active hold');
 assert.match(code,/bookingState\.isPrivate&&bookingState\.hold\?\.id\?\{hold_id:bookingState\.hold\.id\}:\{\}/,'held re-quote must be private-only');
+// A native partner widget is loaded on a third-party domain; the browser-visible
+// FBM client key must only be sent to the intentionally configured HTTPS origin.
+const nativeWidget=readFileSync('site/assets/affiliate-booking-widget.js','utf8');
+assert(nativeWidget.includes("apiRoot.pathname!=='/'"),
+  'widget API root must be exactly an origin, without untrusted path prefixes');
+assert.match(nativeWidget,/redirect:'error'/,
+  'widget must never follow API redirects that could carry the public client key to another host');
 console.log('affiliate referral and single-coupon website contract passed');
