@@ -40,8 +40,11 @@ function browser(fetcher){
     return node;
   };
   const main=make('main');
+  const dateParts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Budapest',
+    year:'numeric',month:'2-digit',day:'2-digit'})
+    .formatToParts(new Date(Date.now()+5*86400000)).map(x=>[x.type,x.value]));
   const formData={
-    requested_date:'2026-11-05',requested_time:'14:00',party_size:'2',
+    requested_date:[dateParts.year,dateParts.month,dateParts.day].join('-'),requested_time:'14:00',party_size:'2',
     requested_guide_language:'he',contact_name:'Synthetic Guest',
     contact_email:'synthetic@example.invalid',contact_phone:'',
     english_alternative_accepted:null
