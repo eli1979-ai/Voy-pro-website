@@ -239,6 +239,22 @@ const continued=approved.viewport.scrollLeft;
 approved.frames[2]?.(1080);
 assert(approved.viewport.scrollLeft>continued+1,
   'Resume must continue advancing repeatedly rather than only jumping once');
+// A lost pointer-up used to leave the internal 'dragging' flag true,
+// preventing the animation loop from moving despite clicking Resume.
+const unfinishedDrag=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
+unfinishedDrag.viewport.events.pointerdown?.({pointerType:'mouse',button:0,clientX:400,pointerId:1});
+assert(unfinishedDrag.viewport.classList.states.has('is-dragging'),
+  'regression fixture must enter the dragging state');
+const beforeDragResume=unfinishedDrag.viewport.scrollLeft;
+unfinishedDrag.pause.events.click?.();
+assert(!unfinishedDrag.root.classList.states.has('is-paused')&&
+  !unfinishedDrag.viewport.classList.states.has('is-dragging')&&
+  unfinishedDrag.viewport.scrollLeft>=beforeDragResume+10,
+  'Resume must release an interrupted drag and immediately start moving');
+unfinishedDrag.frames[0]?.(1000);
+unfinishedDrag.frames[1]?.(1040);
+assert(unfinishedDrag.viewport.scrollLeft>beforeDragResume+10,
+  'Resume after an interrupted drag must keep advancing in animation frames');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
