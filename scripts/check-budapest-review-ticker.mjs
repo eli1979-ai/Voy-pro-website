@@ -214,7 +214,9 @@ for(const c of sourceAudit.candidates||[]){
        ev?.full_review_status!=='original_language_text_recovered_from_supplier_notification'){
     failures.push('GetYourGuide original body source evidence missing: '+c.id);
   }
-  const expectedStatus=ev?.operator_original_text_evidence?.original_text
+  const pendingScreenshotTranscript=ev?.original_text_transcription_status===
+    'transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread';
+  const expectedStatus=ev?.operator_original_text_evidence?.original_text&&!pendingScreenshotTranscript
     ?'owner_rights_confirmed_verbatim_original_recovered'
     :'owner_rights_confirmed_original_verbatim_pending';
   if(ev?.publication_status!==expectedStatus)
@@ -222,7 +224,11 @@ for(const c of sourceAudit.candidates||[]){
   const notification=ev?.operator_original_text_evidence;
   if(notification){
     if(notification.source_text_language!==ev.original_language_hint||
-       notification.matched_against_official_platform_reviewer_and_date!==true||
+       (!pendingScreenshotTranscript&&notification.matched_against_official_platform_reviewer_and_date!==true)||
+       (pendingScreenshotTranscript&&(c.platform!=='tripadvisor'||
+         notification.source!=='Official Tripadvisor review as shown in owner-provided screenshots'||
+         notification.line_by_line_proofread_complete!==false||
+         notification.screenshot_received_on!=='2026-10-22'))||
        !notification.original_text?.trim()||
        notification.original_text.trim().length<35||
        notification.permission_to_republish!=='confirmed_by_owner')
@@ -307,8 +313,17 @@ for(let i=0;i<20;i++){
   if(ev.date_ambiguity&&r.date!==null)
     failures.push('conflicting regional date must not be published for '+r.id);
   if(!eligible){
-    if(r.approved!==false||r.full_text!==null||r.language!==null)
-      failures.push('unverified review text or language must stay absent for '+r.id);
+    const transcriptPending=ev.original_text_transcription_status===
+      'transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread';
+    const untouched= r.full_text===null&&r.language===null;
+    const documentedDraft=transcriptPending&&r.source==='tripadvisor'&&
+      typeof r.full_text==='string'&&r.full_text.trim().length>=35&&
+      r.full_text===ev.operator_original_text_evidence?.original_text&&
+      r.language===ev.operator_original_text_evidence?.source_text_language&&
+      r.rating===5&&r.date===c.review_date&&r.full_text_verified===false&&
+      r.translations_approved===false;
+    if(r.approved!==false||!(untouched||documentedDraft))
+      failures.push('unverified review must be either absent or a provenance-matched unpublished screenshot draft: '+r.id);
   }else{
     verifiedFullTexts++;
     if(!primarySource||!r.approved||typeof r.full_text!=='string'
