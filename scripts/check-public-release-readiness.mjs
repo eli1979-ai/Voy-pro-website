@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export function assessPublicRelease(siteDir = path.resolve('site')) {
+export function assessPublicRelease(siteDir = path.resolve('site'), attestationFile = path.resolve('launch/production-environment.json')) {
   const failures = [];
   const read = (name) => {
     try { return fs.readFileSync(path.join(siteDir, name), 'utf8'); }
@@ -49,6 +49,61 @@ export function assessPublicRelease(siteDir = path.resolve('site')) {
   else if (/(?:staging|\bstg\b)/i.test(apiRoot)) failures.push('Runtime API points to staging');
   if (!clientKey) failures.push('Runtime clientKey is missing');
   else if (/(?:^|[_-])stg(?:[_-]|$)|staging/i.test(clientKey)) failures.push('Runtime clientKey appears to be a staging key');
+
+
+  // A Vercel deployment marked "production" is NOT proof of independent
+  // infrastructure: the public alias previously pointed at voy-pro-staging.
+  // The approved resource IDs below are public identifiers, never credentials.
+  // This is only a source-level release gate; operators must separately
+  // verify the actual Vercel aliases, Supabase ref, payments, and CORS.
+  let identity;
+  try { identity = JSON.parse(fs.readFileSync(attestationFile,'utf8')); }
+  catch { failures.push('Production infrastructure attestation is missing or invalid JSON'); identity = {}; }
+
+  if (identity.schema_version !== 1 || identity.status !== 'verified') {
+    failures.push('Production infrastructure attestation must be verified');
+  }
+  if (identity.owner_cutover_approved !== true) {
+    failures.push('Production cutover requires explicit owner approval');
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(identity.verified_at || '') ||
+      Number.isNaN(Date.parse(identity.verified_at || ''))) {
+    failures.push('Production infrastructure verification timestamp is missing or invalid');
+  }
+
+  const stagingWebsiteProject = 'prj_mllzA4eTnK6ITda3AI7BpHbmVe7j';
+  const stagingFbmProject = 'prj_h5j84vU4HLucTxiWtQQUue9zcn1V';
+  const stagingDatabaseRef = 'ieuuobbfginqkngkzbfa';
+  const siteProject = identity.website_vercel_project_id || '';
+  const fbmProject = identity.fbm_vercel_project_id || '';
+  const databaseRef = identity.supabase_project_ref || '';
+  if (!/^prj_[A-Za-z0-9]{16,}$/.test(siteProject) ||
+      siteProject === stagingWebsiteProject || siteProject === stagingFbmProject) {
+    failures.push('A distinct verified Production website project ID is required');
+  }
+  if (!/^prj_[A-Za-z0-9]{16,}$/.test(fbmProject) ||
+      fbmProject === stagingWebsiteProject || fbmProject === stagingFbmProject ||
+      fbmProject === siteProject) {
+    failures.push('A distinct verified Production FBM project ID is required');
+  }
+  if (!/^[a-z0-9]{20}$/.test(databaseRef) || databaseRef === stagingDatabaseRef) {
+    failures.push('A distinct verified Production Supabase project ref is required');
+  }
+
+  const declaredApi = identity.public_api_base_url || '';
+  if (declaredApi !== apiRoot) {
+    failures.push('Runtime public API base URL must exactly match the verified Production API');
+  }
+  try {
+    const url = new URL(declaredApi);
+    if (url.protocol !== 'https:' || url.username || url.password ||
+        url.search || url.hash || url.pathname !== '/api/v1' ||
+        /staging|(^|[-.])stg([-.]|$)/i.test(url.hostname)) {
+      failures.push('Production API must be a canonical HTTPS /api/v1 URL not associated with staging');
+    }
+  } catch {
+    failures.push('Production API base URL is missing or invalid');
+  }
 
   return failures;
 }
