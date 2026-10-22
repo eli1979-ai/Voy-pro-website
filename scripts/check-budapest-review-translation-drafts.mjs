@@ -5,11 +5,13 @@ const draft=JSON.parse(fs.readFileSync('docs/budapest-review-20-staging.json','u
 const audit=JSON.parse(fs.readFileSync('docs/budapest-review-20-candidates.json','utf8'));
 const publicList=JSON.parse(fs.readFileSync('site/assets/budapest-approved-reviews.json','utf8'));
 const languages=['en','he','hu'];
-assert.equal(draft.status,'draft_unpublished','Translation drafts must never auto-publish');
+assert.equal(draft.status,'ready_for_publication','Owner-approved review roster must be marked ready');
 assert.equal(draft.reviews?.length,20,'Require the complete selected 20-review set');
 assert.equal(audit.candidates?.length,20);
-assert.equal(publicList.status,'awaiting_verified_approval');
-assert.equal(publicList.reviews?.length,0,'Public review manifest must remain intentionally empty');
+assert.equal(publicList.status,'approved','Visitor-facing reviews require explicit publication approval');
+assert.equal(publicList.reviews?.length,20,'Public review manifest must contain all 20 approved reviews');
+assert.equal(audit.owner_publication_approval?.status,'approved_by_owner');
+assert.equal(audit.owner_publication_approval?.approved_on,'2026-10-22');
 
 const counts={tripadvisor:0,google:0,getyourguide:0};
 for(let i=0;i<draft.reviews.length;i++){
@@ -17,8 +19,22 @@ for(let i=0;i<draft.reviews.length;i++){
   assert.equal(review.id,source.id);
   assert.equal(review.author,source.reviewer);
   assert.equal(review.source,source.platform);
-  assert.equal(review.translations_approved,false,'Translations cannot be treated as editorially approved');
-  assert.equal(review.translation_review_status,'draft_pending_editorial_review');
+  assert.equal(review.approved,true,'Every published review must be approved by owner');
+  assert.equal(review.translations_approved,true,'Every published translation set must be approved by owner');
+  assert.equal(review.translation_review_status,'owner_approved_for_publication_2026-10-22');
+  assert.equal(review.content_approval?.approved_by,'VOY PRO owner');
+  assert.equal(review.content_approval?.independent_native_language_editor_check,false,
+    'Owner approval must not misrepresent unperformed independent language certification');
+  const visible=publicList.reviews[i];
+  assert(visible,'All approved reviews must be visible in the public manifest');
+  assert.equal(visible.id,review.id);
+  assert.equal(visible.full_text,review.full_text);
+  assert.equal(visible.review_url,review.review_url);
+  assert.equal(visible.date,review.date);
+  assert.equal(visible.rating,review.rating);
+  assert.equal(visible.approved,true);
+  assert.equal(visible.translations_approved,true);
+  assert.deepEqual(visible.translations,review.translations);
   assert.equal(review.full_text,source.source_evidence?.operator_original_text_evidence?.original_text,
     'The original must match the source evidence exactly: '+review.id);
   assert.equal(review.language,source.source_evidence?.operator_original_text_evidence?.source_text_language,
@@ -41,7 +57,7 @@ for(let i=0;i<draft.reviews.length;i++){
       'Original language must be preserved verbatim: '+review.id);
   }
   if(review.source==='tripadvisor'){
-    assert.equal(review.approved,false,'Tripadvisor original requires editorial approval before publication');
+    assert.equal(review.approved,true,'Tripadvisor original must be approved before publication');
     assert.equal(review.full_text_verified,true,'Tripadvisor source transcription must have passed original-page visual crosscheck');
     assert.equal(source.source_evidence?.operator_original_text_evidence?.line_by_line_proofread_complete,true);
     assert.equal(review.date,source.review_date,'Retain screenshot-displayed date');
@@ -56,11 +72,12 @@ for(let i=0;i<draft.reviews.length;i++){
     assert.equal(evidence.visual_review?.published_day_checked,true);
     assert.equal(evidence.visual_review?.five_star_rating_checked,true);
     assert.equal(evidence.visual_review?.body_checked_against_attached_screenshots,true);
-    assert.equal(review.source_review_status,'source_verified_editorial_pending');
-    assert.equal(evidence.original_text_transcription_status,'assistant_visually_crosschecked_awaiting_editorial_approval');
+    assert.equal(review.source_review_status,'source_verified_owner_approved');
+    assert.equal(evidence.original_text_transcription_status,'assistant_visually_crosschecked_owner_approved_2026-10-22');
     assert.equal(evidence.publication_status,'owner_rights_confirmed_verbatim_original_recovered');
-    assert.equal(evidence.visual_review?.publisher_signoff,false,
-      'Editorial source crosscheck must not be mistaken for publication approval');
+    assert.equal(evidence.visual_review?.publisher_signoff,true,
+      'Publishing requires owner approval of the source crosscheck');
+    assert.equal(evidence.visual_review?.publisher_signoff_by,'VOY PRO owner');
 
   }else{
     assert.equal(review.approved,true);
@@ -70,4 +87,5 @@ for(let i=0;i<draft.reviews.length;i++){
   counts[review.source]++;
 }
 assert.deepEqual(counts,{tripadvisor:10,google:7,getyourguide:3});
-console.log('Budapest review translation-draft QA OK: 20 source-matched originals, 60 full EN/HE/HU texts, all unpublished and awaiting editorial approval.');
+assert.equal(audit.source_audit.original_full_texts_cleared_for_republication,20);
+console.log('Budapest approved-review QA OK: 20 source-matched originals and 60 owner-approved EN/HE/HU versions published with unchanged provider links.');
