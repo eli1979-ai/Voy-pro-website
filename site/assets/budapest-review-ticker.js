@@ -177,9 +177,19 @@
       event.preventDefault?.();
     },{passive:false});
     pause.addEventListener('click',()=>{
-      const stopped=root.classList.toggle('is-paused');
-      pause.setAttribute('aria-pressed',String(stopped));
-      pause.textContent=stopped?t.play:t.pause;
+      if(!root.classList.contains('is-paused')){
+        pauseForReading();
+        return;
+      }
+      // Resume is explicit user intent: release any unfinished drag, update
+      // the pressed state and make a small immediately visible move even when
+      // the next animation frame is delayed by a mobile browser.
+      endDrag();
+      root.classList.remove('is-paused');
+      pause.setAttribute('aria-pressed','false');
+      pause.textContent=t.pause;
+      viewport.scrollLeft+=10;
+      normalize();
     });
     pause.textContent=t.pause;
     pause.setAttribute('aria-pressed','false');
@@ -200,7 +210,7 @@
         // not by hover/focus-within which would silently override Resume.
         if(!reduced&&!dragging&&!root.classList.contains('is-paused')&&
             document.visibilityState!=='hidden'){
-          viewport.scrollLeft+=elapsed*.022;
+          viewport.scrollLeft+=elapsed*.048;
           normalize();
         }
       }
