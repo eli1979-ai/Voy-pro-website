@@ -1,8 +1,8 @@
-# Budapest reviews — editorial approval proof (draft, not for publication)
+# Budapest reviews — owner-approved publication proof
 
-> **DRAFT — NOT APPROVED FOR PUBLICATION.** Original text and three full translations are displayed to assist editorial and source review. The live website review manifest remains empty. GitHub `docs/budapest-review-20-staging.json` and the source audit are authoritative; this is only a snapshot for review.
+> **APPROVED BY VOY PRO OWNER ON 2026-10-22.** All 20 source-verified full reviews and the complete English, Hebrew and Hungarian display copies have explicit content-owner approval. The public manifest now contains 20 source-linked reviews. This is a review copy; original evidence remains in the source audit.
 
-Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide. The ten Tripadvisor originals have been visually crosschecked against all owner-supplied screenshots; source verification is distinct from still-pending editorial approval. Publication requires final linguistic/editorial QA of all three site languages and explicit owner authorization.
+Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide. The ten Tripadvisor originals have been visually crosschecked against all owner-supplied screenshots; source verification is distinct from still-pending editorial approval. The owner has authorized publication of the content in the three site languages. Independent native Hungarian editorial certification was not performed and is not claimed.
 
 ## Index
 
@@ -34,7 +34,7 @@ Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide.
 
 **Published:** 2026-08-08 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -125,7 +125,7 @@ Szívből ajánljuk!
 
 **Published:** 2026-07-06 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -170,7 +170,7 @@ Az egész család számára különleges és emlékezetes élmény volt. Nagyon 
 
 **Published:** 2025-09-29 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1032613008-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -239,7 +239,7 @@ Ez a túra egyedülálló, szórakoztató és kiválóan szervezett volt. Biztos
 
 **Published:** 2026-01-02 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -278,7 +278,7 @@ Ha Budapestre látogattok, ne hagyjátok ki ezt a programot! Tökéletes módja 
 
 **Published:** 2026-08-29 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1075469554-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -305,7 +305,7 @@ Kétségkívül az utazás egyik csúcspontja volt, a remek szervezésnek és a 
 
 **Published:** 2026-07-28 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -344,7 +344,7 @@ Minden pillanatát élveztük, és kétségtelenül ez volt a legjobb módja ann
 
 **Published:** 2025-11-23 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1040093361-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -377,7 +377,7 @@ A túra csodálatos és nagyon élvezetes volt. Idegenvezetőnk a kedves Niv vol
 
 **Published:** 2026-08-16 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -418,7 +418,7 @@ Egyszerűen minden tökéletes volt! Fantasztikus élmény, kiváló szolgáltat
 
 **Published:** 2025-11-16 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -459,7 +459,7 @@ Szívből ajánlok egy túrát Yehudával — felejthetetlen élmény!
 
 **Published:** 2025-11-05 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot · **Approval:** VOY PRO owner, 2026-10-22 · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -490,7 +490,7 @@ Egy pár és három gyerek (10, 13 és 16 évesek) voltunk, három vezetővel é
 
 **Published:** 2025-03-09 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -539,7 +539,7 @@ Nagyon ajánlom.
 
 **Published:** 2024-09-01 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -564,7 +564,7 @@ Családunk csodálatosan érezte magát a budapesti Voy PRO EZRaider-járműveiv
 
 **Published:** 2025-10-11 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -589,7 +589,7 @@ Ez az egyik legjobb élményem volt valaha. Rengeteg gyönyörű helyet láthatt
 
 **Published:** 2025-08-30 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -620,7 +620,7 @@ Tökéletes program a nyaraláshoz, ráadásul jó áron.
 
 **Published:** 2025-12-15 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -665,7 +665,7 @@ Budapesten ezt a programot tényleg nem szabad kihagyni!
 
 **Published:** 2024-07-09 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -690,7 +690,7 @@ Lenyűgöző élmény az EZRaiderrel Budapesten! Nemrég lehetőségem volt egy 
 
 **Published:** 2024-10-25 · **Rating:** 5/5 · **Original language:** en · **Source:** [Official provider listing](https://maps.google.com/maps?cid=13820859235751578037)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (en)
 
@@ -721,7 +721,7 @@ Minden Budapestre látogatónak szívből ajánlom — utazásunk egyik fénypon
 
 **Published:** 2026-07-22 · **Rating:** 5/5 · **Original language:** fr · **Source:** [Official provider listing](https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (fr)
 
@@ -746,7 +746,7 @@ Nagyon szép családi élmény volt. A túra gyermekes családok számára is al
 
 **Published:** 2026-07-28 · **Rating:** 5/5 · **Original language:** he · **Source:** [Official provider listing](https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -771,7 +771,7 @@ Fantasztikus élmény volt, nagyon jól éreztük magunkat! Türelmes idegenveze
 
 **Published:** 2026-10-11 · **Rating:** 5/5 · **Original language:** he · **Source:** [Official provider listing](https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/)
 
-**Source verification:** source-verified · **Translation approval:** pending
+**Source verification:** source-verified · **Translation approval:** VOY PRO owner, 2026-10-22
 
 ### Original review (he)
 
@@ -794,9 +794,9 @@ Ez volt a legszórakoztatóbb és legélvezetesebb élményünk Budapesten. Ideg
 ## Editorial sign-off checklist
 
 - [x] Original text, reviewer, date, rating and title of the 10 Tripadvisor reviews visually checked against owner-supplied screenshots.
-- [ ] Independent editorial/owner acceptance of the ten source transcripts (including their original punctuation).
-- [ ] English translations reviewed for accuracy and tone.
-- [ ] Hebrew translations reviewed for accuracy and tone.
-- [ ] Hungarian translations reviewed by a fluent editor.
-- [ ] All 20 source links and source/listing labels checked.
-- [ ] Final approval to merge UI/data code and separately publish the review manifest.
+- [x] VOY PRO owner approved original texts and selected review copy for publication (2026-10-22).
+- [x] English display copies approved for publication by VOY PRO owner.
+- [x] Hebrew display copies approved for publication by VOY PRO owner.
+- [x] Hungarian display copies approved for publication by VOY PRO owner (not a claim of independent native-speaker editorial review).
+- [x] All 20 source links and review-versus-listing labels validated by automated QA.
+- [x] Owner explicitly authorized activating the website review ribbon on 2026-10-22.
