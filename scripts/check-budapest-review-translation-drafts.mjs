@@ -41,9 +41,9 @@ for(let i=0;i<draft.reviews.length;i++){
       'Original language must be preserved verbatim: '+review.id);
   }
   if(review.source==='tripadvisor'){
-    assert.equal(review.approved,false,'Tripadvisor screenshot draft must not be approved before proofread');
-    assert.equal(review.full_text_verified,false,'A transcription is not final source verification');
-    assert.equal(source.source_evidence?.operator_original_text_evidence?.line_by_line_proofread_complete,false);
+    assert.equal(review.approved,false,'Tripadvisor original requires editorial approval before publication');
+    assert.equal(review.full_text_verified,true,'Tripadvisor source transcription must have passed original-page visual crosscheck');
+    assert.equal(source.source_evidence?.operator_original_text_evidence?.line_by_line_proofread_complete,true);
     assert.equal(review.date,source.review_date,'Retain screenshot-displayed date');
     const evidence=source.source_evidence;
     assert.equal(typeof evidence?.source_review_title,'string','Screenshot review title must be recorded');
@@ -56,6 +56,9 @@ for(let i=0;i<draft.reviews.length;i++){
     assert.equal(evidence.visual_review?.published_day_checked,true);
     assert.equal(evidence.visual_review?.five_star_rating_checked,true);
     assert.equal(evidence.visual_review?.body_checked_against_attached_screenshots,true);
+    assert.equal(review.source_review_status,'source_verified_editorial_pending');
+    assert.equal(evidence.original_text_transcription_status,'assistant_visually_crosschecked_awaiting_editorial_approval');
+    assert.equal(evidence.publication_status,'owner_rights_confirmed_verbatim_original_recovered');
     assert.equal(evidence.visual_review?.publisher_signoff,false,
       'Editorial source crosscheck must not be mistaken for publication approval');
 
