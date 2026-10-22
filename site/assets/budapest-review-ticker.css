@@ -8,7 +8,7 @@
 .vp-reviews-nav{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:32px;border:1px solid #a9c4cb;border-radius:11px;background:#fff;color:#0c4150;cursor:pointer;font:700 1.1rem/1 sans-serif;touch-action:manipulation}
 .vp-reviews-nav{box-sizing:border-box;width:34px;min-width:34px;max-width:34px;flex:0 0 34px;padding:0}
 .vp-reviews-nav svg{display:block;width:18px;height:18px;flex:none;stroke:currentColor}
-.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}
+/* Arrow orientation is part of each SVG path, never a CSS transform. */
 .vp-reviews-nav:hover{background:#e2f2f4}
 .vp-reviews-pause{display:flex;align-items:center;gap:8px;background:#fff;color:#0c4150;border:1px solid #a9c4cb;border-radius:24px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.79rem;font-weight:750;white-space:nowrap}
 .vp-reviews-nav:focus-visible,.vp-reviews-pause:focus-visible,.vp-review-card a:focus-visible,.vp-review-text:focus-visible{outline:3px solid #08798b;outline-offset:3px}
@@ -19,7 +19,7 @@
 .vp-review-group--before{order:-1}
 .vp-review-group--after{order:1}
 .vp-review-group{display:flex;gap:12px;padding-inline-end:12px;align-items:stretch;flex:none}
-.vp-review-card{flex:0 0 clamp(245px,25vw,310px);width:clamp(245px,25vw,310px);background:#fff;border:1px solid #d8e5e9;border-radius:14px;padding:13px 15px 12px;box-shadow:0 8px 22px #133c4810;min-width:0;display:flex;flex-direction:column;gap:8px;direction:auto;height:282px}
+.vp-review-card{flex:0 0 clamp(245px,25vw,310px);width:clamp(245px,25vw,310px);background:#fff;border:1px solid #d8e5e9;border-radius:14px;padding:13px 15px 12px;box-shadow:0 8px 22px #133c4810;min-width:0;display:flex;flex-direction:column;gap:8px;direction:auto;height:282px;touch-action:pan-y}
 .vp-review-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .vp-review-stars{color:#a96d04;letter-spacing:1px;font-size:.85rem;white-space:nowrap}
 .vp-review-platform{font-size:.72rem;font-weight:850;color:#1b5865}

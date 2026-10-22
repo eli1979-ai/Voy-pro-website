@@ -170,16 +170,63 @@
     viewport.addEventListener('pointerup',endDrag);
     viewport.addEventListener('pointercancel',endDrag);
     viewport.addEventListener('lostpointercapture',endDrag);
-    viewport.addEventListener('touchstart',pauseForReading,{passive:true});
+    // Mobile: a review has its own vertical scroller. Decide the gesture's
+    // axis once, so a horizontal swipe *starting inside any card* moves the
+    // ribbon while vertical swipes still scroll the complete review naturally.
+    // Only horizontal movement is canceled; taps (including source links)
+    // and vertical scrolling retain their normal browser behavior.
+    let touchSwipe=null;
+    const findTouch=(event,id)=>Array.from(event.touches||[]).find(t=>t.identifier===id);
+    viewport.addEventListener('touchstart',event=>{
+      pauseForReading();
+      if(event.touches?.length!==1||!event.target?.closest?.('.vp-review-card')){
+        touchSwipe=null;
+        return;
+      }
+      const touch=event.touches[0];
+      touchSwipe={id:touch.identifier,x:touch.clientX,y:touch.clientY,
+        lastX:touch.clientX,axis:null};
+    },{passive:true});
+    viewport.addEventListener('touchmove',event=>{
+      if(!touchSwipe||event.touches?.length!==1)return;
+      const touch=findTouch(event,touchSwipe.id);
+      if(!touch)return;
+      const distanceX=touch.clientX-touchSwipe.x;
+      const distanceY=touch.clientY-touchSwipe.y;
+      if(!touchSwipe.axis&&Math.hypot(distanceX,distanceY)>=8){
+        touchSwipe.axis=Math.abs(distanceX)>Math.abs(distanceY)*1.2?'horizontal':'vertical';
+      }
+      if(touchSwipe.axis==='horizontal'){
+        if(event.cancelable)event.preventDefault();
+        viewport.scrollLeft-=touch.clientX-touchSwipe.lastX;
+        normalize();
+      }
+      touchSwipe.lastX=touch.clientX;
+    },{passive:false});
+    viewport.addEventListener('touchend',event=>{
+      if(touchSwipe&&Array.from(event.changedTouches||[])
+        .some(t=>t.identifier===touchSwipe.id))touchSwipe=null;
+    },{passive:true});
+    viewport.addEventListener('touchcancel',()=>{touchSwipe=null;},{passive:true});
     viewport.addEventListener('wheel',event=>{
       if(!event.shiftKey||!event.deltaY)return;
       moveManually(event.deltaY);
       event.preventDefault?.();
     },{passive:false});
     pause.addEventListener('click',()=>{
-      const stopped=root.classList.toggle('is-paused');
-      pause.setAttribute('aria-pressed',String(stopped));
-      pause.textContent=stopped?t.play:t.pause;
+      if(!root.classList.contains('is-paused')){
+        pauseForReading();
+        return;
+      }
+      // Resume is explicit user intent: release any unfinished drag, update
+      // the pressed state and make a small immediately visible move even when
+      // the next animation frame is delayed by a mobile browser.
+      endDrag();
+      root.classList.remove('is-paused');
+      pause.setAttribute('aria-pressed','false');
+      pause.textContent=t.pause;
+      viewport.scrollLeft+=10;
+      normalize();
     });
     pause.textContent=t.pause;
     pause.setAttribute('aria-pressed','false');
@@ -200,7 +247,7 @@
         // not by hover/focus-within which would silently override Resume.
         if(!reduced&&!dragging&&!root.classList.contains('is-paused')&&
             document.visibilityState!=='hidden'){
-          viewport.scrollLeft+=elapsed*.022;
+          viewport.scrollLeft+=elapsed*.048;
           normalize();
         }
       }
