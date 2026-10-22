@@ -18,6 +18,23 @@ production migration or a payment-mode change.
 - A Vercel **production-target** deployment inside a project named staging is
   not a separate production application or database.
 
+## Isolated Vercel shells created on 22 October 2026
+
+Both resources now exist in the existing Vercel team, with Vercel Authentication
+enabled for **all** deployments. They have **no connected Git repository,
+no application deployment and no custom/public VOY PRO domain alias**.
+Vercel's default `.vercel.app` project domains may still exist but require
+authentication; this is not a public cutover.
+
+- `voy-pro-production`: `prj_BH99wHz2Loh0gU8UF7zjpgzXT12y`
+- `ezraider-os-production`: `prj_fNkNsAOtZVqGlFsBAieFmehkDPeg`
+
+The public `voy-pro.com` alias remains on `voy-pro-staging`.
+The independent Production Supabase database, API configuration, verified
+payments, migration parity, and explicit release approval are **not** present.
+The source release gate remains **NO-GO** and the recorded IDs in the
+attestation do **not** mean the full environment is approved.
+
 ## Safe creation order — keep public website untouched
 
 1. **Supabase Production** (human-approved external provisioning): create a
