@@ -762,7 +762,7 @@ An amazing experience — we really enjoyed ourselves! Patient guides, a thought
 
 ### Magyar (hu)
 
-Fantasztikus élmény volt, nagyon jól éreztük magunkat! Türelmes idegenvezetők, alaposan kidolgozott, profi túra. Remek módja Buda történelmi részének megismerésének anélkül, hogy lejárnánk a lábunkat. Szívből ajánljuk!!!!! Yehuda igazán nagyszerű volt.
+Fantasztikus élmény volt, nagyon jól éreztük magunkat! Türelmes idegenvezetők, alaposan kidolgozott, profi túra. Remek módja annak, hogy Buda történelmi részét anélkül fedezzük fel, hogy lejárnánk a lábunkat. Szívből ajánljuk!!!!! Yehuda igazán nagyszerű volt.
 
 ---
 
