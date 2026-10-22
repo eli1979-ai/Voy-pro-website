@@ -64,17 +64,17 @@ for(const [page,locale] of locales){
     'compact ticker must appear below external review sources and above FAQ: '+page);
   assert(html.split('data-vp-reviews-root hidden').length===2,
     'each localized Budapest page must have exactly one review ribbon: '+page);
-  for(const marker of ['data-vp-reviews-track','data-vp-reviews-pause','data-vp-reviews-viewport',
+  for(const marker of ['data-vp-reviews-track','data-vp-reviews-pause','data-vp-reviews-left','data-vp-reviews-right','data-vp-reviews-viewport',
     '/assets/budapest-review-ticker.css','/assets/budapest-review-ticker.js']){
     assert(html.includes(marker),'missing review ribbon dependency or control: '+page+' '+marker);
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
+for(const marker of ['prefers-reduced-motion','overflow-x:auto','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
-  "'is-paused'","textContent=text"]){
+  "'is-paused'","textContent=text","viewport.scrollLeft","requestAnimationFrame","normalize"]){
   assert(script.includes(marker),'missing safe review rendering behavior '+marker);
 }
 assert(!/\binnerHTML\s*=|document\.write|eval\s*\(/.test(script),
@@ -86,7 +86,8 @@ catch(err){failures.push('review ticker script syntax: '+err.message);}
 function node(tag){
   return {
     tagName:tag, children:[], attrs:{}, events:{},hidden:false,
-    classList:{states:new Set(),toggle(k){if(this.states.has(k)){this.states.delete(k);return false;}this.states.add(k);return true;},add(k){this.states.add(k);}},
+    classList:{states:new Set(),toggle(k){if(this.states.has(k)){this.states.delete(k);return false;}this.states.add(k);return true;},add(k){this.states.add(k);},remove(k){this.states.delete(k);},contains(k){return this.states.has(k);}},
+    offsetWidth:1200,clientWidth:500,scrollLeft:0,
     setAttribute(k,v){this.attrs[k]=v;},
     append(...els){this.children.push(...els);},
     replaceChildren(...els){this.children=[...els];},
@@ -97,18 +98,23 @@ function node(tag){
 async function simulate(payload,lang='en'){
   const track=node('div'),viewport=node('div'),pause=node('button'),root=node('section');
   root.hidden=true;
+  const left=node('button'),right=node('button');
   root.querySelector=(s)=>s==='[data-vp-reviews-track]'?track:
-    s==='[data-vp-reviews-viewport]'?viewport:s==='[data-vp-reviews-pause]'?pause:null;
-  const doc={documentElement:{lang},
+    s==='[data-vp-reviews-viewport]'?viewport:s==='[data-vp-reviews-pause]'?pause:
+    s==='[data-vp-reviews-left]'?left:s==='[data-vp-reviews-right]'?right:null;
+  root.matches=()=>false;
+  const doc={documentElement:{lang},visibilityState:'visible',
     querySelector:(s)=>s==='[data-vp-reviews-root]'?root:null,
     createElement:node
   };
-  const context={document:doc,window:{matchMedia:()=>({matches:false})},
+  const frames=[];
+  const win={matchMedia:()=>({matches:false}),requestAnimationFrame:fn=>{frames.push(fn);}};
+  const context={document:doc,window:win,
     fetch:async()=>({ok:true,json:async()=>payload}),Set,URL,Number,Object};
   vm.runInNewContext(script,context,{timeout:1500});
   // Let both promise continuations complete.
   for(let i=0;i<6;i++)await Promise.resolve();
-  return{root,track,pause};
+  return{root,track,pause,viewport,left,right,frames};
 }
 const sample=Array.from({length:20},(_,i)=>({
   approved:true,id:'synthetic-review-'+i,
@@ -140,15 +146,34 @@ if(manifest.status==='awaiting_verified_approval'){
 }
 const approved=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
 assert(approved.root.hidden===false,'approved 20-item list must activate the ticker');
-assert(approved.track.children.length===2,'approved ticker must duplicate the ribbon for seamless movement');
+assert(approved.track.children.length===3,'review track must contain a real group with repeated groups on both sides for looping');
 assert(approved.track.children[0]?.children?.length===20,'all 20 authentic review slots must display');
-assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true','duplicate ribbon must be hidden from screen readers');
+assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true'&&
+       approved.track.children[2]?.attrs?.['aria-hidden']==='true',
+  'before and after groups must be hidden from assistive technology');
+assert(approved.viewport.scrollLeft===1200,'scroll position must initialize on middle, accessible group');
 assert(approved.track.children[1]?.attrs?.inert===undefined,
   'duplicate visible cards must not be inert or their source links cannot be opened');
 assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.href===sample[0].review_url,
   'visible repeated review card must link to the same authentic original review');
 assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
   'repeated original-review link must not add a duplicate keyboard tab stop');
+assert(typeof approved.right.events.click==='function'&&typeof approved.left.events.click==='function',
+  'localized manual left/right buttons must be operational');
+approved.right.events.click();
+assert(approved.viewport.scrollLeft>1200&&approved.root.classList.states.has('is-paused'),
+  'right arrow must move horizontally even when auto-scrolling stops');
+approved.left.events.click();
+assert(approved.viewport.scrollLeft===1200,'left arrow must move horizontally back while paused');
+approved.viewport.scrollLeft=3100;
+approved.viewport.events.scroll();
+assert(approved.viewport.scrollLeft===1900,'forward loop must wrap before reaching blank space');
+approved.viewport.scrollLeft=400;
+approved.viewport.events.scroll();
+assert(approved.viewport.scrollLeft===1600,'backwards manual scrolling must wrap before reaching blank space');
+const huLoop=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'hu');
+huLoop.viewport.scrollLeft=3100;huLoop.viewport.events.scroll();
+assert(huLoop.viewport.scrollLeft===1900,'Hungarian full cycle must continuously wrap back into reviews');
 const firstQuote=approved.track.children[0]?.children[0]?.children[1];
 assert(firstQuote?.tabIndex===0,'long original review text must be keyboard scrollable');
 assert(firstQuote?.attrs?.role==='group'&&firstQuote?.attrs?.['aria-label']==='Full review by Test reviewer 0',
