@@ -20,6 +20,7 @@
 .vp-review-byline{display:grid;gap:3px;min-width:0;font-size:.82rem}
 .vp-review-author{font-weight:800;color:#153d49;overflow-wrap:anywhere}
 .vp-review-date{font-size:.76rem;color:#526b73}
+.vp-review-translated{font-size:.72rem;color:#526b73;font-style:italic}
 .vp-review-card a{color:#006478;font-weight:750;font-size:.78rem;text-decoration:underline;text-underline-offset:3px}
 .vp-reviews:is(:hover,:focus-within) .vp-reviews-track,.vp-reviews.is-paused .vp-reviews-track{animation-play-state:paused}
 @keyframes vp-reviews-scroll{to{transform:translateX(-50%)}}
