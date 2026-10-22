@@ -44,6 +44,11 @@
     if(text!==undefined)el.textContent=text;
     return el;
   };
+  const pauseForReading=()=>{
+    root.classList.add('is-paused');
+    pause.setAttribute('aria-pressed','true');
+    pause.textContent=t.play;
+  };
   const reviewCard=(item,duplicate)=>{
     const card=make('article','vp-review-card');
     card.lang=locale;
@@ -55,6 +60,10 @@
     top.append(stars,make('span','vp-review-platform',sourceLabels[item.source]));
     const quote=make('blockquote','vp-review-text',item.translations[locale]);
     quote.dir=locale==='he'?'rtl':'ltr';
+    // On touch screens a guest can scroll the *complete* review vertically.
+    // Freeze horizontal movement on first touch rather than moving the text
+    // while they read; the visible pause/resume control resumes the ribbon.
+    quote.addEventListener('touchstart',pauseForReading,{passive:true});
     const bottom=make('div','vp-review-bottom');
     const byline=make('div','vp-review-byline');
     byline.append(make('span','vp-review-author',item.author));
