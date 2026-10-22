@@ -35,6 +35,43 @@ payments, migration parity, and explicit release approval are **not** present.
 The source release gate remains **NO-GO** and the recorded IDs in the
 attestation do **not** mean the full environment is approved.
 
+## Free-plan Supabase Production now provisioned — 22 October 2026
+
+The existing `VOY Pro` organization returned a **$0/month** quote, and a new
+project was created without a plan upgrade:
+
+- Name: `EZRaider OS Production`.
+- Project ref: `slfwrgssovjqcqdigzqo`; origin:
+  `https://slfwrgssovjqcqdigzqo.supabase.co`.
+- Region: `eu-central-1`; project health: `ACTIVE_HEALTHY`.
+- Staging stays on its separate project `ieuuobbfginqkngkzbfa`.
+- **No application tables or applied migrations yet** in new Production.
+- No Production Vercel project has been connected to this database, and
+  no payments, webhooks, customers, bookings or credentials were transferred.
+- Free-tier projects can have capacity, sleep and backup limitations.
+  Do not enable real customer transactions without a tested independent
+  backup/restore and recovery plan.
+
+### Migration reconciliation blocker before schema rollout
+
+Read-only inspection found **515 GitHub migration files** under
+`Ezraider-os/supabase/migrations` and **564 applied migration records**
+in the existing Staging database. Every GitHub migration name appears
+in Staging, but **48 extra distinct migration names** appear only in the
+Staging history (one Staging name occurs twice). Historical migration
+timestamps frequently differ, so naive version-number matching is not
+a reliable parity check.
+
+Before applying migrations to the new empty Production database, reconcile
+the 48 staging-only changes to the canonical GitHub migrations, verify
+the clean rebuild can reproduce the necessary schema/functions/policies,
+and run security advisors. **Do not clone live/staging customer rows or
+blindly replay Staging's migration ledger**. Document the authoritative
+source migration baseline in FBM first.
+
+The release attestation remains `status=unverified` and
+`owner_cutover_approved=false` while all these checks remain outstanding.
+
 ## Safe creation order — keep public website untouched
 
 1. **Supabase Production** (human-approved external provisioning): create a
