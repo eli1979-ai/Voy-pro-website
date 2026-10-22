@@ -349,7 +349,7 @@ assert(JSON.stringify(staged.selection)===JSON.stringify({tripadvisor:10,google:
 assert(Array.isArray(staged.reviews)&&staged.reviews.length===20,
   'all original reviewers must exist in the staging roster');
 const stagedReviewIds=new Set();
-let verifiedFullTexts=0,unverifiedSources=0;
+let verifiedFullTexts=0,editorialApprovedOriginals=0,unverifiedSources=0;
 for(let i=0;i<20;i++){
   const c=sourceAudit.candidates[i],r=staged.reviews[i];
   if(!r||!c||r.id!==c.id||r.author!==c.reviewer||r.source!==c.platform
@@ -386,10 +386,16 @@ for(let i=0;i<20;i++){
       failures.push('unverified review must be either absent or a provenance-matched unpublished screenshot draft: '+r.id);
   }else{
     verifiedFullTexts++;
-    if(!primarySource||!r.approved||typeof r.full_text!=='string'
+    if(!primarySource||typeof r.full_text!=='string'
         ||r.full_text.trim().length<35||!r.language
         ||!Number.isInteger(r.rating)||r.rating<1||r.rating>5)
-      failures.push('a source-verified original is missing approval or metadata: '+r.id);
+      failures.push('a source-verified original is missing required metadata: '+r.id);
+    if(r.approved===true)editorialApprovedOriginals++;
+    if(r.source==='tripadvisor'&&(r.approved!==false||
+      ev.original_text_transcription_status!=='assistant_visually_crosschecked_awaiting_editorial_approval'||
+      ev.operator_original_text_evidence?.line_by_line_proofread_complete!==true||
+      ev.visual_review?.publisher_signoff!==false))
+      failures.push('Tripadvisor source proof is verified but still must await publication editorial approval: '+r.id);
     const ownerOriginal=ev.operator_original_text_evidence?.original_text;
     // Later Tripadvisor originals must be documented in the provenance record too.
     if(!ownerOriginal||r.full_text!==ownerOriginal
@@ -405,9 +411,12 @@ for(let i=0;i<20;i++){
   }
 }
 assert(stagedReviewIds.size===20,'all 20 unique shortlist identities must be preserved');
-assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_cleared_for_republication
-    &&verifiedFullTexts===10,
-  'verified full-text staging count must match the original operator source audit');
+assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_verified_against_primary_evidence
+    &&verifiedFullTexts===20,
+  'all 20 complete originals must be independently source verified');
+assert(editorialApprovedOriginals===sourceAudit.source_audit.original_full_texts_cleared_for_republication
+    &&editorialApprovedOriginals===10,
+  'only source-cleared Google/GetYourGuide originals may be editor-approved before final signoff');
 assert(unverifiedSources===0,'all Google reviews must have first-party verification');
 assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
   'staging must never cause unapproved testimonials to be deployed');
@@ -422,8 +431,8 @@ try{
   const report=JSON.parse(reportRun.stdout||'{}');
   assert(report.selected_count===20&&report.required===20,
     'publisher must require the full shortlist of 20 reviews');
-  assert(report.full_originals_verified===10&&report.publishable_now===10&&report.ready===false,
-    'publisher must not count third-party mirrored copies as verified originals');
+  assert(report.full_originals_verified===20&&report.publishable_now===10&&report.ready===false,
+    'publisher must distinguish all verified originals from those editorially approved to publish');
   assert(report.source_mix?.tripadvisor===10&&report.source_mix?.google===7&&
     report.source_mix?.getyourguide===3,
     'publisher must validate exact provider mix');
