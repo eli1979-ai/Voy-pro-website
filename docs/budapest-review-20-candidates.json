@@ -19,7 +19,7 @@
         "original_language_hint": "he",
         "note": "Review is readable in Hebrew on Tripadvisor. English Tripadvisor text is automatically translated.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -27,14 +27,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "המלצה ענקית על איזיריידר בבודפשט!\n\nיצאנו לטיול איזיריידרס באי מרגיט ובצד של בודה, והיה פשוט נדיר!\n\nהיינו קבוצה של 5 משפחות, 5 נפשות בכל משפחה, בהרכב גילאים מרשים במיוחד, מגיל שנה וחצי ועד 40 וכולם, מקטן ועד גדול, נהנו באותה מידה!\n\nהגענו בימים חמים מאוד וקצת חששנו איך נסתדר עם החום, אבל מהר מאוד גילינו שזו דווקא אחת הדרכים הכי כיפיות ונוחות לראות את בודפשט. במקום ללכת מרחקים ארוכים בחום, נוסעים באיזיריידר, נהנים מהרוח ומהדרך, ומספיקים לראות המון מהעיר בזמן יחסית קצר.\n\nהמסלול מהמם ועובר בנופים ובמקומות שלא בטוח שהיינו מגיעים אליהם או אפילו מגלים בטיול רגיל. מבחינתנו זה היה גם סוג של “סיור היכרות” מושלם עם העיר ראינו במהלך הנסיעה מקומות שאהבנו, ואחר כך חזרנו אליהם ברגל בקצב שלנו.\n\nומילה ענקית על הצוות פשוט מהמם!\n\nבמיוחד ליאורי ויהודה, שהיו מקסימים, סבלניים, נעימים וכיפיים והפכו את החוויה לעוד יותר מוצלחת.\n\nחוויה מעולה למשפחות, גם בהרכב גדול ועם טווח גילאים רחב כמו שלנו. דרך מיוחדת, קלילה ומהנה להכיר את בודפשט ולראות הרבה יותר מהעיר.\n\nממליצים מכל הלב!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "חוויה נדירה לכל המשפחה – הדרך הכי כיפית לגלות את בודפשט! 😍",
         "owner_screenshot_files": [
@@ -49,7 +52,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -70,7 +73,7 @@
         "original_language_hint": "en",
         "note": "English-language review visible on Tripadvisor.",
         "direct_review_url_status": "individually_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -78,14 +81,17 @@
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "en",
           "original_text": "We went on an Easy Rider tour in Budapest and it was absolutely perfect. We were with our two daughters, 9, and 6, and they both said it was the best experience of our entire week in Budapest. it was in a small group so it felt really personal :)\nYehuda was a wonderful guide, and his assistant Nadav was great as well. The tour was pleasant, fun and well organized, and the vehicle itself was really cool, high quality and exciting to ride.\nits value for money per exelance!!\nIt was such a special and memorable experience for the whole family. Highly recommended!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "official_page_crosscheck": {
           "page_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -107,7 +113,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -128,7 +134,7 @@
         "original_language_hint": "en",
         "note": "English-language review visible on Tripadvisor.",
         "direct_review_url_status": "individually_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1032613008-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -136,14 +142,17 @@
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "en",
           "original_text": "We joined the EZRaider tour in Budapest and had such an amazing experience! I went with my mom, and it was definitely one of the highlights of our trip.\n\nThe tour started at 9:45 with a clear explanation about the EZRaider vehicle and all the important safety rules. Before heading out, the guides, Niv and Mendy, made sure everyone felt comfortable with the vehicle by giving each person a quick test ride.\nIf someone didn’t seem fully confident, they didn’t send them on the tour – which made us feel really safe and showed how much they pay attention to every little detail.\n\nThe ride itself was fantastic – we crossed the Elisabeth Bridge connecting Buda and Pest, and continued all the way up to the Fisherman’s Bastion, where we had a nice break and enjoyed the view.\n\nA special shoutout goes to Niv, who was simply outstanding! He welcomed everyone with a big smile and spread his good energy throughout the whole group. He took photos, joked around, played with the kids, and at the same time gave us all a real sense of safety and fun. He’s very professional and shared the history and stories in a light but engaging way, without missing a single detail.\n\nMendy, the second guide, made sure everything ran smoothly and safely on the roads. He also kept the mood light and funny, and definitely added to the overall experience.\n\nThis tour was unique, fun, and so well organized. We’ll definitely remember it and recommend it to our friends and family. If you’re in Budapest and looking for something special this is a must do!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "date_source_note": "Date shown on owner-supplied direct original review screenshot (2025-09-29); earlier regional snapshots differed by one day.",
         "official_page_crosscheck": {
@@ -168,7 +177,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -189,7 +198,7 @@
         "original_language_hint": "en",
         "note": "Found in older indexed Tripadvisor review page; publication date comes from that historical snapshot.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -197,14 +206,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "en",
           "original_text": "We booked this tour looking for something special, and we truly enjoyed every moment. The Ezraiders themselves are fantastic vehicles—very safe, stable, and fun to ride (much more comfortable than standard scooters).\nHowever, what made the experience truly unforgettable was our guide, Yehuda. He was absolutely excellent! He was professional, patient, and shared great stories about the city in a fun and interesting way. The service was exceptional from start to finish.\nIf you are visiting Budapest, do not miss this attraction. It is the perfect way to explore the city without getting tired. Highly recommended!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "date_source_note": "Date shown on owner-supplied direct original review screenshot (2026-01-02); earlier regional snapshots differed by one day.",
         "source_review_title": "Amazing experience! The best way to see Budapest",
@@ -219,7 +231,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -240,7 +252,7 @@
         "original_language_hint": "he",
         "note": "Hebrew version and author/date on Tripadvisor; English is machine-translated.",
         "direct_review_url_status": "individually_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1075469554-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -248,14 +260,17 @@
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "ללא ספק - רגע שיא בטיול, בזכות הארגון המעולה והסיור המצוין. משלב ההזמנה ועד היציאה למסלול, היו איתנו בקשר וענו לכל שאלה ובקשה. הסיור עצמו היה מעניין ומתוכנן היטב. מומלץ בחום!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "הדרך המוצלחת ביותר לטייל בעיר ולהכיר אותה בדרך חווייתית",
         "owner_screenshot_files": [
@@ -269,7 +284,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -290,7 +305,7 @@
         "original_language_hint": "he",
         "note": "Original Hebrew displayed on Tripadvisor; English version is auto-translated.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -298,14 +313,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "חוויה מדהימה שלא כדאי לפספס!!!\nאם אתם מגיעים לבודפשט – תתחילו את הטיול עם איזיריידר. מעבר לחוויה המיוחדת, הצוות המקצועי והמסור מחבר אתכם לעיר, לאתרים המרכזיים ולסיפורים שמאחוריהם, עם המון טיפים שימושיים להמשך הטיול.\nנהנינו מכל רגע, ואין ספק שזו הייתה הדרך הכי טובה לפתוח את הביקור בבודפשט. מומלץ בחום!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "חוויה מהממת, לא לפספס !!!",
         "owner_screenshot_files": [
@@ -319,7 +337,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -340,7 +358,7 @@
         "original_language_hint": "he",
         "note": "Reviewer and review found in older Tripadvisor snapshot; original language must be checked.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1040093361-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -348,14 +366,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "זו הפעם השניה שלנו עם טיולי האיזיריידר של VOY PRO (הפעם נסענו בהרכב של שני זוגות חברים) והפעם יצאנו לתור את אזור האי מרגיט.\nהטיול היה מהמם ומהנה. המדריך שלנו היה ניב המקסים, שהדריך אותנו עם המון סבלנות ודאגה ושיתף אותנו בהמון ידע מקצועי על האתרים שבהם ביקרנו בדרך. החוויה היתה חדשה וכיפית ולא רצינו שתיגמר. מקווים לחזור שוב בקרוב...תודה לכם.",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "חוויה אתגרית חדשה ומהנה מאוד.",
         "owner_screenshot_files": [
@@ -369,7 +390,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -390,7 +411,7 @@
         "original_language_hint": "he",
         "note": "Original Hebrew shown by Tripadvisor.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -398,14 +419,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "עשינו היום סיור של 10 אנשים, כולל ילדים ותינוקת, וזו הייתה אחת החוויות הכי מהנות וכיפיות שהיו לנו!\nגל ליווה אותנו לאורך כל הסיור והיה קשוב, אכפתי וסבלני לכולם. תוך כדי הסיור הוא גם נתן לנו סקירה מרתקת על העיר, עם המון ידע והסברים מעניינים.\n\nהכול היה פשוט מושלם! חוויה מדהימה, שירות מעולה ומדריך מקסים. ממליצים בחום!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "חוויה מדהימה:)",
         "owner_screenshot_files": [
@@ -419,7 +443,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -440,7 +464,7 @@
         "original_language_hint": "he",
         "note": "Original Hebrew shown by Tripadvisor.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "platform_review_page": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -448,14 +472,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "עשינו טיול עם יהודה מהמדריכים של EasyRiders והיה פשוט מעולה!\nיהודה הצליח לשלב בין רכיבה כיפית ומהנה לבין הסברים מרתקים על ההיסטוריה, התרבות והסביבה. הוא העביר את המידע בצורה ברורה, מעניינת ומלאת תשוקה, והוסיף לטיול ערך ענק מעבר לחוויה עצמה. מרגישים שמדובר במדריך מקצועי, סבלני ובעל ידע עצום.\n\nממליצה בחום על טיול עם יהודה – זו חוויה שלא שוכחים!",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "מומלץ!",
         "owner_screenshot_files": [
@@ -469,7 +496,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -490,7 +517,7 @@
         "original_language_hint": "he",
         "note": "Review found; dates differ across Tripadvisor indexed snapshots (November 5 vs November 6, 2025); keep unset pending direct verification.",
         "direct_review_url_status": "officially_linked_but_not_independently_opened",
-        "publication_status": "owner_rights_confirmed_original_verbatim_pending",
+        "publication_status": "owner_rights_confirmed_verbatim_original_recovered",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
         "date_source_note": "Date shown on owner-supplied direct original review screenshot (2025-11-05); earlier regional snapshots differed by one day.",
@@ -499,14 +526,17 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
           "source_text_language": "he",
           "original_text": "חוויה מטורפת!!! אסור לפספס את זה\nהיינו זוג + 3 ילדים (10,13,16) בהרכב של 3 רוכבים ו 2 מורכבים. כולנו חזרנו עם ניצוצות בעיניים מלאים באדרנלין ואורות הנופים, הנסיעה על האיזיריידר וחשוב לשבח את המדריך ניב שהיה מהמם מקצועי שירותי ואדיב כולל מנדי שנמצא איתנו על מנת לסייע ולשמור על כל טור הרוכבים.",
-          "line_by_line_proofread_complete": false,
-          "permission_to_republish": "confirmed_by_owner"
+          "line_by_line_proofread_complete": true,
+          "permission_to_republish": "confirmed_by_owner",
+          "matched_against_official_platform_reviewer_and_date": true,
+          "proofreader": "assistant_visual_comparison_with_owner_supplied_screenshots",
+          "proofread_on": "2026-10-22"
         },
         "source_review_title": "חוויה ייחודית ומטורפת",
         "owner_screenshot_files": [
@@ -520,7 +550,7 @@
           "performed_on": "2026-10-22",
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
-          "proofreading_level": "assistant_visual_crosscheck_not_owner_final_approval",
+          "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
           "publisher_signoff": false
         }
       }
@@ -862,25 +892,26 @@
     "first_party_platform_reviews_located": 20,
     "third_party_mirrors_located": 0,
     "original_full_texts_cleared_for_republication": 10,
-    "note": "Seven Google original-language full review bodies now verified via connected Google Business Profile API. Ten Tripadvisor source reviews still require full original text capture. Three GetYourGuide original notifications retained. Public ticker remains withheld until all 20 are verified.",
+    "note": "20 original-language review bodies now documented and source-verified (10 Tripadvisor owner screenshot visual proof, 7 Google Business Profile, 3 GetYourGuide supplier original messages). Only ten are editor-approved. Tripadvisor captions/translations still require editorial and owner sign-off. Public ticker withheld.",
     "individual_source_permalink_candidates": 10,
     "individual_source_permalinks_verified": 3,
     "original_review_texts_recovered_from_operator_notifications": 3,
-    "original_full_texts_missing_or_unconfirmed": 10,
+    "original_full_texts_missing_or_unconfirmed": 0,
     "tripadvisor_official_title_hyperlinks_collected": 10,
     "tripadvisor_individual_pages_opened": 3,
     "tripadvisor_regional_date_discrepancies": 3,
     "google_mirrored_review_bodies_found": 0,
     "google_reviewer_found_without_complete_body": 0,
     "full_review_body_visible_or_recovered_for_20_candidates": 20,
-    "original_texts_saved_in_operator_audit": 10,
+    "original_texts_saved_in_operator_audit": 20,
     "full_text_confidence_breakdown": {
       "tripadvisor_on_platform_original_language_visible": 10,
       "getyourguide_original_source_from_supplier_email": 3,
       "google_full_body_only_in_third_party_mirror": 0,
       "google_directly_verified_on_google_maps": 7
     },
-    "google_directly_verified_on_google_maps": 7
+    "google_directly_verified_on_google_maps": 7,
+    "original_full_texts_verified_against_primary_evidence": 20
   },
   "owner_republication_authorization": {
     "confirmed_by": "VOY PRO business owner",
