@@ -93,7 +93,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       return {slots:[{id:'22222222-2222-4222-8222-222222222222',time:'10:00',sellable:true}]};
     }
     if(key==='/api/v1/promotions/validate')return {
-      valid:!rejectCoupon&&payload.code==='TESTPARTNER',code:'TESTPARTNER',type:'fixed',value:10,
+      valid:!rejectCoupon&&payload.code===affiliate,code:affiliate,type:'fixed',value:10,
     };
     if(key==='/api/v1/quotes'){
       const data={
@@ -224,6 +224,27 @@ async function flush(){
   assert.equal(final.options.headers['idempotency-key'],'77777777-7777-4777-8777-777777777777');
   assert.equal(app.redirect(),null,'Pay-on-arrival booking should finish inside the host website');
   assert(!app.elements['#success'].classList.contains('hidden'));
+}
+
+{
+  const app=mount({affiliate:'SECOND_PARTNER'});
+  await chooseFirstDeparture(app);
+  const promotion=app.calls.find(c=>c.key==='/api/v1/promotions/validate');
+  const quote=app.calls.find(c=>c.key==='/api/v1/quotes');
+  assert.equal(promotion?.payload.code,'SECOND_PARTNER',
+    'An embedded partner must validate its own coupon, not a fixture default');
+  assert.equal(quote?.payload.promo_code,'SECOND_PARTNER',
+    'The initial quote must retain the exact embedded affiliate');
+  assert(!app.elements['#checkout'].classList.contains('hidden'),
+    'A second valid partner must be allowed to complete the booking');
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  const booking=app.calls.find(c=>c.key==='/api/v1/bookings');
+  assert.equal(booking?.payload.promo_code,'SECOND_PARTNER',
+    'Booking must preserve the originating affiliate through confirmation');
 }
 
 {
