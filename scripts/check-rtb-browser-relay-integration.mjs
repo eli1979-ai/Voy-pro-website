@@ -125,12 +125,12 @@ try{
     assert.equal(opts.headers['x-fbm-intake-secret'],process.env.VOY_RTB_FBM_INTAKE_SECRET);
     const p=JSON.parse(opts.body);
     upstreamPayloads.push(p);
+    const prev=accepted.get(p.requestId);
+    if(prev&&prev!==JSON.stringify(p))return {status:409};
     assert.equal(p.requestedGuideLanguage,'he');
     assert.equal(p.englishAlternativeAccepted,true);
     assert.ok(/Z$/.test(p.preferredStartAt));
     assert.ok(!('preferredLocalDate' in p));
-    const prev=accepted.get(p.requestId);
-    if(prev&&prev!==JSON.stringify(p))return {status:409};
     if(!prev)accepted.set(p.requestId,JSON.stringify(p));
     if(!firstAttempt503){firstAttempt503=true;return {status:503}};
     return {status:202,json:async()=>({requestId:'00000000-0000-4000-8000-000000000001',status:'pending_review'})};
