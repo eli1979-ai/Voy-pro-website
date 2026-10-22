@@ -49,6 +49,9 @@ try{
   assert.equal((await parse('POST',{...base,englishAlternativeAccepted:'yes'})).status,400);
   assert.equal((await parse('POST',{...base,englishAlternativeAccepted:undefined})).status,400);
   assert.equal((await parse('POST',{...base,requestId:'missing'})).status,400);
+  assert.equal((await parse('POST',{...base,requestId:'11111111-1111-1111-8111-111111111111'})).status,400);
+  assert.equal((await parse('POST',{...base,requestId:'11111111-1111-4111-1111-111111111111'})).status,400);
+  assert.equal((await parse('POST',{...base,requestedGuideLanguage:'en',englishAlternativeAccepted:true})).status,400);
   assert.equal((await parse('POST',{...base,extraSensitiveInput:'bad'})).status,400);
   assert.equal((await parse('POST',{...base,preferredLocalDate:'2026-10-25',preferredLocalTime:'02:30'})).status,400);
   assert.equal((await parse('POST',{...base,preferredLocalDate:'2027-03-28',preferredLocalTime:'02:30'})).status,400);
@@ -71,6 +74,33 @@ try{
   assert.equal(forwarded.englishAlternativeAccepted,false);
   assert.equal(forwarded.requestId,payload.requestId);
   assert.ok(forwarded.preferredStartAt.endsWith('Z'));
+  // A new request with an actual positive choice can carry English as an
+  // alternative to Hebrew without inventing that consent from the locale.
+  globalThis.fetch=async(url,opts)=>{
+    calls.push({url:String(url),opts});
+    return {status:202,json:async()=>({requestId:'opted-in',status:'pending_review'})};
+  };
+  const optedIn={...payload,requestId:'22222222-2222-4222-8222-222222222222',englishAlternativeAccepted:true};
+  assert.equal((await parse('POST',optedIn)).status,202);
+  assert.equal(JSON.parse(calls.at(-1).opts.body).englishAlternativeAccepted,true);
+  calls.splice(1);
+  // Deterministic FBM idempotency stand-in: identical request replays
+  // produce the same acknowledgement, changed language/consent returns 409.
+  const seen=new Map();
+  globalThis.fetch=async(url,opts)=>{
+    const submitted=JSON.parse(opts.body);
+    const previous=seen.get(submitted.requestId);
+    if(previous&&previous!==JSON.stringify(submitted))return {status:409};
+    if(!previous)seen.set(submitted.requestId,JSON.stringify(submitted));
+    return {status:202,json:async()=>({requestId:'stable-crm-request',status:'pending_review'})};
+  };
+  const stableA=await parse('POST',payload);
+  const stableB=await parse('POST',payload);
+  assert.equal(stableA.status,202);
+  assert.deepEqual(stableB,stableA);
+  assert.equal((await parse('POST',{...payload,requestedGuideLanguage:'hu'})).status,409);
+  assert.equal((await parse('POST',{...payload,englishAlternativeAccepted:true})).status,409);
+  assert.equal(seen.size,1);
   assert.equal(JSON.stringify(result.body).includes(process.env.VOY_RTB_FBM_INTAKE_SECRET),false);
   globalThis.fetch=async()=>({status:409});
   assert.equal((await parse('POST',payload)).status,409);
