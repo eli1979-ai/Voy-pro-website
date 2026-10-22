@@ -30,6 +30,8 @@ Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide.
 <a id="review-1"></a>
 ## 1. KatieM5464 — tripadvisor
 
+**Original Tripadvisor title:** חוויה נדירה לכל המשפחה – הדרך הכי כיפית לגלות את בודפשט! 😍
+
 **Published:** 2026-08-08 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
 **Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
@@ -119,6 +121,8 @@ Szívből ajánljuk!
 <a id="review-2"></a>
 ## 2. Stav G — tripadvisor
 
+**Original Tripadvisor title:** An amazing experience in Budapest!
+
 **Published:** 2026-07-06 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
 **Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
@@ -161,6 +165,8 @@ Az egész család számára különleges és emlékezetes élmény volt. Nagyon 
 
 <a id="review-3"></a>
 ## 3. lihi F — tripadvisor
+
+**Original Tripadvisor title:** Amazing experience!
 
 **Published:** 2025-09-29 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1032613008-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
@@ -229,6 +235,8 @@ Ez a túra egyedülálló, szórakoztató és kiválóan szervezett volt. Biztos
 <a id="review-4"></a>
 ## 4. אביעד כ — tripadvisor
 
+**Original Tripadvisor title:** Amazing experience! The best way to see Budapest
+
 **Published:** 2026-01-02 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
 **Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
@@ -266,6 +274,8 @@ Ha Budapestre látogattok, ne hagyjátok ki ezt a programot! Tökéletes módja 
 <a id="review-5"></a>
 ## 5. Shoshi R — tripadvisor
 
+**Original Tripadvisor title:** הדרך המוצלחת ביותר לטייל בעיר ולהכיר אותה בדרך חווייתית
+
 **Published:** 2026-08-29 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1075469554-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
 **Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
@@ -290,6 +300,8 @@ Kétségkívül az utazás egyik csúcspontja volt, a remek szervezésnek és a 
 
 <a id="review-6"></a>
 ## 6. Explore27235187907 — tripadvisor
+
+**Original Tripadvisor title:** חוויה מהממת, לא לפספס !!!
 
 **Published:** 2026-07-28 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
@@ -328,6 +340,8 @@ Minden pillanatát élveztük, és kétségtelenül ez volt a legjobb módja ann
 <a id="review-7"></a>
 ## 7. ענת ל — tripadvisor
 
+**Original Tripadvisor title:** חוויה אתגרית חדשה ומהנה מאוד.
+
 **Published:** 2025-11-23 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1040093361-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
 **Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
@@ -358,6 +372,8 @@ A túra csodálatos és nagyon élvezetes volt. Idegenvezetőnk a kedves Niv vol
 
 <a id="review-8"></a>
 ## 8. אורטל פ — tripadvisor
+
+**Original Tripadvisor title:** חוויה מדהימה:)
 
 **Published:** 2026-08-16 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
@@ -398,6 +414,8 @@ Egyszerűen minden tökéletes volt! Fantasztikus élmény, kiváló szolgáltat
 <a id="review-9"></a>
 ## 9. Sightsee44633083977 — tripadvisor
 
+**Original Tripadvisor title:** מומלץ!
+
 **Published:** 2025-11-16 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
 **Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
@@ -436,6 +454,8 @@ Szívből ajánlok egy túrát Yehudával — felejthetetlen élmény!
 
 <a id="review-10"></a>
 ## 10. Flyer45428477043 — tripadvisor
+
+**Original Tripadvisor title:** חוויה ייחודית ומטורפת
 
 **Published:** 2025-11-05 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
