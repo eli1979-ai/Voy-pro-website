@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "status": "unverified",
-  "website_vercel_project_id": null,
-  "fbm_vercel_project_id": null,
+  "website_vercel_project_id": "prj_BH99wHz2Loh0gU8UF7zjpgzXT12y",
+  "fbm_vercel_project_id": "prj_fNkNsAOtZVqGlFsBAieFmehkDPeg",
   "supabase_project_ref": null,
   "public_api_base_url": null,
   "verified_at": null,
   "owner_cutover_approved": false,
-  "notes": "Public identifiers only. Record verified independent Production projects; never store tokens, database passwords, or provider credentials here. Changes require owner release approval."
+  "notes": "Verified Vercel project resources exist (no Git/deploy/live aliases; SSO all). Overall Production identity remains UNVERIFIED pending distinct Supabase database, API, smoke tests, payment controls, and explicit owner cutover approval. No secrets in this file."
 }
