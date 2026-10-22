@@ -196,6 +196,20 @@ async function flush(){
   const extraQuote=app.calls.filter(c=>c.key==='/api/v1/quotes').at(-1);
   assert.equal(extraQuote.payload.extras[0].quantity,1);
   assert.equal(extraQuote.payload.hold_id,'33333333-3333-4333-8333-333333333333');
+  // Invalid edits must not silently change the previously accepted add-on
+  // or alter the live FBM quote. The number field must reflect the same value
+  // that will eventually be sent with the booking.
+  const quoteCallsBeforeInvalid=app.calls.filter(c=>c.key==='/api/v1/quotes').length;
+  for(const invalid of ['', '-1', '2.5', '999']){
+    qty.value=invalid;
+    await qty.trigger('change');
+    assert.equal(qty.value,'1','The field must restore the last accepted ancillary quantity');
+    assert.equal(app.calls.filter(c=>c.key==='/api/v1/quotes').length,
+      quoteCallsBeforeInvalid,'Invalid quantity must not create an amended quote');
+  }
+  assert.equal(app.elements['#checkout'].classList.contains('hidden'),false,
+    'The accepted booking must remain available after rejected quantity edits');
+
 
   app.customer.elements.name.value='Example Person';
   app.customer.elements.email.value='guest@example.invalid';

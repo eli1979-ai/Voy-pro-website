@@ -11,6 +11,7 @@ assert(start>=0&&end>start,'Cannot find the optional-extra change handler');
 const handler=source.slice(start,end);
 assert.match(handler,/selectedExtras\.set\(offer\.product_id,quantity\)/,
   'Valid quantity must continue to update the accepted extras');
+assert.match(handler,/qty\.value\.trim\(\)\s*===\s*['\"]['\"]/, 'Empty quantity must be rejected rather than silently converted to zero');
 assert.match(handler,/selectedExtras\.get\(offer\.product_id\)/,
   'Invalid input must restore the previously accepted extra quantity');
 assert.doesNotMatch(handler,/qty\.value\s*=\s*['"]0['"]/,
