@@ -69,7 +69,7 @@ for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
-  "setAttribute('inert'","'is-paused'","textContent=text"]){
+  "'is-paused'","textContent=text"]){
   assert(script.includes(marker),'missing safe review rendering behavior '+marker);
 }
 assert(!/\binnerHTML\s*=|document\.write|eval\s*\(/.test(script),
@@ -138,7 +138,12 @@ assert(approved.root.hidden===false,'approved 20-item list must activate the tic
 assert(approved.track.children.length===2,'approved ticker must duplicate the ribbon for seamless movement');
 assert(approved.track.children[0]?.children?.length===20,'all 20 authentic review slots must display');
 assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true','duplicate ribbon must be hidden from screen readers');
-assert(approved.track.children[1]?.attrs?.inert==='','duplicate ribbon must not be tabbable');
+assert(approved.track.children[1]?.attrs?.inert===undefined,
+  'duplicate visible cards must not be inert or their source links cannot be opened');
+assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.href===sample[0].review_url,
+  'visible repeated review card must link to the same authentic original review');
+assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
+  'repeated original-review link must not add a duplicate keyboard tab stop');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
