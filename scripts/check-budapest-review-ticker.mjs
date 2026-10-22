@@ -64,13 +64,21 @@ for(const [page,locale] of locales){
     'compact ticker must appear below external review sources and above FAQ: '+page);
   assert(html.split('data-vp-reviews-root hidden').length===2,
     'each localized Budapest page must have exactly one review ribbon: '+page);
+  const names={en:['Scroll reviews left','Scroll reviews right','The full stories behind the five stars'],
+    he:['הזזת ביקורות שמאלה','הזזת ביקורות ימינה','הסיפורים המלאים מאחורי חמשת הכוכבים'],
+    hu:['Értékelések balra görgetése','Értékelések jobbra görgetése','Teljes vendégértékelések az öt csillag mögött']};
+  assert(names[locale].every(label=>html.includes(label)),
+    'review navigation and heading must use page-localized text: '+page);
+  assert(!html.includes('data-vp-reviews-left')===false&&
+    !html.includes('data-vp-reviews-right')===false,
+    'both directional buttons must exist in each locale: '+page);
   for(const marker of ['data-vp-reviews-track','data-vp-reviews-pause','data-vp-reviews-left','data-vp-reviews-right','data-vp-reviews-viewport',
     '/assets/budapest-review-ticker.css','/assets/budapest-review-ticker.js']){
     assert(html.includes(marker),'missing review ribbon dependency or control: '+page+' '+marker);
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','overflow-x:auto','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
+for(const marker of ['prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
@@ -152,6 +160,8 @@ assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true'&&
        approved.track.children[2]?.attrs?.['aria-hidden']==='true',
   'before and after groups must be hidden from assistive technology');
 assert(approved.viewport.scrollLeft===1200,'scroll position must initialize on middle, accessible group');
+assert(!css.includes('animation:vp-reviews-scroll'),
+  'native bidirectional scrolling must replace the animation that could leave Hungarian empty');
 assert(approved.track.children[1]?.attrs?.inert===undefined,
   'duplicate visible cards must not be inert or their source links cannot be opened');
 assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.href===sample[0].review_url,
@@ -165,6 +175,13 @@ assert(approved.viewport.scrollLeft>1200&&approved.root.classList.states.has('is
   'right arrow must move horizontally even when auto-scrolling stops');
 approved.left.events.click();
 assert(approved.viewport.scrollLeft===1200,'left arrow must move horizontally back while paused');
+approved.viewport.events.pointerdown?.({pointerType:'mouse',button:0,clientX:400,pointerId:1});
+approved.viewport.events.pointermove?.({clientX:350,preventDefault(){}});
+assert(approved.viewport.scrollLeft===1250,
+  'mouse drag must move reviews horizontally even when carousel is paused');
+approved.viewport.events.pointerup?.();
+assert(!approved.viewport.classList.states.has('is-dragging'),
+  'drag end must restore normal pointer interaction');
 approved.viewport.scrollLeft=3100;
 approved.viewport.events.scroll();
 assert(approved.viewport.scrollLeft===1900,'forward loop must wrap before reaching blank space');
@@ -194,6 +211,11 @@ assert(approved.pause.textContent==='Resume reviews',
 approved.pause.events.click?.();
 assert(!approved.root.classList.states.has('is-paused'),
   'resume control must restore movement after touch-based pause');
+const positionBeforeFrame=approved.viewport.scrollLeft;
+approved.frames[0]?.(1000);
+approved.frames[1]?.(1040);
+assert(approved.viewport.scrollLeft>positionBeforeFrame,
+  'automatic scrolling must advance smoothly when the guest resumes');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
@@ -207,6 +229,10 @@ assert(hebrew.track.children[0]?.children[0]?.children[2]?.children[0]?.children
 const hungarian=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'hu');
 assert(hungarian.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.hu,
   'Hungarian page must render the complete Hungarian translation');
+assert(hungarian.track.children[0]?.children[0]?.children[0]?.children[1]?.textContent==='Tripadvisor',
+  'platform brand remains unchanged in Hungarian cards');
+assert(hungarian.track.children[0]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='Az eredetiből fordítva'),
+  'Hungarian review must disclose translation in Hungarian');
 assert(hungarian.track.children[0]?.children[0]?.children[2]?.children[1]?.textContent==='Eredeti értékelés itt: Tripadvisor',
   'Hungarian original-review link must identify Tripadvisor');
 assert(firstCard?.children[2]?.children[1]?.href===sample[0].review_url,'original review source must be linked');
