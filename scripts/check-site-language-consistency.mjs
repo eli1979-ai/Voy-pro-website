@@ -38,7 +38,7 @@ const begin=runtime.indexOf('const HU={');
 const end=runtime.indexOf('function huDynamic(en)',begin);
 assert(begin>=0&&end>begin,'Hungarian dynamic translation dictionary missing');
 const hungarian=runtime.slice(begin,end);
-const literals=[...runtime.matchAll(/\bt\(\s*(['"])\s*([^'"\n]*?)\1\s*,/g)].map(match=>match[2]);
+const literals=[...runtime.matchAll(/\bt\(\s*(['"])([^'"\n]*?)\1\s*,/g)].map(match=>match[2]);
 for(const original of new Set(literals)){
   if(original.length>3)assert(hungarian.includes("'"+original+"':")||hungarian.includes('"'+original+'":'),
     `Missing Hungarian runtime text for: ${original}`);
