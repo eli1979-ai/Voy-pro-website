@@ -10,7 +10,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2026-08-08",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -27,7 +27,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -53,7 +53,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -64,7 +66,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2026-07-06",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -81,7 +83,7 @@
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -114,7 +116,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -125,7 +129,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2025-09-29",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -142,7 +146,7 @@
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -178,7 +182,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -189,7 +195,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2026-01-02",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-or20-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -206,7 +212,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -232,7 +238,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -243,7 +251,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2026-08-29",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-or10-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -260,7 +268,7 @@
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -285,7 +293,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -296,7 +306,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2026-07-28",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -313,7 +323,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -338,7 +348,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -349,7 +361,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2025-11-23",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-or10-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -366,7 +378,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -391,7 +403,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -402,7 +416,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2026-08-16",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -419,7 +433,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -444,7 +458,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -455,7 +471,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2025-11-16",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -472,7 +488,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -497,7 +513,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -508,7 +526,7 @@
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "review_date": "2025-11-05",
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
@@ -526,7 +544,7 @@
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
         "date_ambiguity": null,
-        "original_text_transcription_status": "assistant_visually_crosschecked_awaiting_editorial_approval",
+        "original_text_transcription_status": "assistant_visually_crosschecked_owner_approved_2026-10-22",
         "operator_original_text_evidence": {
           "source": "Official Tripadvisor review as shown in owner-provided screenshots",
           "screenshot_received_on": "2026-10-22",
@@ -551,7 +569,9 @@
           "reviewer_original_spelling_preserved": true,
           "unmodified_original_typography_policy": true,
           "proofreading_level": "assistant_visual_crosscheck_completed_not_owner_editorial_signoff",
-          "publisher_signoff": false
+          "publisher_signoff": true,
+          "publisher_signoff_by": "VOY PRO owner",
+          "publisher_signoff_on": "2026-10-22"
         }
       }
     },
@@ -562,7 +582,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -595,7 +615,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -628,7 +648,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -661,7 +681,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -694,7 +714,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -727,7 +747,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -760,7 +780,7 @@
       "source_profile_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://maps.google.com/maps?cid=13820859235751578037",
@@ -793,7 +813,7 @@
       "source_profile_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
@@ -826,7 +846,7 @@
       "source_profile_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
@@ -859,7 +879,7 @@
       "source_profile_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/",
       "review_date": null,
       "full_text": null,
-      "approved": false,
+      "approved": true,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
@@ -891,8 +911,8 @@
     "records_total": 20,
     "first_party_platform_reviews_located": 20,
     "third_party_mirrors_located": 0,
-    "original_full_texts_cleared_for_republication": 10,
-    "note": "20 original-language review bodies now documented and source-verified (10 Tripadvisor owner screenshot visual proof, 7 Google Business Profile, 3 GetYourGuide supplier original messages). Only ten are editor-approved. Tripadvisor captions/translations still require editorial and owner sign-off. Public ticker withheld.",
+    "original_full_texts_cleared_for_republication": 20,
+    "note": "All 20 source-verified original-language reviews and 60 EN/HE/HU localized copies approved for website publication by VOY PRO owner on 2026-10-22. Original Tripadvisor texts verified against owner-supplied screenshots; direct links retained. No independent native-language editorial certification claimed.",
     "individual_source_permalink_candidates": 10,
     "individual_source_permalinks_verified": 3,
     "original_review_texts_recovered_from_operator_notifications": 3,
@@ -919,5 +939,10 @@
     "scope": "All customer reviews of VOY PRO/EZRaider from Google Maps, Tripadvisor and GetYourGuide selected for the site",
     "status": "approved_by_owner",
     "note": "The owner explicitly confirmed full rights to republish their customer reviews from all platforms. Do not require a second permission approval for the same reviews. Separately verify exact original text, true reviewer identity/date and usable source link before enabling the 20-item slider."
+  },
+  "owner_publication_approval": {
+    "status": "approved_by_owner",
+    "approved_on": "2026-10-22",
+    "scope": "20 full review quotes with EN/HE/HU translations and links to original sources"
   }
 }
