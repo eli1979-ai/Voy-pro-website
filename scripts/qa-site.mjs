@@ -125,6 +125,17 @@ const robots=read(path.join(site,'robots.txt'));
 if(!/Disallow:\s*\//i.test(robots)) errors.push('robots.txt: staging crawl block unexpectedly removed');
 
 const js=read(path.join(site,'assets','site.js'));
+const rtb=read(path.join(site,'assets','rtb-request.js'));
+if(!js.includes("loader.src='/assets/rtb-request.js'"))fail('assets/site.js','special-tour request module not wired');
+for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour','buda-margaret-extended-tour']){
+  if(!rtb.includes(slug))fail('assets/rtb-request.js','missing request route '+slug);
+}
+for(const marker of ['requestedGuideLanguage','englishAlternativeAccepted','Europe/Budapest','location.assign(\'https://wa.me/','const strings={','en:{','he:{','hu:{']){
+  if(!rtb.includes(marker))fail('assets/rtb-request.js','missing explicit request contract / localized handoff: '+marker);
+}
+if(/x-fbm-intake-secret|FBM_REQUEST_TO_BOOK_INTAKE_SECRET|fetch\(/.test(rtb))
+  fail('assets/rtb-request.js','client must never send private FBM intake secrets or imply direct submission');
+
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
 if(!/<option value="pay_now_card" disabled>/.test(js)) errors.push('assets/site.js: visible online-card payment option missing');
