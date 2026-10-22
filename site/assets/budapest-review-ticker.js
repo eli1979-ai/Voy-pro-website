@@ -194,8 +194,12 @@
     const advance=timestamp=>{
       if(lastFrame!==null){
         const elapsed=Math.max(0,Math.min(80,timestamp-lastFrame));
+        // Resume must actually restart motion even while the pointer hovers
+        // over the carousel or the resume button retains keyboard focus.
+        // Pause is controlled explicitly by is-paused (button, touch, drag),
+        // not by hover/focus-within which would silently override Resume.
         if(!reduced&&!dragging&&!root.classList.contains('is-paused')&&
-            !root.matches?.(':hover, :focus-within')&&document.visibilityState!=='hidden'){
+            document.visibilityState!=='hidden'){
           viewport.scrollLeft+=elapsed*.022;
           normalize();
         }
