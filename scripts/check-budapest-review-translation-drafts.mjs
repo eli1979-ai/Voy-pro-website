@@ -45,6 +45,20 @@ for(let i=0;i<draft.reviews.length;i++){
     assert.equal(review.full_text_verified,false,'A transcription is not final source verification');
     assert.equal(source.source_evidence?.operator_original_text_evidence?.line_by_line_proofread_complete,false);
     assert.equal(review.date,source.review_date,'Retain screenshot-displayed date');
+    const evidence=source.source_evidence;
+    assert.equal(typeof evidence?.source_review_title,'string','Screenshot review title must be recorded');
+    assert(evidence.source_review_title.trim().length>=5,'Source title must not be empty');
+    assert(Array.isArray(evidence.owner_screenshot_files)&&evidence.owner_screenshot_files.length>=1,
+      'Proofread record must reference user-supplied screenshot files');
+    assert(evidence.owner_screenshot_files.every(path=>/^10005128\\d{2}\\.jpg$/.test(path)),
+      'Source evidence must point to original supplied screenshot filename');
+    assert.equal(evidence.visual_review?.reviewer_checked,true);
+    assert.equal(evidence.visual_review?.published_day_checked,true);
+    assert.equal(evidence.visual_review?.five_star_rating_checked,true);
+    assert.equal(evidence.visual_review?.body_checked_against_attached_screenshots,true);
+    assert.equal(evidence.visual_review?.publisher_signoff,false,
+      'Editorial source crosscheck must not be mistaken for publication approval');
+
   }else{
     assert.equal(review.approved,true);
     assert.equal(review.full_text_verified,true);
