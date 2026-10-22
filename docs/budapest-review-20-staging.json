@@ -421,7 +421,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "Fantastic experience and a great tour!\nWe loved every moment of the ride, especially with the detailed and informative guidance. Even though it was cold outside, we didn’t mind at all because we were enjoying the ride and the amazing views and sights of Budapest.\nYehuda, our guide, made the experience both fun and informative.\n\nDefinitely a must do attraction in Budapest !",
+        "he": "חוויה נפלאה וסיור נהדר!\n\nאהבנו כל רגע ברכיבה, במיוחד בזכות ההדרכה המפורטת והמעניינת. אף על פי שהיה קר בחוץ, זה בכלל לא הפריע לנו, כי נהנינו כל כך מהרכיבה ומהנופים והמראות המדהימים של בודפשט.\n\nיהודה, המדריך שלנו, הפך את החוויה גם לכיפית וגם למעשירה.\n\nזו בהחלט אטרקציה שחייבים לעשות בבודפשט!",
+        "hu": "Fantasztikus élmény és nagyszerű túra!\n\nAz út minden pillanatát élveztük, különösen a részletes és tartalmas idegenvezetésnek köszönhetően. Bár odakint hideg volt, egyáltalán nem zavart minket, mert annyira élveztük az utazást, valamint Budapest csodálatos látványát és nevezetességeit.\n\nIdegenvezetőnk, Yehuda szórakoztatóvá és tanulságossá is tette az élményt.\n\nBudapesten ezt a programot tényleg nem szabad kihagyni!"
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-6",
@@ -442,7 +449,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "Amazing Experience with EZ Raider in Budapest!I recently had the pleasure of exploring Budapest on an EZ Raider tour, and it was an absolute blast! The EZ Raiders are easy to handle and incredibly fun to ride. Our guide Juda was knowledgeable and made the tour both informative and enjoyable.We got to see so many amazing sights around the city, and the unique perspective from the EZ Raider made it even more special. Whether you're a local or a tourist, this is a must-do activity in Budapest. I highly recommend it for anyone looking to have a great time and see the city in a fun and exciting way!",
+        "he": "חוויה מדהימה עם EZRaider בבודפשט! לאחרונה זכיתי להכיר את בודפשט בסיור EZRaider, וזו הייתה חוויה פשוט אדירה! הכלים קלים לשליטה ומהנים מאוד לרכיבה. המדריך שלנו, יהודה, היה בעל ידע רב והפך את הסיור גם למעשיר וגם למהנה. ראינו המון אתרים מדהימים ברחבי העיר, ונקודת המבט הייחודית מה־EZRaider הפכה את הכול למיוחד עוד יותר. בין אם אתם מקומיים ובין אם תיירים, זו פעילות שחובה לנסות בבודפשט. אני ממליץ עליה בחום לכל מי שרוצה ליהנות ולראות את העיר בדרך כיפית ומלהיבה!",
+        "hu": "Lenyűgöző élmény az EZRaiderrel Budapesten! Nemrég lehetőségem volt egy EZRaider-túrán felfedezni a várost, és óriási élmény volt! Az EZRaider járműveket könnyű irányítani, és hihetetlenül jó vezetni őket. Idegenvezetőnk, Juda, nagyon sokat tudott a városról, így a túra egyszerre volt tanulságos és szórakoztató. Rengeteg fantasztikus látnivalót megcsodáltunk, és az EZRaiderből adódó különleges nézőpont még emlékezetesebbé tette az egészet. Akár helyi lakos, akár turista valaki, ezt a programot Budapesten mindenképp ki kell próbálni. Szívből ajánlom mindenkinek, aki jól szeretné érezni magát, és vidám, izgalmas módon fedezné fel a várost!"
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-7",
@@ -463,7 +477,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "Absolutely fantastic experience with EZ Rider Tour in Budapest! Our guide was amazing – knowledgeable, friendly, and full of interesting insights about the city. The tour was well-paced, fun, and the perfect way to explore Budapest.\nHighly recommend for anyone visiting – this was definitely one of the highlights of our trip!",
+        "he": "חוויה פשוט פנטסטית בסיור EZ Rider בבודפשט! המדריך שלנו היה מדהים — בעל ידע, ידידותי ומלא בתובנות מעניינות על העיר. הסיור התקדם בקצב נעים, היה כיפי, וזו הייתה דרך מושלמת לגלות את בודפשט.\n\nממליצה בחום לכל מי שמבקר בעיר — זה בהחלט היה אחד משיאי הטיול שלנו!",
+        "hu": "Egyszerűen fantasztikus élmény volt a budapesti EZ Rider-túra! Idegenvezetőnk nagyszerű volt: rendkívül tájékozott, barátságos, és sok érdekes információt osztott meg a városról. A túra tempója megfelelő volt, nagyon jól szórakoztunk, és tökéletes módon fedezhettük fel Budapestet.\n\nMinden Budapestre látogatónak szívből ajánlom — utazásunk egyik fénypontja volt!"
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "getyourguide-1",
@@ -484,7 +505,14 @@
         "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
         "original_text_status": "exact_original_source_text",
         "notes": null
-      }
+      },
+      "translations": {
+        "en": "A very lovely family experience. The tour is suitable for families with children: our daughter is six and our son is fifteen. Thank you to Javier for the quality of his welcome and his kindness. I wholeheartedly recommend this activity.",
+        "he": "חוויה משפחתית נהדרת. הסיור מתאים למשפחות עם ילדים — הבת שלנו בת שש והבן שלנו בן חמש־עשרה. תודה לחאבייר על קבלת הפנים המצוינת ועל האדיבות שלו. ממליצה מאוד על הפעילות הזאת.",
+        "hu": "Nagyon szép családi élmény volt. A túra gyermekes családok számára is alkalmas: a lányunk hatéves, a fiunk tizenöt éves. Köszönjük Javiernek a kedves fogadtatást és a figyelmességét. Szívből ajánlom ezt a programot."
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "getyourguide-2",
@@ -505,7 +533,14 @@
         "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
         "original_text_status": "exact_original_source_text",
         "notes": null
-      }
+      },
+      "translations": {
+        "en": "An amazing experience — we really enjoyed ourselves! Patient guides, a thoughtful and professional tour, and an excellent way to see the historic part of Buda without wearing out your legs. Highly recommended!!!!! Yehuda was really great.",
+        "he": "חוויה מדהימה, נהנינו ממש מדריכים סבלניים, סיור מושקע ומקצועי דרך מצויינת לראות את החלק העתיק של בודה מבלי לשבור את הרגליים. מומלץ בחום!!!!! יהודה אחלה ממש",
+        "hu": "Fantasztikus élmény volt, nagyon jól éreztük magunkat! Türelmes idegenvezetők, alaposan kidolgozott, profi túra. Remek módja Buda történelmi részének megismerésének anélkül, hogy lejárnánk a lábunkat. Szívből ajánljuk!!!!! Yehuda igazán nagyszerű volt."
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "getyourguide-3",
@@ -526,7 +561,14 @@
         "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
         "original_text_status": "exact_original_source_text",
         "notes": null
-      }
+      },
+      "translations": {
+        "en": "The most fun and enjoyable experience we had in Budapest. Yehuda, the guide, is kind, professional and knowledgeable about history, and he was friendly and patient with everyone in the group. The vehicles are well maintained and easy to operate. Highly recommended.",
+        "he": "חוויה הכי כיפית ומהנה שהייתה לנו בבודפשט, יהודה המדריך אדיב, מקצועי בעל ידע היסטורי, והיה נחמד וסבלני לכל חברי הקבוצה, כלים מתוחזקים וקלים לתפעול, מומלץ בחום",
+        "hu": "Ez volt a legszórakoztatóbb és legélvezetesebb élményünk Budapesten. Idegenvezetőnk, Yehuda kedves, profi, nagy történelmi tudással rendelkezik, és a csoport minden tagjával barátságos és türelmes volt. A járművek jól karbantartottak és könnyen kezelhetők. Szívből ajánljuk."
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     }
   ]
 }
