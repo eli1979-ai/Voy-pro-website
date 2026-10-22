@@ -3,9 +3,9 @@
   "status": "unverified",
   "website_vercel_project_id": "prj_BH99wHz2Loh0gU8UF7zjpgzXT12y",
   "fbm_vercel_project_id": "prj_fNkNsAOtZVqGlFsBAieFmehkDPeg",
-  "supabase_project_ref": null,
+  "supabase_project_ref": "slfwrgssovjqcqdigzqo",
   "public_api_base_url": null,
   "verified_at": null,
   "owner_cutover_approved": false,
-  "notes": "Verified Vercel project resources exist (no Git/deploy/live aliases; SSO all). Overall Production identity remains UNVERIFIED pending distinct Supabase database, API, smoke tests, payment controls, and explicit owner cutover approval. No secrets in this file."
+  "notes": "Verified: free-plan Supabase project EZRaider OS Production in eu-central-1 is ACTIVE_HEALTHY, isolated from staging and empty (no migrations/tables). Separate protected Vercel shells exist. Environment remains UNVERIFIED and owner_cutover_approved=false until canonical migration reconciliation, production secrets/hosts, API tests, backups, payment readiness, and independent release approval. No real transactions."
 }
