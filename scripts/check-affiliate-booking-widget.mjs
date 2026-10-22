@@ -19,6 +19,7 @@ const required=[
   "'/holds'",
   "'/bookings'",
   "'/payments/intents'",
+  "'/booking-capacity-requests'",
   "isPrivate()&&hold?.id?{hold_id:hold.id}:{}",
   "'/ancillary/offers'",
   "Boolean(capabilities?.online_card",
@@ -49,7 +50,7 @@ class Element {
   querySelectorAll(selector){return selector==='button'?this.children.filter(x=>x.tagName==='button'):[];}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -90,7 +91,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
   let expires=new Date(Date.now()+15*60*1000).toISOString();
   const responseFor=(key,payload)=>{
     if(key.includes('/availability?')){
-      return {slots:[{id:'22222222-2222-4222-8222-222222222222',time:'10:00',sellable:true}]};
+      return {slots:[{id:'22222222-2222-4222-8222-222222222222',time:'10:00',sellable:!staffConfirmation,requestable:staffConfirmation}]};
     }
     if(key==='/api/v1/promotions/validate')return {
       valid:!rejectCoupon&&payload.code==='TESTPARTNER',code:'TESTPARTNER',type:'fixed',value:10,
@@ -114,6 +115,9 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     }];
     if(key==='/api/v1/bookings')return {
       reference:'VOY-MOCK-BOOKING',status:'confirmed',manage_token:'not-a-real-token',
+    };
+    if(key==='/api/v1/booking-capacity-requests')return {
+      type:'booking_capacity_request',status:'pending',reference:'VP-CAP-TEST',
     };
     throw new Error('Unexpected mocked route: '+key);
   };
@@ -262,4 +266,42 @@ async function flush(){
   assert.match(app.elements['#status'].textContent,/not attributed/i);
 }
 
-console.log('Affiliate native booking widget QA passed: configuration, CORS key, private held quote, extras, attribution, checkout.');
+{
+  const app=mount({staffConfirmation:true});
+  await chooseFirstDeparture(app);
+  assert(!app.elements['#checkout'].classList.contains('hidden'),
+    'Staff-requestable time must offer a customer request form');
+  assert(!app.calls.some(c=>c.key==='/api/v1/holds'),
+    'A request to book must not reserve any fleet or departure');
+  assert(!app.calls.some(c=>c.key==='/api/v1/quotes'),
+    'Human-review-required availability must not be shown as a guaranteed live price');
+  assert(!app.calls.some(c=>c.key==='/api/v1/bookings'||c.key==='/api/v1/payments/intents'),
+    'No booking or payment should be attempted before staff approval');
+  assert.match(app.elements['#holdExpiry'].textContent,/No place is reserved/i);
+  assert.equal(app.elements['#confirmButton'].textContent,'Send confirmation request');
+  app.customer.elements.name.value='Test Guest';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  const req=app.calls.find(c=>c.key==='/api/v1/booking-capacity-requests');
+  assert(req,'A staff request must use the central FBM Request to Book API');
+  assert.equal(req.payload.promo_code,'TESTPARTNER');
+  assert.equal(req.payload.group_composition.riders_16_plus,2);
+  assert.equal(req.payload.is_private,false);
+  assert.equal(req.options.headers['idempotency-key'],'77777777-7777-4777-8777-777777777777');
+  assert(!app.calls.some(c=>c.key==='/api/v1/bookings'||c.key==='/api/v1/payments/intents'),
+    'A submitted human approval request is never a confirmed booking or charged');
+  assert(!app.elements['#success'].classList.contains('hidden'));
+  const messages=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+  assert.match(messages,/not a confirmed booking/i);
+  assert.match(messages,/VP-CAP-TEST/);
+}
+{
+  const app=mount({staffConfirmation:true,rejectCoupon:true});
+  await chooseFirstDeparture(app);
+  assert(!app.calls.some(c=>c.key==='/api/v1/booking-capacity-requests'),
+    'Invalid affiliate code must never produce a staff request');
+  assert(app.elements['#checkout'].classList.contains('hidden'));
+}
+console.log('Affiliate native booking widget QA passed: configuration, CORS key, held quotes, extras, attribution, checkout, staff-confirmation requests.');
