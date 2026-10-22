@@ -133,6 +133,15 @@ for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraid
 for(const marker of ['requestedGuideLanguage','englishAlternativeAccepted','Europe/Budapest','location.assign(\'https://wa.me/','const strings={','en:{','he:{','hu:{']){
   if(!rtb.includes(marker))fail('assets/rtb-request.js','missing explicit request contract / localized handoff: '+marker);
 }
+for(const marker of ["languageField.addEventListener('change',updateEnglishAlternative)",
+  "englishChoice.checked=false",
+  "englishChoiceRow.hidden=!languageField.value||languageField.value==='en'",
+  "data.get('requested_guide_language')!=='en'"]){
+  if(!rtb.includes(marker))fail('assets/rtb-request.js',
+    'English fallback opt-in must be reset when requested guiding language changes: '+marker);
+}
+if(!read(path.join(site,'assets','site.css')).includes('.voy-rtb-checkbox[hidden]{display:none!important}'))
+  fail('assets/site.css','hidden English alternative must remain invisible despite flex layout');
 if(/x-fbm-intake-secret|FBM_REQUEST_TO_BOOK_INTAKE_SECRET|fetch\(/.test(rtb))
   fail('assets/rtb-request.js','client must never send private FBM intake secrets or imply direct submission');
 
