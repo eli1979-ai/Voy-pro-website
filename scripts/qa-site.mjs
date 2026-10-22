@@ -199,18 +199,6 @@ try{
     'Website locale consistency regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
-// Budapest guest-language request behavior: exercise the browser module in
-// a fake DOM with mocked same-origin relay outcomes, never real leads.
-try{
-  const result=execFileSync(process.execPath,['scripts/check-budapest-rtb-submission.mjs'],{
-    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:15000,
-  });
-  console.log(result.trim());
-}catch(error){
-  fail('assets/rtb-request.js',
-    'Budapest request UI idempotent relay test: '+String(error.stderr||error.message||error).slice(0,1100));
-}
-
 // The partner booking flow is executed with mocked FBM routes during every
 // site build / launch QA, not only scanned for static file presence.
 try{
@@ -221,6 +209,18 @@ try{
 }catch(error){
   fail('assets/affiliate-booking-widget.js',
     'Affiliate widget checkout behavior regression: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
+// Budapest guest-language request behavior: exercise the browser module in
+// a fake DOM with mocked same-origin relay outcomes, never real leads.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-budapest-rtb-submission.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:15000,
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/rtb-request.js',
+    'Budapest request UI idempotent relay test: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
