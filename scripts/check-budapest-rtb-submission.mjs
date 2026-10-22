@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const liveRelay=require('../api/request-to-book.js');
 
 const source=readFileSync('site/assets/rtb-request.js','utf8');
 const path='/he/budapest/tours/heroes-square-city-ezraider-tour/';
@@ -209,4 +212,42 @@ for(const code of [400,503,500]){
   await b.submit();
   assert.equal(payloadOf(b).requestId,old);
 }
-console.log('Budapest RTB request UI: 202/404/400/409/503, consent, stable replay, new payload, double submit and network failure OK.');
+// Integration, not a stubbed response: feed the actual website POST payload
+// into the actual Vercel relay handler, with public intake explicitly disabled.
+// It must fail closed BEFORE reaching FBM, and the client must offer the manual
+// WhatsApp path without claiming the request was stored in CRM.
+{
+  const previous=process.env.VOY_RTB_RELAY_ENABLED;
+  const previousFetch=globalThis.fetch;
+  let upstreamCalls=0;
+  try{
+    process.env.VOY_RTB_RELAY_ENABLED='false';
+    globalThis.fetch=async()=>{upstreamCalls++;throw Error('FBM must not be contacted when relay disabled');};
+    const b=browser(async(url,init)=>{
+      assert.equal(url,'/api/request-to-book');
+      assert.equal(init.method,'POST');
+      assert.equal(init.credentials,'omit');
+      const headers={host:'preview.voy-pro.vercel.app',
+        origin:'https://preview.voy-pro.vercel.app',
+        'content-type':init.headers['content-type']};
+      let status=0,body='';
+      const response={setHeader(){},end(value){body=value;},
+        get statusCode(){return status;},set statusCode(value){status=value;}};
+      await liveRelay({method:init.method,headers,body:init.body},response);
+      return {status,json:async()=>JSON.parse(body)};
+    });
+    b.set('requested_guide_language','he');
+    await b.submit();
+    assert.equal(b.requests.length,1,'guest form must POST once to the real relay handler');
+    assert.equal(b.locations.length,1,'disabled relay must offer WhatsApp manual delivery');
+    assert.ok(b.locations[0].startsWith('https://wa.me/36300993099?text='));
+    assert.equal(upstreamCalls,0,'disabled relay must never reach FBM');
+    assert.ok(!statusOf(b).includes('הפנייה התקבלה'),'disabled relay cannot imply CRM acceptance');
+  }finally{
+    globalThis.fetch=previousFetch;
+    if(previous===undefined)delete process.env.VOY_RTB_RELAY_ENABLED;
+    else process.env.VOY_RTB_RELAY_ENABLED=previous;
+  }
+}
+
+console.log('Budapest RTB request UI: 202/404/400/409/503, consent, stable replay, new payload, double submit network failure and genuine disabled-relay handoff OK.');
