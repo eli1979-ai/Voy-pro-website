@@ -69,6 +69,12 @@ for(const [page,locale] of locales){
     hu:['Értékelések balra görgetése','Értékelések jobbra görgetése','Teljes vendégértékelések az öt csillag mögött']};
   assert(names[locale].every(label=>html.includes(label)),
     'review navigation and heading must use page-localized text: '+page);
+  const leftButton=html.match(/<button[^>]*data-vp-reviews-left[^>]*>([\s\S]*?)<\/button>/)?.[1];
+  const rightButton=html.match(/<button[^>]*data-vp-reviews-right[^>]*>([\s\S]*?)<\/button>/)?.[1];
+  assert(leftButton&&leftButton===rightButton&&
+    (leftButton.match(/<svg\b/g)||[]).length===1&&
+    leftButton.includes('aria-hidden="true"'),
+    'left and right arrow buttons must use identical decorative SVG geometry: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
     !html.includes('data-vp-reviews-right')===false,
     'both directional buttons must exist in each locale: '+page);
@@ -78,7 +84,9 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
+for(const marker of ['.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}',
+  '.vp-reviews-nav svg{display:block;width:18px;height:18px',
+  'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
@@ -110,7 +118,9 @@ async function simulate(payload,lang='en'){
   root.querySelector=(s)=>s==='[data-vp-reviews-track]'?track:
     s==='[data-vp-reviews-viewport]'?viewport:s==='[data-vp-reviews-pause]'?pause:
     s==='[data-vp-reviews-left]'?left:s==='[data-vp-reviews-right]'?right:null;
-  root.matches=()=>false;
+  // Emulate a pointer hovering over the resumed button AND keyboard focus
+  // remaining inside the carousel: neither condition may prevent Resume.
+  root.matches=()=>true;
   const doc={documentElement:{lang},visibilityState:'visible',
     querySelector:(s)=>s==='[data-vp-reviews-root]'?root:null,
     createElement:node
@@ -215,7 +225,7 @@ const positionBeforeFrame=approved.viewport.scrollLeft;
 approved.frames[0]?.(1000);
 approved.frames[1]?.(1040);
 assert(approved.viewport.scrollLeft>positionBeforeFrame,
-  'automatic scrolling must advance smoothly when the guest resumes');
+  'Resume must restart scrolling even with the pointer over controls and focus inside the carousel');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
