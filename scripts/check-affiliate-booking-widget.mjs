@@ -248,6 +248,36 @@ async function flush(){
 }
 
 {
+  const app=mount({affiliate:'SECOND_PARTNER'});
+  await chooseFirstDeparture(app);
+  const firstHold=app.calls.find(c=>c.key==='/api/v1/holds'&&c.payload);
+  assert(firstHold,'First selection must create a hold');
+  await app.elements['#changeButton'].trigger('click');
+  assert(app.calls.some(c=>c.key==='/api/v1/holds/33333333-3333-4333-8333-333333333333'&&c.options.method==='DELETE'),
+    'Changing selection must release the previous hold');
+  app.search.elements.date.value=budapestToday();
+  await app.search.trigger('submit');
+  const nextSlot=app.elements['#slots'].children[0];
+  assert(nextSlot?.listeners.click,'New selection must expose a bookable departure');
+  await nextSlot.trigger('click');
+  const validations=app.calls.filter(c=>c.key==='/api/v1/promotions/validate');
+  assert.equal(validations.length,2,'Changing selection must revalidate the partner discount');
+  assert(validations.every(c=>c.payload.code==='SECOND_PARTNER'),
+    'Affiliate must persist through both selections');
+  const quotes=app.calls.filter(c=>c.key==='/api/v1/quotes');
+  assert(quotes.length>=2&&quotes.every(c=>c.payload.promo_code==='SECOND_PARTNER'),
+    'Both selections must use the same originating partner in quotes');
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  const booking=app.calls.find(c=>c.key==='/api/v1/bookings');
+  assert.equal(booking?.payload.promo_code,'SECOND_PARTNER',
+    'Booking after selection change must retain originating affiliate');
+}
+
+{
   for(const config of [{affiliate:'BAD CODE'},{clientKey:''},
     {apiRoot:'http://unsecured.example.invalid'},
     {apiRoot:'https://username:password@fbm-staging.example.invalid'}]){
