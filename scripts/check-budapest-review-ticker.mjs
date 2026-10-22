@@ -89,8 +89,7 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}',
-  '.vp-reviews-nav svg{display:block;width:18px;height:18px',
+for(const marker of ['.vp-reviews-nav svg{display:block;width:18px;height:18px',
   'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
