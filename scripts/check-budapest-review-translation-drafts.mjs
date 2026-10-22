@@ -50,7 +50,7 @@ for(let i=0;i<draft.reviews.length;i++){
     assert(evidence.source_review_title.trim().length>=5,'Source title must not be empty');
     assert(Array.isArray(evidence.owner_screenshot_files)&&evidence.owner_screenshot_files.length>=1,
       'Proofread record must reference user-supplied screenshot files');
-    assert(evidence.owner_screenshot_files.every(path=>/^10005128\\d{2}\\.jpg$/.test(path)),
+    assert(evidence.owner_screenshot_files.every(path=>/^10005128[0-9]{2}[.]jpg$/.test(path)),
       'Source evidence must point to original supplied screenshot filename');
     assert.equal(evidence.visual_review?.reviewer_checked,true);
     assert.equal(evidence.visual_review?.published_day_checked,true);
