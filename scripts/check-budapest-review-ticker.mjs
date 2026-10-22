@@ -71,10 +71,15 @@ for(const [page,locale] of locales){
     'review navigation and heading must use page-localized text: '+page);
   const leftButton=html.match(/<button[^>]*data-vp-reviews-left[^>]*>([\s\S]*?)<\/button>/)?.[1];
   const rightButton=html.match(/<button[^>]*data-vp-reviews-right[^>]*>([\s\S]*?)<\/button>/)?.[1];
-  assert(leftButton&&leftButton===rightButton&&
-    (leftButton.match(/<svg\b/g)||[]).length===1&&
-    leftButton.includes('aria-hidden="true"'),
-    'left and right arrow buttons must use identical decorative SVG geometry: '+page);
+  assert(leftButton&&rightButton&&
+    leftButton.includes('<path d="M20 12H4m7-7-7 7 7 7"')&&
+    rightButton.includes('<path d="M4 12h16m-7-7 7 7-7 7"')&&
+    leftButton.includes('aria-hidden="true"')&&
+    rightButton.includes('aria-hidden="true"'),
+    'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261022r3')&&
+    html.includes('/assets/budapest-review-ticker.css?v=20261022r3'),
+    'every localized page must invalidate cached review JS and CSS together: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
     !html.includes('data-vp-reviews-right')===false,
     'both directional buttons must exist in each locale: '+page);
@@ -84,11 +89,12 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}',
-  '.vp-reviews-nav svg{display:block;width:18px;height:18px',
+for(const marker of ['.vp-reviews-nav svg{display:block;width:18px;height:18px',
   'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
+assert(!css.includes('.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}'),
+  'left arrow must not be flipped back to the right by CSS');
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
   "'is-paused'","textContent=text","viewport.scrollLeft","requestAnimationFrame","normalize"]){
   assert(script.includes(marker),'missing safe review rendering behavior '+marker);
@@ -218,14 +224,37 @@ assert(approved.pause.textContent==='Resume reviews',
   'mobile reader must have a clearly labeled control to resume the ribbon');
 // The pause button should first *resume* after touch, and then pause
 // again on a new explicit user action.
+const resumeStart=approved.viewport.scrollLeft;
 approved.pause.events.click?.();
 assert(!approved.root.classList.states.has('is-paused'),
   'resume control must restore movement after touch-based pause');
+assert(approved.viewport.scrollLeft>=resumeStart+10,
+  'Resume must produce immediate visible horizontal movement without waiting for an animation frame');
 const positionBeforeFrame=approved.viewport.scrollLeft;
 approved.frames[0]?.(1000);
 approved.frames[1]?.(1040);
 assert(approved.viewport.scrollLeft>positionBeforeFrame,
   'Resume must restart scrolling even with the pointer over controls and focus inside the carousel');
+const continued=approved.viewport.scrollLeft;
+approved.frames[2]?.(1080);
+assert(approved.viewport.scrollLeft>continued+1,
+  'Resume must continue advancing repeatedly rather than only jumping once');
+// A lost pointer-up used to leave the internal 'dragging' flag true,
+// preventing the animation loop from moving despite clicking Resume.
+const unfinishedDrag=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
+unfinishedDrag.viewport.events.pointerdown?.({pointerType:'mouse',button:0,clientX:400,pointerId:1});
+assert(unfinishedDrag.viewport.classList.states.has('is-dragging'),
+  'regression fixture must enter the dragging state');
+const beforeDragResume=unfinishedDrag.viewport.scrollLeft;
+unfinishedDrag.pause.events.click?.();
+assert(!unfinishedDrag.root.classList.states.has('is-paused')&&
+  !unfinishedDrag.viewport.classList.states.has('is-dragging')&&
+  unfinishedDrag.viewport.scrollLeft>=beforeDragResume+10,
+  'Resume must release an interrupted drag and immediately start moving');
+unfinishedDrag.frames[0]?.(1000);
+unfinishedDrag.frames[1]?.(1040);
+assert(unfinishedDrag.viewport.scrollLeft>beforeDragResume+10,
+  'Resume after an interrupted drag must keep advancing in animation frames');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
