@@ -59,7 +59,10 @@
     const byline=make('div','vp-review-byline');
     byline.append(make('span','vp-review-author',item.author));
     if(item.date){
-      const date=make('time','vp-review-date',item.date);
+      const day=new Date(item.date+'T12:00:00Z');
+      const displayDate=new Intl.DateTimeFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':'en-GB',
+        {timeZone:'UTC',year:'numeric',month:'short',day:'numeric'}).format(day);
+      const date=make('time','vp-review-date',displayDate);
       date.dateTime=item.date;
       byline.append(date);
     }
