@@ -152,6 +152,11 @@ assert(approved.root.classList.states.has('is-paused'),
   'touching a scrollable long review must pause the ribbon');
 assert(approved.pause.textContent==='Resume reviews',
   'mobile reader must have a clearly labeled control to resume the ribbon');
+// The pause button should first *resume* after touch, and then pause
+// again on a new explicit user action.
+approved.pause.events.click?.();
+assert(!approved.root.classList.states.has('is-paused'),
+  'resume control must restore movement after touch-based pause');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
