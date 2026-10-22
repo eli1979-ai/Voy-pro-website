@@ -145,6 +145,13 @@ assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.
 assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
   'repeated original-review link must not add a duplicate keyboard tab stop');
 const firstQuote=approved.track.children[0]?.children[0]?.children[1];
+assert(firstQuote?.tabIndex===0,'long original review text must be keyboard scrollable');
+assert(firstQuote?.attrs?.role==='group'&&firstQuote?.attrs?.['aria-label']==='Full review by Test reviewer 0',
+  'scrollable text must be labeled with reviewer identity');
+assert(approved.track.children[1]?.children?.[0]?.children?.[1]?.tabIndex===-1,
+  'duplicated quote must not add another keyboard focus stop');
+assert(css.includes('.vp-review-text:focus-visible'),
+  'scrollable review text needs a visible keyboard focus indicator');
 assert(typeof firstQuote?.events?.touchstart==='function',
   'full-text mobile review must allow pausing the moving ribbon on touch');
 firstQuote.events.touchstart();
