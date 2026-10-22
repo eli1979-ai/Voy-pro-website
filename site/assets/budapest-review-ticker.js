@@ -5,7 +5,9 @@
   const track=root.querySelector('[data-vp-reviews-track]');
   const viewport=root.querySelector('[data-vp-reviews-viewport]');
   const pause=root.querySelector('[data-vp-reviews-pause]');
-  if(!track||!viewport||!pause)return;
+  const left=root.querySelector('[data-vp-reviews-left]');
+  const right=root.querySelector('[data-vp-reviews-right]');
+  if(!track||!viewport||!pause||!left||!right)return;
   // Tripadvisor uses regional official review URLs. Explicit allowlist; never accept lookalikes.
   const sourceHosts={google:['google.com'],tripadvisor:['tripadvisor.com','tripadvisor.co.uk','tripadvisor.co.il','tripadvisor.ie'],getyourguide:['getyourguide.com']};
   const sourceLabels={google:'Google Maps',tripadvisor:'Tripadvisor',getyourguide:'GetYourGuide'};
@@ -100,15 +102,80 @@
     const counts={google:0,tripadvisor:0,getyourguide:0};
     for(const review of reviews)counts[review.source]++;
     if(counts.tripadvisor!==10||counts.google!==7||counts.getyourguide!==3)return;
+    // Three equal-width copies with the accessible/original set in the middle.
+    // An actual scroll container replaces the direction-sensitive -50% CSS
+    // animation: this allows manual left/right movement even when paused.
     const first=make('div','vp-review-group');
-    const second=make('div','vp-review-group');
-    second.setAttribute('aria-hidden','true');
+    const before=make('div','vp-review-group vp-review-group--before');
+    const after=make('div','vp-review-group vp-review-group--after');
+    before.setAttribute('aria-hidden','true');
+    after.setAttribute('aria-hidden','true');
     for(const review of reviews){
       first.append(reviewCard(review,false));
-      second.append(reviewCard(review,true));
+      before.append(reviewCard(review,true));
+      after.append(reviewCard(review,true));
     }
-    track.replaceChildren(first,second);
+    track.replaceChildren(first,before,after);
     root.hidden=false;
+    const groupWidth=()=>first.getBoundingClientRect?.().width||first.offsetWidth||0;
+    let inReset=false;
+    const normalize=()=>{
+      if(inReset)return;
+      const width=groupWidth();
+      if(width<=0)return;
+      const position=viewport.scrollLeft;
+      let next=position;
+      // Keep a full group of content on *both* sides of the visible cards.
+      // This works identically with Hungarian, English and Hebrew pages.
+      if(position<width*0.5)next=position+width;
+      else if(position>width*2.5)next=position-width;
+      if(next!==position){
+        inReset=true;
+        viewport.scrollLeft=next;
+        inReset=false;
+      }
+    };
+    viewport.scrollLeft=groupWidth();
+    viewport.addEventListener('scroll',normalize,{passive:true});
+    const moveManually=(delta)=>{
+      pauseForReading();
+      viewport.scrollLeft+=delta;
+      normalize();
+    };
+    const stepSize=()=>Math.max(210,Math.min(340,viewport.clientWidth*.72||270));
+    left.addEventListener('click',()=>moveManually(-stepSize()));
+    right.addEventListener('click',()=>moveManually(stepSize()));
+    // Mouse dragging and native touch/trackpad scrolling remain usable while paused.
+    let dragging=false,previousX=0;
+    viewport.addEventListener('pointerdown',event=>{
+      if(event.pointerType!=='mouse'||event.button!==0||event.target?.closest?.('a,button'))return;
+      dragging=true;
+      previousX=event.clientX;
+      pauseForReading();
+      viewport.classList.add('is-dragging');
+      viewport.setPointerCapture?.(event.pointerId);
+    });
+    viewport.addEventListener('pointermove',event=>{
+      if(!dragging)return;
+      const delta=event.clientX-previousX;
+      previousX=event.clientX;
+      viewport.scrollLeft-=delta;
+      normalize();
+      if(delta!==0)event.preventDefault?.();
+    });
+    const endDrag=()=>{
+      dragging=false;
+      viewport.classList.remove('is-dragging');
+    };
+    viewport.addEventListener('pointerup',endDrag);
+    viewport.addEventListener('pointercancel',endDrag);
+    viewport.addEventListener('lostpointercapture',endDrag);
+    viewport.addEventListener('touchstart',pauseForReading,{passive:true});
+    viewport.addEventListener('wheel',event=>{
+      if(!event.shiftKey||!event.deltaY)return;
+      moveManually(event.deltaY);
+      event.preventDefault?.();
+    },{passive:false});
     pause.addEventListener('click',()=>{
       const stopped=root.classList.toggle('is-paused');
       pause.setAttribute('aria-pressed',String(stopped));
@@ -116,10 +183,33 @@
     });
     pause.textContent=t.pause;
     pause.setAttribute('aria-pressed','false');
-    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-      root.classList.add('is-paused');
+    const reduced=Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    if(reduced){
+      pauseForReading();
       pause.hidden=true;
     }
+    // Time-based speed, independent of locale / row width. Rebase into the
+    // middle group continuously to avoid blank space at the end of a cycle.
+    let lastFrame=null;
+    const advance=timestamp=>{
+      if(lastFrame!==null){
+        const elapsed=Math.max(0,Math.min(80,timestamp-lastFrame));
+        if(!reduced&&!dragging&&!root.classList.contains('is-paused')&&
+            !root.matches?.(':hover, :focus-within')&&document.visibilityState!=='hidden'){
+          viewport.scrollLeft+=elapsed*.022;
+          normalize();
+        }
+      }
+      lastFrame=timestamp;
+      window.requestAnimationFrame?.(advance);
+    };
+    window.requestAnimationFrame?.(advance);
+    window.addEventListener?.('resize',()=>{
+      const width=groupWidth();
+      if(width>0&&(viewport.scrollLeft<width*.3||viewport.scrollLeft>width*2.7))
+        viewport.scrollLeft=width;
+      normalize();
+    });
   };
   fetch('/assets/budapest-approved-reviews.json',{cache:'no-store'})
     .then(response=>response.ok?response.json():null)

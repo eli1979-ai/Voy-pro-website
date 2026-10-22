@@ -4,10 +4,17 @@
 .vp-reviews .vp-reviews-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
 .vp-reviews h2{font-size:clamp(1.13rem,1.8vw,1.55rem);line-height:1.24;margin:0;color:#0b3947}
 .vp-reviews .vp-reviews-eyebrow{font-size:.69rem;letter-spacing:.08em;text-transform:uppercase;color:#056979;font-weight:800;margin:0 0 5px}
+.vp-reviews-controls{display:flex;align-items:center;gap:6px;direction:ltr}
+.vp-reviews-nav{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:32px;border:1px solid #a9c4cb;border-radius:11px;background:#fff;color:#0c4150;cursor:pointer;font:700 1.1rem/1 sans-serif;touch-action:manipulation}
+.vp-reviews-nav:hover{background:#e2f2f4}
 .vp-reviews-pause{display:flex;align-items:center;gap:8px;background:#fff;color:#0c4150;border:1px solid #a9c4cb;border-radius:24px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.79rem;font-weight:750;white-space:nowrap}
-.vp-reviews-pause:focus-visible,.vp-review-card a:focus-visible,.vp-review-text:focus-visible{outline:3px solid #08798b;outline-offset:3px}
-.vp-reviews-viewport{overflow:hidden;mask-image:linear-gradient(to right,transparent,black 3%,black 97%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 3%,black 97%,transparent)}
-.vp-reviews-track{display:flex;align-items:stretch;gap:0;width:max-content;animation:vp-reviews-scroll 210s linear infinite;will-change:transform}
+.vp-reviews-nav:focus-visible,.vp-reviews-pause:focus-visible,.vp-review-card a:focus-visible,.vp-review-text:focus-visible{outline:3px solid #08798b;outline-offset:3px}
+.vp-reviews-viewport{overflow-x:auto;overflow-y:hidden;direction:ltr;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior-x:contain;cursor:grab;touch-action:pan-x pan-y;mask-image:linear-gradient(to right,transparent,black 3%,black 97%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 3%,black 97%,transparent)}
+.vp-reviews-viewport::-webkit-scrollbar{display:none}
+.vp-reviews-viewport.is-dragging{cursor:grabbing;user-select:none}
+.vp-reviews-track{display:flex;align-items:stretch;gap:0;width:max-content;direction:ltr}
+.vp-review-group--before{order:-1}
+.vp-review-group--after{order:1}
 .vp-review-group{display:flex;gap:12px;padding-inline-end:12px;align-items:stretch;flex:none}
 .vp-review-card{flex:0 0 clamp(245px,25vw,310px);width:clamp(245px,25vw,310px);background:#fff;border:1px solid #d8e5e9;border-radius:14px;padding:13px 15px 12px;box-shadow:0 8px 22px #133c4810;min-width:0;display:flex;flex-direction:column;gap:8px;direction:auto;height:282px}
 .vp-review-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -22,7 +29,5 @@
 .vp-review-date{font-size:.7rem;color:#526b73}
 .vp-review-translated{font-size:.68rem;color:#526b73;font-style:italic}
 .vp-review-card a{color:#006478;font-weight:750;font-size:.72rem;text-decoration:underline;text-underline-offset:3px}
-.vp-reviews:is(:hover,:focus-within) .vp-reviews-track,.vp-reviews.is-paused .vp-reviews-track{animation-play-state:paused}
-@keyframes vp-reviews-scroll{to{transform:translateX(-50%)}}
-@media(max-width:720px){.vp-reviews{padding:18px 0 22px}.vp-reviews-viewport{mask-image:none;-webkit-mask-image:none}.vp-review-card{flex-basis:78vw;width:78vw;max-width:310px;height:278px}.vp-reviews-heading{align-items:flex-start!important}.vp-reviews-pause{padding:6px 9px;font-size:.75rem}}
-@media(prefers-reduced-motion:reduce){.vp-reviews .vp-reviews-track{animation:none!important;will-change:auto}.vp-reviews-viewport{overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-inline:contain}.vp-review-card{scroll-snap-align:start}}
+@media(max-width:720px){.vp-reviews{padding:18px 0 22px}.vp-reviews-viewport{mask-image:none;-webkit-mask-image:none}.vp-review-card{flex-basis:78vw;width:78vw;max-width:310px;height:278px}.vp-reviews-heading{align-items:flex-start!important}.vp-reviews-controls{flex-wrap:wrap;justify-content:flex-end}.vp-reviews-nav{min-width:30px;height:30px}.vp-reviews-pause{padding:6px 9px;font-size:.75rem}}
+@media(prefers-reduced-motion:reduce){.vp-reviews-viewport{scroll-behavior:auto}.vp-review-card{scroll-snap-align:start}}
