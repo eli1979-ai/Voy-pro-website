@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "unverified",
+  "website_vercel_project_id": null,
+  "fbm_vercel_project_id": null,
+  "supabase_project_ref": null,
+  "public_api_base_url": null,
+  "verified_at": null,
+  "owner_cutover_approved": false,
+  "notes": "Public identifiers only. Record verified independent Production projects; never store tokens, database passwords, or provider credentials here. Changes require owner release approval."
+}
