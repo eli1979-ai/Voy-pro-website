@@ -11,9 +11,9 @@
   const sourceLabels={google:'Google Maps',tripadvisor:'Tripadvisor',getyourguide:'GetYourGuide'};
   const locale=(document.documentElement.lang||'en').split('-')[0];
   const texts={
-    en:{pause:'Pause reviews',play:'Resume reviews',source:'View original review on ',listing:'Browse reviews on ',translated:'Translated from the original',stars:'out of 5 stars'},
-    he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית ב־',listing:'לכל הביקורות באתר ',translated:'תורגם מהמקור',stars:'מתוך 5 כוכבים'},
-    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',stars:'az 5 csillagból'}
+    en:{pause:'Pause reviews',play:'Resume reviews',source:'View original review on ',listing:'Browse reviews on ',translated:'Translated from the original',read:'Full review by ',stars:'out of 5 stars'},
+    he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית ב־',listing:'לכל הביקורות באתר ',translated:'תורגם מהמקור',read:'ביקורת מלאה מאת ',stars:'מתוך 5 כוכבים'},
+    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',read:'Teljes értékelés: ',stars:'az 5 csillagból'}
   };
   const t=texts[locale]||texts.en;
   const validUrl=(value,source)=>{
@@ -60,6 +60,9 @@
     top.append(stars,make('span','vp-review-platform',sourceLabels[item.source]));
     const quote=make('blockquote','vp-review-text',item.translations[locale]);
     quote.dir=locale==='he'?'rtl':'ltr';
+    quote.tabIndex=duplicate?-1:0;
+    quote.setAttribute('role','group');
+    quote.setAttribute('aria-label',t.read+item.author);
     // On touch screens a guest can scroll the *complete* review vertically.
     // Freeze horizontal movement on first touch rather than moving the text
     // while they read; the visible pause/resume control resumes the ribbon.
