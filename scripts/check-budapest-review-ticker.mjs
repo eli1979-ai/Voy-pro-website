@@ -247,8 +247,8 @@ for(const c of sourceAudit.candidates||[]){
   if(!c?.id||uniqueCandidates.has(c.id)||!c.reviewer||!c.platform)
     failures.push('review audit contains a duplicate or missing reviewer identity');
   if(c?.id)uniqueCandidates.add(c.id);
-  if(c.approved!==false||c.full_text!==null)
-    failures.push('source presence must never substitute for an approved original full review');
+  if(c.approved!==true||c.full_text!==null)
+    failures.push('source audit must record owner approval without duplicating original guest content');
   const ev=c.source_evidence;
   if(!ev||!Object.hasOwn(evidenceKinds,ev.presence_status)||
       typeof ev.evidence_url!=='string'||!ev.evidence_url.startsWith('https://')||
@@ -330,7 +330,7 @@ assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_no
 
 assert(sourceAudit.owner_republication_authorization?.status==='approved_by_owner',
   'business owner has authorized reuse of all platform reviews');
-assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===supplierOriginals+7 &&
+assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===20 &&
   sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===0,
   'source-verified and editorial-approved review counts are inconsistent');
 assert(sourceAudit.source_audit.original_full_texts_verified_against_primary_evidence===20,
@@ -344,8 +344,8 @@ if(sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed>0){
 // Publisher staging is private to the repository docs, not shipped in /site or /dist.
 // Importing partially checked review candidates into the public manifest is forbidden.
 const staged=JSON.parse(fs.readFileSync('docs/budapest-review-20-staging.json','utf8'));
-assert(staged.schema_version===1&&staged.status==='draft_unpublished'&&staged.expected_count===20,
-  'the review content workspace must stay unpublished until the complete 20/20 gate passes');
+assert(staged.schema_version===1&&staged.status==='ready_for_publication'&&staged.expected_count===20,
+  'the reviewed source roster must be explicitly ready for publication');
 assert(JSON.stringify(staged.selection)===JSON.stringify({tripadvisor:10,google:7,getyourguide:3}),
   'the selected 10/7/3 review mix must remain immutable');
 assert(Array.isArray(staged.reviews)&&staged.reviews.length===20,
@@ -393,11 +393,12 @@ for(let i=0;i<20;i++){
         ||!Number.isInteger(r.rating)||r.rating<1||r.rating>5)
       failures.push('a source-verified original is missing required metadata: '+r.id);
     if(r.approved===true)editorialApprovedOriginals++;
-    if(r.source==='tripadvisor'&&(r.approved!==false||
-      ev.original_text_transcription_status!=='assistant_visually_crosschecked_awaiting_editorial_approval'||
+    if(r.source==='tripadvisor'&&(r.approved!==true||
+      ev.original_text_transcription_status!=='assistant_visually_crosschecked_owner_approved_2026-10-22'||
       ev.operator_original_text_evidence?.line_by_line_proofread_complete!==true||
-      ev.visual_review?.publisher_signoff!==false))
-      failures.push('Tripadvisor source proof is verified but still must await publication editorial approval: '+r.id);
+      ev.visual_review?.publisher_signoff!==true||
+      ev.visual_review?.publisher_signoff_by!=='VOY PRO owner'))
+      failures.push('Tripadvisor source proof and final owner approval required for publication: '+r.id);
     const ownerOriginal=ev.operator_original_text_evidence?.original_text;
     // Later Tripadvisor originals must be documented in the provenance record too.
     if(!ownerOriginal||r.full_text!==ownerOriginal
@@ -417,11 +418,18 @@ assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_verified
     &&verifiedFullTexts===20,
   'all 20 complete originals must be independently source verified');
 assert(editorialApprovedOriginals===sourceAudit.source_audit.original_full_texts_cleared_for_republication
-    &&editorialApprovedOriginals===10,
-  'only source-cleared Google/GetYourGuide originals may be editor-approved before final signoff');
+    &&editorialApprovedOriginals===20,
+  'all 20 original review texts must have owner publication approval');
 assert(unverifiedSources===0,'all Google reviews must have first-party verification');
-assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
-  'staging must never cause unapproved testimonials to be deployed');
+assert(manifest.status==='approved'&&manifest.reviews.length===20&&
+    manifest.reviews.every(reviewValid),
+  'the public review manifest must contain exactly twenty fully verified and owner-approved reviews');
+assert(staged.reviews.every((r,i)=>
+  r.id===manifest.reviews[i]?.id&&r.full_text===manifest.reviews[i]?.full_text&&
+  r.review_url===manifest.reviews[i]?.review_url&&
+  r.translations_approved===true&&manifest.reviews[i]?.translations_approved===true&&
+  ['en','he','hu'].every(lang=>r.translations?.[lang]===manifest.reviews[i]?.translations?.[lang])),
+  'public texts, translations and original-source URLs must exactly match the approved roster');
 
 
 // The publisher must report safely without changing the real visitor-facing manifest.
@@ -433,16 +441,17 @@ try{
   const report=JSON.parse(reportRun.stdout||'{}');
   assert(report.selected_count===20&&report.required===20,
     'publisher must require the full shortlist of 20 reviews');
-  assert(report.full_originals_verified===20&&report.publishable_now===10&&report.ready===false,
-    'publisher must distinguish all verified originals from those editorially approved to publish');
+  assert(report.full_originals_verified===20&&report.publishable_now===20&&report.ready===true&&
+      report.fully_localized_and_approved===20,
+    'publisher must confirm all 20 complete originals and every approved site translation');
   assert(report.source_mix?.tripadvisor===10&&report.source_mix?.google===7&&
     report.source_mix?.getyourguide===3,
     'publisher must validate exact provider mix');
-  assert(Array.isArray(report.blockers)&&report.blockers.length>0,
-    'incomplete review source material must block publication');
+  assert(Array.isArray(report.blockers)&&report.blockers.length===0,
+    'published reviewed content must have no unresolved publication blockers');
 }catch(error){
   failures.push('publisher readiness report is not valid JSON: '+error.message);
 }
 
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
-console.log('Budapest review ticker QA OK: localized placement, full-text accessibility, strict 20-source approval, safe withheld state.');
+console.log('Budapest review ticker QA OK: twenty approved full texts published, localized and source-linked with accessible presentation.');
