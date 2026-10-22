@@ -28,6 +28,10 @@ const reviewValid=(review)=>review?.approved===true
   &&typeof review.id==='string'&&review.id.trim().length>=2
   &&typeof review.author==='string'&&review.author.trim().length>=2
   &&typeof review.full_text==='string'&&review.full_text.trim().length>=35
+  &&review.translations_approved===true&&review.translations&&
+    ['en','he','hu'].every(lang=>typeof review.translations[lang]==='string'&&
+      review.translations[lang].trim().length>=35)
+  &&(!['en','he','hu'].includes(review.language)||review.translations[review.language]===review.full_text)
   &&(review.date===null||/^\d{4}-\d{2}-\d{2}$/.test(review.date||''))
   &&['review','listing'].includes(review.link_kind)
   &&review.source_verified===true&&review.full_text_verified===true
@@ -61,7 +65,7 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line']){
+for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
@@ -110,6 +114,14 @@ const sample=Array.from({length:20},(_,i)=>({
   review_url:'https://www.tripadvisor.com/ShowUserReviews-test-'+i+'.html',
   language:'en'
 }));
+for(const review of sample){
+  review.translations_approved=true;
+  review.translations={
+    en:review.full_text,
+    he:'זהו נוסח בדיקה בעברית עבור '+review.id+' בלבד. הטקסט הזה לא יתפרסם באתר והוא נועד לאימות בחירת השפה.',
+    hu:'Ez kizárólag tesztszöveg magyarul, azonosító: '+review.id+'. Ez a szöveg nem jelenik meg az éles honlapon.'
+  };
+}
 for(let i=10;i<20;i++){
   sample[i].source=i<17?'google':'getyourguide';
   sample[i].link_kind='listing';
@@ -128,7 +140,20 @@ assert(approved.track.children[0]?.children?.length===20,'all 20 authentic revie
 assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true','duplicate ribbon must be hidden from screen readers');
 assert(approved.track.children[1]?.attrs?.inert==='','duplicate ribbon must not be tabbable');
 const firstCard=approved.track.children[0]?.children[0];
-assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full review text without shortening');
+assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
+assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
+  'label the exact original-review source and platform');
+const hebrew=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'he');
+assert(hebrew.root.hidden===false,'approved localized review set must activate in Hebrew');
+assert(hebrew.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.he,
+  'Hebrew page must render the complete Hebrew translation, never the English original');
+assert(hebrew.track.children[0]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='תורגם מהמקור'),
+  'Hebrew translation must be visibly identified');
+const hungarian=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'hu');
+assert(hungarian.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.hu,
+  'Hungarian page must render the complete Hungarian translation');
+assert(hungarian.track.children[0]?.children[0]?.children[2]?.children[1]?.textContent==='Eredeti értékelés itt: Tripadvisor',
+  'Hungarian original-review link must identify Tripadvisor');
 assert(firstCard?.children[2]?.children[1]?.href===sample[0].review_url,'original review source must be linked');
 assert(typeof approved.pause.events.click==='function','pause control must work without hover');
 approved.pause.events.click?.();
@@ -144,12 +169,22 @@ listingSample[10]={...listingSample[10],date:null,link_kind:'listing',
 const listing=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:listingSample},'he');
 const listingCard=listing.track.children[0]?.children[10];
 assert(listing.root.hidden===false,'platform-verified review with no exact date may appear');
-assert(listingCard?.children[2]?.children[0]?.children.length===1,'never invent a date when the provider does not confirm it');
-assert(listingCard?.children[2]?.children[1]?.textContent==='לכל הביקורות באתר המקור',
+assert(!listingCard?.children[2]?.children[0]?.children.some(n=>n.tagName==='time'),
+  'never invent a date when the provider does not confirm it');
+assert(listingCard?.children[2]?.children[1]?.textContent==='לכל הביקורות באתר Google Maps',
   'a listing link must not claim to point at an individual review');
 const unverified=await simulate({schema_version:1,expected_count:20,status:'approved',
   reviews:listingSample.map((x,i)=>i===10?{...x,source_verified:false}:x)});
 assert(unverified.root.hidden===true,'mirrored or unverified reviews must never activate the public ticker');
+const missingLanguage=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:sample.map((x,i)=>i===0?{...x,translations:{...x.translations,hu:''}}:x)},'en');
+assert(missingLanguage.root.hidden===true,'missing Hungarian translation must block publication in every locale');
+const missingApproval=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:sample.map((x,i)=>i===0?{...x,translations_approved:false}:x)},'he');
+assert(missingApproval.root.hidden===true,'unapproved translations must not be shown in public');
+const sourceChanged=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:sample.map((x,i)=>i===0?{...x,translations:{...x.translations,en:'An inaccurate rewrite replacing the verified English original review text.'}}:x)});
+assert(sourceChanged.root.hidden===true,'a locale matching the source language must preserve its exact original text');
 const misleading=await simulate({schema_version:1,expected_count:20,status:'approved',
   reviews:listingSample.map((x,i)=>i===10?{...x,review_url:'https://www.google.com.evil.example/reviews'}:x)});
 assert(misleading.root.hidden===true,'reject forged platform URLs');
