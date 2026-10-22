@@ -12,6 +12,15 @@ This branch introduces a root `api/request-to-book.js` Node.js Vercel Function a
 
 The upstream FBM intake flag is separately disabled by default; it must not be enabled simply because this handler is deployed. A successful 202 means **pending human review**, not confirmed capacity, pricing, staff, fleet or payment.
 
+## Verified Preview deployment and backend contract (22 October 2026)
+- Inspected the deployed Vercel Preview at `https://voy-pro-staging-bg5k8bpny-eli1979-5448.vercel.app/api/request-to-book`. A real GET returned **HTTP 404**, JSON `{"error":"request_intake_disabled"}`, and `Cache-Control: no-store`. This confirms Vercel actually deployed the root `api/` function; it does **not** establish a working POST or end-to-end Staging CRM acceptance.
+- Cross-checked the current FBM `app/api/public/request-to-book/route.ts`: server expects `tourSlug`, `requestId`, `preferredStartAt` (unambiguous ISO time), `partySize`, `contactName`, `email`, `phone`, `requestedGuideLanguage`, and an **explicit boolean** `englishAlternativeAccepted`. The relay converts Budapest-local date/time into `preferredStartAt` and forwards exactly this shape.
+- FBM returns **202/pending_review** only after CRM linkage, **409** for a repeated request ID with a changed payload, and **503** when the request/CRM link is unresolved. No booking, payment, staffed departure or accepted availability is implied.
+- Security regression now rejects a base URL at an unapproved port (for example `https://ezraider-os-staging.vercel.app:8443/`) despite an allowlisted hostname. Only the canonical default HTTPS origin is valid.
+- The current website form draft PR #373 remains a **manual WhatsApp handoff** and is not connected to this relay. Never enable both runtime flags merely because the Preview function is available.
+
+**Still unverified:** enforceable ingress WAF/rate limit, authorised server secret installation, authenticated synthetic CRM request/409 replay test, and an owner-approved public release. These are hard blockers.
+
 ## Canonical website → relay request
 ```json
 {
