@@ -170,7 +170,13 @@
         "original_text_status": "pending_primary_source_text",
         "notes": null
       },
-      "translations_approved": false
+      "translations_approved": false,
+      "translations": {
+        "en": "An amazing experience you shouldn't miss!!!\n\nIf you're coming to Budapest, start your trip with EZRaider. Beyond the unique experience, the professional, dedicated team connects you with the city, its main landmarks and the stories behind them, offering lots of useful tips for the rest of your visit.\n\nWe enjoyed every moment, and there's no doubt it was the best way to begin our visit to Budapest. Highly recommended!",
+        "he": "חוויה מדהימה שלא כדאי לפספס!!!\nאם אתם מגיעים לבודפשט – תתחילו את הטיול עם איזיריידר. מעבר לחוויה המיוחדת, הצוות המקצועי והמסור מחבר אתכם לעיר, לאתרים המרכזיים ולסיפורים שמאחוריהם, עם המון טיפים שימושיים להמשך הטיול.\nנהנינו מכל רגע, ואין ספק שזו הייתה הדרך הכי טובה לפתוח את הביקור בבודפשט. מומלץ בחום!",
+        "hu": "Fantasztikus élmény, amit nem szabad kihagyni!!!\n\nHa Budapestre érkeztek, kezdjétek az utazást egy EZRaider-túrával. A különleges élmény mellett a profi, elkötelezett csapat bemutatja a várost, a főbb látnivalókat és a mögöttük rejlő történeteket, ráadásul rengeteg hasznos tippet ad a kirándulás további részéhez.\n\nMinden pillanatát élveztük, és kétségtelenül ez volt a legjobb módja annak, hogy megkezdjük budapesti látogatásunkat. Nagyon ajánljuk!"
+      },
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "tripadvisor-7",
@@ -192,7 +198,13 @@
         "original_text_status": "pending_primary_source_text",
         "notes": null
       },
-      "translations_approved": false
+      "translations_approved": false,
+      "translations": {
+        "en": "This was our second time taking a VOY PRO EZRaider tour (this time we were two couples of friends), and on this occasion we went to explore the Margaret Island area.\n\nThe tour was wonderful and enjoyable. Our guide was the lovely Niv, who led us with lots of patience and care and shared a great deal of expert knowledge about the places we visited along the way. It was a new and fun experience, and we didn't want it to end. We hope to come back again soon... Thank you!",
+        "he": "זו הפעם השניה שלנו עם טיולי האיזיריידר של VOY PRO (הפעם נסענו בהרכב של שני זוגות חברים) והפעם יצאנו לתור את אזור האי מרגיט.\nהטיול היה מהמם ומהנה. המדריך שלנו היה ניב המקסים, שהדריך אותנו עם המון סבלנות ודאגה ושיתף אותנו בהמון ידע מקצועי על האתרים שבהם ביקרנו בדרך. החוויה היתה חדשה וכיפית ולא רצינו שתיגמר. מקווים לחזור שוב בקרוב...תודה לכם.",
+        "hu": "Ez már a második alkalom volt, hogy a VOY PRO EZRaider-túráján vettünk részt (ezúttal két baráti házaspárral mentünk), és most a Margit-sziget környékét fedeztük fel.\n\nA túra csodálatos és nagyon élvezetes volt. Idegenvezetőnk a kedves Niv volt, aki nagy türelemmel és odafigyeléssel vezetett minket, és rengeteg szakszerű információt osztott meg az útközben meglátogatott látnivalókról. Újszerű, szórakoztató élmény volt, és nem akartuk, hogy véget érjen. Reméljük, hamarosan ismét visszatérhetünk... Köszönjük nektek!"
+      },
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "tripadvisor-8",
@@ -214,7 +226,13 @@
         "original_text_status": "pending_primary_source_text",
         "notes": null
       },
-      "translations_approved": false
+      "translations_approved": false,
+      "translations": {
+        "en": "Today we went on a tour with ten people, including children and a baby, and it was one of the most enjoyable and fun experiences we've ever had!\n\nGal accompanied us throughout the tour and was attentive, caring and patient with everyone. During the tour he also gave us a fascinating overview of the city, full of knowledge and interesting explanations.\n\nEverything was simply perfect! An amazing experience, excellent service and a wonderful guide. Highly recommended!",
+        "he": "עשינו היום סיור של 10 אנשים, כולל ילדים ותינוקת, וזו הייתה אחת החוויות הכי מהנות וכיפיות שהיו לנו!\nגל ליווה אותנו לאורך כל הסיור והיה קשוב, אכפתי וסבלני לכולם. תוך כדי הסיור הוא גם נתן לנו סקירה מרתקת על העיר, עם המון ידע והסברים מעניינים.\n\nהכול היה פשוט מושלם! חוויה מדהימה, שירות מעולה ומדריך מקסים. ממליצים בחום!",
+        "hu": "Ma egy tízfős túrán vettünk részt, gyerekekkel és egy kisbabával együtt, és ez volt az egyik legélvezetesebb és legszórakoztatóbb élményünk!\n\nGal végig velünk volt, mindenkire figyelt, gondoskodó és türelmes volt. Az út során a városról is lenyűgöző ismertetőt tartott, rengeteg érdekes információval és magyarázattal.\n\nEgyszerűen minden tökéletes volt! Fantasztikus élmény, kiváló szolgáltatás és nagyszerű idegenvezető. Szívből ajánljuk!"
+      },
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "tripadvisor-9",
@@ -236,7 +254,13 @@
         "original_text_status": "pending_primary_source_text",
         "notes": null
       },
-      "translations_approved": false
+      "translations_approved": false,
+      "translations": {
+        "en": "We went on a tour with Yehuda, one of the EasyRiders guides, and it was simply excellent!\n\nYehuda managed to combine a fun and enjoyable ride with fascinating explanations about history, culture and the surroundings. He presented the information clearly, engagingly and with real passion, adding enormous value beyond the ride itself. You can tell he is a professional, patient guide with a wealth of knowledge.\n\nI wholeheartedly recommend a tour with Yehuda — it's an experience you won't forget!",
+        "he": "עשינו טיול עם יהודה מהמדריכים של EasyRiders והיה פשוט מעולה!\nיהודה הצליח לשלב בין רכיבה כיפית ומהנה לבין הסברים מרתקים על ההיסטוריה, התרבות והסביבה. הוא העביר את המידע בצורה ברורה, מעניינת ומלאת תשוקה, והוסיף לטיול ערך ענק מעבר לחוויה עצמה. מרגישים שמדובר במדריך מקצועי, סבלני ובעל ידע עצום.\n\nממליצה בחום על טיול עם יהודה – זו חוויה שלא שוכחים!",
+        "hu": "Yehudával, az EasyRiders egyik idegenvezetőjével mentünk túrázni, és egyszerűen nagyszerű volt!\n\nYehuda remekül ötvözte az élvezetes és szórakoztató utazást a történelemről, a kultúráról és a környékről szóló izgalmas magyarázatokkal. Az információkat világosan, érdekesen és őszinte lelkesedéssel adta át, így maga a túra sokkal többet nyújtott egy egyszerű járműves élménynél. Érezni, hogy profi, türelmes idegenvezető, hatalmas tudással.\n\nSzívből ajánlok egy túrát Yehudával — felejthetetlen élmény!"
+      },
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "tripadvisor-10",
@@ -258,7 +282,13 @@
         "original_text_status": "pending_primary_source_text",
         "notes": "Public date intentionally omitted: conflicting regional snapshots"
       },
-      "translations_approved": false
+      "translations_approved": false,
+      "translations": {
+        "en": "An incredible experience!!! You mustn't miss it!\n\nWe were a couple with three children (ages 10, 13 and 16), with three riders and two passengers. We all came back with sparkling eyes, full of adrenaline from the wonderful views and the EZRaider ride. It is also important to praise our guide Niv, who was wonderful, professional, helpful and kind, as well as Mendy, who accompanied us to assist and keep the whole line of riders safe.",
+        "he": "חוויה מטורפת!!! אסור לפספס את זה\nהיינו זוג + 3 ילדים (10,13,16) בהרכב של 3 רוכבים ו 2 מורכבים. כולנו חזרנו עם ניצוצות בעיניים מלאים באדרנלין ואורות הנופים, הנסיעה על האיזיריידר וחשוב לשבח את המדריך ניב שהיה מהמם מקצועי שירותי ואדיב כולל מנדי שנמצא איתנו על מנת לסייע ולשמור על כל טור הרוכבים.",
+        "hu": "Elképesztő élmény!!! Ezt nem szabad kihagyni!\n\nEgy pár és három gyerek (10, 13 és 16 évesek) voltunk, három vezetővel és két utassal. Mindannyian csillogó szemmel, adrenalinnal telve tértünk vissza, a gyönyörű látvány és az EZRaiderrel megtett út hatása alatt. Külön dicséret illeti idegenvezetőnket, Nivet, aki fantasztikus, profi, segítőkész és kedves volt, valamint Mendyt, aki velünk tartott, hogy segítsen és ügyeljen az egész járműsor biztonságára."
+      },
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-1",
