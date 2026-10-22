@@ -48,13 +48,18 @@ function validate(data){
   const phone=typeof data.phone==='string'?data.phone.trim():'';
   const lang=typeof data.requestedGuideLanguage==='string'?data.requestedGuideLanguage.trim().toLowerCase():'';
   const id=data.requestId;
+  // The public website uses crypto.randomUUID(): accept only canonical UUID
+  // v4 keys with an RFC 4122 variant. Reject trivial/reused ad-hoc keys.
   if(!TOUR_SLUGS.has(slug)||typeof id!=='string'||
-     !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id)||
+     !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-)4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id)||
      name.length<2||name.length>200||email.length>254||phone.length>40||
      (!email&&!phone)||(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))||
      !Number.isInteger(data.partySize)||data.partySize<1||data.partySize>12||
      !/^[a-z]{2,3}$/.test(lang)||
-     typeof data.englishAlternativeAccepted!=='boolean')return null;
+     typeof data.englishAlternativeAccepted!=='boolean'||
+     // English cannot be an alternative to itself. A true value here is not
+     // an affirmative choice in the website's available consent UI.
+     (lang==='en'&&data.englishAlternativeAccepted===true))return null;
   const start=resolveBudapestInstant(data.preferredLocalDate,data.preferredLocalTime);
   if(!start||Date.parse(start)<Date.now()+3600000||Date.parse(start)>Date.now()+180*86400000)return null;
   return {tourSlug:slug,contactName:name,email,phone,partySize:data.partySize,
