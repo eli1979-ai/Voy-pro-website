@@ -125,6 +125,28 @@ const robots=read(path.join(site,'robots.txt'));
 if(!/Disallow:\s*\//i.test(robots)) errors.push('robots.txt: staging crawl block unexpectedly removed');
 
 const js=read(path.join(site,'assets','site.js'));
+const rtb=read(path.join(site,'assets','rtb-request.js'));
+if(!js.includes("loader.src='/assets/rtb-request.js'"))fail('assets/site.js','special-tour request module not wired');
+for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour','buda-margaret-extended-tour']){
+  if(!rtb.includes(slug))fail('assets/rtb-request.js','missing request route '+slug);
+}
+for(const marker of ['requestedGuideLanguage','englishAlternativeAccepted','Europe/Budapest','location.assign(whatsappUrl)','const strings={','en:{','he:{','hu:{',"fetch('/api/request-to-book'",'credentials:\'omit\'','pendingFingerprint']){
+  if(!rtb.includes(marker))fail('assets/rtb-request.js','missing explicit request contract / localized handoff: '+marker);
+}
+for(const marker of ["languageField.addEventListener('change',updateEnglishAlternative)",
+  "englishChoice.checked=false",
+  "englishChoiceRow.hidden=!languageField.value||languageField.value==='en'",
+  "data.get('requested_guide_language')!=='en'"]){
+  if(!rtb.includes(marker))fail('assets/rtb-request.js',
+    'English fallback opt-in must be reset when requested guiding language changes: '+marker);
+}
+if(!read(path.join(site,'assets','site.css')).includes('.voy-rtb-checkbox[hidden]{display:none!important}'))
+  fail('assets/site.css','hidden English alternative must remain invisible despite flex layout');
+if(/x-fbm-intake-secret|FBM_REQUEST_TO_BOOK_INTAKE_SECRET|ezraider-os-staging\.vercel\.app|https:\/\/.*\/api\/request-to-book/.test(rtb))
+  fail('assets/rtb-request.js','client must never expose private FBM credentials or call an upstream host');
+if(/fetch\((?!['"]\/api\/request-to-book['"])/.test(rtb))
+  fail('assets/rtb-request.js','request browser may only fetch same-origin relay');
+
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
 if(!/<option value="pay_now_card" disabled>/.test(js)) errors.push('assets/site.js: visible online-card payment option missing');
@@ -199,6 +221,18 @@ try{
 }catch(error){
   fail('assets/affiliate-booking-widget.js',
     'Affiliate widget checkout behavior regression: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
+// Budapest guest-language request behavior: exercise the browser module in
+// a fake DOM with mocked same-origin relay outcomes, never real leads.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-budapest-rtb-submission.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:15000,
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/rtb-request.js',
+    'Budapest request UI idempotent relay test: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');

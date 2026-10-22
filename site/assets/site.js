@@ -994,6 +994,15 @@
     });
   }
   ensureSpecialRequestBuilder();
+  // Budapest request-only pilot: language preference and explicit English
+  // alternative consent are collected without exposing a private server key.
+  if(/^\/(?:he\/|hu\/)?budapest\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/?$/.test(location.pathname)){
+    const loader=document.createElement('script');
+    loader.src='/assets/rtb-request.js';
+    loader.defer=true;
+    document.head.appendChild(loader);
+  }
+
 
   // W2.4: public B2B enquiry planner. WhatsApp is explicitly the delivery step;
   // no CRM write, accepted-lead acknowledgement, or contact-data analytics is implied.
