@@ -56,16 +56,21 @@ for(const [page,locale] of locales){
   const html=fs.readFileSync(page,'utf8');
   assert(html.includes('lang="'+locale+'"'),'wrong locale: '+page);
   const trust=html.indexOf('<section class="trust">');
+  const bridge=html.indexOf('class="section ez-vehicle-bridge"');
+  const externalSources=html.indexOf('class="review-source-grid"');
   const ticker=html.indexOf('data-vp-reviews-root hidden');
-  const next=html.indexOf('class="section ez-vehicle-bridge"');
-  assert(trust>=0&&ticker>trust&&next>ticker,'ticker must appear right after trusted platform ratings: '+page);
+  const faq=html.indexOf('data-faq="experience"');
+  assert(trust>=0&&bridge>trust&&externalSources>bridge&&ticker>externalSources&&faq>ticker,
+    'compact ticker must appear below external review sources and above FAQ: '+page);
+  assert(html.split('data-vp-reviews-root hidden').length===2,
+    'each localized Budapest page must have exactly one review ribbon: '+page);
   for(const marker of ['data-vp-reviews-track','data-vp-reviews-pause','data-vp-reviews-viewport',
     '/assets/budapest-review-ticker.css','/assets/budapest-review-ticker.js']){
     assert(html.includes(marker),'missing review ribbon dependency or control: '+page+' '+marker);
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:clamp(300px,56vh,430px)']){
+for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
