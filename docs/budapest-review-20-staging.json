@@ -309,7 +309,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "At first I was stressed and afraid, since I'm a nervous driver, but the guide's confidence and the safety measures they took allowed me to let my fears go and I had the best times.\n\nI could appreciate the beautiful scenery while riding and the amazing views of Budapest on the stops we made.\n\nI went with my family and we enjoyed the best experience we had in the city for this visit.\n\nHighly recommend.",
+        "he": "בהתחלה הייתי לחוצה ופחדתי, כי אני נהגת חששנית, אבל הביטחון של המדריך ואמצעי הבטיחות שהם נקטו עזרו לי להשתחרר מהפחדים וליהנות מאוד.\n\nיכולתי להעריך את הנופים היפים תוך כדי הרכיבה ואת המראות המדהימים של בודפשט בעצירות שעשינו.\n\nהייתי עם המשפחה שלי, וזו הייתה החוויה הטובה ביותר שלנו בעיר בביקור הזה.\n\nממליצה מאוד.",
+        "hu": "Eleinte feszült voltam és féltem, mert bizonytalan sofőr vagyok, de az idegenvezető magabiztossága és a megtett biztonsági intézkedések segítettek leküzdeni a félelmeimet, és végül csodálatosan éreztem magam.\n\nÚtközben gyönyörködhettem a csodás tájban, a megállóknál pedig Budapest lenyűgöző kilátásában.\n\nA családommal voltam, és ez lett a városban töltött látogatásunk legjobb élménye.\n\nNagyon ajánlom."
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-2",
@@ -330,7 +337,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "Our family had the most wonderful time riding the EZ-raider vehicle with Voy PRO Budapest. We took the evening  tour with our two daughters, ages 17 and 12. The vehicle is very stable and it takes approximately one minute to understand how to operate it. The tour instructor, Juda, was  knowledgeable, explaining about the city and pointing out the main attractions. The city is so beautifully lit during the nighttime so it was such a different experience from touring the exact attractions from daytime. Our daughters were so thrilled about the tour and so were we - it was definitely one of the highlights of our trip to Budapest!",
+        "he": "המשפחה שלנו נהנתה בצורה יוצאת מן הכלל מהרכיבה בכלי ה־EZRaider עם Voy PRO Budapest. השתתפנו בסיור ערב עם שתי הבנות שלנו, בנות 17 ו־12. הכלי יציב מאוד, ולוקח בערך דקה להבין איך מפעילים אותו. מדריך הסיור, יהודה, היה בעל ידע רב, הסביר על העיר והצביע על האטרקציות המרכזיות. העיר כל כך יפה ומוארת בלילה, שזו הייתה חוויה שונה לגמרי מביקור באותם אתרים בשעות היום. הבנות שלנו התלהבו מאוד מהסיור, וגם אנחנו — זה בהחלט היה אחד משיאי הטיול שלנו בבודפשט!",
+        "hu": "Családunk csodálatosan érezte magát a budapesti Voy PRO EZRaider-járműveivel tett túrán. Az esti programon két lányunkkal, a 17 és a 12 évessel vettünk részt. A jármű nagyon stabil, és körülbelül egy perc alatt meg lehet tanulni kezelni. Idegenvezetőnk, Juda, rendkívül tájékozott volt: mesélt a városról, és megmutatta a fő látnivalókat. Budapest éjszaka annyira gyönyörűen ki van világítva, hogy egészen más élmény volt ugyanazokat a helyeket látni, mint nappal. Lányaink odavoltak a túráért, és mi is — kétségtelenül ez volt budapesti utazásunk egyik fénypontja!"
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-3",
@@ -351,7 +365,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "It’s one of the best experiences ever. You can see a lot of beautiful places you couldn’t have on foot. The guide is great and gives enough time to take pictures. The explanations are just enough. Strongly recommend if you want to experience Budapest in a different and more adventures way.",
+        "he": "זו אחת החוויות הטובות ביותר שהיו לי אי פעם. אפשר לראות המון מקומות יפים שלא הייתם מגיעים אליהם ברגל. המדריך נהדר ונותן מספיק זמן לצלם. ההסברים בדיוק במידה הנכונה. ממליצה מאוד אם אתם רוצים לחוות את בודפשט בדרך אחרת והרפתקנית יותר.",
+        "hu": "Ez az egyik legjobb élményem volt valaha. Rengeteg gyönyörű helyet láthattok, amelyeket gyalog nem tudnátok ilyen módon felfedezni. Az idegenvezető nagyszerű, és elegendő időt ad a fényképezésre. A magyarázatok pont megfelelő hosszúságúak. Nagyon ajánlom, ha Budapestet másképp, egy kicsit kalandosabban szeretnétek megismerni."
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-4",
@@ -372,7 +393,14 @@
         "source_url": "https://maps.google.com/maps?cid=13820859235751578037",
         "original_text_status": "operator_authorized_google_my_business_api",
         "notes": "Do not approve until matched directly against the source platform"
-      }
+      },
+      "translations": {
+        "en": "They were really friendly people and kind to us. We had fun, saw amazing points of Budapest and learned new things!\nPerfect to do on your vacation and for a good price.",
+        "he": "הם היו אנשים ממש ידידותיים ואדיבים כלפינו. נהנינו, ראינו נקודות מדהימות בבודפשט ולמדנו דברים חדשים!\n\nמושלם לחופשה, ובמחיר טוב.",
+        "hu": "Nagyon barátságosak és kedvesek voltak velünk. Remekül szórakoztunk, Budapest csodálatos helyeit láttuk, és új dolgokat is tanultunk!\n\nTökéletes program a nyaraláshoz, ráadásul jó áron."
+      },
+      "translations_approved": false,
+      "translation_review_status": "draft_pending_editorial_review"
     },
     {
       "id": "google-5",
