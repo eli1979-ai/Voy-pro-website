@@ -68,13 +68,15 @@
     }
     if(locale!==item.language)byline.append(make('span','vp-review-translated',t.translated));
     bottom.append(byline);
-    if(!duplicate){
-      const link=make('a','',(item.link_kind==='listing'?t.listing:t.source)+sourceLabels[item.source]);
-      link.href=item.review_url;
-      link.target='_blank';
-      link.rel='noopener noreferrer';
-      bottom.append(link);
-    }
+    // The seamless second set is visible after the first set scrolls away.
+    // Keep its links clickable by pointer, without adding duplicate tab stops
+    // or duplicate announcements to assistive technology.
+    const link=make('a','',(item.link_kind==='listing'?t.listing:t.source)+sourceLabels[item.source]);
+    link.href=item.review_url;
+    link.target='_blank';
+    link.rel='noopener noreferrer';
+    if(duplicate)link.tabIndex=-1;
+    bottom.append(link);
     card.append(top,quote,bottom);
     return card;
   };
@@ -89,7 +91,6 @@
     const first=make('div','vp-review-group');
     const second=make('div','vp-review-group');
     second.setAttribute('aria-hidden','true');
-    second.setAttribute('inert','');
     for(const review of reviews){
       first.append(reviewCard(review,false));
       second.append(reviewCard(review,true));
