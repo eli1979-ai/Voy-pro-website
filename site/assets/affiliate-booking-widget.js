@@ -83,7 +83,7 @@
         </form>
         <section id="results" class="hidden" aria-label="Available departures">
           <h3>Available times</h3><div id="slots" class="slots"></div>
-          <p class="hint">Times requiring staff confirmation cannot be booked instantly in this widget.</p>
+          <p class="hint">Some departure times require staff confirmation. Requests are not bookings, do not reserve a place, and do not collect payment.</p>
         </section>
         <section id="checkout" class="checkout hidden" aria-label="Complete your booking">
           <h3>Your price and options</h3>
@@ -131,6 +131,9 @@
       request_15yo_independent_assessment:false,
     });
     const isPrivate=()=>form.elements.private.checked;
+    const requiresStaffRequest=()=>Boolean(
+      chosenSlot?.requestable&&!chosenSlot?.sellable&&!isPrivate()
+    );
     async function api(path,{method='GET',body,headers={}}={}){
       const response=await fetch(apiRoot+'/api/v1'+path,{
         method,mode:'cors',credentials:'omit',cache:'no-store',redirect:'error',
@@ -242,6 +245,25 @@
         if(version!==generation)return;
         if(!promo.valid||String(promo.code||'').toUpperCase()!==affiliate)
           throw new Error('This partner code is not currently valid for the selected tour.');
+        if(slot.requestable&&!slot.sellable){
+          // Non-private groups needing staff/extra vehicles enter the existing
+          // canonical Request to Book workflow. Never create a hold or claim
+          // final availability, price, payment or confirmation here.
+          if(isPrivate())throw new Error('Private confirmations need direct help from VOY PRO.');
+          quote=null;offers=[];extras=[];renderOffers();
+          $('#price').replaceChildren(
+            textNode('p','Staff will confirm the available equipment and your affiliate-adjusted final price before booking.')
+          );
+          $('#holdExpiry').textContent='No place is reserved and no payment is collected for this request.';
+          $('#confirmButton').textContent='Send confirmation request';
+          customer.elements.payment.disabled=true;
+          $('#checkout').classList.remove('hidden');
+          setStatus('Approval needed: the request is not yet a confirmed booking.');
+          $('#checkout').scrollIntoView({behavior:'smooth',block:'nearest'});
+          return;
+        }
+        $('#confirmButton').textContent='Confirm booking';
+        customer.elements.payment.disabled=false;
         quote=await api('/quotes',{method:'POST',body:{
           slot_id:slot.id,group_composition:composition(),is_private:isPrivate(),extras:[],promo_code:affiliate,
         }});
@@ -300,25 +322,28 @@
         for(const slot of avail.slots||[]){
           const button=document.createElement('button');button.type='button';
           const allowed=Boolean(slot.sellable);
-          button.textContent=String(slot.time||'Time')+(!allowed?' · '+(slot.requestable?'Staff check required':'Unavailable'):'');
-          button.disabled=!allowed;button.className=allowed?'':'unavailable';
+          const canRequest=Boolean(slot.requestable&&!allowed&&!isPrivate());
+          button.textContent=String(slot.time||'Time')+(!allowed?' · '+(canRequest?'Request staff confirmation':slot.requestable?'Contact us for private confirmation':'Unavailable'):'');
+          button.disabled=!allowed&&!canRequest;
+          button.className=allowed||canRequest?'':'unavailable';
           button.setAttribute('aria-pressed','false');
           button.addEventListener('click',()=>{
             for(const node of panel.querySelectorAll('button'))node.setAttribute('aria-pressed','false');
             button.setAttribute('aria-pressed','true');return selectSlot(slot);
           });
-          if(allowed)sellable++;
+          if(allowed||canRequest)sellable++;
           panel.appendChild(button);
         }
-        if(!sellable)panel.appendChild(textNode('p','No instant-bookable departures for this selection.'));
-        setStatus(sellable?'Choose a departure time to see your exact partner price.':'Try another date or group size.');
+        if(!sellable)panel.appendChild(textNode('p','No instant-bookable or staff-requestable departures for this selection.'));
+        setStatus(sellable?'Choose a departure time. Requests needing staff approval are not confirmed bookings.':'Try another date or group size.');
       }catch(error){if(version===generation)setStatus(error.message||'Could not retrieve departures.','error');}
       finally{if(version===generation)setBusy(false);}
     }
     async function confirm(event){
       event.preventDefault();
-      if(loading||!hold||!quote)return;
-      if(new Date(hold.expires_at).getTime()<=Date.now()){
+      const staffRequest=requiresStaffRequest();
+      if(loading||!chosenSlot||(!staffRequest&&(!hold||!quote)))return;
+      if(!staffRequest&&new Date(hold.expires_at).getTime()<=Date.now()){
         setStatus('Your hold expired. Please check availability again.','error');return;
       }
       const name=String(customer.elements.name.value||'').trim();
@@ -326,9 +351,30 @@
       const phone=String(customer.elements.phone.value||'').trim();
       if(!name||!email||!phone||!customer.elements.terms.checked)return;
       const method=customer.elements.payment.value;
-      if(method==='pay_now_card'&&!readyForOnline)return;
-      if(!['pay_arrival_card','pay_arrival_cash','pay_now_card'].includes(method))return;
+      if(!staffRequest&&method==='pay_now_card'&&!readyForOnline)return;
+      if(!staffRequest&&!['pay_arrival_card','pay_arrival_cash','pay_now_card'].includes(method))return;
       if(!retryKey)retryKey=crypto.randomUUID();
+      if(staffRequest){
+        const version=generation;setBusy(true);setStatus('Sending your staff-confirmation request…');
+        try{
+          const request=await api('/booking-capacity-requests',{
+            method:'POST',headers:{'idempotency-key':retryKey},
+            body:{
+              slot_id:chosenSlot.id,group_composition:composition(),
+              is_private:false,guide_language:languageSelect.value||null,
+              promo_code:affiliate,
+              customer:{full_name:name,email,phone,preferred_language:'en'},
+            },
+          });
+          if(version!==generation)return;
+          if(request?.type!=='booking_capacity_request'||request?.status!=='pending'||!request?.reference)
+            throw new Error('Request response could not be verified. Please contact VOY PRO.');
+          showRequestSuccess(request.reference);
+        }catch(error){
+          if(version===generation)setStatus(error.message||'Request could not be submitted. Please retry.','error');
+        }finally{if(version===generation)setBusy(false);}
+        return;
+      }
       const submission={
         hold_id:hold.id,
         promo_code:affiliate,
@@ -359,6 +405,16 @@
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
       finally{if(version===generation)setBusy(false);}
+    }
+    function showRequestSuccess(reference){
+      // A capacity request creates no customer booking, payment or hold.
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Your confirmation request was received'));
+      box.append(textNode('p','Request reference: '+reference));
+      box.append(textNode('p','This is not a confirmed booking. VOY PRO staff will review your requested time and contact you before any payment or reservation is confirmed.'));
+      setStatus('Request sent for human review.','success');
     }
     function showSuccess(reference,result,token){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
