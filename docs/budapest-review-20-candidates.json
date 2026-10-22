@@ -5,10 +5,10 @@
   "candidates": [
     {
       "id": "tripadvisor-1",
-      "reviewer": "Katie M",
+      "reviewer": "KatieM5464",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2026-08-08",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -26,7 +26,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "המלצה ענקית על איזיריידר בבודפשט!\n\nיצאנו לטיול איזיריידרס באי מרגיט ובצד של בודה, והיה פשוט נדיר!\n\nהיינו קבוצה של 5 משפחות, 5 נפשות בכל משפחה, בהרכב גילאים מרשים במיוחד, מגיל שנה וחצי ועד 40 וכולם, מקטן ועד גדול, נהנו באותה מידה!\n\nהגענו בימים חמים מאוד וקצת חששנו איך נסתדר עם החום, אבל מהר מאוד גילינו שזו דווקא אחת הדרכים הכי כיפיות ונוחות לראות את בודפשט. במקום ללכת מרחקים ארוכים בחום, נוסעים באיזיריידר, נהנים מהרוח ומהדרך, ומספיקים לראות המון מהעיר בזמן יחסית קצר.\n\nהמסלול מהמם ועובר בנופים ובמקומות שלא בטוח שהיינו מגיעים אליהם או אפילו מגלים בטיול רגיל. מבחינתנו זה היה גם סוג של “סיור היכרות” מושלם עם העיר ראינו במהלך הנסיעה מקומות שאהבנו, ואחר כך חזרנו אליהם ברגל בקצב שלנו.\n\nומילה ענקית על הצוות פשוט מהמם!\n\nבמיוחד ליאורי ויהודה, שהיו מקסימים, סבלניים, נעימים וכיפיים והפכו את החוויה לעוד יותר מוצלחת.\n\nחוויה מעולה למשפחות, גם בהרכב גדול ועם טווח גילאים רחב כמו שלנו. דרך מיוחדת, קלילה ומהנה להכיר את בודפשט ולראות הרבה יותר מהעיר.\n\nממליצים מכל הלב!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -34,7 +43,7 @@
       "reviewer": "Stav G",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2026-07-06",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -52,7 +61,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "en",
+          "original_text": "We went on an Easy Rider tour in Budapest and it was absolutely perfect. We were with our two daughters, 9, and 6, and they both said it was the best experience of our entire week in Budapest. it was in a small group so it felt really personal :)\nYehuda was a wonderful guide, and his assistant Nadav was great as well. The tour was pleasant, fun and well organized, and the vehicle itself was really cool, high quality and exciting to ride.\nits value for money per exelance!!\nIt was such a special and memorable experience for the whole family. Highly recommended!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -60,7 +78,7 @@
       "reviewer": "lihi F",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2025-09-29",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -78,10 +96,17 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": {
-          "alternate_day_on_regional_snapshot": "2025-09-28",
-          "note": "Regional Tripadvisor snapshots disagree by one day. Publisher's local calendar date is not conclusively resolved."
-        }
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "en",
+          "original_text": "We joined the EZRaider tour in Budapest and had such an amazing experience! I went with my mom, and it was definitely one of the highlights of our trip.\n\nThe tour started at 9:45 with a clear explanation about the EZRaider vehicle and all the important safety rules. Before heading out, the guides, Niv and Mendy, made sure everyone felt comfortable with the vehicle by giving each person a quick test ride.\nIf someone didn’t seem fully confident, they didn’t send them on the tour – which made us feel really safe and showed how much they pay attention to every little detail.\n\nThe ride itself was fantastic – we crossed the Elisabeth Bridge connecting Buda and Pest, and continued all the way up to the Fisherman’s Bastion, where we had a nice break and enjoyed the view.\n\nA special shoutout goes to Niv, who was simply outstanding! He welcomed everyone with a big smile and spread his good energy throughout the whole group. He took photos, joked around, played with the kids, and at the same time gave us all a real sense of safety and fun. He’s very professional and shared the history and stories in a light but engaging way, without missing a single detail.\n\nMendy, the second guide, made sure everything ran smoothly and safely on the roads. He also kept the mood light and funny, and definitely added to the overall experience.\n\nThis tour was unique, fun, and so well organized. We’ll definitely remember it and recommend it to our friends and family. If you’re in Budapest and looking for something special this is a must do!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        },
+        "date_source_note": "Date shown on owner-supplied direct original review screenshot (2025-09-29); earlier regional snapshots differed by one day."
       }
     },
     {
@@ -89,13 +114,13 @@
       "reviewer": "אביעד כ",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2026-01-02",
       "full_text": null,
       "approved": false,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-or20-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-        "observed_platform_date": "2026-01-03",
+        "observed_platform_date": "2026-01-02",
         "direct_review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "en",
         "note": "Found in older indexed Tripadvisor review page; publication date comes from that historical snapshot.",
@@ -107,10 +132,17 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": {
-          "alternate_day_on_regional_snapshot": "2026-01-02",
-          "note": "Regional Tripadvisor snapshots disagree by one day. Publisher's local calendar date is not conclusively resolved."
-        }
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "en",
+          "original_text": "We booked this tour looking for something special, and we truly enjoyed every moment. The Ezraiders themselves are fantastic vehicles—very safe, stable, and fun to ride (much more comfortable than standard scooters).\nHowever, what made the experience truly unforgettable was our guide, Yehuda. He was absolutely excellent! He was professional, patient, and shared great stories about the city in a fun and interesting way. The service was exceptional from start to finish.\nIf you are visiting Budapest, do not miss this attraction. It is the perfect way to explore the city without getting tired. Highly recommended!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        },
+        "date_source_note": "Date shown on owner-supplied direct original review screenshot (2026-01-02); earlier regional snapshots differed by one day."
       }
     },
     {
@@ -118,7 +150,7 @@
       "reviewer": "Shoshi R",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2026-08-29",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -136,7 +168,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "opened_review_content",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "ללא ספק - רגע שיא בטיול, בזכות הארגון המעולה והסיור המצוין. משלב ההזמנה ועד היציאה למסלול, היו איתנו בקשר וענו לכל שאלה ובקשה. הסיור עצמו היה מעניין ומתוכנן היטב. מומלץ בחום!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -144,7 +185,7 @@
       "reviewer": "Explore27235187907",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2026-07-28",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -162,7 +203,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "חוויה מדהימה שלא כדאי לפספס!!!\nאם אתם מגיעים לבודפשט – תתחילו את הטיול עם איזיריידר. מעבר לחוויה המיוחדת, הצוות המקצועי והמסור מחבר אתכם לעיר, לאתרים המרכזיים ולסיפורים שמאחוריהם, עם המון טיפים שימושיים להמשך הטיול.\nנהנינו מכל רגע, ואין ספק שזו הייתה הדרך הכי טובה לפתוח את הביקור בבודפשט. מומלץ בחום!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -170,7 +220,7 @@
       "reviewer": "ענת ל",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2025-11-23",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -188,7 +238,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "זו הפעם השניה שלנו עם טיולי האיזיריידר של VOY PRO (הפעם נסענו בהרכב של שני זוגות חברים) והפעם יצאנו לתור את אזור האי מרגיט.\nהטיול היה מהמם ומהנה. המדריך שלנו היה ניב המקסים, שהדריך אותנו עם המון סבלנות ודאגה ושיתף אותנו בהמון ידע מקצועי על האתרים שבהם ביקרנו בדרך. החוויה היתה חדשה וכיפית ולא רצינו שתיגמר. מקווים לחזור שוב בקרוב...תודה לכם.",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -196,7 +255,7 @@
       "reviewer": "אורטל פ",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2026-08-16",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -214,7 +273,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "עשינו היום סיור של 10 אנשים, כולל ילדים ותינוקת, וזו הייתה אחת החוויות הכי מהנות וכיפיות שהיו לנו!\nגל ליווה אותנו לאורך כל הסיור והיה קשוב, אכפתי וסבלני לכולם. תוך כדי הסיור הוא גם נתן לנו סקירה מרתקת על העיר, עם המון ידע והסברים מעניינים.\n\nהכול היה פשוט מושלם! חוויה מדהימה, שירות מעולה ומדריך מקסים. ממליצים בחום!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -222,7 +290,7 @@
       "reviewer": "Sightsee44633083977",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2025-11-16",
       "full_text": null,
       "approved": false,
       "source_evidence": {
@@ -240,7 +308,16 @@
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": null
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "עשינו טיול עם יהודה מהמדריכים של EasyRiders והיה פשוט מעולה!\nיהודה הצליח לשלב בין רכיבה כיפית ומהנה לבין הסברים מרתקים על ההיסטוריה, התרבות והסביבה. הוא העביר את המידע בצורה ברורה, מעניינת ומלאת תשוקה, והוסיף לטיול ערך ענק מעבר לחוויה עצמה. מרגישים שמדובר במדריך מקצועי, סבלני ובעל ידע עצום.\n\nממליצה בחום על טיול עם יהודה – זו חוויה שלא שוכחים!",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
+        }
       }
     },
     {
@@ -248,13 +325,13 @@
       "reviewer": "Flyer45428477043",
       "platform": "tripadvisor",
       "source_profile_url": "https://www.tripadvisor.com/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-      "review_date": null,
+      "review_date": "2025-11-05",
       "full_text": null,
       "approved": false,
       "source_evidence": {
         "presence_status": "platform_review_found",
         "evidence_url": "https://www.tripadvisor.co.il/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
-        "observed_platform_date": "2025-11-06",
+        "observed_platform_date": "2025-11-05",
         "direct_review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "original_language_hint": "he",
         "note": "Review found; dates differ across Tripadvisor indexed snapshots (November 5 vs November 6, 2025); keep unset pending direct verification.",
@@ -262,14 +339,20 @@
         "publication_status": "owner_rights_confirmed_original_verbatim_pending",
         "publication_rights_status": "owner_authorized",
         "owner_authorization_confirmed_on": "2026-10-21",
-        "date_source_note": "Tripadvisor Hebrew listing and /Reviews-or10/ archive present review under Nov 6 2025. Earlier Nov 5 was mismatched/unverified; the official review header shows Nov 6.",
+        "date_source_note": "Date shown on owner-supplied direct original review screenshot (2025-11-05); earlier regional snapshots differed by one day.",
         "platform_review_page": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
         "platform_permalink_source": "official Tripadvisor review title hyperlink, not synthesized",
         "platform_permalink_direct_fetch": "listed_link_but_direct_fetch_cache_miss",
         "full_review_status": "complete_original_visible_on_official_listing",
-        "date_ambiguity": {
-          "alternate_day_on_regional_snapshot": "2025-11-05",
-          "note": "Regional Tripadvisor snapshots disagree by one day. Publisher's local calendar date is not conclusively resolved."
+        "date_ambiguity": null,
+        "original_text_transcription_status": "transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread",
+        "operator_original_text_evidence": {
+          "source": "Official Tripadvisor review as shown in owner-provided screenshots",
+          "screenshot_received_on": "2026-10-22",
+          "source_text_language": "he",
+          "original_text": "חוויה מטורפת!!! אסור לפספס את זה\nהיינו זוג + 3 ילדים (10,13,16) בהרכב של 3 רוכבים ו 2 מורכבים. כולנו חזרנו עם ניצוצות בעיניים מלאים באדרנלין ואורות הנופים, הנסיעה על האיזיריידר וחשוב לשבח את המדריך ניב שהיה מהמם מקצועי שירותי ואדיב כולל מנדי שנמצא איתנו על מנת לסייע ולשמור על כל טור הרוכבים.",
+          "line_by_line_proofread_complete": false,
+          "permission_to_republish": "confirmed_by_owner"
         }
       }
     },
