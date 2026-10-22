@@ -65,7 +65,7 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated']){
+for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:clamp(300px,56vh,430px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
@@ -144,6 +144,14 @@ assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.
   'visible repeated review card must link to the same authentic original review');
 assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
   'repeated original-review link must not add a duplicate keyboard tab stop');
+const firstQuote=approved.track.children[0]?.children[0]?.children[1];
+assert(typeof firstQuote?.events?.touchstart==='function',
+  'full-text mobile review must allow pausing the moving ribbon on touch');
+firstQuote.events.touchstart();
+assert(approved.root.classList.states.has('is-paused'),
+  'touching a scrollable long review must pause the ribbon');
+assert(approved.pause.textContent==='Resume reviews',
+  'mobile reader must have a clearly labeled control to resume the ribbon');
 const firstCard=approved.track.children[0]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
