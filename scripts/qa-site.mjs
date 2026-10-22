@@ -155,6 +155,18 @@ for(const source of imageSources){
   }
 }
 
+// Do not publish translated testimonials until originals and all three full
+// language versions are separately reviewed; the public manifest stays empty.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-budapest-review-translation-drafts.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:10000,
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/budapest-approved-reviews.json',
+    'Review translation draft/provenance guard: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
 // The partner booking flow is executed with mocked FBM routes during every
 // site build / launch QA, not only scanned for static file presence.
 try{

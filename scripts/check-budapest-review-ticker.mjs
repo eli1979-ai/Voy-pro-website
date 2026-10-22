@@ -28,6 +28,10 @@ const reviewValid=(review)=>review?.approved===true
   &&typeof review.id==='string'&&review.id.trim().length>=2
   &&typeof review.author==='string'&&review.author.trim().length>=2
   &&typeof review.full_text==='string'&&review.full_text.trim().length>=35
+  &&review.translations_approved===true&&review.translations&&
+    ['en','he','hu'].every(lang=>typeof review.translations[lang]==='string'&&
+      review.translations[lang].trim().length>=35)
+  &&(!['en','he','hu'].includes(review.language)||review.translations[review.language]===review.full_text)
   &&(review.date===null||/^\d{4}-\d{2}-\d{2}$/.test(review.date||''))
   &&['review','listing'].includes(review.link_kind)
   &&review.source_verified===true&&review.full_text_verified===true
@@ -61,11 +65,11 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line']){
+for(const marker of ['prefers-reduced-motion','animation-play-state:paused','vp-reviews-scroll','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:clamp(300px,56vh,430px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
-  "setAttribute('inert'","'is-paused'","textContent=text"]){
+  "'is-paused'","textContent=text"]){
   assert(script.includes(marker),'missing safe review rendering behavior '+marker);
 }
 assert(!/\binnerHTML\s*=|document\.write|eval\s*\(/.test(script),
@@ -110,6 +114,14 @@ const sample=Array.from({length:20},(_,i)=>({
   review_url:'https://www.tripadvisor.com/ShowUserReviews-test-'+i+'.html',
   language:'en'
 }));
+for(const review of sample){
+  review.translations_approved=true;
+  review.translations={
+    en:review.full_text,
+    he:'זהו נוסח בדיקה בעברית עבור '+review.id+' בלבד. הטקסט הזה לא יתפרסם באתר והוא נועד לאימות בחירת השפה.',
+    hu:'Ez kizárólag tesztszöveg magyarul, azonosító: '+review.id+'. Ez a szöveg nem jelenik meg az éles honlapon.'
+  };
+}
 for(let i=10;i<20;i++){
   sample[i].source=i<17?'google':'getyourguide';
   sample[i].link_kind='listing';
@@ -126,9 +138,47 @@ assert(approved.root.hidden===false,'approved 20-item list must activate the tic
 assert(approved.track.children.length===2,'approved ticker must duplicate the ribbon for seamless movement');
 assert(approved.track.children[0]?.children?.length===20,'all 20 authentic review slots must display');
 assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true','duplicate ribbon must be hidden from screen readers');
-assert(approved.track.children[1]?.attrs?.inert==='','duplicate ribbon must not be tabbable');
+assert(approved.track.children[1]?.attrs?.inert===undefined,
+  'duplicate visible cards must not be inert or their source links cannot be opened');
+assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.href===sample[0].review_url,
+  'visible repeated review card must link to the same authentic original review');
+assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
+  'repeated original-review link must not add a duplicate keyboard tab stop');
+const firstQuote=approved.track.children[0]?.children[0]?.children[1];
+assert(firstQuote?.tabIndex===0,'long original review text must be keyboard scrollable');
+assert(firstQuote?.attrs?.role==='group'&&firstQuote?.attrs?.['aria-label']==='Full review by Test reviewer 0',
+  'scrollable text must be labeled with reviewer identity');
+assert(approved.track.children[1]?.children?.[0]?.children?.[1]?.tabIndex===-1,
+  'duplicated quote must not add another keyboard focus stop');
+assert(css.includes('.vp-review-text:focus-visible'),
+  'scrollable review text needs a visible keyboard focus indicator');
+assert(typeof firstQuote?.events?.touchstart==='function',
+  'full-text mobile review must allow pausing the moving ribbon on touch');
+firstQuote.events.touchstart();
+assert(approved.root.classList.states.has('is-paused'),
+  'touching a scrollable long review must pause the ribbon');
+assert(approved.pause.textContent==='Resume reviews',
+  'mobile reader must have a clearly labeled control to resume the ribbon');
+// The pause button should first *resume* after touch, and then pause
+// again on a new explicit user action.
+approved.pause.events.click?.();
+assert(!approved.root.classList.states.has('is-paused'),
+  'resume control must restore movement after touch-based pause');
 const firstCard=approved.track.children[0]?.children[0];
-assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full review text without shortening');
+assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
+assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
+  'label the exact original-review source and platform');
+const hebrew=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'he');
+assert(hebrew.root.hidden===false,'approved localized review set must activate in Hebrew');
+assert(hebrew.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.he,
+  'Hebrew page must render the complete Hebrew translation, never the English original');
+assert(hebrew.track.children[0]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='תורגם מהמקור'),
+  'Hebrew translation must be visibly identified');
+const hungarian=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'hu');
+assert(hungarian.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.hu,
+  'Hungarian page must render the complete Hungarian translation');
+assert(hungarian.track.children[0]?.children[0]?.children[2]?.children[1]?.textContent==='Eredeti értékelés itt: Tripadvisor',
+  'Hungarian original-review link must identify Tripadvisor');
 assert(firstCard?.children[2]?.children[1]?.href===sample[0].review_url,'original review source must be linked');
 assert(typeof approved.pause.events.click==='function','pause control must work without hover');
 approved.pause.events.click?.();
@@ -144,12 +194,22 @@ listingSample[10]={...listingSample[10],date:null,link_kind:'listing',
 const listing=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:listingSample},'he');
 const listingCard=listing.track.children[0]?.children[10];
 assert(listing.root.hidden===false,'platform-verified review with no exact date may appear');
-assert(listingCard?.children[2]?.children[0]?.children.length===1,'never invent a date when the provider does not confirm it');
-assert(listingCard?.children[2]?.children[1]?.textContent==='לכל הביקורות באתר המקור',
+assert(!listingCard?.children[2]?.children[0]?.children.some(n=>n.tagName==='time'),
+  'never invent a date when the provider does not confirm it');
+assert(listingCard?.children[2]?.children[1]?.textContent==='לכל הביקורות באתר Google Maps',
   'a listing link must not claim to point at an individual review');
 const unverified=await simulate({schema_version:1,expected_count:20,status:'approved',
   reviews:listingSample.map((x,i)=>i===10?{...x,source_verified:false}:x)});
 assert(unverified.root.hidden===true,'mirrored or unverified reviews must never activate the public ticker');
+const missingLanguage=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:sample.map((x,i)=>i===0?{...x,translations:{...x.translations,hu:''}}:x)},'en');
+assert(missingLanguage.root.hidden===true,'missing Hungarian translation must block publication in every locale');
+const missingApproval=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:sample.map((x,i)=>i===0?{...x,translations_approved:false}:x)},'he');
+assert(missingApproval.root.hidden===true,'unapproved translations must not be shown in public');
+const sourceChanged=await simulate({schema_version:1,expected_count:20,status:'approved',
+  reviews:sample.map((x,i)=>i===0?{...x,translations:{...x.translations,en:'An inaccurate rewrite replacing the verified English original review text.'}}:x)});
+assert(sourceChanged.root.hidden===true,'a locale matching the source language must preserve its exact original text');
 const misleading=await simulate({schema_version:1,expected_count:20,status:'approved',
   reviews:listingSample.map((x,i)=>i===10?{...x,review_url:'https://www.google.com.evil.example/reviews'}:x)});
 assert(misleading.root.hidden===true,'reject forged platform URLs');
@@ -214,7 +274,9 @@ for(const c of sourceAudit.candidates||[]){
        ev?.full_review_status!=='original_language_text_recovered_from_supplier_notification'){
     failures.push('GetYourGuide original body source evidence missing: '+c.id);
   }
-  const expectedStatus=ev?.operator_original_text_evidence?.original_text
+  const pendingScreenshotTranscript=ev?.original_text_transcription_status===
+    'transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread';
+  const expectedStatus=ev?.operator_original_text_evidence?.original_text&&!pendingScreenshotTranscript
     ?'owner_rights_confirmed_verbatim_original_recovered'
     :'owner_rights_confirmed_original_verbatim_pending';
   if(ev?.publication_status!==expectedStatus)
@@ -222,7 +284,11 @@ for(const c of sourceAudit.candidates||[]){
   const notification=ev?.operator_original_text_evidence;
   if(notification){
     if(notification.source_text_language!==ev.original_language_hint||
-       notification.matched_against_official_platform_reviewer_and_date!==true||
+       (!pendingScreenshotTranscript&&notification.matched_against_official_platform_reviewer_and_date!==true)||
+       (pendingScreenshotTranscript&&(c.platform!=='tripadvisor'||
+         notification.source!=='Official Tripadvisor review as shown in owner-provided screenshots'||
+         notification.line_by_line_proofread_complete!==false||
+         notification.screenshot_received_on!=='2026-10-22'))||
        !notification.original_text?.trim()||
        notification.original_text.trim().length<35||
        notification.permission_to_republish!=='confirmed_by_owner')
@@ -257,16 +323,18 @@ assert(breakdown?.tripadvisor_on_platform_original_language_visible===officialTr
   breakdown?.google_directly_verified_on_google_maps===7,
   'review text original-source confidence counts changed');
 assert(sourceAudit.source_audit.full_review_body_visible_or_recovered_for_20_candidates===20 &&
-  sourceAudit.source_audit.original_texts_saved_in_operator_audit===10,
-  '20 source review bodies located, but only three operator-source originals are stored');
+  sourceAudit.source_audit.original_texts_saved_in_operator_audit===20,
+  '20 source review bodies and all their provenance records must be saved');
 assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_notifications===supplierOriginals &&
   supplierOriginals===3, 'three original-language GetYourGuide supplier reviews must stay attributed and unpublished');
 
 assert(sourceAudit.owner_republication_authorization?.status==='approved_by_owner',
   'business owner has authorized reuse of all platform reviews');
 assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===supplierOriginals+7 &&
-  sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===20-supplierOriginals-7,
-  'recovered original-text count is inconsistent');
+  sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===0,
+  'source-verified and editorial-approved review counts are inconsistent');
+assert(sourceAudit.source_audit.original_full_texts_verified_against_primary_evidence===20,
+  'all 20 source originals must be independently verified');
 if(sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed>0){
   assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
     'do not activate 20-review ticker before all original texts and source records are ready');
@@ -283,7 +351,7 @@ assert(JSON.stringify(staged.selection)===JSON.stringify({tripadvisor:10,google:
 assert(Array.isArray(staged.reviews)&&staged.reviews.length===20,
   'all original reviewers must exist in the staging roster');
 const stagedReviewIds=new Set();
-let verifiedFullTexts=0,unverifiedSources=0;
+let verifiedFullTexts=0,editorialApprovedOriginals=0,unverifiedSources=0;
 for(let i=0;i<20;i++){
   const c=sourceAudit.candidates[i],r=staged.reviews[i];
   if(!r||!c||r.id!==c.id||r.author!==c.reviewer||r.source!==c.platform
@@ -307,20 +375,35 @@ for(let i=0;i<20;i++){
   if(ev.date_ambiguity&&r.date!==null)
     failures.push('conflicting regional date must not be published for '+r.id);
   if(!eligible){
-    if(r.approved!==false||r.full_text!==null||r.language!==null)
-      failures.push('unverified review text or language must stay absent for '+r.id);
+    const transcriptPending=ev.original_text_transcription_status===
+      'transcribed_from_owner_screenshots_awaiting_final_line_by_line_proofread';
+    const untouched= r.full_text===null&&r.language===null;
+    const documentedDraft=transcriptPending&&r.source==='tripadvisor'&&
+      typeof r.full_text==='string'&&r.full_text.trim().length>=35&&
+      r.full_text===ev.operator_original_text_evidence?.original_text&&
+      r.language===ev.operator_original_text_evidence?.source_text_language&&
+      r.rating===5&&r.date===c.review_date&&r.full_text_verified===false&&
+      r.translations_approved===false;
+    if(r.approved!==false||!(untouched||documentedDraft))
+      failures.push('unverified review must be either absent or a provenance-matched unpublished screenshot draft: '+r.id);
   }else{
     verifiedFullTexts++;
-    if(!primarySource||!r.approved||typeof r.full_text!=='string'
+    if(!primarySource||typeof r.full_text!=='string'
         ||r.full_text.trim().length<35||!r.language
         ||!Number.isInteger(r.rating)||r.rating<1||r.rating>5)
-      failures.push('a source-verified original is missing approval or metadata: '+r.id);
+      failures.push('a source-verified original is missing required metadata: '+r.id);
+    if(r.approved===true)editorialApprovedOriginals++;
+    if(r.source==='tripadvisor'&&(r.approved!==false||
+      ev.original_text_transcription_status!=='assistant_visually_crosschecked_awaiting_editorial_approval'||
+      ev.operator_original_text_evidence?.line_by_line_proofread_complete!==true||
+      ev.visual_review?.publisher_signoff!==false))
+      failures.push('Tripadvisor source proof is verified but still must await publication editorial approval: '+r.id);
     const ownerOriginal=ev.operator_original_text_evidence?.original_text;
     // Later Tripadvisor originals must be documented in the provenance record too.
     if(!ownerOriginal||r.full_text!==ownerOriginal
         ||r.language!==ev.operator_original_text_evidence.source_text_language
-        ||r.evidence?.email_review_notification_reference!==
-          ev.operator_original_text_evidence.review_notification_reference)
+        ||(r.source!=='tripadvisor'&&r.evidence?.email_review_notification_reference!==
+          ev.operator_original_text_evidence.review_notification_reference))
       failures.push('staged review must equal its documented owner/source original: '+r.id);
   }
   if(!primarySource){
@@ -330,9 +413,12 @@ for(let i=0;i<20;i++){
   }
 }
 assert(stagedReviewIds.size===20,'all 20 unique shortlist identities must be preserved');
-assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_cleared_for_republication
-    &&verifiedFullTexts===10,
-  'verified full-text staging count must match the original operator source audit');
+assert(verifiedFullTexts===sourceAudit.source_audit.original_full_texts_verified_against_primary_evidence
+    &&verifiedFullTexts===20,
+  'all 20 complete originals must be independently source verified');
+assert(editorialApprovedOriginals===sourceAudit.source_audit.original_full_texts_cleared_for_republication
+    &&editorialApprovedOriginals===10,
+  'only source-cleared Google/GetYourGuide originals may be editor-approved before final signoff');
 assert(unverifiedSources===0,'all Google reviews must have first-party verification');
 assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
   'staging must never cause unapproved testimonials to be deployed');
@@ -347,8 +433,8 @@ try{
   const report=JSON.parse(reportRun.stdout||'{}');
   assert(report.selected_count===20&&report.required===20,
     'publisher must require the full shortlist of 20 reviews');
-  assert(report.full_originals_verified===10&&report.publishable_now===10&&report.ready===false,
-    'publisher must not count third-party mirrored copies as verified originals');
+  assert(report.full_originals_verified===20&&report.publishable_now===10&&report.ready===false,
+    'publisher must distinguish all verified originals from those editorially approved to publish');
   assert(report.source_mix?.tripadvisor===10&&report.source_mix?.google===7&&
     report.source_mix?.getyourguide===3,
     'publisher must validate exact provider mix');

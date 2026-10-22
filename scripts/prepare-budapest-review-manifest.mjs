@@ -60,6 +60,14 @@ for(let i=0;i<roster.length;i++){
   if(!verified){error(r.id,'approved original text or first-party source evidence is missing');continue;}
   if(!Number.isInteger(r.rating)||r.rating<1||r.rating>5)
     error(r.id,'rating must be a documented number from one to five');
+  // Never publish a source-language review in a different-language page by accident.
+  // Translation approval is separate from permission to quote the source verbatim.
+  if(r.translations_approved!==true||!r.translations||
+     !['en','he','hu'].every(lang=>typeof r.translations[lang]==='string'&&
+       r.translations[lang].trim().length>=35))
+    error(r.id,'approved complete EN/HE/HU translations are missing');
+  if(['en','he','hu'].includes(r.language)&&r.translations?.[r.language]!==r.full_text)
+    error(r.id,'original-language copy must remain identical to the verified source');
   if(typeof r.language!=='string'||!/^[a-z]{2}(-[A-Za-z]{2})?$/.test(r.language)||
      r.language!==originalEvidence.source_text_language)
     error(r.id,'original language is missing or differs from source evidence');
@@ -73,6 +81,7 @@ for(let i=0;i<roster.length;i++){
     id:r.id,author:r.author,full_text:r.full_text,date:r.date,
     rating:r.rating,source:r.source,link_kind:r.link_kind,
     review_url:r.review_url,language:r.language,
+    translations:r.translations,translations_approved:true,
     approved:true,source_verified:true,full_text_verified:true
   });
 }
@@ -87,6 +96,9 @@ const report={
   ready,
   selected_count:roster.length,
   full_originals_verified:roster.filter(r=>r?.full_text_verified===true).length,
+  fully_localized_and_approved:roster.filter(r=>r?.translations_approved===true&&
+    ['en','he','hu'].every(lang=>typeof r.translations?.[lang]==='string'&&
+      r.translations[lang].trim().length>=35)).length,
   publishable_now:approved.length,
   required:20,
   source_mix:tally,
