@@ -1,11 +1,18 @@
-# Native affiliate widget: ancillary quantity display mismatch
+# Native affiliate widget: ancillary quantity validation
 
-Status: regression test prepared, runtime correction pending. Do not merge this draft as a completed fix.
+Status: corrected and covered by mandatory booking fixture. The widget keeps the last
+accepted optional-extra quantity visible if a subsequent edit is blank, negative,
+fractional, or above the permitted maximum. The retained quote and extra selection
+are not modified by invalid edits, avoiding a mismatch between the form and the
+eventual booking payload.
 
-Reproduction: select a private Budapest departure, hold it, and choose quantity 1 of an optional extra. Wait for the partner quote. Then enter 999 or a negative/fractional quantity and blur. The current handler resets the visible field to zero without changing the previously accepted extras or quote. The booking can still include quantity 1 although the form displays zero.
+Verified behavioral flow in `scripts/check-affiliate-booking-widget.mjs`:
+select a private Budapest departure, accept quantity 1 of a fleece hat,
+confirm the held quote, enter each invalid value, and assert the input
+reverts to 1 with no additional re-quote. The eventual booking still
+submits quantity 1. This fixture is invoked by normal build and site QA;
+`scripts/check-widget-ancillary-input-contract.mjs` supplies a separate
+source-level regression check.
 
-Required fix: in `site/assets/affiliate-booking-widget.js`, within the optional-extra `change` handler, replace the invalid-input `qty.value='0'` fallback with `qty.value=String(selectedExtras.get(offer.product_id)||0);`. Keep the existing accepted quote unchanged and do not submit a new quote on invalid input.
-
-Run `node scripts/check-widget-ancillary-input-contract.mjs` after implementing the fix. This guard is expected to fail against current main. Then run `npm run build`, `npm run verify:launch` and `npm run qa:site` and add a behavioral invalid-after-valid-quantity test before merging.
-
-No pricing, payments, production configuration, partner origin or FBM change is requested.
+No changes to price calculations, commission policy, payments, release
+configuration, API permissions, or FBM backend.
