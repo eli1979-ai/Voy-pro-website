@@ -83,7 +83,9 @@ async function handler(req,res){
   let target;
   try{
     target=new URL(process.env.VOY_RTB_FBM_BASE_URL||'');
-    if(target.protocol!=='https:'||!ALLOWED_FBMS.has(target.hostname)
+    // Hostname alone is insufficient: an allowed host with an arbitrary
+    // non-default TLS port is not the verified FBM Staging origin.
+    if(target.protocol!=='https:'||!ALLOWED_FBMS.has(target.hostname)||target.port
       ||target.pathname!=='/'||target.search||target.hash||target.username||target.password)
       return say(res,503,{error:'service_unavailable'});
   }catch{return say(res,503,{error:'service_unavailable'});}
