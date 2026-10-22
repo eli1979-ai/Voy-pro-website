@@ -2,7 +2,7 @@
 
 > **DRAFT — NOT APPROVED FOR PUBLICATION.** Original text and three full translations are displayed to assist editorial and source review. The live website review manifest remains empty. GitHub `docs/budapest-review-20-staging.json` and the source audit are authoritative; this is only a snapshot for review.
 
-Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide. Publication requires proofread of the screenshot transcripts, final linguistic QA in all three site languages, and explicit owner authorization.
+Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide. The ten Tripadvisor originals have been visually crosschecked against all owner-supplied screenshots; source verification is distinct from still-pending editorial approval. Publication requires final linguistic/editorial QA of all three site languages and explicit owner authorization.
 
 ## Index
 
@@ -34,7 +34,7 @@ Prepared: 22 October 2026. Source mix: 10 Tripadvisor, 7 Google, 3 GetYourGuide.
 
 **Published:** 2026-08-08 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -125,7 +125,7 @@ Szívből ajánljuk!
 
 **Published:** 2026-07-06 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (en)
 
@@ -170,7 +170,7 @@ Az egész család számára különleges és emlékezetes élmény volt. Nagyon 
 
 **Published:** 2025-09-29 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1032613008-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (en)
 
@@ -239,7 +239,7 @@ Ez a túra egyedülálló, szórakoztató és kiválóan szervezett volt. Biztos
 
 **Published:** 2026-01-02 · **Rating:** 5/5 · **Original language:** en · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (en)
 
@@ -278,7 +278,7 @@ Ha Budapestre látogattok, ne hagyjátok ki ezt a programot! Tökéletes módja 
 
 **Published:** 2026-08-29 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1075469554-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -305,7 +305,7 @@ Kétségkívül az utazás egyik csúcspontja volt, a remek szervezésnek és a 
 
 **Published:** 2026-07-28 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -344,7 +344,7 @@ Minden pillanatát élveztük, és kétségtelenül ez volt a legjobb módja ann
 
 **Published:** 2025-11-23 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1040093361-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -377,7 +377,7 @@ A túra csodálatos és nagyon élvezetes volt. Idegenvezetőnk a kedves Niv vol
 
 **Published:** 2026-08-16 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -418,7 +418,7 @@ Egyszerűen minden tökéletes volt! Fantasztikus élmény, kiváló szolgáltat
 
 **Published:** 2025-11-16 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -459,7 +459,7 @@ Szívből ajánlok egy túrát Yehudával — felejthetetlen élmény!
 
 **Published:** 2025-11-05 · **Rating:** 5/5 · **Original language:** he · **Source:** [Direct original review](https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html)
 
-**Source verification:** screenshot transcription awaiting final line-by-line check · **Translation approval:** pending
+**Source verification:** visually crosschecked against original Tripadvisor screenshot (editorial approval pending) · **Translation approval:** pending
 
 ### Original review (he)
 
@@ -793,7 +793,8 @@ Ez volt a legszórakoztatóbb és legélvezetesebb élményünk Budapesten. Ideg
 
 ## Editorial sign-off checklist
 
-- [ ] Original text of all 10 screenshot-derived Tripadvisor reviews proofread against source pages, including punctuation and dates.
+- [x] Original text, reviewer, date, rating and title of the 10 Tripadvisor reviews visually checked against owner-supplied screenshots.
+- [ ] Independent editorial/owner acceptance of the ten source transcripts (including their original punctuation).
 - [ ] English translations reviewed for accuracy and tone.
 - [ ] Hebrew translations reviewed for accuracy and tone.
 - [ ] Hungarian translations reviewed by a fluent editor.
