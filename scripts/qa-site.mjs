@@ -177,6 +177,18 @@ try{
     'Website locale consistency regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
+// The request-only server relay remains disabled until owner release approval,
+// but its input, secret boundary, DST and idempotency forwarding are tested.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-request-to-book-relay.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:15000,
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('api/request-to-book.js',
+    'RTB server relay safety regression: '+String(error.stderr||error.message||error).slice(0,1200));
+}
+
 // The partner booking flow is executed with mocked FBM routes during every
 // site build / launch QA, not only scanned for static file presence.
 try{
