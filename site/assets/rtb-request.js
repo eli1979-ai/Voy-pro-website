@@ -77,7 +77,10 @@
   const draftFrom=(data)=>({
     tourSlug,
     requestedGuideLanguage:String(data.get('requested_guide_language')||'').trim().toLowerCase(),
-    englishAlternativeAccepted:data.get('english_alternative_accepted')==='yes',
+    // English is already the primary request in this case; it cannot be a
+    // second, explicitly consented alternative to itself.
+    englishAlternativeAccepted:data.get('requested_guide_language')!=='en'&&
+      data.get('english_alternative_accepted')==='yes',
     partySize:Number(data.get('party_size')||0),
     contactName:String(data.get('contact_name')||'').trim(),
     email:String(data.get('contact_email')||'').trim(),
@@ -91,6 +94,17 @@
       year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
     return [values.year,values.month,values.day].join('-');
   };
+  const languageField=form.querySelector('[name="requested_guide_language"]');
+  const englishChoice=form.querySelector('[name="english_alternative_accepted"]');
+  const englishChoiceRow=englishChoice.closest('.voy-rtb-checkbox');
+  const updateEnglishAlternative=()=>{
+    // A previously accepted English fallback must never carry across a
+    // changed primary guiding-language choice without renewed guest consent.
+    englishChoice.checked=false;
+    englishChoiceRow.hidden=!languageField.value||languageField.value==='en';
+  };
+  languageField.addEventListener('change',updateEnglishAlternative);
+  updateEnglishAlternative();
   const dateField=form.querySelector('[name="requested_date"]');
   dateField.min=budapestToday();
   form.addEventListener('submit',event=>{
