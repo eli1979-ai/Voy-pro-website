@@ -323,16 +323,18 @@ assert(breakdown?.tripadvisor_on_platform_original_language_visible===officialTr
   breakdown?.google_directly_verified_on_google_maps===7,
   'review text original-source confidence counts changed');
 assert(sourceAudit.source_audit.full_review_body_visible_or_recovered_for_20_candidates===20 &&
-  sourceAudit.source_audit.original_texts_saved_in_operator_audit===10,
-  '20 source review bodies located, but only three operator-source originals are stored');
+  sourceAudit.source_audit.original_texts_saved_in_operator_audit===20,
+  '20 source review bodies and all their provenance records must be saved');
 assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_notifications===supplierOriginals &&
   supplierOriginals===3, 'three original-language GetYourGuide supplier reviews must stay attributed and unpublished');
 
 assert(sourceAudit.owner_republication_authorization?.status==='approved_by_owner',
   'business owner has authorized reuse of all platform reviews');
 assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===supplierOriginals+7 &&
-  sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===20-supplierOriginals-7,
-  'recovered original-text count is inconsistent');
+  sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===0,
+  'source-verified and editorial-approved review counts are inconsistent');
+assert(sourceAudit.source_audit.original_full_texts_verified_against_primary_evidence===20,
+  'all 20 source originals must be independently verified');
 if(sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed>0){
   assert(manifest.status==='awaiting_verified_approval'&&manifest.reviews.length===0,
     'do not activate 20-review ticker before all original texts and source records are ready');
@@ -400,8 +402,8 @@ for(let i=0;i<20;i++){
     // Later Tripadvisor originals must be documented in the provenance record too.
     if(!ownerOriginal||r.full_text!==ownerOriginal
         ||r.language!==ev.operator_original_text_evidence.source_text_language
-        ||r.evidence?.email_review_notification_reference!==
-          ev.operator_original_text_evidence.review_notification_reference)
+        ||(r.source!=='tripadvisor'&&r.evidence?.email_review_notification_reference!==
+          ev.operator_original_text_evidence.review_notification_reference))
       failures.push('staged review must equal its documented owner/source original: '+r.id);
   }
   if(!primarySource){
