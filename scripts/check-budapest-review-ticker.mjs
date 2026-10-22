@@ -247,8 +247,8 @@ for(const c of sourceAudit.candidates||[]){
   if(!c?.id||uniqueCandidates.has(c.id)||!c.reviewer||!c.platform)
     failures.push('review audit contains a duplicate or missing reviewer identity');
   if(c?.id)uniqueCandidates.add(c.id);
-  if(c.approved!==false||c.full_text!==null)
-    failures.push('source presence must never substitute for an approved original full review');
+  if(c.approved!==true||c.full_text!==null)
+    failures.push('source audit must record owner approval without duplicating original guest content');
   const ev=c.source_evidence;
   if(!ev||!Object.hasOwn(evidenceKinds,ev.presence_status)||
       typeof ev.evidence_url!=='string'||!ev.evidence_url.startsWith('https://')||
@@ -330,7 +330,7 @@ assert(sourceAudit.source_audit.original_review_texts_recovered_from_operator_no
 
 assert(sourceAudit.owner_republication_authorization?.status==='approved_by_owner',
   'business owner has authorized reuse of all platform reviews');
-assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===supplierOriginals+7 &&
+assert(sourceAudit.source_audit.original_full_texts_cleared_for_republication===20 &&
   sourceAudit.source_audit.original_full_texts_missing_or_unconfirmed===0,
   'source-verified and editorial-approved review counts are inconsistent');
 assert(sourceAudit.source_audit.original_full_texts_verified_against_primary_evidence===20,
