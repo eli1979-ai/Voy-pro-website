@@ -49,7 +49,7 @@ class Element {
   querySelectorAll(selector){return selector==='button'?this.children.filter(x=>x.tagName==='button'):[];}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid'}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -93,11 +93,11 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       return {slots:[{id:'22222222-2222-4222-8222-222222222222',time:'10:00',sellable:true}]};
     }
     if(key==='/api/v1/promotions/validate')return {
-      valid:payload.code==='TESTPARTNER',code:'TESTPARTNER',type:'fixed',value:10,
+      valid:!rejectCoupon&&payload.code==='TESTPARTNER',code:'TESTPARTNER',type:'fixed',value:10,
     };
     if(key==='/api/v1/quotes'){
       const data={
-        promo_code_applied:payload.promo_code,
+        promo_code_applied:wrongPartnerQuote?'OTHERPARTNER':payload.promo_code,
         total:payload.is_private?180:120,discount:20,
         currency:'EUR',lines:[{type:'discount',label:'Partner discount',line_total_minor:-2000}],
       };
@@ -142,6 +142,23 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
   vm.runInNewContext(code,context,{timeout:1500,filename:'affiliate-booking-widget.js'});
   return {script,elements,calls,search,customer,root,timers,redirect:()=>redirect};
 }
+function budapestToday(){
+  const parts=new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit',
+  }).formatToParts(new Date());
+  const d=Object.fromEntries(parts.map(p=>[p.type,p.value]));
+  return [d.year,d.month,d.day].join('-');
+}
+async function chooseFirstDeparture(app){
+  await flush();
+  app.search.elements.experience.value='exp_bud_buda';
+  await app.search.elements.experience.trigger('change');
+  app.search.elements.date.value=budapestToday();
+  await app.search.trigger('submit');
+  const button=app.elements['#slots'].children[0];
+  assert(button?.listeners.click,'Expected a live bookable time button');
+  await button.trigger('click');
+}
 async function flush(){
   for(let i=0;i<12;i++)await Promise.resolve();
 }
@@ -159,7 +176,7 @@ async function flush(){
   await app.search.elements.experience.trigger('change');
   app.search.elements.private.checked=true;
   await app.search.elements.private.trigger('change');
-  app.search.elements.date.value=new Date().toISOString().slice(0,10);
+  app.search.elements.date.value=budapestToday();
   await app.search.trigger('submit');
   const avail=app.calls.find(c=>c.key.includes('/availability?'));
   assert(avail,'Availability must use the existing public endpoint');
@@ -194,4 +211,41 @@ async function flush(){
   assert.equal(app.redirect(),null,'Pay-on-arrival booking should finish inside the host website');
   assert(!app.elements['#success'].classList.contains('hidden'));
 }
+
+{
+  for(const config of [{affiliate:'BAD CODE'},{clientKey:''},
+    {apiRoot:'http://unsecured.example.invalid'},
+    {apiRoot:'https://username:password@fbm-staging.example.invalid'}]){
+    const app=mount(config);
+    await flush();
+    assert.equal(app.calls.length,0,'Malformed partner configuration must not call the booking API');
+    assert.match(app.elements['#status'].textContent,/not configured/i,
+      'Invalid partner configuration needs a clear accessible error');
+    assert(app.elements['#searchButton'].disabled,
+      'Invalid partner config must leave booking disabled');
+  }
+}
+{
+  const app=mount({rejectCoupon:true});
+  await chooseFirstDeparture(app);
+  assert(app.calls.some(x=>x.key==='/api/v1/promotions/validate'),
+    'The selected affiliate coupon must be validated for the exact departure');
+  assert(!app.calls.some(x=>x.key==='/api/v1/holds'),
+    'Invalid affiliate coupons must never reserve a departure');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Invalid affiliate coupon must not expose checkout');
+  assert.match(app.elements['#status'].textContent,/not currently valid/i);
+}
+{
+  const app=mount({wrongPartnerQuote:true});
+  await chooseFirstDeparture(app);
+  assert(app.calls.some(x=>x.key==='/api/v1/quotes'),
+    'The server must calculate the partner quote');
+  assert(!app.calls.some(x=>x.key==='/api/v1/holds'),
+    'A quote assigned to another partner must never reserve a departure');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Wrong partner quote must not expose checkout');
+  assert.match(app.elements['#status'].textContent,/not attributed/i);
+}
+
 console.log('Affiliate native booking widget QA passed: configuration, CORS key, private held quote, extras, attribution, checkout.');
