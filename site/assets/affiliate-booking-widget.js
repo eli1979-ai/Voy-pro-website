@@ -200,7 +200,7 @@
         qty.addEventListener('change',()=>{
           const quantity=Number(qty.value);
           if(!Number.isInteger(quantity)||quantity<0||quantity>Number(qty.max)){
-            setStatus('Please enter a valid quantity.','error');qty.value='0';return;
+            setStatus('Please enter a valid quantity.','error');qty.value=String(selectedExtras.get(offer.product_id)||0);return;
           }
           selectedExtras.set(offer.product_id,quantity);
           extras=offers.map(o=>({product_id:o.product_id,quantity:selectedExtras.get(o.product_id)||0}))
