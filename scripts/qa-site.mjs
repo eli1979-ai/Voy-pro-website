@@ -130,7 +130,7 @@ if(!js.includes("loader.src='/assets/rtb-request.js'"))fail('assets/site.js','sp
 for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour','buda-margaret-extended-tour']){
   if(!rtb.includes(slug))fail('assets/rtb-request.js','missing request route '+slug);
 }
-for(const marker of ['requestedGuideLanguage','englishAlternativeAccepted','Europe/Budapest','location.assign(\'https://wa.me/','const strings={','en:{','he:{','hu:{']){
+for(const marker of ['requestedGuideLanguage','englishAlternativeAccepted','Europe/Budapest','location.assign(whatsappUrl)','const strings={','en:{','he:{','hu:{',"fetch('/api/request-to-book'",'credentials:\'omit\'','pendingFingerprint']){
   if(!rtb.includes(marker))fail('assets/rtb-request.js','missing explicit request contract / localized handoff: '+marker);
 }
 for(const marker of ["languageField.addEventListener('change',updateEnglishAlternative)",
@@ -142,8 +142,10 @@ for(const marker of ["languageField.addEventListener('change',updateEnglishAlter
 }
 if(!read(path.join(site,'assets','site.css')).includes('.voy-rtb-checkbox[hidden]{display:none!important}'))
   fail('assets/site.css','hidden English alternative must remain invisible despite flex layout');
-if(/x-fbm-intake-secret|FBM_REQUEST_TO_BOOK_INTAKE_SECRET|fetch\(/.test(rtb))
-  fail('assets/rtb-request.js','client must never send private FBM intake secrets or imply direct submission');
+if(/x-fbm-intake-secret|FBM_REQUEST_TO_BOOK_INTAKE_SECRET|ezraider-os-staging\.vercel\.app|https:\/\/.*\/api\/request-to-book/.test(rtb))
+  fail('assets/rtb-request.js','client must never expose private FBM credentials or call an upstream host');
+if(/fetch\((?!['"]\/api\/request-to-book['"])/.test(rtb))
+  fail('assets/rtb-request.js','request browser may only fetch same-origin relay');
 
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
