@@ -78,6 +78,23 @@ try{
   assert.deepEqual((await parse('POST',payload)).body,{error:'request_unavailable'});
   globalThis.fetch=async()=>({status:202,json:async()=>({requestId:'ok',status:'approved'})});
   assert.equal((await parse('POST',payload)).status,503);
+  // A permitted hostname on an unapproved TCP port is not the permitted
+  // Staging HTTPS origin; must fail closed before any outbound request.
+  calls=[];
+  globalThis.fetch=async()=>{calls.push(1)};
+  process.env.VOY_RTB_FBM_BASE_URL='https://ezraider-os-staging.vercel.app:8443/';
+  assert.equal((await parse('POST',payload)).status,503);
+  assert.equal(calls.length,0);
+  // Non-default ports are rejected, while the canonical default 443 form
+  // remains equivalent to the vetted HTTPS origin.
+  process.env.VOY_RTB_FBM_BASE_URL='https://ezraider-os-staging.vercel.app:443/';
+  globalThis.fetch=async(url,opts)=>{
+    calls.push({url:String(url),opts});
+    return {status:202,json:async()=>({requestId:'test-default-port',status:'pending_review'})};
+  };
+  assert.equal((await parse('POST',payload)).status,202);
+  assert.equal(calls.length,1);
+  assert.equal(new URL(calls[0].url).port,'');
   process.env.VOY_RTB_FBM_BASE_URL='https://example.com/';
   calls=[];
   globalThis.fetch=async()=>{calls.push(1)};
