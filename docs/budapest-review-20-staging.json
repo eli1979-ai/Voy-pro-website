@@ -8,7 +8,7 @@
     "google": 7,
     "getyourguide": 3
   },
-  "policy": "Tripadvisor originals transcribed from operator-supplied screenshots on 2026-10-22; final visual line-by-line proofread and EN/HE/HU localized editorial approval remain required before publication. Google/GetYourGuide original verifications unchanged.",
+  "policy": "All 20 originals verified against primary evidence; Tripadvisor body transcriptions visually proofread against 2026-10-22 owner screenshots, but source editorial approval and all EN/HE/HU translation approvals remain pending. Keep public manifest empty and review ticker withheld.",
   "reviews": [
     {
       "id": "tripadvisor-1",
@@ -21,7 +21,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1072099249-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -36,7 +36,8 @@
         "he": "המלצה ענקית על איזיריידר בבודפשט!\n\nיצאנו לטיול איזיריידרס באי מרגיט ובצד של בודה, והיה פשוט נדיר!\n\nהיינו קבוצה של 5 משפחות, 5 נפשות בכל משפחה, בהרכב גילאים מרשים במיוחד, מגיל שנה וחצי ועד 40 וכולם, מקטן ועד גדול, נהנו באותה מידה!\n\nהגענו בימים חמים מאוד וקצת חששנו איך נסתדר עם החום, אבל מהר מאוד גילינו שזו דווקא אחת הדרכים הכי כיפיות ונוחות לראות את בודפשט. במקום ללכת מרחקים ארוכים בחום, נוסעים באיזיריידר, נהנים מהרוח ומהדרך, ומספיקים לראות המון מהעיר בזמן יחסית קצר.\n\nהמסלול מהמם ועובר בנופים ובמקומות שלא בטוח שהיינו מגיעים אליהם או אפילו מגלים בטיול רגיל. מבחינתנו זה היה גם סוג של “סיור היכרות” מושלם עם העיר ראינו במהלך הנסיעה מקומות שאהבנו, ואחר כך חזרנו אליהם ברגל בקצב שלנו.\n\nומילה ענקית על הצוות פשוט מהמם!\n\nבמיוחד ליאורי ויהודה, שהיו מקסימים, סבלניים, נעימים וכיפיים והפכו את החוויה לעוד יותר מוצלחת.\n\nחוויה מעולה למשפחות, גם בהרכב גדול ועם טווח גילאים רחב כמו שלנו. דרך מיוחדת, קלילה ומהנה להכיר את בודפשט ולראות הרבה יותר מהעיר.\n\nממליצים מכל הלב!",
         "hu": "Óriási ajánlás a budapesti EZRaider-túrához!\n\nA Margit-szigeten és a budai oldalon vettünk részt egy EZRaider-túrán, és egyszerűen fantasztikus volt!\n\nÖt családból álló csoport voltunk, családonként öt fővel, igazán széles korosztállyal: másfél éves kortól 40 éves korig. Kicsik és nagyok egyaránt ugyanannyira élvezték!\n\nNagyon meleg napokon érkeztünk, és kicsit aggódtunk, hogyan bírjuk majd a hőséget. Hamar kiderült azonban, hogy ez Budapest felfedezésének egyik legszórakoztatóbb és legkényelmesebb módja. Ahelyett, hogy nagy távolságokat gyalogolnánk a hőségben, EZRaiderrel haladunk, élvezzük a szellőt és az utazást, és viszonylag rövid idő alatt rengeteg mindent látunk a városból.\n\nAz útvonal gyönyörű tájakon és olyan helyeken vezet át, ahová egy hagyományos kiránduláson talán el sem jutottunk volna, vagy fel sem fedeztük volna őket. Számunkra ez tökéletes városismertető túra is volt: útközben megláttunk néhány helyet, amely megtetszett, később pedig gyalog, a saját tempónkban visszatértünk oda.\n\nÉs külön szeretném megdicsérni a csapatot — egyszerűen csodálatosak!\n\nKülönösen Liorit és Yehudát, akik kedvesek, türelmesek, figyelmesek és jókedvűek voltak, és még emlékezetesebbé tették az élményt.\n\nRemek program családoknak, még egy olyan nagy csoportnak is, mint a miénk, ilyen eltérő életkorú résztvevőkkel. Különleges, könnyed és élvezetes módja Budapest megismerésének, amelynek során sokkal többet láthatunk a városból.\n\nSzívből ajánljuk!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-2",
@@ -49,7 +50,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1067161479-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -64,7 +65,8 @@
         "he": "יצאנו לסיור איזיריידר בבודפשט, והכול היה פשוט מושלם. היינו עם שתי הבנות שלנו, בנות 9 ו־6, ושתיהן אמרו שזו הייתה החוויה הטובה ביותר בכל השבוע שלנו בבודפשט. היינו בקבוצה קטנה, כך שהחוויה הייתה ממש אישית :)\n\nיהודה היה מדריך נפלא, וגם העוזר שלו נדב היה נהדר. הסיור היה נעים, מהנה ומאורגן היטב, והכלי עצמו היה ממש מגניב, איכותי ומרגש לרכיבה.\n\nזו תמורה מצוינת לכסף!!\n\nזו הייתה חוויה כל כך מיוחדת ובלתי נשכחת לכל המשפחה. ממליצים בחום!",
         "hu": "Részt vettünk egy Easy Rider-túrán Budapesten, és minden tökéletes volt. Két lányunk, a 9 és a 6 éves is velünk volt, és mindketten azt mondták, hogy ez volt a Budapesten töltött egész hetünk legjobb élménye. Kis csoportban mentünk, így a program igazán személyes hangulatú volt :)\n\nYehuda csodálatos idegenvezető volt, és az asszisztense, Nadav is nagyszerűen dolgozott. A túra kellemes, vidám és jól szervezett volt, maga a jármű pedig nagyon menő, jó minőségű és izgalmas vezetni.\n\nAz ár-érték arány egyszerűen kiváló!!\n\nAz egész család számára különleges és emlékezetes élmény volt. Nagyon ajánljuk!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-3",
@@ -77,7 +79,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1032613008-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -92,7 +94,8 @@
         "he": "הצטרפנו לסיור EZRaider בבודפשט, וזו הייתה חוויה מדהימה! הייתי עם אמא שלי, וזה בהחלט היה אחד משיאי הטיול שלנו.\n\nהסיור התחיל ב־9:45 בהסבר ברור על כלי ה־EZRaider ועל כל כללי הבטיחות החשובים. לפני שיצאנו לדרך, המדריכים ניב ומנדי דאגו שכולם ירגישו בנוח עם הכלי, ואפשרו לכל אחד נסיעת ניסיון קצרה. אם מישהו לא נראה בטוח מספיק, הם לא שלחו אותו לסיור — מה שגרם לנו להרגיש בטוחים מאוד והראה עד כמה הם שמים לב לכל פרט קטן.\n\nהרכיבה עצמה הייתה נפלאה — חצינו את גשר אליזבת שמחבר בין בודה לפשט, והמשכנו עד לבאסטיון הדייגים, שם עשינו הפסקה נעימה ונהנינו מהנוף.\n\nמילה מיוחדת לניב, שהיה פשוט יוצא מן הכלל! הוא קיבל את כולם בחיוך גדול והפיץ אנרגיות טובות לאורך כל הסיור. הוא צילם תמונות, התבדח, שיחק עם הילדים, ובאותו זמן העניק לכולנו תחושת ביטחון והנאה. הוא מקצועי מאוד, וסיפר על ההיסטוריה ועל סיפורי העיר בצורה קלילה ומעניינת, בלי לפספס אף פרט.\n\nמנדי, המדריך השני, דאג שהכול יתנהל בצורה חלקה ובטוחה בכבישים. גם הוא שמר על אווירה קלילה ומצחיקה, ובהחלט תרם לחוויה הכוללת.\n\nזה היה סיור מיוחד, כיפי ומאורגן היטב. בהחלט נזכור אותו ונמליץ עליו לחברים ולמשפחה. אם אתם בבודפשט ומחפשים משהו מיוחד — אל תפספסו!",
         "hu": "Részt vettünk a budapesti EZRaider-túrán, és fantasztikus élményünk volt! Anyukámmal mentem, és ez egyértelműen az utazásunk egyik fénypontja lett.\n\nA túra 9:45-kor kezdődött: érthetően bemutatták az EZRaider járművet és az összes fontos biztonsági szabályt. Indulás előtt az idegenvezetők, Niv és Mendy gondoskodtak arról, hogy mindenki magabiztosan kezelje a járművet: mindenkinek lehetőséget adtak egy rövid próbakörre. Ha valaki nem tűnt eléggé biztosnak a vezetésben, nem engedték elindulni a túrára. Ettől nagyon biztonságban éreztük magunkat, és látszott, hogy a legapróbb részletekre is odafigyelnek.\n\nMaga az út fantasztikus volt: átkeltünk a Budát és Pestet összekötő Erzsébet hídon, majd felmentünk egészen a Halászbástyáig, ahol kellemes pihenőt tartottunk, és gyönyörködtünk a kilátásban.\n\nKülön dicséret illeti Nivet, aki egyszerűen kiemelkedő volt! Mindenkit széles mosollyal fogadott, és az egész csapatot jó energiával töltötte fel. Fényképezett, viccelődött, játszott a gyerekekkel, miközben végig biztonságban és remekül éreztük magunkat. Nagyon profi, a város történelmét és történeteit könnyed, mégis lebilincselő módon mesélte el, egyetlen fontos részletet sem kihagyva.\n\nMendy, a második idegenvezető, gondoskodott arról, hogy az utakon minden gördülékenyen és biztonságosan menjen. Könnyed, vidám hangulatot teremtett, és sokat hozzátett az egész élményhez.\n\nEz a túra egyedülálló, szórakoztató és kiválóan szervezett volt. Biztosan emlékezni fogunk rá, és ajánljuk a barátainknak és a családunknak. Ha Budapesten jártok, és valami különlegeset kerestek, ezt nem szabad kihagyni!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-4",
@@ -105,7 +108,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1044667552-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -120,7 +123,8 @@
         "he": "הזמנו את הסיור הזה כי חיפשנו משהו מיוחד, ובאמת נהנינו מכל רגע. כלי האיזיריידר עצמם נהדרים — בטוחים מאוד, יציבים וכיפיים לרכיבה (הרבה יותר נוחים מקורקינטים רגילים).\n\nאבל מה שהפך את החוויה לבלתי נשכחת באמת היה המדריך שלנו, יהודה. הוא היה פשוט מצוין! מקצועי, סבלני, וסיפר סיפורים נהדרים על העיר בצורה כיפית ומעניינת. השירות היה יוצא דופן מתחילת הסיור ועד סופו.\n\nאם אתם מבקרים בבודפשט, אל תפספסו את האטרקציה הזאת. זו הדרך המושלמת לגלות את העיר בלי להתעייף. ממליצים בחום!",
         "hu": "Valami különleges programot kerestünk, amikor lefoglaltuk ezt a túrát, és tényleg minden percét élveztük. Az EZRaider járművek fantasztikusak: nagyon biztonságosak, stabilak és szórakoztató velük közlekedni (sokkal kényelmesebbek, mint a hagyományos rollerek).\n\nAmi azonban igazán felejthetetlenné tette az élményt, az idegenvezetőnk, Yehuda volt. Egyszerűen kiváló! Profi és türelmes volt, és remek történeteket mesélt a városról, szórakoztató és érdekes módon. A kiszolgálás az elejétől a végéig rendkívüli volt.\n\nHa Budapestre látogattok, ne hagyjátok ki ezt a programot! Tökéletes módja a város felfedezésének anélkül, hogy elfáradnátok. Nagyon ajánljuk!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-5",
@@ -133,7 +137,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.uk/ShowUserReviews-g274887-d24081931-r1075469554-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -148,7 +152,8 @@
         "he": "ללא ספק - רגע שיא בטיול, בזכות הארגון המעולה והסיור המצוין. משלב ההזמנה ועד היציאה למסלול, היו איתנו בקשר וענו לכל שאלה ובקשה. הסיור עצמו היה מעניין ומתוכנן היטב. מומלץ בחום!",
         "hu": "Kétségkívül az utazás egyik csúcspontja volt, a remek szervezésnek és a kiváló túrának köszönhetően. A foglalástól egészen az indulásig folyamatosan tartották velünk a kapcsolatot, és minden kérdésünkre és kérésünkre válaszoltak. Maga a túra érdekes és jól megtervezett volt. Szívből ajánljuk!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-6",
@@ -161,7 +166,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1070436039-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -176,7 +181,8 @@
         "he": "חוויה מדהימה שלא כדאי לפספס!!!\nאם אתם מגיעים לבודפשט – תתחילו את הטיול עם איזיריידר. מעבר לחוויה המיוחדת, הצוות המקצועי והמסור מחבר אתכם לעיר, לאתרים המרכזיים ולסיפורים שמאחוריהם, עם המון טיפים שימושיים להמשך הטיול.\nנהנינו מכל רגע, ואין ספק שזו הייתה הדרך הכי טובה לפתוח את הביקור בבודפשט. מומלץ בחום!",
         "hu": "Fantasztikus élmény, amit nem szabad kihagyni!!!\n\nHa Budapestre érkeztek, kezdjétek az utazást egy EZRaider-túrával. A különleges élmény mellett a profi, elkötelezett csapat bemutatja a várost, a főbb látnivalókat és a mögöttük rejlő történeteket, ráadásul rengeteg hasznos tippet ad a kirándulás további részéhez.\n\nMinden pillanatát élveztük, és kétségtelenül ez volt a legjobb módja annak, hogy megkezdjük budapesti látogatásunkat. Nagyon ajánljuk!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-7",
@@ -189,7 +195,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1040093361-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -204,7 +210,8 @@
         "he": "זו הפעם השניה שלנו עם טיולי האיזיריידר של VOY PRO (הפעם נסענו בהרכב של שני זוגות חברים) והפעם יצאנו לתור את אזור האי מרגיט.\nהטיול היה מהמם ומהנה. המדריך שלנו היה ניב המקסים, שהדריך אותנו עם המון סבלנות ודאגה ושיתף אותנו בהמון ידע מקצועי על האתרים שבהם ביקרנו בדרך. החוויה היתה חדשה וכיפית ולא רצינו שתיגמר. מקווים לחזור שוב בקרוב...תודה לכם.",
         "hu": "Ez már a második alkalom volt, hogy a VOY PRO EZRaider-túráján vettünk részt (ezúttal két baráti házaspárral mentünk), és most a Margit-sziget környékét fedeztük fel.\n\nA túra csodálatos és nagyon élvezetes volt. Idegenvezetőnk a kedves Niv volt, aki nagy türelemmel és odafigyeléssel vezetett minket, és rengeteg szakszerű információt osztott meg az útközben meglátogatott látnivalókról. Újszerű, szórakoztató élmény volt, és nem akartuk, hogy véget érjen. Reméljük, hamarosan ismét visszatérhetünk... Köszönjük nektek!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-8",
@@ -217,7 +224,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.co.il/ShowUserReviews-g274887-d24081931-r1073482527-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -232,7 +239,8 @@
         "he": "עשינו היום סיור של 10 אנשים, כולל ילדים ותינוקת, וזו הייתה אחת החוויות הכי מהנות וכיפיות שהיו לנו!\nגל ליווה אותנו לאורך כל הסיור והיה קשוב, אכפתי וסבלני לכולם. תוך כדי הסיור הוא גם נתן לנו סקירה מרתקת על העיר, עם המון ידע והסברים מעניינים.\n\nהכול היה פשוט מושלם! חוויה מדהימה, שירות מעולה ומדריך מקסים. ממליצים בחום!",
         "hu": "Ma egy tízfős túrán vettünk részt, gyerekekkel és egy kisbabával együtt, és ez volt az egyik legélvezetesebb és legszórakoztatóbb élményünk!\n\nGal végig velünk volt, mindenkire figyelt, gondoskodó és türelmes volt. Az út során a városról is lenyűgöző ismertetőt tartott, rengeteg érdekes információval és magyarázattal.\n\nEgyszerűen minden tökéletes volt! Fantasztikus élmény, kiváló szolgáltatás és nagyszerű idegenvezető. Szívből ajánljuk!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-9",
@@ -245,7 +253,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1039251373-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -260,7 +268,8 @@
         "he": "עשינו טיול עם יהודה מהמדריכים של EasyRiders והיה פשוט מעולה!\nיהודה הצליח לשלב בין רכיבה כיפית ומהנה לבין הסברים מרתקים על ההיסטוריה, התרבות והסביבה. הוא העביר את המידע בצורה ברורה, מעניינת ומלאת תשוקה, והוסיף לטיול ערך ענק מעבר לחוויה עצמה. מרגישים שמדובר במדריך מקצועי, סבלני ובעל ידע עצום.\n\nממליצה בחום על טיול עם יהודה – זו חוויה שלא שוכחים!",
         "hu": "Yehudával, az EasyRiders egyik idegenvezetőjével mentünk túrázni, és egyszerűen nagyszerű volt!\n\nYehuda remekül ötvözte az élvezetes és szórakoztató utazást a történelemről, a kultúráról és a környékről szóló izgalmas magyarázatokkal. Az információkat világosan, érdekesen és őszinte lelkesedéssel adta át, így maga a túra sokkal többet nyújtott egy egyszerű járműves élménynél. Érezni, hogy profi, türelmes idegenvezető, hatalmas tudással.\n\nSzívből ajánlok egy túrát Yehudával — felejthetetlen élmény!"
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "tripadvisor-10",
@@ -273,7 +282,7 @@
       "link_kind": "review",
       "review_url": "https://www.tripadvisor.ie/ShowUserReviews-g274887-d24081931-r1037902149-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
       "source_verified": true,
-      "full_text_verified": false,
+      "full_text_verified": true,
       "approved": false,
       "evidence": {
         "status": "official_platform_listing_only_text_pending",
@@ -288,7 +297,8 @@
         "he": "חוויה מטורפת!!! אסור לפספס את זה\nהיינו זוג + 3 ילדים (10,13,16) בהרכב של 3 רוכבים ו 2 מורכבים. כולנו חזרנו עם ניצוצות בעיניים מלאים באדרנלין ואורות הנופים, הנסיעה על האיזיריידר וחשוב לשבח את המדריך ניב שהיה מהמם מקצועי שירותי ואדיב כולל מנדי שנמצא איתנו על מנת לסייע ולשמור על כל טור הרוכבים.",
         "hu": "Elképesztő élmény!!! Ezt nem szabad kihagyni!\n\nEgy pár és három gyerek (10, 13 és 16 évesek) voltunk, három vezetővel és két utassal. Mindannyian csillogó szemmel, adrenalinnal telve tértünk vissza, a gyönyörű látvány és az EZRaiderrel megtett út hatása alatt. Külön dicséret illeti idegenvezetőnket, Nivet, aki fantasztikus, profi, segítőkész és kedves volt, valamint Mendyt, aki velünk tartott, hogy segítsen és ügyeljen az egész járműsor biztonságára."
       },
-      "translation_review_status": "draft_pending_editorial_review"
+      "translation_review_status": "draft_pending_editorial_review",
+      "source_review_status": "source_verified_editorial_pending"
     },
     {
       "id": "google-1",
