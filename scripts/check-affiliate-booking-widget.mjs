@@ -48,6 +48,7 @@ class Element {
   appendChild(el){this.children.push(el);return el;}
   replaceChildren(...els){this.children=[...els];}
   querySelectorAll(selector){return selector==='button'?this.children.filter(x=>x.tagName==='button'):[];}
+  focus(){this.focused=true;}
   scrollIntoView(){}
 }
 function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false}={}){
@@ -157,6 +158,7 @@ async function chooseFirstDeparture(app){
   await flush();
   app.search.elements.experience.value='exp_bud_buda';
   await app.search.elements.experience.trigger('change');
+  app.search.elements.language.value='he';
   app.search.elements.date.value=budapestToday();
   await app.search.trigger('submit');
   const button=app.elements['#slots'].children[0];
@@ -175,9 +177,36 @@ async function flush(){
 {
   const app=mount();
   await flush();
+  app.search.elements.experience.value='exp_bud_buda';
+  await app.search.elements.experience.trigger('change');
+  app.search.elements.date.value=budapestToday();
+  await app.search.trigger('submit');
+  assert(!app.calls.some(call=>call.key.includes('/availability?')),
+    'No customer should enter partner availability without explicitly choosing guiding language');
+  assert.match(app.elements['#status'].textContent,/Choose a guiding language/i);
+  assert(app.search.elements.language.focused,'Missing language selection should receive keyboard focus');
+  app.search.elements.language.value='fr';
+  await app.search.trigger('submit');
+  assert(!app.calls.some(call=>call.key.includes('/availability?')),
+    'An unsupported language is not equivalent to a valid customer choice');
+  app.search.elements.language.value='he';
+  await app.search.trigger('submit');
+  assert(app.calls.some(call=>call.key.includes('/availability?')),
+    'A catalog-supported explicit choice should permit availability search');
+  const slot=app.elements['#slots'].children[0];
+  assert(slot?.listeners.click,'A valid explicit guiding language should allow selecting a departure');
+  await slot.trigger('click');
+  const hold=app.calls.find(call=>call.key==='/api/v1/holds'&&call.payload);
+  assert.equal(hold?.payload.guide_language,'he',
+    'The exact customer-selected guiding language must persist in the hold');
+}
+{
+  const app=mount();
+  await flush();
   assert.equal(app.calls[0].key,'/api/v1/experiences?destination=budapest');
   app.search.elements.experience.value='exp_bud_buda';
   await app.search.elements.experience.trigger('change');
+  app.search.elements.language.value='he';
   app.search.elements.private.checked=true;
   await app.search.elements.private.trigger('change');
   app.search.elements.date.value=budapestToday();
