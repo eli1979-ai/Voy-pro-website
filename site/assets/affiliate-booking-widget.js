@@ -68,7 +68,7 @@
       <section class="card" aria-label="VOY PRO partner booking">
         <div class="partner">VOY PRO · Partner booking</div>
         <h2>Book your Budapest EZRaider tour</h2>
-        <p class="muted">Choose your experience and see your partner price. All bookings are confirmed by VOY PRO.</p>
+        <p class="muted">Choose your experience and see your partner price. VOY PRO handles booking confirmations; some departure requests need staff approval.</p>
         <form id="search">
           <div class="fields">
             <label>Tour <select name="experience" required><option value="">Loading tours…</option></select></label>
@@ -76,7 +76,7 @@
             <label>Independent riders (16+) <input name="riders" type="number" min="1" max="12" value="2" required></label>
             <label>Child passengers (3–15) <input name="children" type="number" min="0" max="12" value="0" required></label>
             <label>Baby passengers (1–2) <input name="babies" type="number" min="0" max="12" value="0" required></label>
-            <label>Guiding language for your group <select name="language" required aria-required="true" aria-describedby="voy-partner-guide-language-help" disabled><option value="">Choose guiding language</option></select><small class="hint" id="voy-partner-guide-language-help">Choose the language for the tour, separately from the page language. No language is selected automatically.</small></label>
+            <label>Requested guiding language <select name="language" required aria-required="true" aria-describedby="voy-partner-guide-language-help" disabled><option value="">Choose guiding language</option></select><small class="hint" id="voy-partner-guide-language-help">Choose the language you would like for your tour. Our team will verify that an assigned guide can provide it; it is not confirmed simply by selecting it.</small></label>
           </div>
           <label class="check"><input name="private" type="checkbox"> Private tour (additional charge)</label>
           <div class="actions"><button type="submit" id="searchButton">Check availability</button></div>
@@ -116,6 +116,9 @@
     const experienceSelect=form.elements.experience;
     const dateField=form.elements.date;
     const languageSelect=form.elements.language;
+    const languageNames={en:'English',he:'Hebrew',hu:'Hungarian',es:'Spanish',pt:'Portuguese'};
+    const guideLabel=()=>languageNames[selectedGuideLanguage()]||
+      String(selectedGuideLanguage()||'').toUpperCase();
     // The shared Budapest catalog is authoritative for guiding languages.
     // Do not infer from the partner page's language, or silently accept NULL.
     function selectedGuideLanguage(){
@@ -428,6 +431,7 @@
       const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
       box.append(textNode('h3','Your confirmation request was received'));
       box.append(textNode('p','Request reference: '+reference));
+      box.append(textNode('p','Requested guiding language: '+guideLabel()));
       box.append(textNode('p','This is not a confirmed booking. VOY PRO staff will review your requested time and contact you before any payment or reservation is confirmed.'));
       setStatus('Request sent for human review.','success');
     }
@@ -441,6 +445,8 @@
       box.append(textNode('h3','Your booking has been received'));
       box.append(textNode('p','Reference: '+(reference||'Your confirmation')));
       box.append(textNode('p','Status: '+(result||'confirmed')));
+      box.append(textNode('p','Requested guiding language: '+guideLabel()));
+      box.append(textNode('p','Language coverage will be confirmed with the assigned guide and staff; this request is not a guarantee of a particular guide.'));
       if(token){
         const a=document.createElement('a');a.href='https://voy-pro.com/manage/#token='+encodeURIComponent(token);
         a.textContent='Manage your booking securely';a.rel='noopener noreferrer';a.target='_blank';box.append(a);
@@ -466,7 +472,7 @@
       empty.textContent=offered.length?'Choose guiding language':'Guide languages unavailable — contact VOY PRO';
       languageSelect.append(empty);
       for(const lang of offered){
-        const opt=document.createElement('option');opt.value=lang;opt.textContent=lang.toUpperCase();
+        const opt=document.createElement('option');opt.value=lang;opt.textContent=languageNames[lang]||lang.toUpperCase();
         languageSelect.append(opt);
       }
       languageSelect.value='';
