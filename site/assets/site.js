@@ -30,7 +30,7 @@
   const isBudapestPage=routePath.includes('/budapest/');
   const isLegalPage=routePath.includes('/legal/');
   // Shared EZRaider guide: customer may arrive from any VOY PRO destination.
-  const vehicleGuideSource=/^\/(?:he\/|hu\/)?ezraider\/$/.test(routePath)?new URLSearchParams(location.search).get('from'):null;
+  const vehicleGuideSource=/^\/(?:he\/|hu\/|pt\/)?ezraider\/$/.test(routePath)?new URLSearchParams(location.search).get('from'):null;
   const destinationId=isPortugalPage?'portugal-marvao':isBudapestPage?'budapest':'network';
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
