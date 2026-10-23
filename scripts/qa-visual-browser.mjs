@@ -98,10 +98,29 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,booking=fals
         name+' offers three local route request links');
     }
     if(b2b){
-      check(await page.locator('[data-b2b-planner="'+b2b+'"]').count()===1,
+      const planner=page.locator('[data-b2b-planner="'+b2b+'"]');
+      check(await planner.count()===1,
         name+' displays dedicated '+b2b+' B2B planner');
-      check(await page.locator('[data-b2b-planner] [name="guide_language"]').count()===1,
-        name+' B2B planner asks for guide language');
+      const language=planner.locator('select[name="guide_language"]');
+      const englishRow=planner.locator('.b2b-english-check');
+      const english=planner.locator('input[name="english_ok"]');
+      check(await language.count()===1,name+' B2B planner asks for guide language');
+      check(await english.count()===1,name+' offers one explicit fallback option');
+      check(!(await english.isChecked()),name+' English fallback starts unanswered');
+      check(!(await englishRow.isVisible())&&await english.isDisabled(),
+        name+' English fallback is hidden until a non-English choice');
+      await language.selectOption('he');
+      check(await englishRow.isVisible()&&await english.isEnabled(),
+        name+' non-English primary shows optional English question');
+      await english.check();
+      check(await english.isChecked(),name+' customer can explicitly accept alternative');
+      await language.selectOption('hu');
+      check(!(await english.isChecked())&&await english.isEnabled(),
+        name+' changing non-English language clears previous acceptance');
+      await english.check();
+      await language.selectOption('en');
+      check(!(await english.isChecked())&&await english.isDisabled()&&!(await englishRow.isVisible()),
+        name+' English primary cannot inherit or duplicate fallback acceptance');
     }
     if(localWhatsApp){
       const links=await page.locator('a[href^="https://wa.me/"]').evaluateAll(anchors=>
@@ -191,7 +210,11 @@ try{
     ['budapest-hu-family-narrow','/hu/budapest/with-kids/',narrow,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-private-mobile','/budapest/private-tours/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-groups-mobile','/budapest/group-tours/',mobile,{booking:true,b2b:'group',localWhatsApp:budapest}],
+    ['budapest-he-groups-mobile','/he/budapest/group-tours/',mobile,{booking:true,b2b:'group',localWhatsApp:budapest}],
+    ['budapest-hu-groups-narrow','/hu/budapest/group-tours/',narrow,{booking:true,b2b:'group',localWhatsApp:budapest}],
     ['budapest-en-corporate-desktop','/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
+    ['budapest-he-corporate-mobile','/he/budapest/corporate-events/',mobile,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
+    ['budapest-hu-corporate-desktop','/hu/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
     ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
     ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
     ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],

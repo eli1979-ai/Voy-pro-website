@@ -776,6 +776,7 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 .b2b-planner-fields textarea{resize:vertical;min-height:80px}
 .b2b-field-wide{grid-column:1/-1}
 .b2b-english-check{display:flex;gap:10px;align-items:flex-start;margin-top:15px;font-size:13px;font-weight:650}
+.b2b-english-check[hidden]{display:none!important}
 .b2b-english-check input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:#0d4d7c}
 .b2b-planner-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:17px}
 .b2b-planner-actions p{margin:0;font-size:12px;color:#485c68;line-height:1.6}
