@@ -211,6 +211,18 @@ try{
     'RTB server relay safety regression: '+String(error.stderr||error.message||error).slice(0,1200));
 }
 
+// Compose the real request-only browser module and server relay in a local
+// synthetic integration; no external CRM mutation or public feature activation.
+try{
+  const output=execFileSync(process.execPath,['scripts/check-rtb-browser-relay-integration.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:15000,
+  });
+  console.log(output.trim());
+}catch(error){
+  fail('api/request-to-book.js',
+    'Budapest browser/server contract regression: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
 // The partner booking flow is executed with mocked FBM routes during every
 // site build / launch QA, not only scanned for static file presence.
 try{
