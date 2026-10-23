@@ -16,8 +16,7 @@
 .vp-reviews-viewport::-webkit-scrollbar{display:none}
 .vp-reviews-viewport.is-dragging{cursor:grabbing;user-select:none}
 .vp-reviews-track{display:flex;align-items:stretch;gap:0;width:max-content;direction:ltr}
-.vp-review-group--before{order:-1}
-.vp-review-group--after{order:1}
+/* DOM order is before → accessible reviews → after; do not CSS-reorder groups. */
 .vp-review-group{display:flex;gap:12px;padding-inline-end:12px;align-items:stretch;flex:none}
 .vp-review-card{flex:0 0 clamp(245px,25vw,310px);width:clamp(245px,25vw,310px);background:#fff;border:1px solid #d8e5e9;border-radius:14px;padding:13px 15px 12px;box-shadow:0 8px 22px #133c4810;min-width:0;display:flex;flex-direction:column;gap:8px;direction:auto;height:282px;touch-action:pan-y}
 .vp-review-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
