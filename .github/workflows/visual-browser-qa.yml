@@ -31,10 +31,10 @@ jobs:
           node-version: '22'
       - name: Build static website and run standard regression checks
         run: npm run build
-      - name: Install Chromium test-only (no production dependency)
+      - name: Use hosted-runner Chrome (no browser download or production dependency)
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
+          google-chrome --version
       - name: Real browser desktop, mobile, RTL and branch navigation checks
         run: node scripts/qa-visual-browser.mjs
       - name: Upload screenshots and results even after a failed assertion
