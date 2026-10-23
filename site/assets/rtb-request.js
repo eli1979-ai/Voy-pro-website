@@ -21,6 +21,7 @@
       submit:'Request availability',note:'We will try to send your enquiry securely. If request intake is unavailable, WhatsApp opens with a prefilled message that you must send yourself. Only a reference shown here means the enquiry was received; it is never a reservation.',
       sending:'Sending enquiry…',success:'Enquiry received for human review. This is not a confirmed booking or availability guarantee.',reference:'Request reference',
       unavailable:'Request delivery could not be verified. Retry without editing your details, or contact our team manually. Do not assume an enquiry was received.',
+      rateLimited:'Too many enquiries were sent recently. Please wait a few minutes before retrying with the same details. Delivery is unverified; this is not a booking.',
       conflict:'This enquiry ID belongs to different details. Please contact our team; no new request has been accepted.',
       rejected:'The date, time or other details were rejected. Review your selection and try again.',
       needsWhatsApp:'Secure enquiry intake is disabled. WhatsApp is opening with your prefilled enquiry; you must send it yourself.',
@@ -33,6 +34,7 @@
       submit:'בקשת זמינות',note:'ננסה לשלוח את הפנייה באופן מאובטח. אם קליטת הפניות אינה פעילה, ייפתח WhatsApp עם הודעה מוכנה שתצטרכו לשלוח בעצמכם. רק מספר פנייה שיוצג כאן מעיד על קליטה, ואינו הזמנה.',
       sending:'שולחים פנייה…',success:'הפנייה התקבלה לבדיקה אנושית. זו אינה הזמנה מאושרת או הבטחה לזמינות.',reference:'מספר פנייה',
       unavailable:'לא ניתן לאמת שהפנייה נמסרה. נסו שוב בלי לשנות את הפרטים או צרו קשר ידנית. אין להניח שהפנייה נקלטה.',
+      rateLimited:'נשלחו יותר מדי בקשות בזמן קצר. המתינו מספר דקות ונסו שוב בלי לשנות את הפרטים. לא ניתן לאמת את קליטת הפנייה; זו אינה הזמנה.',
       conflict:'מספר הפנייה כבר קשור לפרטים אחרים. פנו לצוות; לא התקבלה פנייה חדשה.',
       rejected:'התאריך, השעה או פרטים אחרים נדחו. בדקו את הפרטים ונסו שוב.',
       needsWhatsApp:'קליטה מאובטחת אינה פעילה. WhatsApp ייפתח עם פנייה מוכנה — יש לשלוח אותה בעצמכם.',
@@ -45,6 +47,7 @@
       submit:'Elérhetőség kérése',note:'Megpróbáljuk biztonságosan elküldeni a kérést. Ha a fogadása nem aktív, a WhatsApp nyílik meg előre kitöltött üzenettel, amelyet neked kell elküldened. Csak az itt megjelenő hivatkozási szám jelzi a fogadást, ez nem foglalás.',
       sending:'Kérés küldése…',success:'A kérés emberi elbírálásra megérkezett. Ez nem visszaigazolt foglalás vagy elérhetőség.',reference:'Kérés azonosítója',
       unavailable:'Nem sikerült ellenőrizni a kézbesítést. Próbáld újra az adatok módosítása nélkül, vagy keresd fel a csapatot. Nem biztos, hogy a kérés beérkezett.',
+      rateLimited:'Túl sok kérés érkezett rövid időn belül. Várj néhány percet, majd próbáld újra ugyanazokkal az adatokkal. A beérkezés nem ellenőrzött; ez nem foglalás.',
       conflict:'Ez a kérésazonosító más adatokhoz tartozik. Vedd fel a kapcsolatot a csapattal; új kérés nem érkezett.',
       rejected:'A dátum, az időpont vagy más adat nem fogadható el. Ellenőrizd az adatokat és próbáld újra.',
       needsWhatsApp:'A biztonságos kérések fogadása nem aktív. Megnyílik a WhatsApp üzenete, amelyet neked kell elküldened.',
@@ -213,6 +216,14 @@
         feedback.classList.add('voy-rtb-success');
         feedback.textContent=labels.success+' '+labels.reference+': '+outcome.requestId;
         submitButton.textContent=labels.success;
+        return;
+      }
+      if(response.status===429){
+        // Ingress may throttle before the relay responds. A prior attempt
+        // could still have reached CRM, so keep the identical request key
+        // for an explicit later retry. Never auto-send via WhatsApp.
+        feedback.textContent=labels.rateLimited;
+        manualLink();
         return;
       }
       if(response.status===404){
