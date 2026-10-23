@@ -77,7 +77,7 @@ for(const [page,locale] of locales){
     leftButton.includes('aria-hidden="true"')&&
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
-  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r6')&&
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r7')&&
     html.includes('/assets/budapest-review-ticker.css?v=20261023r6'),
     'every localized page must load current versioned review JavaScript and CSS: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
@@ -139,16 +139,30 @@ async function simulate(payload,lang='en',reducedMotion=false){
     createElement:node
   };
   const frames=[];
+  let motionListener;
+  const media={
+    matches:reducedMotion,
+    addEventListener(type,listener){
+      assert.equal(type,'change','ticker must listen for OS motion preference changes');
+      motionListener=listener;
+    }
+  };
   const win={matchMedia:query=>{
     assert(query==='(prefers-reduced-motion: reduce)','ticker must read OS reduced-motion setting');
-    return {matches:reducedMotion};
+    return media;
   },requestAnimationFrame:fn=>{frames.push(fn);}};
   const context={document:doc,window:win,
     fetch:async()=>({ok:true,json:async()=>payload}),Set,URL,Number,Object};
   vm.runInNewContext(script,context,{timeout:1500});
   // Let both promise continuations complete.
   for(let i=0;i<6;i++)await Promise.resolve();
-  return{root,track,pause,viewport,left,right,frames};
+  return{root,track,pause,viewport,left,right,frames,
+    changeMotion(next){
+      assert.equal(typeof motionListener,'function','OS motion listener must be registered');
+      media.matches=next;
+      motionListener({matches:next});
+    }
+  };
 }
 const sample=Array.from({length:20},(_,i)=>({
   approved:true,id:'synthetic-review-'+i,
@@ -202,6 +216,45 @@ for(const language of ['en','he','hu']){
 }
 
 assert(approved.track.children.length===3,'review track must contain a real group with repeated groups on both sides for looping');
+// Switching the OS preference while the website is open must cancel *old*
+// queued animation frames, never produce parallel loops, and never silently
+// restart the moving ribbon without a user's explicit Resume action.
+for(const language of ['en','he','hu']){
+  const liveMotion=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  assert.equal(liveMotion.frames.length,1,language+' starts with one scheduled frame');
+  const oldFrame=liveMotion.frames[0];
+  liveMotion.changeMotion(true);
+  assert.equal(liveMotion.pause.hidden,true,language+' hides unnecessary pause button on reduce');
+  assert.equal(liveMotion.root.classList.states.has('is-paused'),true);
+  const oldFrameCount=liveMotion.frames.length;
+  const stoppedAt=liveMotion.viewport.scrollLeft;
+  oldFrame(1000);
+  assert.equal(liveMotion.frames.length,oldFrameCount,
+    language+' invalidated old frame must not reschedule after reduce');
+  assert.equal(liveMotion.viewport.scrollLeft,stoppedAt,
+    language+' old queued frame must not move reviews after reduce');
+  liveMotion.changeMotion(false);
+  assert.equal(liveMotion.pause.hidden,false,language+' restores visible resume control');
+  assert.equal(liveMotion.root.classList.states.has('is-paused'),true,
+    language+' leaving reduced motion must not silently resume');
+  assert.equal(liveMotion.frames.length,oldFrameCount+1,
+    language+' leaving reduced motion schedules only one new loop');
+  const queued=liveMotion.frames.at(-1);
+  queued(1000);
+  assert.equal(liveMotion.viewport.scrollLeft,stoppedAt,
+    language+' a queued frame must not move without explicit Resume');
+  liveMotion.pause.events.click();
+  assert.equal(liveMotion.root.classList.states.has('is-paused'),false,
+    language+' explicit Resume must allow motion again');
+  const atResume=liveMotion.viewport.scrollLeft;
+  liveMotion.frames.at(-1)(1040);
+  assert(liveMotion.viewport.scrollLeft>atResume,
+    language+' scrolling must work after explicit Resume');
+  liveMotion.changeMotion(true);
+  assert.equal(liveMotion.root.classList.states.has('is-paused'),true,
+    language+' switching to reduced motion again must re-pause');
+}
+
 assert(approved.track.children[1]?.children?.length===20,'all 20 authentic review slots must display in the visible middle group');
 assert(approved.track.children[0]?.attrs?.['aria-hidden']==='true'&&
        approved.track.children[2]?.attrs?.['aria-hidden']==='true',
