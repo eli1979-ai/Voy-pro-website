@@ -68,7 +68,7 @@ const ptBody=fs.readFileSync('site/pt/ezraider/index.html','utf8');
 assert.ok(!ptBody.includes('Budapestee'),'Portuguese destination label must be Budapeste');
 assert.ok(ptBody.includes('hreflang="en" href="https://voy-pro.com/ezraider/"'),'Portuguese guide English hreflang must point to actual English page');
 assert.ok(ptBody.includes('hreflang="x-default" href="https://voy-pro.com/ezraider/"'),'Neutral default must be network English canonical');
-const siteStart=siteJs.indexOf("if(document.body?.dataset.intent==='vehicle'){",siteJs.indexOf('function enhanceMobileNavigation()'));
+const siteStart=siteJs.indexOf("if(document.body?.dataset?.intent==='vehicle'){",siteJs.indexOf('function enhanceMobileNavigation()'));
 const siteEnd=siteJs.indexOf('}else if(!isPortugalPage&&!isBudapestPage){',siteStart);
 assert.ok(siteStart>0&&siteEnd>siteStart,'Vehicle-specific mobile navigation branch required');
 const mobileVehicle=siteJs.slice(siteStart,siteEnd);
