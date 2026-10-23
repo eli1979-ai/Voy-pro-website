@@ -143,7 +143,9 @@ for(const {locale,prefix,home} of vehicleFiles){
     ['site/'+prefix+'budapest/tours/buda-castle-ezraider-tour/index.html','Buda tour']
   ]){
     const content=fs.readFileSync(file,'utf8');
-    if(!content.includes('href="'+href+'"'))failures.push(file+': missing vehicle page discovery link ('+desc+')');
+    const sourcePath='/'+file.slice('site/'.length).replace(/index[.]html$/,'');
+    const exactLink='href="'+href+'&amp;return_to='+encodeURIComponent(sourcePath)+'"';
+    if(!content.includes(exactLink))failures.push(file+': missing exact source-aware vehicle link ('+desc+')');
   }
 }
 const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
@@ -154,10 +156,10 @@ for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+p
 // The vehicle guide is shared across the VOY PRO network, but links preserve
 // destination-specific operating rules rather than implying Budapest tour rules apply in Marvão.
 for(const {page,href,locale,positionMarker} of [
-  {page:'site/index.html',href:'/ezraider/?from=home',locale:'en',positionMarker:'id="destinations"'},
-  {page:'site/portugal/index.html',href:'/ezraider/?from=marvao',locale:'en',positionMarker:'id="request"'},
-  {page:'site/pt/portugal/index.html',href:'/pt/ezraider/?from=marvao-pt',locale:'pt',positionMarker:'id="request"'},
-  {page:'site/he/portugal/index.html',href:'/he/ezraider/?from=marvao',locale:'he',positionMarker:'id="request"'}
+  {page:'site/index.html',href:'/ezraider/?from=home&amp;return_to=%2F',locale:'en',positionMarker:'id="destinations"'},
+  {page:'site/portugal/index.html',href:'/ezraider/?from=marvao&amp;return_to=%2Fportugal%2F',locale:'en',positionMarker:'id="request"'},
+  {page:'site/pt/portugal/index.html',href:'/pt/ezraider/?from=marvao-pt&amp;return_to=%2Fpt%2Fportugal%2F',locale:'pt',positionMarker:'id="request"'},
+  {page:'site/he/portugal/index.html',href:'/he/ezraider/?from=marvao&amp;return_to=%2Fhe%2Fportugal%2F',locale:'he',positionMarker:'id="request"'}
 ]){
   const html=fs.readFileSync(page,'utf8');
   const blocks=[...html.matchAll(/<section class="section ez-vehicle-bridge"[\s\S]*?<\/section>/g)];
