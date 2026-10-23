@@ -80,7 +80,7 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     check(response?.status()===200,name+' local partner host loads');
     const root=page.locator('#affiliate-target');
     const experience=root.locator('select[name="experience"]');
-    await experience.locator('option[value="'+tourId+'"]').waitFor({timeout:10000});
+    await experience.locator('option[value="'+tourId+'"]').waitFor({state:'attached',timeout:10000});
     check(await root.locator('h2').innerText()==='Book your Budapest EZRaider tour',
       name+' actual embedded widget renders');
     const language=root.locator('select[name="language"]');
