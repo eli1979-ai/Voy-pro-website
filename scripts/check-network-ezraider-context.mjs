@@ -57,6 +57,27 @@ for(const input of ['', '?from=https://evil.example','?from=%2F%2Fevil.example',
 }
 assert.equal(h(run('?from=budapest','hu'),'booking'),'/hu/budapest/#booking');
 assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
+
+// Cross-locale and mobile source routing regressions. Portuguese must retain
+// origin context when moving to EN/HE/HU and when using the mobile language row.
+const ptToEn=run('?from=marvao-pt','pt','/ezraider/?from=home');
+assert.equal(ptToEn.language.attributes.href,'/ezraider/?from=marvao-pt');
+const ptToHe=run('?from=marvao-pt','pt','/he/ezraider/?from=home');
+assert.equal(ptToHe.language.attributes.href,'/he/ezraider/?from=marvao-pt');
+const enToPt=run('?from=budapest','en','/pt/ezraider/?from=home');
+assert.equal(enToPt.language.attributes.href,'/pt/ezraider/?from=budapest');
+const ptBody=fs.readFileSync('site/pt/ezraider/index.html','utf8');
+assert.ok(!ptBody.includes('Budapestee'),'Portuguese destination label must be Budapeste');
+assert.ok(ptBody.includes('hreflang="en" href="https://voy-pro.com/ezraider/"'),'Portuguese guide English hreflang must point to actual English page');
+assert.ok(ptBody.includes('hreflang="x-default" href="https://voy-pro.com/ezraider/"'),'Neutral default must be network English canonical');
+const siteStart=siteJs.indexOf("if(document.body?.dataset.intent==='vehicle'){",siteJs.indexOf('function enhanceMobileNavigation()'));
+const siteEnd=siteJs.indexOf('}else if(!isPortugalPage&&!isBudapestPage){',siteStart);
+assert.ok(siteStart>0&&siteEnd>siteStart,'Vehicle-specific mobile navigation branch required');
+const mobileVehicle=siteJs.slice(siteStart,siteEnd);
+for(const marker of ["data-mobile-language-row","data-ez-context=\\"back\\"","data-ez-context=\\"booking\\"","mobileOriginBooking","mobileMarvaoHome","mobileBudapestHome","mobileOrigin==='home'"]){
+ assert.ok(mobileVehicle.includes(marker.replaceAll('\\\\','')),'Mobile guide navigation missing '+marker);
+}
+
 assert.equal(h(run('?from=marvao-pt','pt'),'back'),'/pt/portugal/');
 assert.equal(h(run('?from=marvao-pt','pt'),'booking'),'/pt/portugal/#request');
 assert.equal(h(run('?from=marvao','pt'),'booking'),'/pt/portugal/#request');
