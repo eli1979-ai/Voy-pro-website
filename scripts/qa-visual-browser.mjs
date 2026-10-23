@@ -30,14 +30,16 @@ const server=createServer(async(req,res)=>{
 await mkdir(out,{recursive:true});
 await new Promise(done=>server.listen(0,'127.0.0.1',done));
 const base='http://127.0.0.1:'+server.address().port;
-const browser=await chromium.launch({headless:true});
+// GitHub's hosted Ubuntu runner already includes Google Chrome; use the
+// system browser in CI instead of downloading a large Playwright Chromium.
+const browser=await chromium.launch({headless:true,...(process.env.CI?{channel:'chrome'}:{})});
 const results=[];
 let failures=0;
 function check(condition,label){
   if(!condition){failures++;results.push('FAIL: '+label);}
   else results.push('PASS: '+label);
 }
-async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
+async function visit(name,path,viewport,{fullPage=false,guide=false,booking=false,request=false,b2b=null,localWhatsApp=null,tourFloat=false}={}){
   const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
   const runtimeErrors=[];
   page.on('pageerror',error=>runtimeErrors.push(error.message));
@@ -58,11 +60,43 @@ async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
       heading:(document.querySelector('h1')?.textContent||'').trim(),
       hasNav:!!document.querySelector('.navlinks'),
       lang:document.documentElement.lang,
+      direction:document.documentElement.dir||getComputedStyle(document.documentElement).direction,
       ready:document.readyState
     }));
     check(metrics.heading.length>0,name+' visible semantic H1');
     check(metrics.scrollWidth<=metrics.width+2,name+' no horizontal page overflow ('+metrics.scrollWidth+'/'+metrics.width+')');
     check(metrics.hasNav,name+' has navigation');
+    check(await page.locator('footer').count()===1,name+' has exactly one footer');
+    if(path.startsWith('/he/'))check(metrics.direction==='rtl',name+' preserves Hebrew RTL direction');
+    if(booking){
+      check(await page.locator('#booking #availability-form').count()===1,name+' has one Budapest booking form');
+      for(const key of ['experience','date','adults','children','babies']){
+        check(await page.locator('#availability-form [name="'+key+'"]').count()===1,
+          name+' booking form includes '+key);
+      }
+    }
+    if(request){
+      check(await page.locator('#request [data-portugal-request-form]').count()===1,
+        name+' has local Marvão request form');
+      check(await page.locator('[data-portugal-tour]').count()===3,
+        name+' offers three local route request links');
+    }
+    if(b2b){
+      check(await page.locator('[data-b2b-planner="'+b2b+'"]').count()===1,
+        name+' displays dedicated '+b2b+' B2B planner');
+      check(await page.locator('[data-b2b-planner] [name="guide_language"]').count()===1,
+        name+' B2B planner asks for guide language');
+    }
+    if(localWhatsApp){
+      const links=await page.locator('a[href^="https://wa.me/"]').evaluateAll(anchors=>
+        anchors.map(a=>a.href));
+      check(links.length>0&&links.some(url=>url.startsWith('https://wa.me/'+localWhatsApp)),
+        name+' has local '+localWhatsApp+' WhatsApp link');
+      if(tourFloat){
+        check(await page.locator('a.tour-floating-whatsapp[href^="https://wa.me/'+localWhatsApp+'"]').count()===1,
+          name+' has destination-specific floating WhatsApp for request-only tour');
+      }
+    }
     await page.screenshot({path:join(out,name+'.png'),fullPage,animations:'disabled',timeout:20000});
     results.push('SCREENSHOT: '+name+'.png | '+viewport.width+'x'+viewport.height+' | '+metrics.lang+' | '+metrics.heading.slice(0,70));
     if(viewport.width<=800){
@@ -95,7 +129,13 @@ async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
       check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').count()===1,name+' has source-aware return link');
       check(await page.locator('.ez-destination-chooser').count()===1,name+' has destination chooser');
     }
-    if(runtimeErrors.length)results.push('BROWSER ERRORS '+name+': '+runtimeErrors.join(' | ').slice(0,1200));
+    // Silent JS failures can leave a page visually attractive but unusable.
+    // All third-party requests are blocked, so only local page script errors
+    // are counted; HTTP/network failures are intentionally not treated as JS errors.
+    if(runtimeErrors.length){
+      check(false,name+' has no uncaught JavaScript errors: '+runtimeErrors.join(' | ').slice(0,350));
+      results.push('BROWSER ERRORS '+name+': '+runtimeErrors.join(' | ').slice(0,1200));
+    }else check(true,name+' has no uncaught JavaScript errors');
     return page;
   }catch(e){
     failures++;results.push('FAIL: '+name+' browser error '+(e.stack||String(e)).slice(0,600));
@@ -105,13 +145,35 @@ async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
 }
 try{
   const desktop={width:1365,height:900},mobile={width:390,height:844},narrow={width:320,height:700};
+  const budapest='36300993099',marvao='351935695004';
+  // Sample the customer-facing funnel across source/destination, locale,
+  // RTL, 320px narrow screens, classic booking, RTB and B2B enquiry.
+  // These are smoke checks, not real payment/availability/API integrations.
   const scenarios=[
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{}],
-    ['budapest-he-mobile','/he/budapest/',mobile,{fullPage:true}],
-    ['budapest-hu-narrow','/hu/budapest/',narrow,{}],
-    ['marvao-pt-mobile','/pt/portugal/',mobile,{fullPage:true}],
-    ['marvao-en-desktop','/portugal/',desktop,{}],
+    ['budapest-en-desktop','/budapest/',desktop,{booking:true,localWhatsApp:budapest}],
+    ['budapest-en-mobile','/budapest/',mobile,{booking:true,localWhatsApp:budapest}],
+    ['budapest-he-mobile','/he/budapest/',mobile,{fullPage:true,booking:true,localWhatsApp:budapest}],
+    ['budapest-hu-narrow','/hu/budapest/',narrow,{booking:true,localWhatsApp:budapest}],
+    ['marvao-pt-mobile','/pt/portugal/',mobile,{fullPage:true,request:true,localWhatsApp:marvao}],
+    ['marvao-pt-narrow','/pt/portugal/',narrow,{request:true,localWhatsApp:marvao}],
+    ['marvao-he-mobile','/he/portugal/',mobile,{request:true,localWhatsApp:marvao}],
+    ['marvao-en-desktop','/portugal/',desktop,{request:true,localWhatsApp:marvao}],
+    ['budapest-he-family-mobile','/he/budapest/with-kids/',mobile,{booking:true,localWhatsApp:budapest}],
+    ['budapest-hu-family-narrow','/hu/budapest/with-kids/',narrow,{booking:true,localWhatsApp:budapest}],
+    ['budapest-en-private-mobile','/budapest/private-tours/',mobile,{booking:true,localWhatsApp:budapest}],
+    ['budapest-en-groups-mobile','/budapest/group-tours/',mobile,{booking:true,b2b:'group',localWhatsApp:budapest}],
+    ['budapest-en-corporate-desktop','/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
+    ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true}],
+    ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true}],
+    ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true}],
+    ['citadella-en-mobile','/budapest/tours/citadella-advanced-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true}],
+    ['citadella-he-narrow','/he/budapest/tours/citadella-advanced-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true}],
+    ['citadella-hu-desktop','/hu/budapest/tours/citadella-advanced-ezraider-tour/',desktop,{localWhatsApp:budapest,tourFloat:true}],
+    ['extended-en-mobile','/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest}],
+    ['extended-he-mobile','/he/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest}],
+    ['extended-hu-desktop','/hu/budapest/tours/buda-margaret-extended-tour/',desktop,{localWhatsApp:budapest}],
     ['guide-pt-mobile','/pt/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F',mobile,{fullPage:true,guide:true}],
     ['guide-he-mobile','/he/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fbuda-castle-ezraider-tour%2F',mobile,{guide:true}],
     ['guide-hu-desktop','/hu/ezraider/?from=budapest',desktop,{guide:true}]

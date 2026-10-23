@@ -2,8 +2,14 @@ name: VOY PRO browser visual QA
 on:
   pull_request:
     branches: [main]
+    # Run the real-browser gate when customer-facing layouts, interactions or
+    # the QA harness change; static content/docs-only PRs skip the extra runner.
     paths:
+      - 'site/**/*.html'
+      - 'site/assets/*.js'
+      - 'site/assets/*.css'
       - 'scripts/qa-visual-browser.mjs'
+      - 'scripts/check-hu-dynamic-translations.mjs'
       - '.github/workflows/visual-browser-qa.yml'
   workflow_dispatch:
 
@@ -11,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: browser-visual-qa-${{ github.ref }}
+  group: browser-visual-qa-system-chrome-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -25,10 +31,10 @@ jobs:
           node-version: '22'
       - name: Build static website and run standard regression checks
         run: npm run build
-      - name: Install Chromium test-only (no production dependency)
+      - name: Use hosted-runner Chrome (no browser download or production dependency)
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
-          npx playwright install --with-deps chromium
+          google-chrome --version
       - name: Real browser desktop, mobile, RTL and branch navigation checks
         run: node scripts/qa-visual-browser.mjs
       - name: Upload screenshots and results even after a failed assertion
