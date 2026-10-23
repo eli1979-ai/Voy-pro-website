@@ -53,7 +53,15 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,booking=fals
       // Never fetch the public domain, payment/FBM APIs or external resources.
       if(['voy-pro.com','www.voy-pro.com'].includes(requested.hostname)&&
         requested.protocol==='https:'&&requested.pathname.startsWith('/assets/')){
-        return route.continue({url:base+requested.pathname+requested.search});
+        // Playwright route.continue forbids changing HTTPS to HTTP. Fulfill
+        // the request with bytes read only from the local static test server.
+        const local=await fetch(base+requested.pathname+requested.search);
+        const body=Buffer.from(await local.arrayBuffer());
+        return route.fulfill({
+          status:local.status,
+          body,
+          contentType:local.headers.get('content-type')||'application/octet-stream'
+        });
       }
     }catch{}
     return route.abort();
