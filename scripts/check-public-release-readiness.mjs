@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export function assessPublicRelease(siteDir = path.resolve('site'), attestationFile = path.resolve('launch/production-environment.json')) {
+export function assessPublicRelease(siteDir = path.resolve('site'), attestationFile = path.resolve('launch/production-environment.json'), deploymentConfigFile = path.resolve('vercel.json')) {
   const failures = [];
   const read = (name) => {
     try { return fs.readFileSync(path.join(siteDir, name), 'utf8'); }
@@ -20,6 +20,21 @@ export function assessPublicRelease(siteDir = path.resolve('site'), attestationF
   const robots = read('robots.txt');
   const sitemap = read('sitemap.xml');
   const home = read('index.html');
+  // The public alias currently belongs to the Staging project. In addition
+  // to a verified distinct Production project, its Vercel configuration must
+  // stop returning a global noindex HTTP header before any SEO cutover.
+  // Retain /manage/ noindex for private booking links.
+  let vercelConfig;
+  try { vercelConfig = JSON.parse(fs.readFileSync(deploymentConfigFile,'utf8')); }
+  catch { failures.push('Vercel deployment config is missing or invalid JSON'); vercelConfig = {}; }
+  const globalRobotRules=(vercelConfig.headers||[])
+    .filter(rule=>['/(.*)','/:path*'].includes(rule.source))
+    .flatMap(rule=>Array.isArray(rule.headers)?rule.headers:[]);
+  if(globalRobotRules.some(header=>
+      String(header.key||'').toLowerCase()==='x-robots-tag'&&
+      /\bnoindex\b/i.test(String(header.value||'')))){
+    failures.push('Production Vercel config must not globally declare X-Robots-Tag noindex');
+  }
   let release;
   try { release = JSON.parse(releaseText); }
   catch { failures.push('release.json must contain valid JSON'); release = {}; }
