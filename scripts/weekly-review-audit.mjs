@@ -59,7 +59,8 @@ function render(reference=new Date()){
 if(process.argv.includes('--test')){
   const result=render(new Date('2026-10-30T12:00:00Z'));
   for(const {label} of platforms)assert.ok(result.includes(label));
-  assert.ok(result.includes('2026-10-30')&&result.includes('2026-10-23'));
+  assert.ok(result.includes('2026-10-30'));
+  for(const {key} of platforms)assert.ok(result.includes(source[key].verified_at));
   assert.ok(result.includes('dry-run')&&result.includes('unverified'));
   assert.ok(result.includes('voy-pro-budapest-weekly-reputation'));
   assert.equal((result.match(/\[Open listing\]/g)||[]).length,3);
