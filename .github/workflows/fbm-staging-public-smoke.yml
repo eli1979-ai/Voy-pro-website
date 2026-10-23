@@ -1,4 +1,4 @@
-name: FBM Staging public booking read-only contract
+name: FBM Staging browser CORS and public read-only contract
 on:
   workflow_dispatch:
   schedule:
@@ -31,9 +31,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify host, GET-only, CORS and response-schema mocks
+      - name: Verify allowlisted browser OPTIONS/GET, CORS and response-schema mocks
         run: node scripts/check-fbm-staging-public-api.mjs --test
-      - name: Audit three public FBM Staging GET responses
+      - name: Audit three public FBM Staging browser preflights and GET responses
         run: node scripts/check-fbm-staging-public-api.mjs
       - name: Summarize consumer API contract evidence
         if: always()
