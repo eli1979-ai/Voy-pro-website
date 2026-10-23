@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const source=readFileSync('site/assets/rtb-request.js','utf8');
 const defaultPath='/he/budapest/tours/heroes-square-city-ezraider-tour/';
 
-function browser(fetcher,pagePath=defaultPath){
+function browser(fetcher,pagePath=defaultPath,clock=Date){
   const nodes=[];
   const locations=[];
   const requests=[];
@@ -71,7 +71,7 @@ function browser(fetcher,pagePath=defaultPath){
     FormData:class{constructor(){this.data=formData;}get(key){return this.data[key]??null;}},
     crypto:{randomUUID(){uuidCount++;return '11111111-1111-4111-8111-'+String(uuidCount).padStart(12,'0');}},
     fetch:async(url,init)=>{requests.push({url,init});return fetcher(url,init);},
-    Intl,Date,URL,AbortSignal,console
+    Intl,Date:clock,URL,AbortSignal,console
   };
   ctx.globalThis=ctx;
   vm.runInNewContext(source,ctx,{filename:'site/assets/rtb-request.js'});
@@ -142,6 +142,38 @@ for(const invalid of [
   assert.equal(JSON.stringify(payloadOf(b)),original);
   assert.equal(b.uuidCount,1);
   assert.ok(statusOf(b).includes('הפנייה התקבלה'));
+}
+
+// The relay enforces a 1-hour Budapest lead. The browser must reject an
+// earlier same-day clock time before sending personal details to the relay.
+// A fixed instant avoids timezone and DST dependence in test runner hosts.
+const fixedNow='2026-10-23T12:00:00.000Z'; // 14:00 in Budapest
+class FixedDate extends Date{
+  constructor(...args){super(...(args.length?args:[fixedNow]));}
+  static now(){return Date.parse(fixedNow);}
+}
+for(const [pagePath,earlyMessage] of [
+  ['/budapest/tours/heroes-square-city-ezraider-tour/','at least one hour'],
+  ['/he/budapest/tours/heroes-square-city-ezraider-tour/','לפחות שעה'],
+  ['/hu/budapest/tours/heroes-square-city-ezraider-tour/','legalább egy órával']
+]){
+  const b=browser(acknowledge,pagePath,FixedDate);
+  b.set('requested_guide_language','he');
+  b.set('requested_date','2026-10-23');
+  b.set('requested_time','14:30');
+  await b.submit();
+  assert.equal(b.requests.length,0,pagePath+' must reject a departure in 30 minutes locally');
+  assert.ok(statusOf(b).includes(earlyMessage),pagePath+' needs localized minimum lead guidance');
+  assert.equal(b.uuidCount,0,pagePath+' must not allocate an idempotency key for early times');
+  assert.equal(b.locations.length,0,pagePath+' must not open WhatsApp for local validation');
+  b.set('requested_time','16:15');
+  await b.submit();
+  assert.equal(b.requests.length,1,pagePath+' must submit an eligible future clock time');
+  assert.equal(payloadOf(b).preferredLocalDate,'2026-10-23');
+  assert.equal(payloadOf(b).preferredLocalTime,'16:15');
+  assert.equal(b.uuidCount,1);
+  assert.ok(statusOf(b).includes(pagePath.startsWith('/he/')?'הפנייה התקבלה':
+    pagePath.startsWith('/hu/')?'megérkezett':'Enquiry received'));
 }
 
 // 404 is the sole automatic fallback. WhatsApp must be sent by the guest.
