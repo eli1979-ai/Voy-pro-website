@@ -190,6 +190,9 @@ async function flush(){
   assert(!app.calls.some(call=>call.key.includes('/availability?')),
     'An unsupported language is not equivalent to a valid customer choice');
   app.search.elements.language.value='he';
+  const guideOption=app.search.elements.language.children.find(item=>item.value==='he');
+  assert.equal(guideOption?.textContent,'Hebrew',
+    'Partner language options should be human-readable while values stay canonical codes');
   await app.search.trigger('submit');
   assert(app.calls.some(call=>call.key.includes('/availability?')),
     'A catalog-supported explicit choice should permit availability search');
@@ -257,6 +260,13 @@ async function flush(){
   assert.equal(final.options.headers['idempotency-key'],'77777777-7777-4777-8777-777777777777');
   assert.equal(app.redirect(),null,'Pay-on-arrival booking should finish inside the host website');
   assert(!app.elements['#success'].classList.contains('hidden'));
+  const confirmedText=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+  assert.match(confirmedText,/Requested guiding language: Hebrew/,
+    'Partner booking confirmation must show the original customer-selected guide language');
+  assert.match(confirmedText,/will be confirmed with the assigned guide/,
+    'Booking success must not guarantee unverified guide-language staffing');
+  assert.doesNotMatch(confirmedText,/English would also|English fallback accepted/i,
+    'Partner widget must not imply customer accepted an English alternative');
 }
 
 {
@@ -376,6 +386,10 @@ async function flush(){
   const messages=app.elements['#success'].children.map(x=>x.textContent).join(' ');
   assert.match(messages,/not a confirmed booking/i);
   assert.match(messages,/VP-CAP-TEST/);
+  assert.match(messages,/Requested guiding language: Hebrew/,
+    'Staff request receipt must display original requested guiding language');
+  assert.doesNotMatch(messages,/English fallback accepted|English would also/i,
+    'Staff request cannot infer acceptance of English alternative');
 }
 {
   const app=mount({staffConfirmation:true,rejectCoupon:true});
@@ -384,4 +398,4 @@ async function flush(){
     'Invalid affiliate code must never produce a staff request');
   assert(app.elements['#checkout'].classList.contains('hidden'));
 }
-console.log('Affiliate native booking widget QA passed: configuration, CORS key, held quotes, extras, attribution, checkout, staff-confirmation requests.');
+console.log('Affiliate native booking widget QA passed: configuration, explicit requested guide language in booking/request receipts, CORS key, held quotes, extras, attribution and staff approval.');
