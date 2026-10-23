@@ -26,7 +26,7 @@
   }
   for(const link of document.querySelectorAll('[data-ez-language]')){
     const url=new URL(link.getAttribute('href'),location.origin);
-    if(url.origin!==location.origin||!/^\/(?:he\/|hu\/)?ezraider\/$/.test(url.pathname))continue;
+    if(url.origin!==location.origin||!/^\/(?:he\/|hu\/|pt\/)?ezraider\/$/.test(url.pathname))continue;
     url.searchParams.set('from',source);
     link.setAttribute('href',url.pathname+url.search);
   }
