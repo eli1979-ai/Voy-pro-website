@@ -1,0 +1,54 @@
+name: FBM Staging public booking read-only contract
+on:
+  workflow_dispatch:
+  schedule:
+    # Once a week; no charges or mutating booking/payment calls.
+    - cron: '18 6 * * 1'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/check-fbm-staging-public-api.mjs'
+      - '.github/workflows/fbm-staging-public-smoke.yml'
+      - 'contracts/fbm-consumer-contract.json'
+      - 'site/assets/runtime-config.js'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fbm-staging-public-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-only-consumer-smoke:
+    if: github.repository == 'eli1979-ai/Voy-pro-website'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify host, GET-only, CORS and response-schema mocks
+        run: node scripts/check-fbm-staging-public-api.mjs --test
+      - name: Audit three public FBM Staging GET responses
+        run: node scripts/check-fbm-staging-public-api.mjs
+      - name: Summarize consumer API contract evidence
+        if: always()
+        shell: bash
+        run: |
+          if [ -f fbm-staging-public-audit/report.md ]; then
+            cat fbm-staging-public-audit/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No FBM Staging public audit report was generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Preserve evidence on failure or success
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fbm-staging-public-get-contract
+          path: fbm-staging-public-audit/report.md
+          retention-days: 14
+          if-no-files-found: warn
