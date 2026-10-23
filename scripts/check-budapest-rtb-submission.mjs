@@ -29,12 +29,17 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
       addEventListener(type,handler){(node.listeners[type]??=[]).push(handler);},
       reportValidity(){return true;},
       closest(selector){return selector==='.voy-rtb-checkbox'?created.get('row'):null;},
+      querySelectorAll(selector){
+        if(node.tag!=='form'||selector!=='input,select,textarea')return [];
+        return [...created.entries()].filter(([key])=>key.startsWith('[name="'))
+          .map(([,control])=>control);
+      },
       querySelector(selector){
         if(node.tag!=='form')return null;
         if(selector==='[data-rtb-manual]')return statuses.manual??null;
         return created.get(selector)??null;
       },
-      remove(){},
+      remove(){if(statuses.manual===node)delete statuses.manual;},
     };
     nodes.push(node);
     return node;
@@ -58,6 +63,8 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
         register('[name="requested_guide_language"]',make('select'));
         register('[name="english_alternative_accepted"]',make('checkbox'));
         register('[name="requested_date"]',make('input'));
+        for(const name of ['requested_time','party_size','contact_name','contact_email','contact_phone'])
+          register('[name="'+name+'"]',make('input'));
         register('.voy-rtb-feedback',make('p'));
         register('button[type="submit"]',make('button'));
         created.set('row',make('label'));
@@ -88,7 +95,7 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
     form.listeners.change?.forEach(fn=>fn({}));
   };
   const submit=()=>form.listeners.submit[0]({preventDefault(){}});
-  return {form,submit,requests,locations,created,set,formData,get uuidCount(){return uuidCount}};
+  return {form,submit,requests,locations,created,set,formData,statuses,get uuidCount(){return uuidCount}};
 }
 const payloadOf=b=>JSON.parse(b.requests.at(-1).init.body);
 const statusOf=b=>b.created.get('.voy-rtb-feedback').textContent;
@@ -322,6 +329,57 @@ for(const code of [400,503,500]){
   release(await acknowledge());
   await first;
   assert.equal(b.requests.length,1);
+}
+// A guest cannot edit the form while awaiting a response. A verified 202
+// freezes all original details; a failed or conflict response releases them.
+{
+  let release;
+  const b=browser(()=>new Promise(resolve=>{release=resolve;}));
+  b.set('requested_guide_language','he');
+  const sent=b.submit();
+  const inputs=b.form.querySelectorAll('input,select,textarea');
+  assert.equal(inputs.length,8,'all editable guest controls must be included');
+  assert.ok(inputs.every(field=>field.disabled===true),'fields must be locked during POST');
+  assert.equal(b.created.get('button[type="submit"]').disabled,true);
+  release(await acknowledge());
+  await sent;
+  assert.ok(inputs.every(field=>field.disabled===true),'acknowledged details must stay frozen');
+  assert.equal(b.requests.length,1);
+}
+{
+  let release;
+  const b=browser(()=>new Promise(resolve=>{release=resolve;}));
+  const sent=b.submit();
+  const inputs=b.form.querySelectorAll('input,select,textarea');
+  assert.ok(inputs.every(field=>field.disabled===true));
+  release({status:503});
+  await sent;
+  assert.ok(inputs.every(field=>field.disabled===false),'a delivery failure must unlock inputs');
+  assert.equal(b.created.get('button[type="submit"]').disabled,false);
+  assert.ok(b.statuses.manual?.href.startsWith('https://wa.me/'));
+}
+{
+  const b=browser(async()=>({status:409}));
+  await b.submit();
+  assert.ok(b.form.querySelectorAll('input,select,textarea').every(f=>f.disabled===false),
+    '409 is not a confirmed enquiry and must not freeze manual-contact details');
+  assert.equal(b.created.get('button[type="submit"]').disabled,true);
+}
+// If a guest edits details after an unverified POST, an existing manual
+// WhatsApp fallback (including stale personal details) must disappear. A new
+// attempt uses fresh text and UUID. Retrying unchanged details retains UUID.
+{
+  const b=browser(async()=>({status:503}));
+  await b.submit();
+  const priorUUID=payloadOf(b).requestId;
+  assert.ok(b.statuses.manual?.href.includes('Synthetic%20Guest'));
+  b.set('contact_name','Changed Synthetic Guest');
+  assert.equal(b.statuses.manual,undefined,'stale WhatsApp URL must be removed on edit');
+  assert.equal(statusOf(b),'','previous delivery status must be cleared on edit');
+  await b.submit();
+  assert.notEqual(payloadOf(b).requestId,priorUUID);
+  assert.ok(b.statuses.manual?.href.includes('Changed%20Synthetic%20Guest'));
+  assert.equal(b.locations.length,0,'manual fallback is never sent automatically');
 }
 // Network error preserves idempotency and must not send WhatsApp.
 {

@@ -138,6 +138,9 @@
   dateField.max=budapestLastRequestDate();
   const submitButton=form.querySelector('button[type="submit"]');
   const feedback=form.querySelector('.voy-rtb-feedback');
+  // Keep visible guest details fixed while the exact immutable POST is in
+  // flight. Without this, a 202 could acknowledge an earlier form state.
+  const editableControls=Array.from(form.querySelectorAll('input,select,textarea'));
   let inFlight=false;
   let pendingPayload=null;
   let pendingFingerprint='';
@@ -147,7 +150,14 @@
     // request under the same idempotency key.
     if(inFlight||successful)return;
     const fingerprint=JSON.stringify(draftFrom(new FormData(form)));
-    if(fingerprint!==pendingFingerprint){pendingPayload=null;pendingFingerprint='';}
+    if(fingerprint!==pendingFingerprint){
+      pendingPayload=null;
+      pendingFingerprint='';
+      // An old manual WhatsApp link contains a snapshot of the PREVIOUS
+      // request. Remove it when details change to avoid sending stale PII.
+      form.querySelector('[data-rtb-manual]')?.remove();
+      feedback.textContent='';
+    }
   };
   form.addEventListener('input',clearPending);
   form.addEventListener('change',clearPending);
@@ -225,6 +235,9 @@
     inFlight=true;
     submitButton.disabled=true;
     submitButton.textContent=labels.sending;
+    const priorDisabled=editableControls.map(control=>control.disabled);
+    editableControls.forEach(control=>{control.disabled=true;});
+    let acceptedByCRM=false;
     try{
       const response=await fetch('/api/request-to-book',{
         method:'POST',
@@ -241,6 +254,7 @@
           !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(outcome.requestId))
           throw new Error('invalid_request_acknowledgement');
         successful=true;
+        acceptedByCRM=true;
         feedback.classList.add('voy-rtb-success');
         feedback.textContent=labels.success+' '+labels.reference+': '+outcome.requestId;
         submitButton.textContent=labels.success;
@@ -276,6 +290,12 @@
       manualLink();
     }finally{
       inFlight=false;
+      // Keep accepted enquiry fields frozen alongside the accepted reference.
+      // Unfreeze on any unverified delivery or 409 so manual contact remains
+      // possible; 409 still blocks duplicate submission of the old request ID.
+      if(!acceptedByCRM)editableControls.forEach((control,i)=>{
+        control.disabled=priorDisabled[i];
+      });
       if(!successful){
         submitButton.disabled=false;
         submitButton.textContent=labels.retry;
