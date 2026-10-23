@@ -16,7 +16,7 @@ const allowed=new Set(['voy-pro.com','www.voy-pro.com']);
 function checked(value){
   const u=new URL(value);
   if(u.protocol!=='https:'||!allowed.has(u.hostname)||u.port||u.username||
-     u.password||u.search||u.hash||u.pathname!=='/api/request-to-book')
+     u.password||u.search||u.hash||!['/api/request-to-book','/api/request-to-book/'].includes(u.pathname))
     throw Error('Refusing non-approved RTB gate URL or redirect');
   return u;
 }
@@ -108,6 +108,13 @@ async function test(){
   };
   const check=async failures=>assert.equal((await auditDisabled(mock)).failed,failures);
   await check(0);
+  // Vercel trailingSlash:true canonically redirects this same API path.
+  // Permit this exact canonicalization, never arbitrary API routes/hosts.
+  fixtures.set(GATES[0][0],redirect('https://voy-pro.com/api/request-to-book/'));
+  fixtures.set('https://voy-pro.com/api/request-to-book/',good);
+  await check(0);
+  fixtures.set(GATES[0][0],good);
+  fixtures.delete('https://voy-pro.com/api/request-to-book/');
   fixtures.set(GATES[0][0],()=>new Response('{"error":"request_intake_disabled"}',{status:200,headers}));
   await check(2); // 200 is suspicious even with the same body.
   fixtures.set(GATES[0][0],()=>new Response('{"error":"method_not_allowed"}',{status:405,headers}));
@@ -130,6 +137,8 @@ async function test(){
   fixtures.set(GATES[1][0],redirect('http://voy-pro.com/api/request-to-book'));
   await check(1);
   fixtures.set(GATES[1][0],redirect('https://voy-pro.com/api/request-to-book?token=123'));
+  await check(1);
+  fixtures.set(GATES[1][0],redirect('https://voy-pro.com/api/holds/'));
   await check(1);
   fixtures.set(GATES[1][0],redirect(GATES[1][0]));
   await check(1);
