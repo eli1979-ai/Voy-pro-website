@@ -76,7 +76,7 @@
             <label>Independent riders (16+) <input name="riders" type="number" min="1" max="12" value="2" required></label>
             <label>Child passengers (3–15) <input name="children" type="number" min="0" max="12" value="0" required></label>
             <label>Baby passengers (1–2) <input name="babies" type="number" min="0" max="12" value="0" required></label>
-            <label>Requested guiding language <select name="language" required aria-required="true" aria-describedby="voy-partner-guide-language-help" disabled><option value="">Choose guiding language</option></select><small class="hint" id="voy-partner-guide-language-help">Choose the language you would like for your tour. Our team will verify that an assigned guide can provide it; it is not confirmed simply by selecting it.</small></label>
+            <label>Requested guiding language <select name="language" required aria-required="true" aria-describedby="voy-partner-guide-language-help" disabled><option value="">Choose guiding language</option></select><small class="hint" id="voy-partner-guide-language-help">Choose the language you would like for your tour. No language is selected automatically. Our team will verify that an assigned guide can provide it; it is not confirmed simply by selecting it.</small></label>
           </div>
           <label class="check"><input name="private" type="checkbox"> Private tour (additional charge)</label>
           <div class="actions"><button type="submit" id="searchButton">Check availability</button></div>
