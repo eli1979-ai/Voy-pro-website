@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-10-23",
+  "sources": {
+    "google": {
+      "count": 1299,
+      "verifiedAt": null,
+      "note": "Previously published count; not freshly verified against Google Maps",
+      "sourceUrl": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8"
+    },
+    "tripadvisor": {
+      "count": 660,
+      "verifiedAt": "2026-10-23",
+      "note": "Current official attraction listing; 5.0 and Travelers' Choice 2026",
+      "sourceUrl": "https://www.tripadvisor.co.uk/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html"
+    },
+    "getyourguide": {
+      "count": 5,
+      "verifiedAt": null,
+      "note": "Previously published count; supplier profile must be verified before changing",
+      "sourceUrl": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/"
+    }
+  }
+}
