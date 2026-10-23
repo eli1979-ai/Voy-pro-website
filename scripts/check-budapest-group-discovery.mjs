@@ -129,7 +129,7 @@ for(const {locale,prefix,home} of vehicleFiles){
   if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
   if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
-  for(const code of ['en','he','hu']){
+  for(const code of ['en','he','hu','pt']){
     const translated=code==='en'?'':code+'/';
     if(!html.includes('hreflang="'+code+'" href="https://voy-pro.com/'+translated+'ezraider/"'))
       failures.push(path+': missing hreflang '+code);
@@ -156,7 +156,7 @@ for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+p
 for(const {page,href,locale,positionMarker} of [
   {page:'site/index.html',href:'/ezraider/?from=home',locale:'en',positionMarker:'id="destinations"'},
   {page:'site/portugal/index.html',href:'/ezraider/?from=marvao',locale:'en',positionMarker:'id="request"'},
-  {page:'site/pt/portugal/index.html',href:'/ezraider/?from=marvao-pt',locale:'pt',positionMarker:'id="request"'},
+  {page:'site/pt/portugal/index.html',href:'/pt/ezraider/?from=marvao-pt',locale:'pt',positionMarker:'id="request"'},
   {page:'site/he/portugal/index.html',href:'/he/ezraider/?from=marvao',locale:'he',positionMarker:'id="request"'}
 ]){
   const html=fs.readFileSync(page,'utf8');
@@ -169,8 +169,8 @@ for(const {page,href,locale,positionMarker} of [
     failures.push(page+': missing localized link to existing EZRaider guide: '+href);
   if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||!block.includes('<h2 '))
     failures.push(page+': guide referral must have clear copy and button');
-  if(locale==='pt'&&!block.includes('hreflang="en"'))
-    failures.push(page+': Portuguese visitors must be informed the existing vehicle guide is in English');
+  if(locale==='pt'&&(block.includes('guia em inglês')||block.includes('hreflang="en"')))
+    failures.push(page+': Portuguese vehicle guide must not be labelled as English');
   if(page.includes('/portugal/')&&
       !(block.includes('Marvão')||block.includes('מרבאו')) )
     failures.push(page+': Marvão referral must explain local tour rules differ from Budapest');
