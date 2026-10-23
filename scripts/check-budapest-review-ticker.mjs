@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import assertStrict from 'node:assert/strict';
 import vm from 'node:vm';
 import {spawnSync} from 'node:child_process';
 
@@ -143,7 +144,7 @@ async function simulate(payload,lang='en',reducedMotion=false){
   const media={
     matches:reducedMotion,
     addEventListener(type,listener){
-      assert.equal(type,'change','ticker must listen for OS motion preference changes');
+      assertStrict.equal(type,'change','ticker must listen for OS motion preference changes');
       motionListener=listener;
     }
   };
@@ -158,7 +159,7 @@ async function simulate(payload,lang='en',reducedMotion=false){
   for(let i=0;i<6;i++)await Promise.resolve();
   return{root,track,pause,viewport,left,right,frames,
     changeMotion(next){
-      assert.equal(typeof motionListener,'function','OS motion listener must be registered');
+      assertStrict.equal(typeof motionListener,'function','OS motion listener must be registered');
       media.matches=next;
       motionListener({matches:next});
     }
@@ -221,37 +222,37 @@ assert(approved.track.children.length===3,'review track must contain a real grou
 // restart the moving ribbon without a user's explicit Resume action.
 for(const language of ['en','he','hu']){
   const liveMotion=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
-  assert.equal(liveMotion.frames.length,1,language+' starts with one scheduled frame');
+  assertStrict.equal(liveMotion.frames.length,1,language+' starts with one scheduled frame');
   const oldFrame=liveMotion.frames[0];
   liveMotion.changeMotion(true);
-  assert.equal(liveMotion.pause.hidden,true,language+' hides unnecessary pause button on reduce');
-  assert.equal(liveMotion.root.classList.states.has('is-paused'),true);
+  assertStrict.equal(liveMotion.pause.hidden,true,language+' hides unnecessary pause button on reduce');
+  assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true);
   const oldFrameCount=liveMotion.frames.length;
   const stoppedAt=liveMotion.viewport.scrollLeft;
   oldFrame(1000);
-  assert.equal(liveMotion.frames.length,oldFrameCount,
+  assertStrict.equal(liveMotion.frames.length,oldFrameCount,
     language+' invalidated old frame must not reschedule after reduce');
-  assert.equal(liveMotion.viewport.scrollLeft,stoppedAt,
+  assertStrict.equal(liveMotion.viewport.scrollLeft,stoppedAt,
     language+' old queued frame must not move reviews after reduce');
   liveMotion.changeMotion(false);
-  assert.equal(liveMotion.pause.hidden,false,language+' restores visible resume control');
-  assert.equal(liveMotion.root.classList.states.has('is-paused'),true,
+  assertStrict.equal(liveMotion.pause.hidden,false,language+' restores visible resume control');
+  assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true,
     language+' leaving reduced motion must not silently resume');
-  assert.equal(liveMotion.frames.length,oldFrameCount+1,
+  assertStrict.equal(liveMotion.frames.length,oldFrameCount+1,
     language+' leaving reduced motion schedules only one new loop');
   const queued=liveMotion.frames.at(-1);
   queued(1000);
-  assert.equal(liveMotion.viewport.scrollLeft,stoppedAt,
+  assertStrict.equal(liveMotion.viewport.scrollLeft,stoppedAt,
     language+' a queued frame must not move without explicit Resume');
   liveMotion.pause.events.click();
-  assert.equal(liveMotion.root.classList.states.has('is-paused'),false,
+  assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),false,
     language+' explicit Resume must allow motion again');
   const atResume=liveMotion.viewport.scrollLeft;
   liveMotion.frames.at(-1)(1040);
   assert(liveMotion.viewport.scrollLeft>atResume,
     language+' scrolling must work after explicit Resume');
   liveMotion.changeMotion(true);
-  assert.equal(liveMotion.root.classList.states.has('is-paused'),true,
+  assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true,
     language+' switching to reduced motion again must re-pause');
 }
 
