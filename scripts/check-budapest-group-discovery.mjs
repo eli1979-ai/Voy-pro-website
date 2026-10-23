@@ -137,7 +137,7 @@ for(const {locale,prefix,home} of vehicleFiles){
   const structured=[...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(m=>{try{return JSON.parse(m[1]);}catch{return null;}});
   const faq=structured.find(j=>j?.['@type']==='FAQPage'),crumb=structured.find(j=>j?.['@type']==='BreadcrumbList');
   if(!faq||faq.mainEntity?.length!==4)failures.push(path+': expected four real FAQ schema items');
-  if(crumb?.itemListElement?.[2]?.item!==url)failures.push(path+': breadcrumbs do not point to current page');
+  if(crumb?.itemListElement?.length!==2||crumb?.itemListElement?.[1]?.item!==url||crumb?.itemListElement?.[1]?.position!==2)failures.push(path+': network breadcrumbs must point directly from VOY PRO to the shared vehicle page');
   for(const [file,desc] of [
     [home,'Budapest home'],['site/'+prefix+'budapest/with-kids/index.html','family page'],
     ['site/'+prefix+'budapest/tours/buda-castle-ezraider-tour/index.html','Buda tour']
