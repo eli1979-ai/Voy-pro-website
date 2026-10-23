@@ -219,6 +219,54 @@ for(const [pagePath,leadLabel] of [
   assert.equal(b.uuidCount,1);
 }
 
+// Budapest changes from summer to winter time on 2026-10-25: 02:30
+// repeats. On 2027-03-28 it jumps over 02:30. Both are rejected by the
+// relay. The visitor should receive a precise local explanation BEFORE any
+// contact details, request UUID or WhatsApp handoff are generated.
+for(const [pagePath,dstMessage] of [
+  ['/budapest/tours/heroes-square-city-ezraider-tour/','does not exist or occurs twice'],
+  ['/he/budapest/tours/citadella-advanced-ezraider-tour/','אינה קיימת או מופיעה פעמיים'],
+  ['/hu/budapest/tours/buda-margaret-extended-tour/','nem létezik, vagy kétszer fordul elő']
+]){
+  for(const date of ['2026-10-25','2027-03-28']){
+    const b=browser(acknowledge,pagePath,FixedDate);
+    b.set('requested_guide_language','he');
+    b.set('requested_date',date);
+    b.set('requested_time','02:30');
+    await b.submit();
+    assert.equal(b.requests.length,0,pagePath+' '+date+': DST gap/fold must never POST PII');
+    assert.equal(b.uuidCount,0,pagePath+' '+date+': invalid DST time must not allocate a request UUID');
+    assert.equal(b.locations.length,0,pagePath+' '+date+': invalid DST time must not hand off to WhatsApp');
+    assert.ok(statusOf(b).includes(dstMessage),pagePath+' '+date+': DST explanation must be localized');
+    b.set('requested_time','03:30');
+    await b.submit();
+    assert.equal(b.requests.length,1,pagePath+' '+date+': unique post-transition time should remain available');
+    assert.equal(b.uuidCount,1,pagePath+' '+date+': valid replacement is one distinct request');
+    assert.equal(payloadOf(b).preferredLocalDate,date);
+    assert.equal(payloadOf(b).preferredLocalTime,'03:30');
+    assert.ok(statusOf(b).includes(pagePath.startsWith('/he/')?'הפנייה התקבלה':
+      pagePath.startsWith('/hu/')?'megérkezett':'Enquiry received'));
+  }
+}
+// DST does not only create invalid wall times: a valid wall time can be
+// less than an *absolute* hour from now even when the clock label says
+// otherwise. Always measure lead/horizon against the unique UTC instant.
+// 2026-10-25 00:30Z is 02:30 CEST (ambiguous, cannot be selected); at
+// 01:30Z the clocks read 02:30 CET. Check 03:00/03:30 later that morning.
+const foldNow='2026-10-24T23:30:00.000Z'; // local 01:30, before fallback
+class FoldDate extends Date{
+  constructor(...args){super(...(args.length?args:[foldNow]));}
+  static now(){return Date.parse(foldNow);}
+}
+{
+  const b=browser(acknowledge,'/budapest/tours/heroes-square-city-ezraider-tour/',FoldDate);
+  b.set('requested_date','2026-10-25');
+  b.set('requested_time','03:00'); // 02:00Z; absolute lead 2h30m
+  await b.submit();
+  assert.equal(b.requests.length,1,'Valid unique DST day instant must pass exact lead comparison');
+  assert.equal(payloadOf(b).preferredLocalTime,'03:00');
+}
+
 // The relay and FBM enforce an absolute 180-day horizon, not an
 // unlimited calendar picker. Guard this before transmitting guest contact
 // fields, including the final minute of the allowed 180-day window.
