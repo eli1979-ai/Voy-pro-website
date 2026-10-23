@@ -25,7 +25,10 @@ for(const prefix of ['','pt/','he/']){
  check(html.includes('class="mobilebook portugal-mobile"'),file+': Portugal mobile request CTA removed');
 }
 check(js.includes("if(!(isBudapestPage||isPortugalPage)||!document.querySelector('.mobilebook'))return;"),'Portugal/Budapest float runtime missing');
-check(js.includes("return 'https://wa.me/'+(isPortugalPage?'351935695004':'36300993099')"),'Destination WhatsApp routing regressed');
+check(js.includes("const whatsappPortugal=isPortugalPage||vehicleGuideSource==='marvao'||vehicleGuideSource==='marvao-pt'")&&
+  js.includes("const whatsappBudapest=isBudapestPage||vehicleGuideSource==='budapest'")&&
+  js.includes("return 'https://wa.me/'+(whatsappPortugal?'351935695004':'36300993099')"),
+  'Destination WhatsApp routing regressed: Budapest +36 and Marvão +351 must follow explicit page/source context');
 const portugalSubmit=js.slice(js.indexOf('function bindPortugalRequestFlow()'),js.indexOf('  bindPortugalRequestFlow();'));
 check(portugalSubmit.includes("location.href='https://wa.me/351935695004?text='"),'Marvão request form must submit to local +351 number');
 check(!portugalSubmit.includes("location.href='https://wa.me/36300993099"),'Marvão request form incorrectly submits to Budapest');
