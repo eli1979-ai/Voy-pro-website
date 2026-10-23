@@ -1066,6 +1066,21 @@
         date.addEventListener('focus',syncDateMinimum);
         date.addEventListener('change',()=>date.setCustomValidity(''));
       }
+      // Consent is to a fallback for the *currently selected* guiding
+      // language, not a general preference. Unknown stays unknown. Switching
+      // languages clears any previous opt-in, including switches to English.
+      const languageField=form.querySelector('select[name="guide_language"]');
+      const englishChoice=form.querySelector('input[name="english_ok"]');
+      const englishRow=englishChoice?.closest('.b2b-english-check');
+      const updateEnglishChoice=()=>{
+        if(!languageField||!englishChoice)return;
+        englishChoice.checked=false;
+        const show=Boolean(languageField.value&&languageField.value!=='en');
+        englishChoice.disabled=!show;
+        if(englishRow)englishRow.hidden=!show;
+      };
+      languageField?.addEventListener('change',updateEnglishChoice);
+      updateEnglishChoice();
       const btn=form.querySelector('[data-b2b-open]');
       if(!btn)return;
       btn.addEventListener('click',()=>{
@@ -1100,7 +1115,8 @@
         const windowValue=field('time_window',12);
         if(windowValue&&windowValue!=='flexible')lines.push(l.window+': '+windowValue);
         lines.push(l.language+': '+language);
-        if(fd.get('english_ok')==='yes')lines.push(l.english+': yes');
+        if(language!=='en'&&englishChoice&&!englishChoice.disabled&&
+          englishChoice.checked&&fd.get('english_ok')==='yes')lines.push(l.english+': yes');
         if(field('private_preference',12)==='private')lines.push(l.private+': yes');
         for(const [key,label,max] of [['company',l.company,90],['organizer',l.name,70],['notes',l.notes,500]]){
           const value=field(key,max);
