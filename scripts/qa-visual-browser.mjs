@@ -39,7 +39,7 @@ function check(condition,label){
   if(!condition){failures++;results.push('FAIL: '+label);}
   else results.push('PASS: '+label);
 }
-async function visit(name,path,viewport,{fullPage=false,guide=false,booking=false,request=false,b2b=null,localWhatsApp=null,tourFloat=false,heroImage=false}={}){
+async function visit(name,path,viewport,{fullPage=false,guide=false,booking=false,request=false,b2b=null,rtb=false,localWhatsApp=null,tourFloat=false,heroImage=false}={}){
   const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
   const runtimeErrors=[];
   page.on('pageerror',error=>runtimeErrors.push(error.message));
@@ -121,6 +121,33 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,booking=fals
       await language.selectOption('en');
       check(!(await english.isChecked())&&await english.isDisabled()&&!(await englishRow.isVisible()),
         name+' English primary cannot inherit or duplicate fallback acceptance');
+    }
+    if(rtb){
+      // Exercise the actual progressive enhancement of all nine request-only
+      // tour pages without sending any customer data or POSTing to a backend.
+      const enquiry=page.locator('main form.voy-rtb-enquiry');
+      await enquiry.waitFor({state:'visible',timeout:8000});
+      check(await enquiry.count()===1,name+' has exactly one enhanced Request-to-Book enquiry');
+      const language=enquiry.locator('select[name="requested_guide_language"]');
+      const fallback=enquiry.locator('input[name="english_alternative_accepted"]');
+      const row=enquiry.locator('.voy-rtb-checkbox');
+      check(await language.count()===1&&await fallback.count()===1,
+        name+' has a requested guiding language and optional English question');
+      check(!(await fallback.isChecked())&&!(await row.isVisible()),
+        name+' English fallback is initially unanswered and hidden');
+      await language.selectOption('he');
+      check(await row.isVisible(),name+' non-English primary reveals optional English');
+      await fallback.check();
+      check(await fallback.isChecked(),name+' affirmative fallback can be explicitly chosen');
+      await language.selectOption('hu');
+      check(!(await fallback.isChecked())&&await row.isVisible(),
+        name+' changing to Hungarian clears old Hebrew fallback consent');
+      await fallback.check();
+      await language.selectOption('en');
+      check(!(await fallback.isChecked())&&!(await row.isVisible()),
+        name+' choosing English as primary clears and hides redundant fallback');
+      const required=await enquiry.locator('[name="requested_date"],[name="requested_time"],[name="party_size"],[name="contact_name"]').count();
+      check(required===4,name+' includes mandatory date/time/riders/contact details');
     }
     if(localWhatsApp){
       const links=await page.locator('a[href^="https://wa.me/"]').evaluateAll(anchors=>
@@ -215,15 +242,15 @@ try{
     ['budapest-en-corporate-desktop','/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
     ['budapest-he-corporate-mobile','/he/budapest/corporate-events/',mobile,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
     ['budapest-hu-corporate-desktop','/hu/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
-    ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
-    ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
-    ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
-    ['citadella-en-mobile','/budapest/tours/citadella-advanced-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
-    ['citadella-he-narrow','/he/budapest/tours/citadella-advanced-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
-    ['citadella-hu-desktop','/hu/budapest/tours/citadella-advanced-ezraider-tour/',desktop,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
-    ['extended-en-mobile','/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest,heroImage:true}],
-    ['extended-he-mobile','/he/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest,heroImage:true}],
-    ['extended-hu-desktop','/hu/budapest/tours/buda-margaret-extended-tour/',desktop,{localWhatsApp:budapest,heroImage:true}],
+    ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{rtb:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{rtb:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{rtb:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['citadella-en-mobile','/budapest/tours/citadella-advanced-ezraider-tour/',mobile,{rtb:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['citadella-he-narrow','/he/budapest/tours/citadella-advanced-ezraider-tour/',narrow,{rtb:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['citadella-hu-desktop','/hu/budapest/tours/citadella-advanced-ezraider-tour/',desktop,{rtb:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['extended-en-mobile','/budapest/tours/buda-margaret-extended-tour/',mobile,{rtb:true,localWhatsApp:budapest,heroImage:true}],
+    ['extended-he-mobile','/he/budapest/tours/buda-margaret-extended-tour/',mobile,{rtb:true,localWhatsApp:budapest,heroImage:true}],
+    ['extended-hu-desktop','/hu/budapest/tours/buda-margaret-extended-tour/',desktop,{rtb:true,localWhatsApp:budapest,heroImage:true}],
     ['guide-pt-mobile','/pt/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F',mobile,{fullPage:true,guide:true}],
     ['guide-he-mobile','/he/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fbuda-castle-ezraider-tour%2F',mobile,{guide:true}],
     ['guide-hu-desktop','/hu/ezraider/?from=budapest',desktop,{guide:true}]
