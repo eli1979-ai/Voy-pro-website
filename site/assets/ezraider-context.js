@@ -10,12 +10,13 @@
   function safeReturnPath(rawReturn,source){
     if(typeof rawReturn!=='string'||rawReturn.length>512||
       !rawReturn.startsWith('/')||rawReturn.startsWith('//')||
-      /[\\\\%?#\\u0000-\\u001f\\u007f]/.test(rawReturn))return null;
+      [...rawReturn].some(char=>char.charCodeAt(0)<32||
+        [35,37,63,92,127].includes(char.charCodeAt(0))))return null;
     if(source==='home')return rawReturn==='/'?'/':null;
     if(source==='budapest')
-      return /^\\/(?:he\\/|hu\\/)?budapest\\/(?:[a-z0-9-]+\\/){0,4}$/.test(rawReturn)?rawReturn:null;
+      return new RegExp('^/(?:he/|hu/)?budapest/(?:[a-z0-9-]+/){0,4}$').test(rawReturn)?rawReturn:null;
     if(source==='marvao'||source==='marvao-pt')
-      return /^\\/(?:he\\/|pt\\/)?portugal\\/$/.test(rawReturn)?rawReturn:null;
+      return new RegExp('^/(?:he/|pt/)?portugal/$').test(rawReturn)?rawReturn:null;
     return null;
   }
   const exactReturn=safeReturnPath(new URLSearchParams(location.search).get('return_to'),source);
