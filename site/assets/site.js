@@ -1110,11 +1110,24 @@
           hu:{intro:'Szia VOY PRO Budapest, szeretnék egyeztetni egy',group:'csoportos EZRaider túrát.',corporate:'céges/csapatépítő programot.',date:'Dátum',size:'Résztvevők',window:'Előnyben részesített időszak',language:'Kért idegenvezetési nyelv',english:'Angol is megfelelő',private:'Privát csoportot szeretnénk',company:'Cég',name:'Kapcsolattartó',notes:'Megjegyzések',source:'Érdeklődés oldala'}
         };
         const l=labels[locale]||labels.en;
+        // Share localized *display names* with staff in the manually sent
+        // WhatsApp message. Keep the underlying customer choice as a stable
+        // code for analytics and any future reviewed operational interface.
+        const names={
+          en:{languages:{en:'English',he:'Hebrew',hu:'Hungarian',es:'Spanish',other:'Other — please discuss'},
+            windows:{morning:'Morning',afternoon:'Afternoon',evening:'Evening'}},
+          he:{languages:{en:'אנגלית',he:'עברית',hu:'הונגרית',es:'ספרדית',other:'אחר — לתיאום עם הצוות'},
+            windows:{morning:'בוקר',afternoon:'צהריים',evening:'ערב'}},
+          hu:{languages:{en:'Angol',he:'Héber',hu:'Magyar',es:'Spanyol',other:'Más — egyeztetendő'},
+            windows:{morning:'Délelőtt',afternoon:'Délután',evening:'Este'}}
+        };
+        const display=names[locale]||names.en;
         const lines=[l.intro+' '+l[kind],l.size+': '+size];
         if(dateValue)lines.push(l.date+': '+dateValue);
         const windowValue=field('time_window',12);
-        if(windowValue&&windowValue!=='flexible')lines.push(l.window+': '+windowValue);
-        lines.push(l.language+': '+language);
+        if(windowValue&&windowValue!=='flexible'&&Object.hasOwn(display.windows,windowValue))
+          lines.push(l.window+': '+display.windows[windowValue]);
+        lines.push(l.language+': '+display.languages[language]);
         if(language!=='en'&&englishChoice&&!englishChoice.disabled&&
           englishChoice.checked&&fd.get('english_ok')==='yes')lines.push(l.english+': yes');
         if(field('private_preference',12)==='private')lines.push(l.private+': yes');
