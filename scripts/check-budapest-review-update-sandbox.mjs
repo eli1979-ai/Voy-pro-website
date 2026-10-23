@@ -72,6 +72,22 @@ try{
       'unchanged verified count should not produce a pointless page PR');
     assert.equal(noop.snapshotChanged,false,
       'same provider/count/date/source should not modify provenance metadata');
+    // A normal Monday check often re-confirms the SAME count on a later date.
+    // The snapshot must not change just because a new weekly check happened.
+    const currentBeforeWeekly=read('site/assets/budapest-reputation.json');
+    const nextMondayArgs=[...args];
+    nextMondayArgs[3]='2026-10-30';
+    const nextMonday=JSON.parse(run([...nextMondayArgs,'--dry-run']));
+    assert.equal(nextMonday.noCountChange,true,
+      'the plan must explicitly report unchanged provider counts');
+    assert.equal(nextMonday.snapshotChanged,false,
+      'newer re-verification date alone must not trigger a metadata-only PR');
+    assert.equal(nextMonday.changedPageCount,0,
+      'newer re-verification date must not require HTML edits');
+    assert.match(run(nextMondayArgs),/No review count change/,
+      'applying unchanged weekly reviews should report a no-op');
+    assert.equal(read('site/assets/budapest-reputation.json'),currentBeforeWeekly,
+      'weekly re-verification must not overwrite existing provenance by default');
     assert.match(run(['--check']),/Budapest review layout and counts consistent/);
     assert.ok(read(sample).includes(extra),
       'a review-count update must not alter unrelated numeric content: '+provider);
@@ -90,6 +106,21 @@ try{
     }
   }
 
+  // Provenance can still be corrected explicitly without changing any
+  // consumer-facing review count. This action must be opt-in, not weekly noise.
+  const fixArgs=['--update','tripadvisor',String(original.tripadvisor.review_count+1),
+    '2026-10-30',snapshots.tripadvisor,'--refresh-metadata'];
+  const repairPlan=JSON.parse(run([...fixArgs,'--dry-run']));
+  assert.equal(repairPlan.changedPageCount,0,
+    'opt-in provenance fix must not touch review HTML if the count is stable');
+  assert.equal(repairPlan.snapshotChanged,true,
+    'explicit metadata refresh must produce an auditable snapshot change');
+  assert.equal(repairPlan.metadataRefreshRequested,true,
+    'the plan must reveal that metadata refresh was explicitly requested');
+  assert.match(run(fixArgs),/Updated verified/,
+    'explicit metadata refresh should update only the canonical snapshot');
+  assert.equal(JSON.parse(read('site/assets/budapest-reputation.json')).tripadvisor.verified_at,
+    '2026-10-30','intentional metadata correction must be persisted');
   const before=read('site/assets/budapest-reputation.json');
   for(const bad of [
     ['--update','tripadvisor','-1','2026-10-23',snapshots.tripadvisor],
@@ -103,7 +134,7 @@ try{
       'invalid updates must not change the canonical snapshot');
     assert.ok(read(sample).includes(extra),'invalid updates must not change page text');
   }
-  console.log('Budapest weekly review update rehearsal OK: preview plans, verified no-op behavior, all 3 sources, three languages, source metadata, unrelated-number protection and fail-closed validation; repository checkout unchanged.');
+  console.log('Budapest weekly review update rehearsal OK: preview plans, cross-week no-op behavior, explicit metadata refresh, all 3 sources, three languages, source metadata, unrelated-number protection and fail-closed validation; repository checkout unchanged.');
 }finally{
   fs.rmSync(tmp,{recursive:true,force:true});
 }
