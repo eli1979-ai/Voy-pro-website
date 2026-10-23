@@ -213,7 +213,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await link.getAttribute('href')===destination,
         name+' guide link preserves exact originating tour and Budapest branch');
       // Real navigation on representative EN, HE and HU pages, no live API.
-      if(['heroes-he-mobile','citadella-hu-desktop','extended-en-mobile'].includes(name)){
+      if(['heroes-he-mobile','citadella-hu-desktop','extended-en-mobile','budapest-en-private-mobile','budapest-he-groups-mobile','budapest-hu-corporate-desktop'].includes(name)){
         await link.click();
         await page.waitForURL(url=>url.pathname===prefix+'ezraider/',{timeout:8000});
         check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').getAttribute('href')===sourcePath,
@@ -258,13 +258,15 @@ try{
     ['marvao-en-desktop','/portugal/',desktop,{request:true,localWhatsApp:marvao}],
     ['budapest-he-family-mobile','/he/budapest/with-kids/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-hu-family-narrow','/hu/budapest/with-kids/',narrow,{booking:true,localWhatsApp:budapest}],
-    ['budapest-en-private-mobile','/budapest/private-tours/',mobile,{booking:true,localWhatsApp:budapest}],
-    ['budapest-en-groups-mobile','/budapest/group-tours/',mobile,{booking:true,b2b:'group',localWhatsApp:budapest}],
-    ['budapest-he-groups-mobile','/he/budapest/group-tours/',mobile,{booking:true,b2b:'group',localWhatsApp:budapest}],
-    ['budapest-hu-groups-narrow','/hu/budapest/group-tours/',narrow,{booking:true,b2b:'group',localWhatsApp:budapest}],
-    ['budapest-en-corporate-desktop','/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
-    ['budapest-he-corporate-mobile','/he/budapest/corporate-events/',mobile,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
-    ['budapest-hu-corporate-desktop','/hu/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
+    ['budapest-en-private-mobile','/budapest/private-tours/',mobile,{booking:true,tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-he-private-mobile','/he/budapest/private-tours/',mobile,{booking:true,tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-hu-private-narrow','/hu/budapest/private-tours/',narrow,{booking:true,tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-en-groups-mobile','/budapest/group-tours/',mobile,{booking:true,b2b:'group',tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-he-groups-mobile','/he/budapest/group-tours/',mobile,{booking:true,b2b:'group',tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-hu-groups-narrow','/hu/budapest/group-tours/',narrow,{booking:true,b2b:'group',tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-en-corporate-desktop','/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-he-corporate-mobile','/he/budapest/corporate-events/',mobile,{booking:true,b2b:'corporate',tourGuide:true,localWhatsApp:budapest}],
+    ['budapest-hu-corporate-desktop','/hu/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',tourGuide:true,localWhatsApp:budapest}],
     ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{rtb:true,tourGuide:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
     ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{rtb:true,tourGuide:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],
     ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{rtb:true,tourGuide:true,localWhatsApp:budapest,tourFloat:true,heroImage:true}],

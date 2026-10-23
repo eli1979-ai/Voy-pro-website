@@ -25,7 +25,16 @@ const links=[
  ['site/he/budapest/tours/buda-margaret-extended-tour/index.html','/he/ezraider/?from=budapest','/he/budapest/tours/buda-margaret-extended-tour/'],
  ['site/hu/budapest/tours/heroes-square-city-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/heroes-square-city-ezraider-tour/'],
  ['site/hu/budapest/tours/citadella-advanced-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/citadella-advanced-ezraider-tour/'],
- ['site/hu/budapest/tours/buda-margaret-extended-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/buda-margaret-extended-tour/']
+ ['site/hu/budapest/tours/buda-margaret-extended-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/buda-margaret-extended-tour/'],
+ ['site/budapest/private-tours/index.html','/ezraider/?from=budapest','/budapest/private-tours/'],
+ ['site/budapest/group-tours/index.html','/ezraider/?from=budapest','/budapest/group-tours/'],
+ ['site/budapest/corporate-events/index.html','/ezraider/?from=budapest','/budapest/corporate-events/'],
+ ['site/he/budapest/private-tours/index.html','/he/ezraider/?from=budapest','/he/budapest/private-tours/'],
+ ['site/he/budapest/group-tours/index.html','/he/ezraider/?from=budapest','/he/budapest/group-tours/'],
+ ['site/he/budapest/corporate-events/index.html','/he/ezraider/?from=budapest','/he/budapest/corporate-events/'],
+ ['site/hu/budapest/private-tours/index.html','/hu/ezraider/?from=budapest','/hu/budapest/private-tours/'],
+ ['site/hu/budapest/group-tours/index.html','/hu/ezraider/?from=budapest','/hu/budapest/group-tours/'],
+ ['site/hu/budapest/corporate-events/index.html','/hu/ezraider/?from=budapest','/hu/budapest/corporate-events/']
 ];
 for(const [path,link,origin] of links){
  const html=fs.readFileSync(path,'utf8');
@@ -77,10 +86,10 @@ for(const input of ['', '?from=https://evil.example','?from=%2F%2Fevil.example',
 assert.equal(h(run('?from=budapest','hu'),'booking'),'/hu/budapest/#booking');
 assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
 
-// Every new tour's vehicle guide must return to its *exact* tour, including
+// Every new and group/private/corporate guide must return to its exact page, including
 // after switching guide language. The branch booking must stay in Budapest.
 for(const [page,link,origin] of links.filter(([page])=>
-  /\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/index[.]html$/.test(page))){
+  /\/(?:tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)|private-tours|group-tours|corporate-events)\/index[.]html$/.test(page))){
  const html=fs.readFileSync(page,'utf8');
  assert.equal((html.match(/data-ez-tour-guide/g)||[]).length,1,
    page+' needs one accessible vehicle-guide link near its enquiry action');
