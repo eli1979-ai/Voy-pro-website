@@ -76,7 +76,7 @@
             <label>Independent riders (16+) <input name="riders" type="number" min="1" max="12" value="2" required></label>
             <label>Child passengers (3–15) <input name="children" type="number" min="0" max="12" value="0" required></label>
             <label>Baby passengers (1–2) <input name="babies" type="number" min="0" max="12" value="0" required></label>
-            <label>Guide language <select name="language"><option value="">No preference</option></select></label>
+            <label>Guiding language for your group <select name="language" required aria-required="true" aria-describedby="voy-partner-guide-language-help" disabled><option value="">Choose guiding language</option></select><small class="hint" id="voy-partner-guide-language-help">Choose the language for the tour, separately from the page language. No language is selected automatically.</small></label>
           </div>
           <label class="check"><input name="private" type="checkbox"> Private tour (additional charge)</label>
           <div class="actions"><button type="submit" id="searchButton">Check availability</button></div>
@@ -116,6 +116,20 @@
     const experienceSelect=form.elements.experience;
     const dateField=form.elements.date;
     const languageSelect=form.elements.language;
+    // The shared Budapest catalog is authoritative for guiding languages.
+    // Do not infer from the partner page's language, or silently accept NULL.
+    function selectedGuideLanguage(){
+      const code=String(languageSelect.value||'').trim().toLowerCase();
+      const product=experiences.find(x=>x.id===experienceSelect.value);
+      const offered=Array.isArray(product?.guideLanguages)?product.guideLanguages:[];
+      return code&&offered.some(value=>String(value).toLowerCase()===code)?code:null;
+    }
+    function requireSelectedGuideLanguage(){
+      if(selectedGuideLanguage())return true;
+      setStatus('Choose a guiding language offered for this tour before checking availability.','error');
+      languageSelect.focus();
+      return false;
+    }
     dateField.min=todayBudapest();
     dateField.value=dateField.min;
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
@@ -236,7 +250,7 @@
       },1000);
     }
     async function selectSlot(slot){
-      if(loading)return;
+      if(loading||!requireSelectedGuideLanguage())return;
       await releaseHold();
       const version=++generation;
       chosenSlot=slot;setBusy(true);$('#checkout').classList.add('hidden');setStatus('Checking your partner discount…');
@@ -272,7 +286,7 @@
           throw new Error('The booking price was not attributed to your partner.');
         const held=await api('/holds',{method:'POST',body:{
           slot_id:slot.id,group_composition:composition(),is_private:isPrivate(),
-          guide_language:languageSelect.value||null,
+          guide_language:selectedGuideLanguage(),
         }});
         if(version!==generation){await api('/holds/'+encodeURIComponent(held.id),{method:'DELETE'}).catch(()=>{});return;}
         hold=held;
@@ -294,7 +308,7 @@
     }
     async function loadAvailability(event){
       event.preventDefault();
-      if(loading)return;
+      if(loading||!requireSelectedGuideLanguage())return;
       invalidate();
       const version=generation;
       const exp=experiences.find(x=>x.id===experienceSelect.value);
@@ -341,6 +355,7 @@
     }
     async function confirm(event){
       event.preventDefault();
+      if(!requireSelectedGuideLanguage())return;
       const staffRequest=requiresStaffRequest();
       if(loading||!chosenSlot||(!staffRequest&&(!hold||!quote)))return;
       if(!staffRequest&&new Date(hold.expires_at).getTime()<=Date.now()){
@@ -361,7 +376,7 @@
             method:'POST',headers:{'idempotency-key':retryKey},
             body:{
               slot_id:chosenSlot.id,group_composition:composition(),
-              is_private:false,guide_language:languageSelect.value||null,
+              is_private:false,guide_language:selectedGuideLanguage(),
               promo_code:affiliate,
               customer:{full_name:name,email,phone,preferred_language:'en'},
             },
@@ -444,12 +459,18 @@
       form.elements.private.disabled=!p?.privateAllowed;
       if(!p?.privateAllowed)form.elements.private.checked=false;
       languageSelect.replaceChildren();
-      const empty=document.createElement('option');empty.value='';empty.textContent='No preference';
+      const offered=Array.isArray(p?.guideLanguages)
+        ?[...new Set(p.guideLanguages.map(value=>String(value).toLowerCase()).filter(value=>/^[a-z]{2}$/.test(value)))]
+        :[];
+      const empty=document.createElement('option');empty.value='';
+      empty.textContent=offered.length?'Choose guiding language':'Guide languages unavailable — contact VOY PRO';
       languageSelect.append(empty);
-      for(const lang of p?.guideLanguages||[]){
+      for(const lang of offered){
         const opt=document.createElement('option');opt.value=lang;opt.textContent=lang.toUpperCase();
         languageSelect.append(opt);
       }
+      languageSelect.value='';
+      languageSelect.disabled=!offered.length;
     });
     if(!valid){setStatus('Partner booking is not configured. Ask VOY PRO for your approved embed code.','error');
       $('#searchButton').disabled=true;return;}
