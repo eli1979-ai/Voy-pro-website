@@ -36,7 +36,8 @@ for(const route of [
   const create=(tag)=>({
     tag,attrs:{},hidden:false,textContent:'',className:'',
     setAttribute(key,value){this.attrs[key]=value;},
-    addEventListener(){},focus(){this.focused=true;},
+    addEventListener(){},focus(){document.activeElement=this;},
+    contains(node){return this===sheet&&(node===closeButton||node===waLink);},
     querySelector(selector){
       if(selector==='.mobile-nav-close')return closeButton;
       if(selector==='[data-mobile-nav-wa]')return waLink;
@@ -46,6 +47,7 @@ for(const route of [
   });
   const nav={firstChild:null,insertBefore(node){opener=node;}};
   closeButton=create('button');waLink=create('a');
+  const desktopBrand=create('a');
   const document={
     body:{
       appendChild(node){sheet=node;},
@@ -56,6 +58,7 @@ for(const route of [
     },
     querySelector(selector){
       if(selector==='.navlinks')return nav;
+      if(selector==='header a.brand')return desktopBrand;
       if(selector==='.nav-menu-toggle')return opener||null;
       return null;
     },
@@ -87,6 +90,7 @@ for(const route of [
   assert.equal(sheet.hidden,false,route.name+' opens the modal');
   assert.equal(bodyLocked,true,route.name+' locks background scroll');
   assert.equal(opener.attrs['aria-expanded'],'true');
+  assert.equal(document.activeElement,closeButton,route.name+' must place keyboard focus inside the open menu');
   desktopListener({matches:false});
   assert.equal(sheet.hidden,false,route.name+' stays open on narrow layouts');
   media.matches=true;
@@ -94,6 +98,19 @@ for(const route of [
   assert.equal(sheet.hidden,true,route.name+' must close at desktop breakpoint');
   assert.equal(bodyLocked,false,route.name+' must restore page scroll');
   assert.equal(opener.attrs['aria-expanded'],'false',route.name+' must reset aria-expanded');
+  assert.equal(document.activeElement,desktopBrand,
+    route.name+' must restore focus to the visible header rather than a hidden modal');
+
+  // Do not steal focus if the active element was already outside the sheet.
+  media.matches=false;
+  opener.onclick();
+  desktopBrand.focus();
+  media.matches=true;
+  desktopListener({matches:true});
+  assert.equal(sheet.hidden,true);
+  assert.equal(bodyLocked,false);
+  assert.equal(document.activeElement,desktopBrand,
+    route.name+' must not steal focus when it is already outside the sheet');
 }
 
 if(failures.length){
