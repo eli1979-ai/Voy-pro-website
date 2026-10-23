@@ -77,9 +77,9 @@ for(const [page,locale] of locales){
     leftButton.includes('aria-hidden="true"')&&
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
-  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r5')&&
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r6')&&
     html.includes('/assets/budapest-review-ticker.css?v=20261023r6'),
-    'every localized page must invalidate cached review JS and CSS together: '+page);
+    'every localized page must load current versioned review JavaScript and CSS: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
     !html.includes('data-vp-reviews-right')===false,
     'both directional buttons must exist in each locale: '+page);
