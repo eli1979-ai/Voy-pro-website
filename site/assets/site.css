@@ -835,3 +835,19 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 
 .voy-rtb-feedback.voy-rtb-success{color:#166042;font-weight:750}
 .voy-rtb-enquiry button:disabled{opacity:.72;cursor:wait}
+
+/* Budapest landing page — compact vertical rhythm and single sourced social-proof CTA.
+   Scoped to this page's sections; unrelated tour pages and checkout keep their spacing. */
+.section.ez-vehicle-bridge{padding-bottom:12px}
+.section.ez-vehicle-bridge+.tour-picker{padding-top:24px!important}
+.section.budapest-seo-links{padding-top:28px;padding-bottom:18px}
+.section.budapest-review-sources{padding-top:22px;padding-bottom:18px}
+.review-source-actions{display:flex;justify-content:flex-start;margin-top:18px}
+.review-source-actions .btn{min-width:200px;text-align:center}
+@media(max-width:800px){
+  .section.ez-vehicle-bridge{padding-bottom:10px!important}
+  .section.ez-vehicle-bridge+.tour-picker{padding-top:18px!important}
+  .section.budapest-seo-links{padding-top:20px!important;padding-bottom:12px!important}
+  .section.budapest-review-sources{padding-top:18px!important;padding-bottom:14px!important}
+  .review-source-actions .btn{width:100%;box-sizing:border-box}
+}
