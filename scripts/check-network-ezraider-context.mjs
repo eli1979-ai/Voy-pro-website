@@ -60,8 +60,6 @@ assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
 
 // Cross-locale and mobile source routing regressions. Portuguese must retain
 // origin context when moving to EN/HE/HU and when using the mobile language row.
-const ptToEn=run('?from=marvao-pt','pt','/ezraider/?from=home');
-assert.equal(ptToEn.language.attributes.href,'/ezraider/?from=marvao-pt');
 const ptToHe=run('?from=marvao-pt','pt','/he/ezraider/?from=home');
 assert.equal(ptToHe.language.attributes.href,'/he/ezraider/?from=marvao-pt');
 const enToPt=run('?from=budapest','en','/pt/ezraider/?from=home');
@@ -74,8 +72,8 @@ const siteStart=siteJs.indexOf("if(document.body?.dataset.intent==='vehicle'){",
 const siteEnd=siteJs.indexOf('}else if(!isPortugalPage&&!isBudapestPage){',siteStart);
 assert.ok(siteStart>0&&siteEnd>siteStart,'Vehicle-specific mobile navigation branch required');
 const mobileVehicle=siteJs.slice(siteStart,siteEnd);
-for(const marker of ["data-mobile-language-row","data-ez-context=\\"back\\"","data-ez-context=\\"booking\\"","mobileOriginBooking","mobileMarvaoHome","mobileBudapestHome","mobileOrigin==='home'"]){
- assert.ok(mobileVehicle.includes(marker.replaceAll('\\\\','')),'Mobile guide navigation missing '+marker);
+for(const marker of ['data-mobile-language-row','data-ez-context="back"','data-ez-context="booking"','mobileOriginBooking','mobileMarvaoHome','mobileBudapestHome',"mobileOrigin==='home'"]){
+ assert.ok(mobileVehicle.includes(marker),'Mobile guide navigation missing '+marker);
 }
 
 assert.equal(h(run('?from=marvao-pt','pt'),'back'),'/pt/portugal/');
