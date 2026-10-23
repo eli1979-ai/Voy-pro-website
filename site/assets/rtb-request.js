@@ -23,7 +23,7 @@
       sending:'Sending enquiry…',success:'Enquiry received for human review. This is not a confirmed booking or availability guarantee.',reference:'Request reference',
       unavailable:'Request delivery could not be verified. Retry without editing your details, or contact our team manually. Do not assume an enquiry was received.',
       rateLimited:'Too many enquiries were sent recently. Please wait a few minutes before retrying with the same details. Delivery is unverified; this is not a booking.',
-      conflict:'This enquiry ID belongs to different details. Please contact our team; no new request has been accepted.',
+      conflict:'This enquiry ID belongs to different details. Change your request details to send a new enquiry, or contact our team. Nothing has been accepted.',
       rejected:'The date, time or other details were rejected. Review your selection and try again.',
       needsWhatsApp:'Secure enquiry intake is disabled. WhatsApp is opening with your prefilled enquiry; you must send it yourself.',
       retry:'Retry enquiry',manual:'Contact us on WhatsApp',
@@ -37,7 +37,7 @@
       sending:'שולחים פנייה…',success:'הפנייה התקבלה לבדיקה אנושית. זו אינה הזמנה מאושרת או הבטחה לזמינות.',reference:'מספר פנייה',
       unavailable:'לא ניתן לאמת שהפנייה נמסרה. נסו שוב בלי לשנות את הפרטים או צרו קשר ידנית. אין להניח שהפנייה נקלטה.',
       rateLimited:'נשלחו יותר מדי בקשות בזמן קצר. המתינו מספר דקות ונסו שוב בלי לשנות את הפרטים. לא ניתן לאמת את קליטת הפנייה; זו אינה הזמנה.',
-      conflict:'מספר הפנייה כבר קשור לפרטים אחרים. פנו לצוות; לא התקבלה פנייה חדשה.',
+      conflict:'מספר הפנייה כבר קשור לפרטים אחרים. שנו את פרטי הבקשה כדי לשלוח פנייה חדשה, או פנו לצוות. לא התקבלה פנייה חדשה.',
       rejected:'התאריך, השעה או פרטים אחרים נדחו. בדקו את הפרטים ונסו שוב.',
       needsWhatsApp:'קליטה מאובטחת אינה פעילה. WhatsApp ייפתח עם פנייה מוכנה — יש לשלוח אותה בעצמכם.',
       retry:'ניסיון שליחה חוזר',manual:'יצירת קשר ב־WhatsApp',
@@ -51,7 +51,7 @@
       sending:'Kérés küldése…',success:'A kérés emberi elbírálásra megérkezett. Ez nem visszaigazolt foglalás vagy elérhetőség.',reference:'Kérés azonosítója',
       unavailable:'Nem sikerült ellenőrizni a kézbesítést. Próbáld újra az adatok módosítása nélkül, vagy keresd fel a csapatot. Nem biztos, hogy a kérés beérkezett.',
       rateLimited:'Túl sok kérés érkezett rövid időn belül. Várj néhány percet, majd próbáld újra ugyanazokkal az adatokkal. A beérkezés nem ellenőrzött; ez nem foglalás.',
-      conflict:'Ez a kérésazonosító más adatokhoz tartozik. Vedd fel a kapcsolatot a csapattal; új kérés nem érkezett.',
+      conflict:'Ez a kérésazonosító más adatokhoz tartozik. Módosítsd a kérés adatait egy új érdeklődéshez, vagy keresd a csapatot. Új kérés nem érkezett.',
       rejected:'A dátum, az időpont vagy más adat nem fogadható el. Ellenőrizd az adatokat és próbáld újra.',
       needsWhatsApp:'A biztonságos kérések fogadása nem aktív. Megnyílik a WhatsApp üzenete, amelyet neked kell elküldened.',
       retry:'Kérés újrapróbálása',manual:'Kapcsolat WhatsAppon',
@@ -145,6 +145,10 @@
   let pendingPayload=null;
   let pendingFingerprint='';
   let successful=false;
+  // Once an upstream idempotency mismatch is confirmed, its exact guest
+  // payload must NEVER be retried with the same or a fresh request ID.
+  // A genuinely changed enquiry may use a new ID after guest edits.
+  const conflictedFingerprints=new Set();
   const clearPending=()=>{
     // Changing any guest field means a NEW inquiry, never mutate a prior
     // request under the same idempotency key.
@@ -156,7 +160,10 @@
       // An old manual WhatsApp link contains a snapshot of the PREVIOUS
       // request. Remove it when details change to avoid sending stale PII.
       form.querySelector('[data-rtb-manual]')?.remove();
-      feedback.textContent='';
+      const isConflicted=conflictedFingerprints.has(fingerprint);
+      feedback.textContent=isConflicted?labels.conflict:'';
+      submitButton.disabled=isConflicted;
+      submitButton.textContent=labels.submit;
     }
   };
   form.addEventListener('input',clearPending);
@@ -221,6 +228,13 @@
     // One immutable request key per exact submission. A 503, timeout or
     // lost acknowledgement retains both key AND payload on retry.
     const fingerprint=JSON.stringify(draft);
+    if(conflictedFingerprints.has(fingerprint)){
+      // Editing and later reverting must not bypass the terminal conflict.
+      // The guest can still contact the team manually if necessary.
+      feedback.textContent=labels.conflict;
+      submitButton.disabled=true;
+      return;
+    }
     if(!pendingPayload||fingerprint!==pendingFingerprint){
       const newId=globalThis.crypto?.randomUUID?.();
       if(!newId){
@@ -278,7 +292,10 @@
       if(response.status===400||response.status===409){
         feedback.textContent=response.status===409?labels.conflict:labels.rejected;
         // Conflict is not safely retryable with the same key.
-        if(response.status===409){successful=true;manualLink();}
+        if(response.status===409){
+          conflictedFingerprints.add(pendingFingerprint);
+          manualLink();
+        }
         return;
       }
       // 503 and other server/network failures can occur AFTER an upstream
@@ -291,14 +308,14 @@
     }finally{
       inFlight=false;
       // Keep accepted enquiry fields frozen alongside the accepted reference.
-      // Unfreeze on any unverified delivery or 409 so manual contact remains
-      // possible; 409 still blocks duplicate submission of the old request ID.
+      // Unlock 409 and all unverified deliveries for edits. A verified 202
+      // stays frozen; a terminal 409 remains blocked for its exact payload.
       if(!acceptedByCRM)editableControls.forEach((control,i)=>{
         control.disabled=priorDisabled[i];
       });
       if(!successful){
-        submitButton.disabled=false;
-        submitButton.textContent=labels.retry;
+        submitButton.disabled=conflictedFingerprints.has(pendingFingerprint);
+        submitButton.textContent=submitButton.disabled?labels.submit:labels.retry;
       }
     }
   });
