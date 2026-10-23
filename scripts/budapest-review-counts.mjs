@@ -55,6 +55,20 @@ const validatePage=(record,html,locale,filename)=>{
      (html.match(/class="review-source-actions"/g)||[]).length!==1)
     fail(filename+': original Google/Tripadvisor/GYG links or unified CTA missing');
   const sourceBlock=html.slice(sources,ticker);
+  // The three real review-source links use the same short label, stars,
+  // score and rating count hierarchy as the first Budapest trust strip.
+  if(!html.includes('/assets/budapest-review-sources-compact.css?v=20261023r1'))
+    fail(filename+': Budapest compact review stylesheet missing');
+  if((sourceBlock.match(/class="trust-source"/g)||[]).length!==3||
+     (sourceBlock.match(/class="stars" aria-hidden="true">★★★★★<\/span>/g)||[]).length!==3||
+     (sourceBlock.match(/class="trust-score">5\.0<\/span>/g)||[]).length!==3||
+     (sourceBlock.match(/class="trust-sub"/g)||[]).length!==3||
+     /class="score"|<small>/.test(sourceBlock))
+    fail(filename+': lower review sources must match the first compact trust-strip hierarchy');
+  for(const source of ['google_maps','tripadvisor','getyourguide']){
+    if(!new RegExp('class="review-source-card" data-review-source="'+source+'" href="https://').test(sourceBlock))
+      fail(filename+': external review source link missing: '+source);
+  }
   if(!/class="review-source-actions"><a class="btn" data-track="booking_cta"/.test(sourceBlock))
     fail(filename+': consolidated review CTA must preserve booking attribution');
 };
@@ -181,6 +195,10 @@ if(args[0]==='--update'){
       '.review-source-actions']){
     if(!css.includes(marker))fail('compact mobile layout styles missing: '+marker);
   }
+  const compact=fs.readFileSync(path.join(root,'site/assets/budapest-review-sources-compact.css'),'utf8');
+  if(!/\.budapest-review-sources \.review-source-grid\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/.test(compact)||
+    !compact.includes('.budapest-review-sources .review-source-card:focus-visible'))
+    fail('review summary must have three columns and keyboard-visible focus');
   for(const {locale,file} of pages)
     validatePage(record,fs.readFileSync(path.join(root,file),'utf8'),locale,file);
   console.log('Budapest review layout and counts consistent in EN/HE/HU: '+
