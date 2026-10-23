@@ -116,6 +116,34 @@ const acknowledge=async()=>({status:202,json:async()=>({status:'pending_review',
   await b.submit();
   assert.equal(b.requests.length,1);
 }
+// A malformed 202 must never be mistaken for a persisted FBM/CRM request.
+// The UUID returned is the FBM request row ID, not the browser's idempotency ID.
+for(const invalid of [
+  {status:'pending_review',requestId:'accepted'},
+  {status:'pending_review',requestId:'00000000-0000-0000-0000-000000000000'},
+  {status:'pending_review',requestId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc\\n'},
+  {status:'confirmed',requestId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc'}
+]){
+  let attempts=0;
+  const b=browser(async()=>({status:202,json:async()=>{
+    attempts++;
+    return attempts===1?invalid:{status:'pending_review',requestId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc'};
+  }}));
+  b.set('requested_guide_language','he');
+  await b.submit();
+  assert.equal(attempts,1);
+  assert.ok(!statusOf(b).includes('הפנייה התקבלה'));
+  assert.ok(statusOf(b).includes('לא ניתן לאמת'));
+  assert.equal(b.locations.length,0);
+  assert.equal(b.created.get('button[type="submit"]').disabled,false);
+  const original=JSON.stringify(payloadOf(b));
+  await b.submit();
+  assert.equal(attempts,2);
+  assert.equal(JSON.stringify(payloadOf(b)),original);
+  assert.equal(b.uuidCount,1);
+  assert.ok(statusOf(b).includes('הפנייה התקבלה'));
+}
+
 // 404 is the sole automatic fallback. WhatsApp must be sent by the guest.
 {
   const b=browser(async()=>({status:404}));
@@ -131,7 +159,7 @@ const acknowledge=async()=>({status:202,json:async()=>({status:'pending_review',
 {
   let tryCount=0;
   const b=browser(async()=>{tryCount++;return {status:tryCount===1?503:202,
-    json:async()=>({status:'pending_review',requestId:'fixed'})}});
+    json:async()=>({status:'pending_review',requestId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'})}});
   b.set('requested_guide_language','he');
   await b.submit();
   assert.equal(b.locations.length,0);
