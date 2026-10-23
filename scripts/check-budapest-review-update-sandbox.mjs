@@ -30,7 +30,8 @@ const format=(n,locale)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'
 try{
   for(const relative of [
     'scripts/budapest-review-counts.mjs','site/assets/budapest-reputation.json',
-    'site/assets/site.css','site/budapest','site/he/budapest','site/hu/budapest'
+    'site/assets/site.css','site/assets/budapest-review-sources-compact.css',
+    'site/budapest','site/he/budapest','site/hu/budapest'
   ])copy(relative);
   const original=JSON.parse(read('site/assets/budapest-reputation.json'));
   const sample='site/budapest/first-day/index.html';
