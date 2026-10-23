@@ -131,8 +131,8 @@
   // two. A local date/time alone cannot identify either ambiguous departure.
   // No visitor-local Date.parse(), timezone assumption or external API.
   const resolveBudapestWallMinute=(day,time)=>{
-    if(!/^\\d{4}-\\d\\d-\\d\\d$/.test(day)||
-       !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(time))return null;
+    if(!/^\d{4}-\d\d-\d\d$/.test(day)||
+       !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))return null;
     const [year,month,date]=day.split('-').map(Number);
     const [hour,minute]=time.split(':').map(Number);
     const asUtc=Date.UTC(year,month-1,date,hour,minute);
