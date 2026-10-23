@@ -56,7 +56,7 @@ if(plannerStart>=0&&plannerEnd>plannerStart){
    if(selector==='input[name="english_ok"]')return englishChoice;
    return selector==='[data-b2b-open]'?btn:null;
   },reportValidity(){return !date.error;}};
-  const formValues={headcount:'12',time_window:'flexible',private_preference:'flexible',company:'',organizer:'',notes:''};
+  const formValues={headcount:'12',time_window:'afternoon',private_preference:'flexible',company:'',organizer:'',notes:''};
   const context={
    document:{querySelectorAll:selector=>selector==='form[data-b2b-planner]'?[form]:[]},
    locale,budapestDate:()=>clock.today,FormData:class{get(key){
@@ -88,7 +88,14 @@ if(plannerStart>=0&&plannerEnd>plannerStart){
   check(date.error==='',locale+'/'+kind+': date error not cleared after correction');
   clicked();
   check(context.location.href.startsWith('https://wa.me/36300993099?text='),locale+'/'+kind+': valid date did not hand off to WhatsApp');
-  check(decodeURIComponent(context.location.href).includes('2026-10-10'),locale+'/'+kind+': corrected date not included in message');
+  const localMessage=decodeURIComponent(context.location.href);
+  check(localMessage.includes('2026-10-10'),locale+'/'+kind+': corrected date not included in message');
+  const readableWindow=locale==='he'?'צהריים':locale==='hu'?'Délután':'Afternoon';
+  const readableEnglish=locale==='he'?'אנגלית':locale==='hu'?'Angol':'English';
+  check(localMessage.includes(readableWindow),
+    locale+'/'+kind+': manual request must include localized afternoon instead of a raw window code');
+  check(localMessage.includes(readableEnglish),
+    locale+'/'+kind+': manual request must include the readable requested guide language');
   check(context.tracks===1,locale+'/'+kind+': valid handoff analytics count wrong');
   const englishLabel=locale==='he'?'גם אנגלית מתאימה':locale==='hu'?'Angol is megfelelő':'English also possible';
   languageField.value='he';languageField.events.change?.();
@@ -96,12 +103,18 @@ if(plannerStart>=0&&plannerEnd>plannerStart){
     locale+'/'+kind+': choosing Hebrew must reveal optional English fallback');
   englishChoice.checked=true;
   clicked();
+  const requestedHebrew=locale==='he'?'עברית':locale==='hu'?'Héber':'Hebrew';
+  check(decodeURIComponent(context.location.href).includes(requestedHebrew),
+    locale+'/'+kind+': explicit Hebrew request was not human-readable');
   check(decodeURIComponent(context.location.href).includes(englishLabel+': yes'),
     locale+'/'+kind+': explicitly accepted English option was not passed to WhatsApp');
   languageField.value='hu';languageField.events.change?.();
   check(!englishChoice.checked&&!englishChoice.disabled,
     locale+'/'+kind+': changing to another non-English language must clear old consent');
   clicked();
+  const requestedHungarian=locale==='he'?'הונגרית':locale==='hu'?'Magyar':'Hungarian';
+  check(decodeURIComponent(context.location.href).includes(requestedHungarian),
+    locale+'/'+kind+': switched Hungarian guiding-language request was not human-readable');
   check(!decodeURIComponent(context.location.href).includes(englishLabel+': yes'),
     locale+'/'+kind+': previously accepted English consent leaked to the new primary language');
   languageField.value='en';languageField.events.change?.();
