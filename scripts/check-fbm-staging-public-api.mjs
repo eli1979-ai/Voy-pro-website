@@ -122,10 +122,63 @@ async function readOne(probe,request,config){
   }
   throw Error('Too many redirects');
 }
+
+// Real browser fetch to FBM sends x-voy-client-key, x-voy-client and
+// application/json, which triggers a CORS OPTIONS preflight BEFORE any GET.
+// A successful server-side GET alone cannot demonstrate browser usability.
+async function readBrowserPreflight(probe,request){
+  const canonical=new URL(STAGING+probe.route);
+  let url=safeUrl(canonical.href,canonical);
+  const seen=new Set();
+  for(let redirects=0;redirects<=3;redirects++){
+    if(seen.has(url.href))throw Error('OPTIONS redirect loop');
+    seen.add(url.href);
+    const response=await request(url.href,{
+      method:'OPTIONS',redirect:'manual',credentials:'omit',cache:'no-store',
+      headers:{
+        origin:'https://voy-pro.com',
+        'access-control-request-method':'GET',
+        'access-control-request-headers':'content-type,x-voy-client-key,x-voy-client'
+      },
+      signal:AbortSignal.timeout(10000)
+    });
+    if([301,302,303,307,308].includes(response.status)){
+      // Actual browser CORS preflight redirects are not consistently followed.
+      await response.body?.cancel();
+      throw Error('Browser CORS preflight redirected (requires direct response)');
+    }
+    if(response.status!==204){
+      await response.body?.cancel();
+      throw Error('Browser CORS preflight HTTP '+response.status+' (expected 204)');
+    }
+    const origin=response.headers.get('access-control-allow-origin');
+    const methods=String(response.headers.get('access-control-allow-methods')||'')
+      .toUpperCase().split(',').map(x=>x.trim());
+    const headers=String(response.headers.get('access-control-allow-headers')||'')
+      .toLowerCase().split(',').map(x=>x.trim());
+    const vary=String(response.headers.get('vary')||'')
+      .toLowerCase().split(',').map(x=>x.trim());
+    await response.body?.cancel();
+    if(origin!=='https://voy-pro.com')throw Error('Browser Origin missing from CORS preflight');
+    if(!methods.includes('GET'))throw Error('GET not permitted in CORS preflight');
+    if(!['content-type','x-voy-client-key','x-voy-client'].every(x=>headers.includes(x)))
+      throw Error('Required public browser request headers not permitted');
+    if(!vary.includes('origin'))throw Error('CORS response must vary by Origin');
+    return {id:probe.id+'_browser_preflight',ok:true,
+      reason:'OPTIONS 204; website Origin, GET, all browser headers and Vary: Origin'};
+  }
+  throw Error('Too many OPTIONS redirects');
+}
 export async function audit(request=fetch,config=publicClientConfig(
   fs.readFileSync('site/assets/runtime-config.js','utf8')),probes=PROBES){
   const rows=[];
   for(const probe of probes){
+    try{
+      rows.push(await readBrowserPreflight(probe,request));
+    }catch(e){
+      rows.push({id:probe.id+'_browser_preflight',ok:false,
+        reason:String(e?.message||e).slice(0,170)});
+    }
     try{
       rows.push(await readOne(probe,request,config));
     }catch(e){
@@ -139,7 +192,7 @@ export function report(result){
   return [
     '# VOY PRO — FBM Staging public read-only API contract',
     '',
-    '**Checked:** '+new Date().toISOString()+' (UTC). GET only, no customer details, cookies, secret keys, bookings, holds or payment operations.',
+    '**Checked:** '+new Date().toISOString()+' (UTC). Public browser CORS OPTIONS preflight and GET only, no customer details, cookies, secret keys, bookings, holds or payment operations.',
     '',
     '**Result:** '+result.passed+'/'+result.rows.length+' passed; '+result.failed+' failed.',
     '',
@@ -147,7 +200,7 @@ export function report(result){
     '| --- | --- | --- |',
     ...result.rows.map(row=>'| '+row.id+' | '+(row.ok?'PASS':'FAIL')+' | '+row.reason.replace(/\|/g,'/')+' |'),
     '',
-    '**Boundary:** these are public Staging **read** routes only. A passing result does not verify live Production, partner CORS, availability for a given departure, checkout, card charging, staffing, or source-of-truth migrations. The cutover decision remains NO-GO.',
+    '**Boundary:** browser OPTIONS+GET verifies only these three public Staging read routes. It does not verify Production, partner-origin CORS, or availability (its GET handler can invoke departure-creation RPC), checkout, card charging, staffing, or migrations. The cutover decision remains NO-GO.',
     ''
   ].join('\n');
 }
@@ -178,17 +231,33 @@ async function test(){
     'access-control-allow-origin':'https://voy-pro.com'
   };
   const requests=[];
+  const preflightHeaders={
+    'access-control-allow-origin':'https://voy-pro.com',
+    'access-control-allow-methods':'GET,OPTIONS',
+    'access-control-allow-headers':'content-type,x-voy-client-key,x-voy-client',
+    vary:'Origin'
+  };
   const respond=async(uri,init)=>{
     requests.push({uri,method:init.method,credentials:init.credentials});
     const probe=PROBES.find(p=>new URL(STAGING+p.route).href===uri);
     assert.ok(probe,'API audit must call only allowlisted public GET paths');
-    assert.equal(init.method,'GET');
+    assert.ok(['GET','OPTIONS'].includes(init.method),'No mutating HTTP verbs');
     assert.equal(init.credentials,'omit');
+    if(init.method==='OPTIONS'){
+      assert.equal(init.headers.origin,'https://voy-pro.com');
+      assert.equal(init.headers['access-control-request-method'],'GET');
+      assert.equal(init.headers['access-control-request-headers'],
+        'content-type,x-voy-client-key,x-voy-client');
+      assert.ok(!init.headers['x-voy-client-key'],'Browser preflight cannot send the client key');
+      return new Response(null,{status:204,headers:preflightHeaders});
+    }
     return new Response(JSON.stringify(mocks[probe.id]),{status:200,headers:apiHeaders});
   };
   const success=await audit(respond,configs);
   assert.equal(success.failed,0,report(success));
-  assert.equal(requests.length,3);
+  assert.equal(requests.length,6);
+  assert.equal(requests.filter(x=>x.method==='GET').length,3);
+  assert.equal(requests.filter(x=>x.method==='OPTIONS').length,3);
   assert.ok(!report(success).includes(key),'Never print public client keys in result artifacts');
   mocks.budapest_catalog=[];
   assert.equal((await audit(respond,configs)).failed,1,'Empty product catalog must fail closed');
@@ -202,14 +271,38 @@ async function test(){
   const denyCors=async(uri,init)=>new Response(JSON.stringify(
     mocks[PROBES.find(p=>new URL(STAGING+p.route).href===uri).id]),
     {status:200,headers:{'content-type':'application/json'}});
-  assert.equal((await audit(denyCors,configs)).failed,3,'Missing website CORS must fail');
+  assert.equal((await audit(denyCors,configs)).failed,6,'OPTIONS and GET lacking website CORS must fail');
   const missing=async()=>new Response('Not found',{status:404});
-  assert.equal((await audit(missing,configs)).failed,3);
+  assert.equal((await audit(missing,configs)).failed,6);
   const redirect=async()=>new Response(null,{status:307,headers:{location:'https://attacker.invalid/api/v1/experiences'}});
-  assert.equal((await audit(redirect,configs)).failed,3,'No redirect to an external host');
+  assert.equal((await audit(redirect,configs)).failed,6,'No redirect to an external host');
   const malicious=async()=>new Response(null,{status:307,headers:{location:'https://ezraider-os-staging.vercel.app/api/v1/holds'}});
-  assert.equal((await audit(malicious,configs)).failed,3,'No redirect to a mutating API path');
-  console.log('Public Staging FBM GET-only contract QA passed: allowlists, shapes, CORS, read-only calls and blocked live payment mode.');
+  assert.equal((await audit(malicious,configs)).failed,6,'No redirect to a mutating API path');
+  const negativePreflight=async(uri,init)=>{
+    if(init.method==='OPTIONS')return new Response(null,{status:204,headers:{
+      ...preflightHeaders,'access-control-allow-headers':'content-type'
+    }});
+    return respond(uri,init);
+  };
+  assert.equal((await audit(negativePreflight,configs)).failed,3,
+    'Browser request key headers must be permitted by every CORS preflight');
+  const preflightRedirect=async(uri,init)=>{
+    if(init.method==='OPTIONS')return new Response(null,{status:308,headers:{
+      location:uri+'/'
+    }});
+    return respond(uri,init);
+  };
+  assert.equal((await audit(preflightRedirect,configs)).failed,3,
+    'Browser preflights must not rely on redirects');
+  const missingOrigin=async(uri,init)=>{
+    if(init.method==='OPTIONS')return new Response(null,{status:204,headers:{
+      ...preflightHeaders,'access-control-allow-origin':'https://unrelated.example'
+    }});
+    return respond(uri,init);
+  };
+  assert.equal((await audit(missingOrigin,configs)).failed,3,
+    'Browser preflight cannot permit another website instead of VOY PRO');
+  console.log('Public Staging FBM OPTIONS+GET browser contract QA passed: allowlists, preflights, shapes, CORS, read-only calls and blocked live payment mode.');
 }
 const main=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
 if(main){
