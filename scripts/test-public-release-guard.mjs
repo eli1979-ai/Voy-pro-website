@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { assessPublicRelease } from './check-public-release-readiness.mjs';
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'voy-public-guard-'));
@@ -28,6 +29,50 @@ try {
 
   attest();
   assert.deepEqual(assess(), [], 'verified and explicitly approved public fixture must pass');
+  // The normal npm build runs release-consistency, not the explicit
+  // verify:public-release command. Exercise the actual CLI in a synthetic
+  // project to ensure it cannot build a falsely approved Production release.
+  const project=path.join(root,'fixture-project');
+  const fixtureSite=path.join(project,'site');
+  const fixtureLaunch=path.join(project,'launch');
+  fs.mkdirSync(path.join(fixtureSite,'assets'),{recursive:true});
+  fs.mkdirSync(fixtureLaunch,{recursive:true});
+  for(const filename of ['assets/runtime-config.js','robots.txt','sitemap.xml','index.html']){
+    fs.copyFileSync(path.join(root,filename),path.join(fixtureSite,filename));
+  }
+  fs.writeFileSync(path.join(project,'package.json'),JSON.stringify({
+    name:'voy-pro-website-v2',version:'1.48.99'
+  }));
+  const buildRelease={
+    app:'voy-pro-website-v2',version:'1.48.99',target:'production',
+    seo_indexable:true,booking_enabled:true,sitemap_urls:1,
+    built_at:'2026-10-23T11:00:00Z',
+    build_model:'synthetic-fixture',brand_assets:'synthetic-fixture'
+  };
+  const writeBuildRelease=(overrides={})=>fs.writeFileSync(
+    path.join(fixtureSite,'release.json'),JSON.stringify({...buildRelease,...overrides}));
+  const writeBuildAttestation=(overrides={})=>fs.writeFileSync(
+    path.join(fixtureLaunch,'production-environment.json'),JSON.stringify({...verified,...overrides}));
+  const consistencyScript=path.resolve('scripts/check-release-consistency.mjs');
+  const runBuildGate=()=>spawnSync(process.execPath,[consistencyScript],{
+    cwd:project,encoding:'utf8'
+  });
+  writeBuildRelease();
+  writeBuildAttestation();
+  const verifiedBuild=runBuildGate();
+  assert.equal(verifiedBuild.status,0,verifiedBuild.stderr);
+  writeBuildAttestation({owner_cutover_approved:false});
+  const deniedBuild=runBuildGate();
+  assert.notEqual(deniedBuild.status,0,
+    'build must fail when target=production without owner cutover approval');
+  assert.ok(deniedBuild.stderr.includes('Production release gate:'),
+    'regular build must explain the Production-specific failure');
+  assert.ok(deniedBuild.stderr.includes('explicit owner approval'));
+  writeBuildRelease({target:'staging',seo_indexable:false});
+  const stagingBuild=runBuildGate();
+  assert.equal(stagingBuild.status,0,
+    'staging consistency must not require a Production attestation: '+stagingBuild.stderr);
+
   const deniedCases = [
     [{status:'unverified'},'attestation must be verified'],
     [{owner_cutover_approved:false},'explicit owner approval'],
