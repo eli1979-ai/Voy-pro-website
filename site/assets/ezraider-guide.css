@@ -44,3 +44,13 @@
  .ez-hero-visual .ez-video-switch{gap:5px}
  .ez-hero-visual .ez-video-option{padding:10px 8px}
 }
+
+/* The EZRaider vehicle guide is shared by destinations; source context is explicit. */
+.ez-context-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-block:14px;font-size:.91rem}
+.ez-context-toolbar a{font-weight:700;color:#006b77;text-decoration:underline;text-underline-offset:3px}
+.ez-context-toolbar [data-ez-context-status]{color:#38515c}
+.ez-context-note{background:#e8f5f2;border-inline-start:4px solid #008579;color:#173c43;padding:5px 18px;margin-block:12px 18px}
+.ez-context-note p{line-height:1.6;font-size:.91rem;margin:12px 0}
+.ez-destination-chooser{background:#f0f7f8}
+.ez-destination-chooser .ez-card .btn{margin-top:16px}
+@media(max-width:620px){.ez-context-toolbar{align-items:flex-start;flex-direction:column}.ez-context-note{margin-inline:12px}}

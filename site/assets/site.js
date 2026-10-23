@@ -29,6 +29,8 @@
   const isPortugalPage=routePath.includes('/portugal/');
   const isBudapestPage=routePath.includes('/budapest/');
   const isLegalPage=routePath.includes('/legal/');
+  // Shared EZRaider guide: customer may arrive from any VOY PRO destination.
+  const vehicleGuideSource=/^\/(?:he\/|hu\/)?ezraider\/$/.test(routePath)?new URLSearchParams(location.search).get('from'):null;
   const destinationId=isPortugalPage?'portugal-marvao':isBudapestPage?'budapest':'network';
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
@@ -332,7 +334,9 @@
   }
   function whatsAppUrl(context='',overrides={}){
     const details={...currentRequestDetails(),...overrides};
-    const generic=isPortugalPage?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):isBudapestPage?(locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és egy budapesti túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`)):`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like help choosing a destination or experience.`;
+    const whatsappPortugal=isPortugalPage||vehicleGuideSource==='marvao'||vehicleGuideSource==='marvao-pt';
+    const whatsappBudapest=isBudapestPage||vehicleGuideSource==='budapest';
+    const generic=whatsappPortugal?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):whatsappBudapest?(locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és egy budapesti túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`)):`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like help choosing a destination or experience.`;
     const privateFlexible=locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és privát budapesti túrát szeretnék kérni rugalmas indulási idővel.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to request a private Budapest tour at a flexible departure time.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבקש סיור פרטי בבודפשט בשעת יציאה גמישה.`);
     const extended=locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és a hosszabb Buda + Margitsziget túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check the Extended Buda + Margaret tour.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק את הסיור הארוך בודה + מרגיט.`);
     const bookingConfirmed=locale==='hu'?`Szia, van egy megerősített VOY PRO Budapest foglalásom, és segítséget szeretnék kérni vele kapcsolatban.`:t(`Hi, I have a confirmed VOY PRO Budapest booking and I’d like help with it.`,`היי, יש לי הזמנה מאושרת ל־VOY PRO Budapest ואני רוצה עזרה בנוגע להזמנה.`);
@@ -357,7 +361,7 @@
     if(details.payment_method){const paymentName=details.payment_method==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):details.payment_method==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום');detailLines.push(t(`Payment: ${paymentName}`,`תשלום: ${paymentName}`));}
     if(details.total!=null)detailLines.push(t(`Total: ${money(details.total,details.currency||'EUR')}`,`סה״כ: ${money(details.total,details.currency||'EUR')}`));
     if(detailLines.length)lines.push('',...detailLines);
-    return 'https://wa.me/'+(isPortugalPage?'351935695004':'36300993099')+'?text='+encodeURIComponent(lines.join('\n'));
+    return 'https://wa.me/'+(whatsappPortugal?'351935695004':'36300993099')+'?text='+encodeURIComponent(lines.join('\n'));
   }
 
   function bindPortugalRequestFlow(){
