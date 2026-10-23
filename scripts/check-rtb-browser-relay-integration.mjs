@@ -151,10 +151,46 @@ try{
   assert.equal(upstreamPayloads[0].requestId,upstreamPayloads[1].requestId);
   assert.equal(JSON.stringify(upstreamPayloads[0]),JSON.stringify(upstreamPayloads[1]));
   assert.equal(accepted.size,1);
-  const changed={...upstreamPayloads[0],requestedGuideLanguage:'hu'};
-  const answer=await globalThis.fetch('https://ezraider-os-staging.vercel.app/api/public/request-to-book',
-    {body:JSON.stringify(changed),headers:{'x-fbm-intake-secret':process.env.VOY_RTB_FBM_INTAKE_SECRET}});
-  assert.equal(answer.status,409,'an identical key with changed language must be rejected');
+  // Exercise the *actual* same-origin website relay for a changed-language
+  // replay. Calling the mocked FBM endpoint directly would miss a relay that
+  // erroneously converts upstream 409 to 202 (duplicate accepted).
+  const browserPayload=JSON.parse(JSON.stringify(upstreamPayloads[0]));
+  const changed={
+    tourSlug:browserPayload.tourSlug,
+    preferredLocalDate:nextDate(),
+    preferredLocalTime:'14:00',
+    partySize:browserPayload.partySize,
+    contactName:browserPayload.contactName,
+    email:browserPayload.email,
+    phone:browserPayload.phone,
+    requestedGuideLanguage:'hu',
+    englishAlternativeAccepted:browserPayload.englishAlternativeAccepted,
+    requestId:browserPayload.requestId
+  };
+  const callsBeforeConflict=upstreamPayloads.length;
+  const conflict=await postRelay('/api/request-to-book',{
+    method:'POST',credentials:'omit',cache:'no-store',redirect:'error',
+    headers:{'content-type':'application/json'},body:JSON.stringify(changed)
+  });
+  assert.equal(conflict.status,409,
+    'replaying the same request ID with different guiding language must be rejected by the full relay');
+  assert.equal((await conflict.json()).error,'idempotency_payload_mismatch',
+    'the website relay must return a safe, explicit 409 mismatch code');
+  assert.equal(upstreamPayloads.length,callsBeforeConflict+1,
+    'the relay must forward a single idempotency check, not retry or create a second request');
+  assert.equal(accepted.size,1,'changed-language replay cannot add a new CRM request');
+  assert.equal(statuses.at(-1).code,409,'the tested 409 must come from the actual website relay');
+
+  // A distinct request ID must work as a separate submission, demonstrating
+  // that the duplicate check binds both the immutable payload and the key.
+  const newRequest={...changed,requestId:'88888888-8888-4888-8888-888888888888',
+    requestedGuideLanguage:'he'};
+  const secondRequest=await postRelay('/api/request-to-book',{
+    method:'POST',credentials:'omit',cache:'no-store',redirect:'error',
+    headers:{'content-type':'application/json'},body:JSON.stringify(newRequest)
+  });
+  assert.equal(secondRequest.status,202,'a new UUID must be treated as a separate, pending enquiry');
+  assert.equal(accepted.size,2,'only a genuinely new UUID is eligible for a new synthetic CRM record');
   console.log('Budapest RTB browser → local server relay → mocked CRM contract OK: disabled WhatsApp, uncertain retry, 202 inquiry, 409 changed preference.');
 }finally{
   globalThis.fetch=originalFetch;
