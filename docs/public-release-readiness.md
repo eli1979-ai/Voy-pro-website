@@ -63,3 +63,22 @@ The merged affiliate booking widget (#355) remains a pilot foundation, not proof
 5. **Human checks and approvals:** actual desktop/mobile, touch/RTL, WhatsApp, affiliate attribution, bookings, cancellation and refund behavior must be tested. Explicit owner approval is mandatory for aliases, DNS, indexing, payments, credentials or Production data changes.
 
 **Scope of this revision:** documentation-only reconciliation of read-only observations and already-recorded shell creation. No deploy, database migration, credentials, security policy, payment setting, domain alias, robots or runtime configuration changed.
+
+## Repeatable Production cutover evidence (source-only, non-authorizing)
+
+An independently provisioned project shell **is not** a deployed or accepted service. To make this distinction explicit in every handoff between website and FBM teams, generate a current source snapshot:
+
+```sh
+npm run cutover:status
+npm run cutover:report-json
+```
+
+The first produces a readable gate matrix and specific failing static checks; the second produces machine-readable JSON for comparison with manually collected infrastructure evidence. Both commands read **checked-in public configuration only**. They do not call Vercel, Supabase, Stripe, FBM, or DNS, inspect secrets, fetch customer records, or perform any mutation.
+
+The GitHub Action **VOY PRO public cutover evidence** can be run manually; it also runs for relevant release-source PRs and stores a short-lived Markdown/JSON artifact. Its job can succeed **while the status is NO-GO**, since success means the *report was produced reliably*, not that the release was approved. An additional source gate already exists in `npm run verify:public-release`; it is deliberately stricter than normal Staging builds.
+
+For this release, the committed `launch/production-environment.json` currently records separate Vercel project shells and a separate Supabase project reference but remains `status=unverified`, `owner_cutover_approved=false`, and `public_api_base_url=null`. These facts block public release independently of any successfully built Staging alias.
+
+**Verification limits:** a valid JSON project ID and a successful static preflight do not establish live schema readiness, verified API routing/CORS, payment provider mode, production payments/refunds, protected Production deployment, DNS ownership, SSL, or actual Search Console state. Record and review those with the owning teams separately; never tick them off based solely on this report.
+
+**Required owner decision:** keep DNS, aliases, Production credentials, SEO/indexing and payment changes unapproved until live checks are attached to issue #317 and the owner explicitly approves the cutover.
