@@ -1,4 +1,4 @@
-name: Public Staging HTTP indexing watch
+name: Public Staging HTTP indexing and RTB safety watch
 on:
   schedule:
     # Daily, 08:43 UTC. Read-only checks of the public Staging aliases.
@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/check-live-staging-noindex.mjs'
+      - 'scripts/check-live-rtb-disabled.mjs'
       - '.github/workflows/live-staging-http-noindex.yml'
 
 permissions:
@@ -33,21 +34,28 @@ jobs:
         run: node scripts/check-live-staging-noindex.mjs --test
       - name: Verify actual public Staging HTTP headers (no credentials)
         run: node scripts/check-live-staging-noindex.mjs
+      - name: Offline fail-closed tests for disabled Request-to-Book
+        run: node scripts/check-live-rtb-disabled.mjs --test
+      - name: Audit actual disabled Request-to-Book GET on public aliases
+        run: node scripts/check-live-rtb-disabled.mjs
       - name: Include the observed report in this run
         if: always()
         shell: bash
         run: |
-          if [ -f staging-http-audit/report.md ]; then
-            cat staging-http-audit/report.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Live HTTP audit did not produce its expected report." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          for report in staging-http-audit/report.md staging-http-audit/rtb-disabled.md; do
+            if [ -f "$report" ]; then
+              cat "$report" >> "$GITHUB_STEP_SUMMARY"
+              echo >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Audit did not produce $report." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
       - name: Preserve report after failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: live-staging-http-noindex
-          path: staging-http-audit/report.md
+          name: live-staging-http-safety
+          path: staging-http-audit/
           if-no-files-found: warn
           retention-days: 14
 
@@ -64,7 +72,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: live-staging-http-noindex
+          name: live-staging-http-safety
           path: staging-http-audit
         continue-on-error: true
       - name: Upsert one actionable indexing-safety incident
