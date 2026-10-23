@@ -1,0 +1,225 @@
+// Read-only network smoke for the public VOY PRO -> FBM *Staging* contract.
+// Uses only the browser PUBLIC client key from tracked runtime config.
+// No cookies, secrets, POST/holds, bookings, customer data, payment intent,
+// Production host, or any mutation. Passing is NOT Production readiness.
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+export const STAGING='https://ezraider-os-staging.vercel.app/api/v1';
+export const PROBES=[
+  {id:'budapest_config',route:'/destinations/budapest'},
+  {id:'budapest_catalog',route:'/experiences?destination=budapest'},
+  {id:'payment_capability',route:'/payments/capabilities'}
+];
+
+function safeUrl(raw,expected){
+  const url=new URL(raw);
+  const base=new URL(STAGING);
+  if(url.protocol!=='https:'||url.host!==base.host||url.username||
+    url.password||url.port||url.hash||![
+      expected.pathname, expected.pathname+'/'
+    ].includes(url.pathname)||url.search!==expected.search)
+    throw Error('Unsafe FBM Staging public endpoint or redirect');
+  return url;
+}
+export function publicClientConfig(text){
+  const root=text.match(/\bapiRoot\s*:\s*'([^']+)'/);
+  const key=text.match(/\bclientKey\s*:\s*'([^']+)'/);
+  if(!root||root[1]!==STAGING||!key||
+    !/^[A-Za-z0-9_-]{12,180}$/.test(key[1]))
+    throw Error('Public website FBM Staging API/client scope is missing or unexpected');
+  return {apiRoot:root[1],clientKey:key[1]};
+}
+function fields(obj,keys){
+  return obj&&typeof obj==='object'&&!Array.isArray(obj)&&
+    keys.every(key=>Object.prototype.hasOwnProperty.call(obj,key));
+}
+function validDestination(value){
+  return fields(value,['id','currency','timezone','rider_policy','meeting_point'])&&
+    value.id==='budapest'&&value.currency==='EUR'&&
+    value.timezone==='Europe/Budapest'&&
+    fields(value.rider_policy,['standard_min_age'])&&
+    Number.isFinite(value.rider_policy.standard_min_age)&&
+    fields(value.meeting_point,['address'])&&
+    typeof value.meeting_point.address==='string'&&
+    value.meeting_point.address.length>4;
+}
+function validCatalog(value){
+  return Array.isArray(value)&&value.length>0&&value.length<=100&&
+    value.every(item=>fields(item,
+      ['id','slug','title','durationMinutes','priceFrom','currency','guideLanguages','bookingEnabled'])&&
+      typeof item.id==='string'&&!!item.id&&
+      typeof item.slug==='string'&&!!item.slug&&
+      typeof item.title==='string'&&!!item.title&&
+      Number.isFinite(item.durationMinutes)&&item.durationMinutes>0&&
+      Number.isFinite(item.priceFrom)&&item.priceFrom>=0&&
+      item.currency==='EUR'&&
+      typeof item.bookingEnabled==='boolean'&&
+      Array.isArray(item.guideLanguages)&&item.guideLanguages.length>0&&
+      item.guideLanguages.every(lang=>/^[a-z]{2}$/.test(lang)));
+}
+function validPayment(value){
+  return fields(value,['online_card','provider','mode','readiness'])&&
+    typeof value.online_card==='boolean'&&
+    ['test','live'].includes(value.mode)&&
+    fields(value.readiness,['status'])&&
+    ['ready','unavailable'].includes(value.readiness.status)&&
+    (value.online_card?
+      value.provider==='stripe'&&value.readiness.status==='ready':
+      value.readiness.status==='unavailable')&&
+    value.mode!=='live'; // Staging must never present itself as live-payment mode.
+}
+const validators={
+  budapest_config:validDestination,
+  budapest_catalog:validCatalog,
+  payment_capability:validPayment
+};
+
+async function readOne(probe,request,config){
+  const canonical=new URL(STAGING+probe.route);
+  let url=safeUrl(canonical.href,canonical);
+  const seen=new Set();
+  for(let redirects=0;redirects<=3;redirects++){
+    if(seen.has(url.href))throw Error('Redirect loop');
+    seen.add(url.href);
+    const response=await request(url.href,{
+      method:'GET',redirect:'manual',credentials:'omit',cache:'no-store',
+      headers:{
+        accept:'application/json',
+        origin:'https://voy-pro.com',
+        'x-voy-client':'voy-pro-website',
+        'x-voy-client-key':config.clientKey
+      },
+      signal:AbortSignal.timeout(10000)
+    });
+    if([301,302,303,307,308].includes(response.status)){
+      const location=response.headers.get('location');
+      await response.body?.cancel();
+      if(!location)throw Error('Redirect without Location');
+      url=safeUrl(new URL(location,url).href,canonical);
+      continue;
+    }
+    if(response.status!==200){
+      await response.body?.cancel();
+      throw Error('Public GET returned HTTP '+response.status);
+    }
+    const type=response.headers.get('content-type')||'';
+    if(!type.toLowerCase().includes('application/json'))
+      throw Error('Public GET did not return JSON');
+    const length=Number(response.headers.get('content-length')||'0');
+    if(length>128000)throw Error('Unexpectedly large JSON payload');
+    const raw=await response.text();
+    if(raw.length>128000)throw Error('Unexpectedly large JSON payload');
+    let value;
+    try{value=JSON.parse(raw)}catch{throw Error('Invalid public JSON response')}
+    if(!validators[probe.id](value))throw Error('Public response shape/semantics mismatched website consumer contract');
+    const cors=response.headers.get('access-control-allow-origin');
+    if(cors!=='https://voy-pro.com'&&cors!=='*')
+      throw Error('Website Origin not allowed by Staging CORS');
+    return {id:probe.id,ok:true,reason:'GET 200; public JSON contract; allowed website CORS'};
+  }
+  throw Error('Too many redirects');
+}
+export async function audit(request=fetch,config=publicClientConfig(
+  fs.readFileSync('site/assets/runtime-config.js','utf8')),probes=PROBES){
+  const rows=[];
+  for(const probe of probes){
+    try{
+      rows.push(await readOne(probe,request,config));
+    }catch(e){
+      rows.push({id:probe.id,ok:false,reason:String(e?.message||e).slice(0,170)});
+    }
+  }
+  return {rows,passed:rows.filter(row=>row.ok).length,
+    failed:rows.filter(row=>!row.ok).length};
+}
+export function report(result){
+  return [
+    '# VOY PRO — FBM Staging public read-only API contract',
+    '',
+    '**Checked:** '+new Date().toISOString()+' (UTC). GET only, no customer details, cookies, secret keys, bookings, holds or payment operations.',
+    '',
+    '**Result:** '+result.passed+'/'+result.rows.length+' passed; '+result.failed+' failed.',
+    '',
+    '| Staging endpoint | Result | Evidence |',
+    '| --- | --- | --- |',
+    ...result.rows.map(row=>'| '+row.id+' | '+(row.ok?'PASS':'FAIL')+' | '+row.reason.replace(/\|/g,'/')+' |'),
+    '',
+    '**Boundary:** these are public Staging **read** routes only. A passing result does not verify live Production, partner CORS, availability for a given departure, checkout, card charging, staffing, or source-of-truth migrations. The cutover decision remains NO-GO.',
+    ''
+  ].join('\n');
+}
+async function test(){
+  const key='voy_bud_stg_mock_public_12345';
+  assert.deepEqual(publicClientConfig(
+    "window.VOY_RUNTIME_CONFIG={apiRoot:'"+STAGING+"',clientKey:'"+key+"'};"),
+    {apiRoot:STAGING,clientKey:key});
+  assert.throws(()=>publicClientConfig(
+    "window.VOY_RUNTIME_CONFIG={apiRoot:'https://my-production.example/api/v1',clientKey:'"+key+"'};"));
+  const mocks={
+    budapest_config:{
+      id:'budapest',currency:'EUR',timezone:'Europe/Budapest',
+      rider_policy:{standard_min_age:16},
+      meeting_point:{address:'Test Budapest, Hungary'}
+    },
+    budapest_catalog:[{
+      id:'tour-1',slug:'buda',title:'Buda',durationMinutes:90,priceFrom:70,
+      currency:'EUR',guideLanguages:['en','he'],bookingEnabled:true
+    }],
+    payment_capability:{
+      online_card:false,provider:null,mode:'test',readiness:{status:'unavailable',reason:'provider_disabled'}
+    }
+  };
+  const configs={apiRoot:STAGING,clientKey:key};
+  const apiHeaders={
+    'content-type':'application/json; charset=utf-8',
+    'access-control-allow-origin':'https://voy-pro.com'
+  };
+  const requests=[];
+  const respond=async(uri,init)=>{
+    requests.push({uri,method:init.method,credentials:init.credentials});
+    const probe=PROBES.find(p=>new URL(STAGING+p.route).href===uri);
+    assert.ok(probe,'API audit must call only allowlisted public GET paths');
+    assert.equal(init.method,'GET');
+    assert.equal(init.credentials,'omit');
+    return new Response(JSON.stringify(mocks[probe.id]),{status:200,headers:apiHeaders});
+  };
+  const success=await audit(respond,configs);
+  assert.equal(success.failed,0,report(success));
+  assert.equal(requests.length,3);
+  assert.ok(!report(success).includes(key),'Never print public client keys in result artifacts');
+  mocks.budapest_catalog=[];
+  assert.equal((await audit(respond,configs)).failed,1,'Empty product catalog must fail closed');
+  mocks.budapest_catalog=[{
+    id:'tour-1',slug:'buda',title:'Buda',durationMinutes:90,priceFrom:70,
+    currency:'EUR',guideLanguages:['en'],bookingEnabled:true
+  }];
+  mocks.payment_capability={online_card:true,provider:'stripe',mode:'live',readiness:{status:'ready'}};
+  assert.equal((await audit(respond,configs)).failed,1,'Staging live payment mode must be flagged');
+  mocks.payment_capability={online_card:false,provider:null,mode:'test',readiness:{status:'unavailable'}};
+  const denyCors=async(uri,init)=>new Response(JSON.stringify(
+    mocks[PROBES.find(p=>new URL(STAGING+p.route).href===uri).id]),
+    {status:200,headers:{'content-type':'application/json'}});
+  assert.equal((await audit(denyCors,configs)).failed,3,'Missing website CORS must fail');
+  const missing=async()=>new Response('Not found',{status:404});
+  assert.equal((await audit(missing,configs)).failed,3);
+  const redirect=async()=>new Response(null,{status:307,headers:{location:'https://attacker.invalid/api/v1/experiences'}});
+  assert.equal((await audit(redirect,configs)).failed,3,'No redirect to an external host');
+  const malicious=async()=>new Response(null,{status:307,headers:{location:'https://ezraider-os-staging.vercel.app/api/v1/holds'}});
+  assert.equal((await audit(malicious,configs)).failed,3,'No redirect to a mutating API path');
+  console.log('Public Staging FBM GET-only contract QA passed: allowlists, shapes, CORS, read-only calls and blocked live payment mode.');
+}
+const main=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
+if(main){
+  if(process.argv.includes('--test'))await test();
+  else{
+    const result=await audit();
+    const markdown=report(result);
+    fs.mkdirSync('fbm-staging-public-audit',{recursive:true});
+    fs.writeFileSync('fbm-staging-public-audit/report.md',markdown);
+    process.stdout.write(markdown+'\n');
+    if(result.failed)process.exitCode=1;
+  }
+}
