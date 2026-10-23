@@ -10,7 +10,7 @@ const assets = path.join(root, 'assets');
 const identityFile = path.join(root, 'production-environment.json');
 fs.mkdirSync(assets);
 const write = (name, content) => fs.writeFileSync(path.join(root, name), content);
-const assess = () => assessPublicRelease(root, identityFile);
+const assess = () => assessPublicRelease(root, identityFile, path.join(root,'vercel.json'));
 const verified = {
   schema_version:1,status:'verified',
   website_vercel_project_id:'prj_AAAAAAAAAAAAAAAAAAAAAAAA',
@@ -26,9 +26,22 @@ try {
   write('robots.txt', 'User-agent: *\nAllow: /\nSitemap: https://voy-pro.com/sitemap.xml\n');
   write('sitemap.xml', '<urlset><url><loc>https://voy-pro.com/</loc></url></urlset>');
   write('index.html', '<meta name="robots" content="index,follow"><link href="https://voy-pro.com/" rel="canonical">');
+  // Protected /manage pages may remain noindex in a public release,
+  // but a catch-all HTTP noindex header must be removed before cutover.
+  const manageRobots={source:'/manage/(.*)',headers:[{key:'X-Robots-Tag',value:'noindex, nofollow'}]};
+  const globalRobots={source:'/(.*)',headers:[{key:'X-Robots-Tag',value:'noindex, nofollow'}]};
+  const writeRootVercel=(globals=false)=>write('vercel.json',
+    JSON.stringify({headers:globals?[globalRobots,manageRobots]:[manageRobots]}));
+  writeRootVercel();
+
 
   attest();
   assert.deepEqual(assess(), [], 'verified and explicitly approved public fixture must pass');
+  writeRootVercel(true);
+  assert.ok(assess().some(reason=>reason.includes('must not globally declare X-Robots-Tag noindex')),
+    'public release must reject the global Staging HTTP noindex header');
+  writeRootVercel();
+  assert.deepEqual(assess(), [], 'removing global Staging noindex must restore public eligibility');
   // The normal npm build runs release-consistency, not the explicit
   // verify:public-release command. Exercise the actual CLI in a synthetic
   // project to ensure it cannot build a falsely approved Production release.
@@ -53,14 +66,24 @@ try {
     path.join(fixtureSite,'release.json'),JSON.stringify({...buildRelease,...overrides}));
   const writeBuildAttestation=(overrides={})=>fs.writeFileSync(
     path.join(fixtureLaunch,'production-environment.json'),JSON.stringify({...verified,...overrides}));
+  const writeBuildVercel=(globals=false)=>fs.writeFileSync(
+    path.join(project,'vercel.json'),
+    JSON.stringify({headers:globals?[globalRobots,manageRobots]:[manageRobots]}));
   const consistencyScript=path.resolve('scripts/check-release-consistency.mjs');
   const runBuildGate=()=>spawnSync(process.execPath,[consistencyScript],{
     cwd:project,encoding:'utf8'
   });
   writeBuildRelease();
   writeBuildAttestation();
+  writeBuildVercel();
   const verifiedBuild=runBuildGate();
   assert.equal(verifiedBuild.status,0,verifiedBuild.stderr);
+  writeBuildVercel(true);
+  const deniedGlobalHeader=runBuildGate();
+  assert.notEqual(deniedGlobalHeader.status,0,
+    'public release cannot build with a global HTTP noindex header');
+  assert.ok(deniedGlobalHeader.stderr.includes('must not globally declare X-Robots-Tag noindex'));
+  writeBuildVercel();
   writeBuildAttestation({owner_cutover_approved:false});
   const deniedBuild=runBuildGate();
   assert.notEqual(deniedBuild.status,0,
@@ -69,6 +92,11 @@ try {
     'regular build must explain the Production-specific failure');
   assert.ok(deniedBuild.stderr.includes('explicit owner approval'));
   writeBuildRelease({target:'staging',seo_indexable:false});
+  const unprotectedStaging=runBuildGate();
+  assert.notEqual(unprotectedStaging.status,0,
+    'Staging must reject removed global HTTP noindex even if robots.txt blocks crawl');
+  assert.ok(unprotectedStaging.stderr.includes('Staging requires a global Vercel X-Robots-Tag'));
+  writeBuildVercel(true);
   const stagingBuild=runBuildGate();
   assert.equal(stagingBuild.status,0,
     'staging consistency must not require a Production attestation: '+stagingBuild.stderr);
