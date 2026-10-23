@@ -72,7 +72,7 @@ assert.ok(translated.includes('Conheça o EZRaider.')&&translated.includes('A se
 assert.ok(translated.includes('data-ez-child-seat="maxi"')&&translated.includes('data-ez-child-seat="junior"'));
 assert.equal((translated.match(/data-ez-video="/g)||[]).length,2);
 assert.ok(translated.includes('Marvão')&&translated.includes('equipa local'));
-const schema=[...translated.matchAll(/<script type="application\\/ld\\+json">([^<]+)<\\/script>/g)].map(m=>JSON.parse(m[1]));
+const schema=[...translated.matchAll(new RegExp('<script type="application/ld[+]json">([^<]+)</script>','g'))].map(m=>JSON.parse(m[1]));
 assert.equal(schema.find(j=>j['@type']==='FAQPage')?.mainEntity?.length,4);
 assert.equal(schema.find(j=>j['@type']==='BreadcrumbList')?.itemListElement?.[1]?.item,'https://voy-pro.com/pt/ezraider/');
 
