@@ -43,5 +43,22 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/budapest/ezraider/",
+      "destination": "/ezraider/?from=budapest",
+      "permanent": true
+    },
+    {
+      "source": "/he/budapest/ezraider/",
+      "destination": "/he/ezraider/?from=budapest",
+      "permanent": true
+    },
+    {
+      "source": "/hu/budapest/ezraider/",
+      "destination": "/hu/ezraider/?from=budapest",
+      "permanent": true
+    }
   ]
 }
