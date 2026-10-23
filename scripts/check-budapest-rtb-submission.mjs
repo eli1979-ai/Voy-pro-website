@@ -75,7 +75,14 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
   const ctx={
     document:doc,
     location:{pathname:pagePath,assign(url){locations.push(url);}},
-    FormData:class{constructor(){this.data=formData;}get(key){return this.data[key]??null;}},
+    FormData:class{constructor(){this.data=formData;}get(key){
+      // Model native FormData: an unchecked or disabled checkbox is ABSENT.
+      if(key==='english_alternative_accepted'){
+        const checkbox=created.get('[name="english_alternative_accepted"]');
+        return checkbox.checked&&!checkbox.disabled?'yes':null;
+      }
+      return this.data[key]??null;
+    }},
     crypto:{randomUUID(){uuidCount++;return '11111111-1111-4111-8111-'+String(uuidCount).padStart(12,'0');}},
     fetch:async(url,init)=>{requests.push({url,init});return fetcher(url,init);},
     Intl,Date:clock,URL,AbortSignal,console
@@ -484,6 +491,39 @@ for(const [pageSlug,apiSlug] of routeMatrix){
     const message=url.searchParams.get('text')||'';
     assert.ok(message.includes(whatsappLabel),pagePath+' must localize WhatsApp message');
     assert.ok(message.includes(apiSlug),pagePath+' must identify the correct tour');
+    const requestSpanish=localePrefix==='he/'?'ספרדית':localePrefix==='hu/'?'Spanyol':'Spanish';
+    const englishFallback=localePrefix==='he/'?'אנגלית כשפה חלופית':localePrefix==='hu/'?'Angol mint alternatíva':'English as an alternative';
+    const unanswered=localePrefix==='he/'?'לא נענתה השאלה (לא ניתנה הסכמה)'
+      :localePrefix==='hu/'?'Nincs válasz (nincs rögzített beleegyezés)'
+      :'Not answered (no acceptance recorded)';
+    const affirmed=localePrefix==='he/'?'אושרה במפורש עבור כל חברי הקבוצה'
+      :localePrefix==='hu/'?'Kifejezetten elfogadva az egész csoport számára'
+      :'Explicitly accepted for everyone in the group';
+    assert.ok(message.includes(requestSpanish),pagePath+' manual message must show a localized guiding-language name, not "es"');
+    assert.ok(message.includes(englishFallback+': '+unanswered),
+      pagePath+' unchecked question must remain unanswered, not be presented as an explicit refusal');
+    assert.ok(!message.includes(englishFallback+': no'),
+      pagePath+' must not conflate unknown consent with an explicit No');
+    const accepted=browser(async()=>({status:404}),pagePath);
+    accepted.set('requested_guide_language','es');
+    accepted.set('english_alternative_accepted','yes');
+    await accepted.submit();
+    assert.equal(accepted.locations.length,1);
+    assert.ok(new URL(accepted.locations[0]).searchParams.get('text').includes(englishFallback+': '+affirmed),
+      pagePath+' affirmative English acceptance must be reflected explicitly for the whole group');
+    assert.equal(payloadOf(accepted).englishAlternativeAccepted,true,
+      pagePath+' manual copy must not change the existing relay payload contract');
+    const englishPrimary=browser(async()=>({status:404}),pagePath);
+    englishPrimary.set('requested_guide_language','he');
+    englishPrimary.set('english_alternative_accepted','yes');
+    englishPrimary.set('requested_guide_language','en');
+    await englishPrimary.submit();
+    assert.equal(englishPrimary.locations.length,1);
+    const englishMessage=new URL(englishPrimary.locations[0]).searchParams.get('text');
+    assert.ok(!englishMessage.includes(englishFallback),
+      pagePath+' English primary should not ask for English as a substitute');
+    assert.equal(payloadOf(englishPrimary).englishAlternativeAccepted,false,
+      pagePath+' old English consent must not survive the guiding-language change');
     assert.ok(!statusOf(disabled).includes(successLabel),
       pagePath+' disabled intake cannot claim CRM receipt');
 
