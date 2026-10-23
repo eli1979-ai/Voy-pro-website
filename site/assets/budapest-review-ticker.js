@@ -257,7 +257,9 @@
       lastFrame=timestamp;
       window.requestAnimationFrame?.(advance);
     };
-    window.requestAnimationFrame?.(advance);
+    // Guests asking the OS for reduced motion may read and navigate the
+    // complete quotes manually; never spin a useless animation-frame loop.
+    if(!reduced)window.requestAnimationFrame?.(advance);
     window.addEventListener?.('resize',()=>{
       const width=groupWidth();
       if(width>0&&(viewport.scrollLeft<width*.3||viewport.scrollLeft>width*2.7))

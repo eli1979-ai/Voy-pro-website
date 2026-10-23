@@ -77,9 +77,9 @@ for(const [page,locale] of locales){
     leftButton.includes('aria-hidden="true"')&&
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
-  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r5')&&
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r6')&&
     html.includes('/assets/budapest-review-ticker.css?v=20261023r6'),
-    'every localized page must invalidate cached review JS and CSS together: '+page);
+    'every localized page must load current versioned review JavaScript and CSS: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
     !html.includes('data-vp-reviews-right')===false,
     'both directional buttons must exist in each locale: '+page);
@@ -124,7 +124,7 @@ function node(tag){
     get lastChild(){return this.children[this.children.length-1];}
   };
 }
-async function simulate(payload,lang='en'){
+async function simulate(payload,lang='en',reducedMotion=false){
   const track=node('div'),viewport=node('div'),pause=node('button'),root=node('section');
   root.hidden=true;
   const left=node('button'),right=node('button');
@@ -139,7 +139,10 @@ async function simulate(payload,lang='en'){
     createElement:node
   };
   const frames=[];
-  const win={matchMedia:()=>({matches:false}),requestAnimationFrame:fn=>{frames.push(fn);}};
+  const win={matchMedia:query=>{
+    assert(query==='(prefers-reduced-motion: reduce)','ticker must read OS reduced-motion setting');
+    return {matches:reducedMotion};
+  },requestAnimationFrame:fn=>{frames.push(fn);}};
   const context={document:doc,window:win,
     fetch:async()=>({ok:true,json:async()=>payload}),Set,URL,Number,Object};
   vm.runInNewContext(script,context,{timeout:1500});
@@ -177,6 +180,27 @@ if(manifest.status==='awaiting_verified_approval'){
 }
 const approved=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
 assert(approved.root.hidden===false,'approved 20-item list must activate the ticker');
+
+// Respect the user's OS accessibility setting without burning animation
+// frames for a strip that must never scroll automatically. Manual navigation
+// and the real text/source links remain available to all three locales.
+for(const language of ['en','he','hu']){
+  const motionOff=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language,true);
+  assert(motionOff.root.hidden===false,language+' reduced-motion reviews must remain visible');
+  assert(motionOff.pause.hidden===true&&motionOff.root.classList.states.has('is-paused'),
+    language+' reduced-motion ribbon must begin paused with unused Resume control hidden');
+  assert(motionOff.frames.length===0,
+    language+' reduced-motion ribbon must not schedule animation frames');
+  const start=motionOff.viewport.scrollLeft;
+  motionOff.right.events.click?.();
+  assert(motionOff.viewport.scrollLeft>start,
+    language+' reduced-motion mode must preserve manual review navigation');
+  assert(motionOff.frames.length===0,
+    language+' manual navigation must not trigger background auto-scrolling');
+  assert(motionOff.track.children[1]?.children?.length===20,
+    language+' all original accessible reviews must remain visible in reduced motion');
+}
+
 assert(approved.track.children.length===3,'review track must contain a real group with repeated groups on both sides for looping');
 assert(approved.track.children[1]?.children?.length===20,'all 20 authentic review slots must display in the visible middle group');
 assert(approved.track.children[0]?.attrs?.['aria-hidden']==='true'&&
