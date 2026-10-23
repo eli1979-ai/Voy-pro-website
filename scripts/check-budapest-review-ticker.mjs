@@ -90,7 +90,7 @@ for(const [page,locale] of locales){
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
 for(const marker of ['.vp-reviews-nav svg{display:block;width:18px;height:18px',
-  'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-group--before','vp-review-group--after','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
+  'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 assert(!css.includes('.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}'),
@@ -171,18 +171,30 @@ if(manifest.status==='awaiting_verified_approval'){
 const approved=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
 assert(approved.root.hidden===false,'approved 20-item list must activate the ticker');
 assert(approved.track.children.length===3,'review track must contain a real group with repeated groups on both sides for looping');
-assert(approved.track.children[0]?.children?.length===20,'all 20 authentic review slots must display');
-assert(approved.track.children[1]?.attrs?.['aria-hidden']==='true'&&
+assert(approved.track.children[1]?.children?.length===20,'all 20 authentic review slots must display in the visible middle group');
+assert(approved.track.children[0]?.attrs?.['aria-hidden']==='true'&&
        approved.track.children[2]?.attrs?.['aria-hidden']==='true',
   'before and after groups must be hidden from assistive technology');
 assert(approved.viewport.scrollLeft===1200,'scroll position must initialize on middle, accessible group');
+assert(!/\.vp-review-group--(?:before|after)\s*\{[^}]*\border\s*:/i.test(css),
+  'CSS must not reorder repeated review groups independently from DOM order');
+assert(approved.track.children[1]?.attrs?.['aria-hidden']===undefined,
+  'visible middle review group must not be hidden from screen readers');
+assert(approved.track.children[1]?.children?.[0]?.children?.[1]?.tabIndex===0,
+  'the visible complete review text must be keyboard-focusable');
+assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex!==-1,
+  'the visible original-source link must remain in the keyboard tab order');
+assert(approved.track.children[0]?.children?.[0]?.children?.[1]?.tabIndex===-1&&
+       approved.track.children[2]?.children?.[0]?.children?.[1]?.tabIndex===-1,
+  'offscreen repeated review quotes must not create duplicate tab stops');
+
 assert(!css.includes('animation:vp-reviews-scroll'),
   'native bidirectional scrolling must replace the animation that could leave Hungarian empty');
-assert(approved.track.children[1]?.attrs?.inert===undefined,
+assert(approved.track.children[0]?.attrs?.inert===undefined,
   'duplicate visible cards must not be inert or their source links cannot be opened');
-assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.href===sample[0].review_url,
+assert(approved.track.children[0]?.children?.[0]?.children?.[2]?.children?.[1]?.href===sample[0].review_url,
   'visible repeated review card must link to the same authentic original review');
-assert(approved.track.children[1]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
+assert(approved.track.children[0]?.children?.[0]?.children?.[2]?.children?.[1]?.tabIndex===-1,
   'repeated original-review link must not add a duplicate keyboard tab stop');
 assert(typeof approved.right.events.click==='function'&&typeof approved.left.events.click==='function',
   'localized manual left/right buttons must be operational');
@@ -204,7 +216,7 @@ assert(css.includes('height:282px;touch-action:pan-y'),
   'review cards must allow native vertical scrolling and JS horizontal swipes');
 assert(approved.viewport.eventOptions.touchmove?.passive===false,
   'the card-horizontal swipe handler must be able to cancel native horizontal gestures');
-const swipeTarget={closest:selector=>selector==='.vp-review-card'?approved.track.children[0].children[0]:null};
+const swipeTarget={closest:selector=>selector==='.vp-review-card'?approved.track.children[1].children[0]:null};
 const makeTouch=(id,x,y)=>({identifier:id,clientX:x,clientY:y});
 const swipeStart=(model,id,x,y)=>model.viewport.events.touchstart({
   target:swipeTarget,touches:[makeTouch(id,x,y)]
@@ -265,11 +277,11 @@ assert(approved.viewport.scrollLeft===1600,'backwards manual scrolling must wrap
 const huLoop=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'hu');
 huLoop.viewport.scrollLeft=3100;huLoop.viewport.events.scroll();
 assert(huLoop.viewport.scrollLeft===1900,'Hungarian full cycle must continuously wrap back into reviews');
-const firstQuote=approved.track.children[0]?.children[0]?.children[1];
+const firstQuote=approved.track.children[1]?.children[0]?.children[1];
 assert(firstQuote?.tabIndex===0,'long original review text must be keyboard scrollable');
 assert(firstQuote?.attrs?.role==='group'&&firstQuote?.attrs?.['aria-label']==='Full review by Test reviewer 0',
   'scrollable text must be labeled with reviewer identity');
-assert(approved.track.children[1]?.children?.[0]?.children?.[1]?.tabIndex===-1,
+assert(approved.track.children[0]?.children?.[0]?.children?.[1]?.tabIndex===-1,
   'duplicated quote must not add another keyboard focus stop');
 assert(css.includes('.vp-review-text:focus-visible'),
   'scrollable review text needs a visible keyboard focus indicator');
@@ -313,24 +325,24 @@ unfinishedDrag.frames[0]?.(1000);
 unfinishedDrag.frames[1]?.(1040);
 assert(unfinishedDrag.viewport.scrollLeft>beforeDragResume+10,
   'Resume after an interrupted drag must keep advancing in animation frames');
-const firstCard=approved.track.children[0]?.children[0];
+const firstCard=approved.track.children[1]?.children[0];
 assert(firstCard?.children[1]?.textContent===sample[0].full_text,'display full original-language review when the page language matches');
 assert(firstCard?.children[2]?.children[1]?.textContent==='View original review on Tripadvisor',
   'label the exact original-review source and platform');
 const hebrew=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'he');
 assert(hebrew.root.hidden===false,'approved localized review set must activate in Hebrew');
-assert(hebrew.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.he,
+assert(hebrew.track.children[1]?.children[0]?.children[1]?.textContent===sample[0].translations.he,
   'Hebrew page must render the complete Hebrew translation, never the English original');
-assert(hebrew.track.children[0]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='תורגם מהמקור'),
+assert(hebrew.track.children[1]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='תורגם מהמקור'),
   'Hebrew translation must be visibly identified');
 const hungarian=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},'hu');
-assert(hungarian.track.children[0]?.children[0]?.children[1]?.textContent===sample[0].translations.hu,
+assert(hungarian.track.children[1]?.children[0]?.children[1]?.textContent===sample[0].translations.hu,
   'Hungarian page must render the complete Hungarian translation');
-assert(hungarian.track.children[0]?.children[0]?.children[0]?.children[1]?.textContent==='Tripadvisor',
+assert(hungarian.track.children[1]?.children[0]?.children[0]?.children[1]?.textContent==='Tripadvisor',
   'platform brand remains unchanged in Hungarian cards');
-assert(hungarian.track.children[0]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='Az eredetiből fordítva'),
+assert(hungarian.track.children[1]?.children[0]?.children[2]?.children[0]?.children.some(n=>n.textContent==='Az eredetiből fordítva'),
   'Hungarian review must disclose translation in Hungarian');
-assert(hungarian.track.children[0]?.children[0]?.children[2]?.children[1]?.textContent==='Eredeti értékelés itt: Tripadvisor',
+assert(hungarian.track.children[1]?.children[0]?.children[2]?.children[1]?.textContent==='Eredeti értékelés itt: Tripadvisor',
   'Hungarian original-review link must identify Tripadvisor');
 assert(firstCard?.children[2]?.children[1]?.href===sample[0].review_url,'original review source must be linked');
 assert(typeof approved.pause.events.click==='function','pause control must work without hover');
@@ -345,7 +357,7 @@ const listingSample=sample.map(x=>({...x}));
 listingSample[10]={...listingSample[10],date:null,link_kind:'listing',
   review_url:'https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest'};
 const listing=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:listingSample},'he');
-const listingCard=listing.track.children[0]?.children[10];
+const listingCard=listing.track.children[1]?.children[10];
 assert(listing.root.hidden===false,'platform-verified review with no exact date may appear');
 assert(!listingCard?.children[2]?.children[0]?.children.some(n=>n.tagName==='time'),
   'never invent a date when the provider does not confirm it');

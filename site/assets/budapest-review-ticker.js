@@ -115,7 +115,10 @@
       before.append(reviewCard(review,true));
       after.append(reviewCard(review,true));
     }
-    track.replaceChildren(first,before,after);
+    // The unhidden, keyboard-accessible group MUST occupy the same middle
+    // segment that the viewport displays at its initial scroll position.
+    // The repeated left/right groups remain pointer-clickable but aria-hidden.
+    track.replaceChildren(before,first,after);
     root.hidden=false;
     const groupWidth=()=>first.getBoundingClientRect?.().width||first.offsetWidth||0;
     let inReset=false;
