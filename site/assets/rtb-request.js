@@ -204,7 +204,10 @@
       });
       if(response.status===202){
         const outcome=await response.json();
-        if(outcome?.status!=='pending_review'||typeof outcome.requestId!=='string'||!outcome.requestId)
+        // FBM acknowledges a persisted tour_booking_requests row with a UUID.
+        // A malformed 202 body is unverified delivery, never a successful enquiry.
+        if(outcome?.status!=='pending_review'||typeof outcome.requestId!=='string'||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(outcome.requestId))
           throw new Error('invalid_request_acknowledgement');
         successful=true;
         feedback.classList.add('voy-rtb-success');
