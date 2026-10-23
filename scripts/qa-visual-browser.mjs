@@ -44,7 +44,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,booking=fals
   const runtimeErrors=[];
   page.on('pageerror',error=>runtimeErrors.push(error.message));
   // Avoid contact with actual vendors, FBM, Google/Meta tracking, or YouTube.
-  await page.route('**/*',route=>{
+  await page.route('**/*',async route=>{
     try{
       const requested=new URL(route.request().url());
       if(requested.origin===base)return route.continue();
