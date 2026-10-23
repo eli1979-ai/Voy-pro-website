@@ -212,6 +212,18 @@ try{
     'RTB server relay safety regression: '+String(error.stderr||error.message||error).slice(0,1200));
 }
 
+// This tests only the read-only *live* probe contract using synthetic
+// responses. Real HTTP GETs require a separate explicit --origin invocation.
+try{
+  const output=execFileSync(process.execPath,['scripts/test-rtb-live-disabled.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:12000
+  });
+  console.log(output.trim());
+}catch(error){
+  fail('scripts/verify-rtb-disabled-live.mjs',
+    'Disabled RTB ingress probe regression: '+String(error.stderr||error.message||error).slice(0,1200));
+}
+
 // Compose the real request-only browser module and server relay in a local
 // synthetic integration; no external CRM mutation or public feature activation.
 try{

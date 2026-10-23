@@ -89,3 +89,18 @@ A rate-limiting action should be applied only after owner approval and controlle
 6. Switch test-only enabling flags off again, confirm 404 `request_intake_disabled`, and retain only non-PII evidence and rollback documentation.
 
 **Open state:** all runtime activation, real CRM writes, Firewall configuration, secret changes, and Product/Production mutations remain out of scope until explicit approval.
+
+
+### Reproducible live disabled-ingress smoke (read-only)
+
+After reviewing a deployment, an operator can test whether a specific VOY PRO website ingress is **still disabled** by running:
+
+```bash
+node scripts/verify-rtb-disabled-live.mjs --origin=https://voy-pro.com
+```
+
+The script makes only a `GET /api/request-to-book` against an explicitly allowlisted HTTPS website host, with no contact details, body, authorization header, or redirects. It requires **HTTP 404** with JSON `{"error":"request_intake_disabled"}` and `Cache-Control: no-store`. An SSO response, generic Vercel 404, 405, redirect, wrong hostname, network error, or unexpected response fails closed; it never claims success. For isolated Preview use an exact deployment origin under the allowlisted `voy-pro-staging-...-eli1979-5448.vercel.app` host format, provided that Preview access permits the request.
+
+The offline fake-response regression `scripts/test-rtb-live-disabled.mjs` runs in site QA, but **does not make a real HTTP request**. The live script runs only after an operator supplies `--origin`; it must not be treated as evidence of WAF enforcement, CRM/FBM E2E, a safe enabled POST, or approval to change flags. Checking a disabled GET does not exercise a throttling rule. To activate intake, the separate owner-gated firewall and synthetic Staging CRM acceptance tests above remain necessary.
+
+**Read-only Vercel observation (2026-10-23):** the public `voy-pro.com` domain remains attached to `voy-pro-staging`; the read for the active Vercel Firewall configuration returned `404 Seawall Config not found`. The result does not establish that all protection is absent, but cannot substantiate the release requirement of enforced per-path throttling. No Firewall rule or environment variable was changed by this check.
