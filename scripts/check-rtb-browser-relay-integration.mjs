@@ -191,7 +191,52 @@ try{
   });
   assert.equal(secondRequest.status,202,'a new UUID must be treated as a separate, pending enquiry');
   assert.equal(accepted.size,2,'only a genuinely new UUID is eligible for a new synthetic CRM record');
-  console.log('Budapest RTB browser → local server relay → mocked CRM contract OK: disabled WhatsApp, uncertain retry, 202 inquiry, 409 changed preference.');
+
+  // E2E failure boundary: FBM has persisted a synthetic request but its
+  // first 202 carries a malformed acknowledgement. The *real* website
+  // relay must turn it into 503 and the *real* browser must preserve its
+  // original UUID and immutable body on an explicit manual retry.
+  // This test intentionally has no HTTP or actual CRM access.
+  const recoveredRows=new Map(),recoveryPosts=[];
+  let recoveryAttempts=0;
+  globalThis.fetch=async(url,opts)=>{
+    assert.equal(new URL(url).pathname,'/api/public/request-to-book');
+    const p=JSON.parse(opts.body);
+    recoveryPosts.push(p);
+    const serialized=JSON.stringify(p);
+    const previous=recoveredRows.get(p.requestId);
+    if(previous&&previous!==serialized)return {status:409};
+    if(!previous)recoveredRows.set(p.requestId,serialized);
+    recoveryAttempts++;
+    return {status:202,json:async()=>({
+      requestId:recoveryAttempts===1?'not-a-crm-uuid':'77777777-7777-4777-8777-777777777777',
+      status:'pending_review'
+    })};
+  };
+  const recovery=browser();
+  recovery.set('requested_guide_language','he');
+  recovery.set('english_alternative_accepted','yes');
+  await recovery.submit();
+  assert.equal(statuses.at(-1).code,503,'malformed upstream 202 must fail closed in the relay');
+  assert.equal(statuses.at(-1).response.error,'upstream_invalid_response');
+  assert.equal(recovery.nav.length,0,'ambiguous acceptance cannot auto-send WhatsApp');
+  assert.ok(!recovery.message.includes('הפנייה התקבלה'),
+    'the browser must not claim a successful CRM inquiry');
+  assert.equal(recovery.issued,1);
+  assert.equal(recoveryPosts.length,1);
+  const firstRecoveryBody=JSON.stringify(recoveryPosts[0]);
+  assert.equal(recoveredRows.size,1,'simulated upstream write happened only once');
+  await recovery.submit();
+  assert.equal(statuses.at(-1).code,202,'the identical retry should receive the valid receipt');
+  assert.ok(recovery.message.includes('הפנייה התקבלה'));
+  assert.equal(recovery.nav.length,0);
+  assert.equal(recovery.issued,1,'manual retry must reuse the original idempotency key');
+  assert.equal(recoveryPosts.length,2);
+  assert.equal(JSON.stringify(recoveryPosts[1]),firstRecoveryBody,
+    'retry must preserve the exact forwarded request body');
+  assert.equal(recoveredRows.size,1,'no second CRM row after an ambiguous acknowledgement');
+
+  console.log('Budapest RTB browser → local server relay → mocked CRM contract OK: disabled WhatsApp, uncertain retry, malformed 202 recovery without duplicate, 202 inquiry, 409 changed preference.');
 }finally{
   globalThis.fetch=originalFetch;
   for(const key of ['VOY_RTB_RELAY_ENABLED','VOY_RTB_ABUSE_PROTECTION_VERIFIED',
