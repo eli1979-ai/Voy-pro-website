@@ -15,7 +15,7 @@ for(const [file,groupHref,corporateHref] of pages){
   if(!hub.includes(`href="${groupHref}"`)) failures.push(`${file}: missing group-tour discovery link`);
   if(!hub.includes(`href="${corporateHref}"`)) failures.push(`${file}: missing corporate-event discovery link`);
 }
-// The EZRaider vehicle guide is a first-class, localized Budapest destination.
+// The EZRaider vehicle guide is network-wide and remains localized.
 const vehicleFiles=[
   {locale:'en',prefix:'',home:'site/budapest/index.html'},
   {locale:'he',prefix:'he/',home:'site/he/budapest/index.html'},
@@ -74,15 +74,15 @@ for(const marker of ['.ez-video-screen','.ez-hero-video-title','.ez-seat-model-i
   if(!styles.includes(marker))failures.push('EZRaider layout missing '+marker);
 
 for(const {locale,prefix,home} of vehicleFiles){
-  const path='site/'+prefix+'budapest/ezraider/index.html';
-  const html=fs.readFileSync(path,'utf8'),url='https://voy-pro.com/'+prefix+'budapest/ezraider/',href='/'+prefix+'budapest/ezraider/';
+  const path='site/'+prefix+'ezraider/index.html';
+  const html=fs.readFileSync(path,'utf8'),url='https://voy-pro.com/'+prefix+'ezraider/',href='/'+prefix+'ezraider/?from=budapest';
   for(const marker of [
     'lang="'+locale+'"','rel="canonical" href="'+url+'"',
     'property="og:image"', 'name="description"', 'data-ez-video-player',
     'href="'+manufacturer+'"','href="'+manufacturerManual+'"',
     'Thule Yepp 2 Maxi Rack Mount','Thule Yepp Junior',
     'https://www.thule.com/', 'class="section ez-safety"', 'id="safety"',
-    'href="/'+prefix+'budapest/#booking"', 'data-intent="vehicle"',
+    'data-ez-context="booking"', 'data-intent="vehicle"',
     'src="/assets/ezraider-guide.js"', 'href="/assets/ezraider-guide.css"'
   ])if(!html.includes(marker))failures.push(path+': missing '+marker);
   if(html.includes('https://www.ezraider.com/wp-content/uploads/2021/09/EZRaider-en.pdf'))failures.push(path+': outdated manufacturer manual redirect link remains');
@@ -131,7 +131,7 @@ for(const {locale,prefix,home} of vehicleFiles){
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
   for(const code of ['en','he','hu']){
     const translated=code==='en'?'':code+'/';
-    if(!html.includes('hreflang="'+code+'" href="https://voy-pro.com/'+translated+'budapest/ezraider/"'))
+    if(!html.includes('hreflang="'+code+'" href="https://voy-pro.com/'+translated+'ezraider/"'))
       failures.push(path+': missing hreflang '+code);
   }
   const structured=[...html.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(m=>{try{return JSON.parse(m[1]);}catch{return null;}});
@@ -147,17 +147,17 @@ for(const {locale,prefix,home} of vehicleFiles){
   }
 }
 const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
-for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+prefix+'budapest/ezraider/'))
+for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+prefix+'ezraider/'))
   failures.push('Sitemap missing EZRaider vehicle route for '+(prefix||'EN'));
 
 
 // The vehicle guide is shared across the VOY PRO network, but links preserve
 // destination-specific operating rules rather than implying Budapest tour rules apply in Marvão.
 for(const {page,href,locale,positionMarker} of [
-  {page:'site/index.html',href:'/budapest/ezraider/',locale:'en',positionMarker:'id="destinations"'},
-  {page:'site/portugal/index.html',href:'/budapest/ezraider/',locale:'en',positionMarker:'id="request"'},
-  {page:'site/pt/portugal/index.html',href:'/budapest/ezraider/',locale:'pt',positionMarker:'id="request"'},
-  {page:'site/he/portugal/index.html',href:'/he/budapest/ezraider/',locale:'he',positionMarker:'id="request"'}
+  {page:'site/index.html',href:'/ezraider/?from=home',locale:'en',positionMarker:'id="destinations"'},
+  {page:'site/portugal/index.html',href:'/ezraider/?from=marvao',locale:'en',positionMarker:'id="request"'},
+  {page:'site/pt/portugal/index.html',href:'/ezraider/?from=marvao-pt',locale:'pt',positionMarker:'id="request"'},
+  {page:'site/he/portugal/index.html',href:'/he/ezraider/?from=marvao',locale:'he',positionMarker:'id="request"'}
 ]){
   const html=fs.readFileSync(page,'utf8');
   const blocks=[...html.matchAll(/<section class="section ez-vehicle-bridge"[\s\S]*?<\/section>/g)];
