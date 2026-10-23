@@ -176,6 +176,35 @@ for(const [pagePath,earlyMessage] of [
     pagePath.startsWith('/hu/')?'megérkezett':'Enquiry received'));
 }
 
+// Regression for second-level precision: 60 minutes at the displayed
+// minute can in fact be only 59m01s away. Reject before the browser sends
+// any personal data. At the *next* minute, allow the relay to decide.
+const secondNow='2026-10-23T12:00:59.000Z'; // Budapest 14:00:59
+class SecondsDate extends Date{
+  constructor(...args){super(...(args.length?args:[secondNow]));}
+  static now(){return Date.parse(secondNow);}
+}
+for(const [pagePath,leadLabel] of [
+  ['/budapest/tours/heroes-square-city-ezraider-tour/','at least one hour'],
+  ['/he/budapest/tours/heroes-square-city-ezraider-tour/','לפחות שעה'],
+  ['/hu/budapest/tours/heroes-square-city-ezraider-tour/','legalább egy órával']
+]){
+  const b=browser(acknowledge,pagePath,SecondsDate);
+  b.set('requested_date','2026-10-23');
+  b.set('requested_time','15:00'); // only 59m01s from now, not a full hour
+  await b.submit();
+  assert.equal(b.requests.length,0,pagePath+' must not POST a sub-hour time');
+  assert.equal(b.uuidCount,0,pagePath+' must not allocate UUID for early time');
+  assert.ok(statusOf(b).includes(leadLabel),pagePath+' must explain lead time');
+  assert.equal(b.locations.length,0,pagePath+' must not open WhatsApp');
+
+  b.set('requested_time','15:01'); // a genuine full 60 minutes away
+  await b.submit();
+  assert.equal(b.requests.length,1,pagePath+' must allow first full eligible minute');
+  assert.equal(payloadOf(b).preferredLocalTime,'15:01');
+  assert.equal(b.uuidCount,1);
+}
+
 // 404 is the sole automatic fallback. WhatsApp must be sent by the guest.
 {
   const b=browser(async()=>({status:404}));
