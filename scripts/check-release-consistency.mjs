@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { assessPublicRelease } from './check-public-release-readiness.mjs';
 
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const release=JSON.parse(fs.readFileSync('site/release.json','utf8'));
@@ -20,6 +21,14 @@ if(!release.brand_assets||typeof release.brand_assets!=='string')failures.push('
 if(!release.built_at||Number.isNaN(Date.parse(release.built_at)))failures.push('release.built_at must be a valid timestamp');
 if(runtimeBooking==null)failures.push('runtime-config.js must expose bookingEnabled');
 else if((runtimeBooking==='true')!==release.booking_enabled)failures.push('release.booking_enabled must match runtime bookingEnabled');
+
+// Staging is allowed to build normally, but a source bundle that claims
+// Production must also pass the explicit cutover audit. The normal Git
+// deployment target name alone does not prove that Staging is isolated.
+if(release.target==='production'){
+  const publicFailures=assessPublicRelease();
+  for(const reason of publicFailures)failures.push('Production release gate: '+reason);
+}
 
 if(failures.length){
   console.error('Release consistency guard failed.');
