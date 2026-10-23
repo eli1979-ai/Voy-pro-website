@@ -46,3 +46,10 @@
   .budapest-review-sources .review-source-card .trust-score{font-size:17px}
   .budapest-review-sources .review-source-card .trust-sub{font-size:8px;line-height:1.25}
 }
+
+/* On mobile, the always-present fixed booking bar already offers the same
+   destination action. Do not repeat a full-width CTA immediately before the
+   20-review ribbon: it unnecessarily lengthens the proof section. */
+@media(max-width:800px){
+  .budapest-review-sources .review-source-actions{display:none}
+}

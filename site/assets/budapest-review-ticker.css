@@ -31,5 +31,26 @@
 .vp-review-date{font-size:.7rem;color:#526b73}
 .vp-review-translated{font-size:.68rem;color:#526b73;font-style:italic}
 .vp-review-card a{color:#006478;font-weight:750;font-size:.72rem;text-decoration:underline;text-underline-offset:3px}
-@media(max-width:720px){.vp-reviews{padding:18px 0 22px}.vp-reviews-viewport{mask-image:none;-webkit-mask-image:none}.vp-review-card{flex-basis:78vw;width:78vw;max-width:310px;height:278px}.vp-reviews-heading{align-items:flex-start!important}.vp-reviews-controls{flex-wrap:wrap;justify-content:flex-end}.vp-reviews-nav{width:30px;min-width:30px;max-width:30px;flex-basis:30px;height:30px}.vp-reviews-pause{padding:6px 9px;font-size:.75rem}}
+@media(max-width:720px){
+  .vp-reviews{padding:18px 0 22px}
+  .vp-reviews-viewport{mask-image:none;-webkit-mask-image:none}
+  .vp-review-card{flex-basis:78vw;width:78vw;max-width:310px;height:278px}
+  /* Keep arrows/pause on the side OPPOSITE the floating WhatsApp action:
+     LTR = left, RTL = right. The page's writing direction controls cross-start. */
+  .vp-reviews .vp-reviews-heading{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:9px;
+  }
+  .vp-reviews .vp-reviews-heading>div:first-child{width:100%;min-width:0}
+  .vp-reviews .vp-reviews-controls{
+    align-self:flex-start;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+    max-width:calc(100% - 72px);
+  }
+  .vp-reviews-nav{width:30px;min-width:30px;max-width:30px;flex-basis:30px;height:30px}
+  .vp-reviews-pause{padding:6px 9px;font-size:.75rem}
+}
 @media(prefers-reduced-motion:reduce){.vp-reviews-viewport{scroll-behavior:auto}.vp-review-card{scroll-snap-align:start}}

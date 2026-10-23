@@ -78,7 +78,7 @@ for(const [page,locale] of locales){
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
   assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r5')&&
-    html.includes('/assets/budapest-review-ticker.css?v=20261023r5'),
+    html.includes('/assets/budapest-review-ticker.css?v=20261023r6'),
     'every localized page must invalidate cached review JS and CSS together: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
     !html.includes('data-vp-reviews-right')===false,
@@ -93,6 +93,13 @@ for(const marker of ['.vp-reviews-nav svg{display:block;width:18px;height:18px',
   'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
+assert(css.includes('.vp-reviews .vp-reviews-heading{')&&
+  css.includes('flex-direction:column;')&&
+  css.includes('.vp-reviews .vp-reviews-controls{')&&
+  css.includes('align-self:flex-start;')&&
+  css.includes('justify-content:flex-start;')&&
+  css.includes('max-width:calc(100% - 72px);'),
+  'mobile review controls must be in their own row on the logical start side, away from floating WhatsApp in LTR and RTL');
 assert(!css.includes('.vp-reviews-nav[data-vp-reviews-left] svg{transform:rotate(180deg)}'),
   'left arrow must not be flipped back to the right by CSS');
 for(const marker of ['payload.status!==','payload.reviews.length!==20','validReview','aria-hidden',
