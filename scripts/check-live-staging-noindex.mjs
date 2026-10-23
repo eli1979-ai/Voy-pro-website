@@ -100,18 +100,20 @@ export function report(result){
 
 async function test(){
   const good='noindex, nofollow';
-  const make=(header=good,body='OK')=>new Response(body,{
+  // Each mock HTTP call gets a fresh body. Cloning a streamed Response
+  // and then awaiting cancellation of only one tee branch can hang Node.
+  const make=(header=good,body='OK')=>()=>new Response(body,{
     status:200,headers:{'x-robots-tag':header}
   });
   const fixtures=new Map([
     ['https://voy-pro.com/',make()],
     ['https://voy-pro.com/budapest/',make()],
     ['https://voy-pro.com/robots.txt',make(good,'User-agent: *\nDisallow: /\n')],
-    ['https://www.voy-pro.com/',new Response(null,{status:308,headers:{location:'https://voy-pro.com/'}})]
+    ['https://www.voy-pro.com/',()=>new Response(null,{status:308,headers:{location:'https://voy-pro.com/'}})]
   ]);
   const fetchMock=async url=>{
     if(!fixtures.has(url))throw Error('Unexpected test URL');
-    return fixtures.get(url).clone();
+    return fixtures.get(url)();
   };
   const small=[
     ['https://voy-pro.com/','Home'],['https://voy-pro.com/budapest/','Budapest'],
@@ -130,14 +132,14 @@ async function test(){
   fixtures.set('https://voy-pro.com/robots.txt',make(good,'User-agent: *\nAllow: /\n'));
   assert.equal((await audit(fetchMock,small)).failed,1,'Staging robots block is required');
   fixtures.set('https://voy-pro.com/robots.txt',make(good,'User-agent: *\nDisallow: /\n'));
-  fixtures.set('https://www.voy-pro.com/',new Response(null,{status:308,headers:{location:'https://malicious.example/'}}));
+  fixtures.set('https://www.voy-pro.com/',()=>new Response(null,{status:308,headers:{location:'https://malicious.example/'}}));
   const badHost=await audit(fetchMock,small);
   assert.equal(badHost.failed,1,'Never follow redirects to unapproved external hosts');
   assert.ok(badHost.rows[2].reason.includes('unexpected redirect target'));
-  fixtures.set('https://www.voy-pro.com/',new Response(null,{status:308,headers:{location:'http://voy-pro.com/'}}));
+  fixtures.set('https://www.voy-pro.com/',()=>new Response(null,{status:308,headers:{location:'http://voy-pro.com/'}}));
   assert.equal((await audit(fetchMock,small)).failed,1,'HTTP downgrade must fail');
-  fixtures.set('https://www.voy-pro.com/',new Response(null,{status:308,headers:{location:'https://voy-pro.com/'}}));
-  fixtures.set('https://voy-pro.com/budapest/',new Response('Nope',{status:404}));
+  fixtures.set('https://www.voy-pro.com/',()=>new Response(null,{status:308,headers:{location:'https://voy-pro.com/'}}));
+  fixtures.set('https://voy-pro.com/budapest/',()=>new Response('Nope',{status:404}));
   assert.equal((await audit(fetchMock,small)).failed,1,'Missing public page must fail');
   assert.throws(()=>checkedUrl('https://voy-pro.com/?token=secret'),'Queries are not an audit target');
   console.log('Live Staging HTTP audit unit tests pass: redirects, public allowlist, headers, robots, missing pages.');
