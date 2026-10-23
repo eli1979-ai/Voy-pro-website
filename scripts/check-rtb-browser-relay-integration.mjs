@@ -53,6 +53,11 @@ function browser(){
       addEventListener(type,fn){(this.listeners[type]||=[]).push(fn);},
       setAttribute(){},remove(){},reportValidity(){return true;},
       closest(){return fields.get('row')},
+      querySelectorAll(sel){
+        if(tag!=='form'||sel!=='input,select,textarea')return [];
+        return [...fields.entries()].filter(([key])=>key.startsWith('[name="'))
+          .map(([,field])=>field);
+      },
       querySelector(sel){return fields.get(sel)||null;}
     };
     elems.push(v);return v;
