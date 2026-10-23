@@ -436,7 +436,7 @@
     const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls','mobile-nav-sheet');btn.setAttribute('aria-haspopup','dialog');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
     const sheet=document.createElement('div');sheet.id='mobile-nav-sheet';sheet.className='mobile-nav-sheet';sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-label',locale==='he'?'תפריט ניווט':locale==='pt'?'Menu de navegação':locale==='hu'?'Navigációs menü':'Navigation menu');sheet.hidden=true;
     const closeMenuLabel=locale==='he'?'סגירת תפריט':locale==='pt'?'Fechar menu':locale==='hu'?'Menü bezárása':t('Close menu','סגירת תפריט');
-    if(document.body?.dataset.intent==='vehicle'){
+    if(document.body?.dataset?.intent==='vehicle'){
       // A destination-neutral guide needs a destination-aware, four-language
       // mobile menu. The generic network-home menu would lose branch attribution.
       const mobileOrigin=['budapest','marvao','marvao-pt'].includes(vehicleGuideSource)?vehicleGuideSource:'home';
