@@ -234,8 +234,11 @@
   };
   function huDynamic(en){
     if(HU[en]) return HU[en];
-    // Declare before the first match: otherwise the HU dynamic path throws a\n    // TDZ ReferenceError, halting site.js and disabling navigation.\n    let m;\n    if((m=en.match(/^Price item (\d+)$/))) return `Árelem ${m[1]}`;
-   if((m=en.match(/^Selected: (.+)\. Choose your date and group size\.$/))) return `Kiválasztva: ${m[1]}. Válassz dátumot és csoportlétszámot.`;
+    // Declare before the first match to prevent a temporal-dead-zone
+    // ReferenceError from aborting the Hungarian website runtime.
+    let m;
+    if((m=en.match(/^Price item (\d+)$/))) return `Árelem ${m[1]}`;
+    if((m=en.match(/^Selected: (.+)\. Choose your date and group size\.$/))) return `Kiválasztva: ${m[1]}. Válassz dátumot és csoportlétszámot.`;
     if((m=en.match(/^(.+) per independent rider$/))) return `${m[1]} / önálló vezető`;
     if((m=en.match(/^Regular rate \+ (.+) per rider$/))) return `Normál ár + ${m[1]} / vezető`;
     if((m=en.match(/^Available from (\d+) independent riders\.$/))) return `${m[1]} önálló vezetőtől elérhető.`;
