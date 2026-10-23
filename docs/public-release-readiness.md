@@ -64,6 +64,21 @@ The merged affiliate booking widget (#355) remains a pilot foundation, not proof
 
 **Scope of this revision:** documentation-only reconciliation of read-only observations and already-recorded shell creation. No deploy, database migration, credentials, security policy, payment setting, domain alias, robots or runtime configuration changed.
 
+## Fresh live Production shell checkpoint — 23 October 2026 (read-only)
+
+This verification used the connected Vercel **project and deployment** records and the connected Supabase Production **project and migration list**, not merely the source manifest. It did not access customer tables, payment identities, credentials or staging records.
+
+| Production surface | Live observation | Release implication |
+| --- | --- | --- |
+| Website Vercel project `voy-pro-production` | Separate project exists, protected for all deployments; **no deployments and no attached domains** | No deployable or publicly reachable Production website has been accepted |
+| FBM Vercel project `ezraider-os-production` | Separate project exists, protected for all deployments; **no deployments and no attached domains** | No functioning Production public API host is verified |
+| Supabase `EZRaider OS Production` | Project `ACTIVE_HEALTHY` in `eu-central-1`; list of applied migrations is **empty (0)** | The database shell is live, but the canonical booking schema is not migrated or attested |
+| Website checked-in Production manifest | `status=unverified`, `public_api_base_url=null`, `owner_cutover_approved=false` | The site must remain **NO-GO** for public cutover and transactions |
+
+**Action owners and order (no live changes performed):** FBM first reconciles its migration history, confirms scoped permissions, tests the isolated Production database schema and backup/restore safeguards. Deployment owners then separately configure and verify a protected FBM Production deployment/API and its browser-client CORS/key contract. The website owner may prepare a Production-specific release candidate only after these facts are independently checked; DNS, public aliases, search indexing and payments remain blocked until explicit final owner approval. Merely creating a Vercel project or Supabase database does not satisfy the live consumer and security gates.
+
+**Evidence boundaries:** no migration was run, no new deployments were created, no aliases or DNS were changed, and no payment or booking tests were executed against Production. This checkpoint does **not** claim that zero migration history implies there are no database objects; schema content was not queried here. The newer read-only Staging contract audit (#428) covers browser `OPTIONS` and `GET` for three public routes, not any Production or transaction readiness.
+
 ## Repeatable Production cutover evidence (source-only, non-authorizing)
 
 An independently provisioned project shell **is not** a deployed or accepted service. To make this distinction explicit in every handoff between website and FBM teams, generate a current source snapshot:
