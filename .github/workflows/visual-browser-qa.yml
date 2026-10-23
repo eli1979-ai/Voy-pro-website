@@ -1,0 +1,41 @@
+name: VOY PRO browser visual QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/qa-visual-browser.mjs'
+      - '.github/workflows/visual-browser-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-visual-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build static website and run standard regression checks
+        run: npm run build
+      - name: Install Chromium test-only (no production dependency)
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Real browser desktop, mobile, RTL and branch navigation checks
+        run: node scripts/qa-visual-browser.mjs
+      - name: Upload screenshots and results even after a failed assertion
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: voy-pro-visual-browser-qa
+          path: visual-qa-output/
+          if-no-files-found: warn
+          retention-days: 7
