@@ -98,15 +98,7 @@ if(args[0]==='--update'){
   // The canonical reputation number is also printed in SEO/support/tour and
   // family pages, not just the two displays on each landing page. Refresh
   // those pages in the same audited transaction or the legacy QA will fail.
-  const escaping=s=>s.replace(/[.*+?^$\\{}()|[\\]\\]/g,'\\  Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
-  // Validate and stage every output in memory BEFORE writing any file.
-  const updated=pages.map(({locale,file})=>{
-    const full=path.join(root,file);
-    return {full,text:updatePage(fs.readFileSync(full,'utf8'),record,locale,file)};
-  });
-  for(const p of updated)fs.writeFileSync(p.full,p.text);
-  fs.writeFileSync(recordPath,JSON.stringify(record,null,2)+'\n');
-  console.log('Updated verified '+key+' count to '+count+' across Budapest EN/HE/HU; review all diffs before publishing.');');
+  const escaping=value=>{if(!/^[0-9 ,]+$/.test(value))fail('invalid formatted count');return value;};
   const units={
     en:key==='tripadvisor'?'reviews':'ratings',
     he:key==='tripadvisor'?'ביקורות':'דירוגים',
