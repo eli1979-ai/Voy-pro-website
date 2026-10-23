@@ -18,6 +18,7 @@
       date:'Preferred date',time:'Preferred start time',riders:'Independent riders',language:'Preferred guiding language',
       name:'Contact name',email:'Email',phone:'Phone or WhatsApp',english:'I expressly accept English if my chosen language is unavailable.',
       contact:'Enter an email address or phone number.',advance:'Please choose a Budapest departure at least one hour from now.',
+      horizon:'Please choose a date and time within the next 180 days (Budapest time).',
       submit:'Request availability',note:'We will try to send your enquiry securely. If request intake is unavailable, WhatsApp opens with a prefilled message that you must send yourself. Only a reference shown here means the enquiry was received; it is never a reservation.',
       sending:'Sending enquiry…',success:'Enquiry received for human review. This is not a confirmed booking or availability guarantee.',reference:'Request reference',
       unavailable:'Request delivery could not be verified. Retry without editing your details, or contact our team manually. Do not assume an enquiry was received.',
@@ -31,6 +32,7 @@
       date:'תאריך מועדף',time:'שעת יציאה מועדפת',riders:'רוכבים עצמאיים',language:'שפת הדרכה מבוקשת',
       name:'שם איש קשר',email:'אימייל',phone:'טלפון או WhatsApp',english:'אני מסכים/ה במפורש להדרכה באנגלית אם השפה שבחרתי אינה זמינה.',
       contact:'יש להזין אימייל או מספר טלפון.',advance:'יש לבחור מועד יציאה לפי שעון בודפשט, לפחות שעה מהעכשיו.',
+      horizon:'יש לבחור תאריך ושעה בטווח של 180 הימים הקרובים, לפי שעון בודפשט.',
       submit:'בקשת זמינות',note:'ננסה לשלוח את הפנייה באופן מאובטח. אם קליטת הפניות אינה פעילה, ייפתח WhatsApp עם הודעה מוכנה שתצטרכו לשלוח בעצמכם. רק מספר פנייה שיוצג כאן מעיד על קליטה, ואינו הזמנה.',
       sending:'שולחים פנייה…',success:'הפנייה התקבלה לבדיקה אנושית. זו אינה הזמנה מאושרת או הבטחה לזמינות.',reference:'מספר פנייה',
       unavailable:'לא ניתן לאמת שהפנייה נמסרה. נסו שוב בלי לשנות את הפרטים או צרו קשר ידנית. אין להניח שהפנייה נקלטה.',
@@ -44,6 +46,7 @@
       date:'Kívánt dátum',time:'Kívánt indulási idő',riders:'Önálló vezetők',language:'Kért idegenvezetési nyelv',
       name:'Kapcsolattartó neve',email:'E-mail',phone:'Telefon vagy WhatsApp',english:'Kifejezetten elfogadom az angol nyelvű vezetést, ha a választott nyelv nem érhető el.',
       contact:'Adj meg e-mail-címet vagy telefonszámot.',advance:'Válassz legalább egy órával későbbi indulási időpontot budapesti idő szerint.',
+      horizon:'Válassz indulási dátumot és időpontot a következő 180 napon belül, budapesti idő szerint.',
       submit:'Elérhetőség kérése',note:'Megpróbáljuk biztonságosan elküldeni a kérést. Ha a fogadása nem aktív, a WhatsApp nyílik meg előre kitöltött üzenettel, amelyet neked kell elküldened. Csak az itt megjelenő hivatkozási szám jelzi a fogadást, ez nem foglalás.',
       sending:'Kérés küldése…',success:'A kérés emberi elbírálásra megérkezett. Ez nem visszaigazolt foglalás vagy elérhetőség.',reference:'Kérés azonosítója',
       unavailable:'Nem sikerült ellenőrizni a kézbesítést. Próbáld újra az adatok módosítása nélkül, vagy keresd fel a csapatot. Nem biztos, hogy a kérés beérkezett.',
@@ -117,6 +120,8 @@
     return [values.year,values.month,values.day].join('-')+'T'+values.hour+':'+values.minute;
   };
   const budapestToday=()=>budapestLocalAt(Date.now()).slice(0,10);
+  // The website relay and FBM both reject requests > 180 exact days ahead.
+  const budapestLastRequestDate=()=>budapestLocalAt(Date.now()+180*86400000).slice(0,10);
   const languageField=form.querySelector('[name="requested_guide_language"]');
   const englishChoice=form.querySelector('[name="english_alternative_accepted"]');
   const englishChoiceRow=englishChoice.closest('.voy-rtb-checkbox');
@@ -130,6 +135,7 @@
   updateEnglishAlternative();
   const dateField=form.querySelector('[name="requested_date"]');
   dateField.min=budapestToday();
+  dateField.max=budapestLastRequestDate();
   const submitButton=form.querySelector('button[type="submit"]');
   const feedback=form.querySelector('.voy-rtb-feedback');
   let inFlight=false;
@@ -149,10 +155,14 @@
     event.preventDefault();
     if(inFlight||successful)return;
     dateField.min=budapestToday();
+    dateField.max=budapestLastRequestDate();
     feedback.textContent='';
     feedback.classList.remove('voy-rtb-success');
     form.querySelector('[data-rtb-manual]')?.remove();
-    if(!form.reportValidity()){feedback.textContent=labels.invalid;return;}
+    if(!form.reportValidity()){
+      feedback.textContent=dateField.value&&dateField.value>dateField.max?labels.horizon:labels.invalid;
+      return;
+    }
     const draft=draftFrom(new FormData(form));
     if(!draft.email&&!draft.phone){feedback.textContent=labels.contact;return;}
     if(!/^[a-z]{2,3}$/.test(draft.requestedGuideLanguage)||!Number.isInteger(draft.partySize)
@@ -165,6 +175,14 @@
     if(draft.preferredLocalDate+'T'+draft.preferredLocalTime<
        budapestLocalAt(firstEligibleMinute)){
       feedback.textContent=labels.advance;return;
+    }
+    // A minute-precision local time must also stay inside the backend's
+    // 180 * 24h horizon. Round DOWN so the last permitted minute remains
+    // eligible; FBM remains the authority for exact seconds and DST.
+    const lastEligibleMinute=Math.floor((Date.now()+180*86400000)/60000)*60000;
+    if(draft.preferredLocalDate+'T'+draft.preferredLocalTime>
+       budapestLocalAt(lastEligibleMinute)){
+      feedback.textContent=labels.horizon;return;
     }
     // No local-to-UTC conversion in the browser. The relay resolves
     // Europe/Budapest, including DST gaps and repeated fall-back times.
