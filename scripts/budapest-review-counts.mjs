@@ -168,8 +168,10 @@ if(args[0]==='--update'){
   }else{
     for(const p of changedPages)fs.writeFileSync(p.full,p.text);
     if(snapshotChanged)fs.writeFileSync(recordPath,nextSnapshot);
-    console.log('Updated verified '+key+' count to '+count+' across '+
-      changedPages.length+' changed Budapest HTML pages; review all diffs before publishing.');
+    console.log(!snapshotChanged&&changedPages.length===0
+      ? 'No review count change for '+key+' ('+count+'); no files modified.'
+      : 'Updated verified '+key+' count to '+count+' across '+
+        changedPages.length+' changed Budapest HTML pages; review all diffs before publishing.');
   }
 }else if(args.length===0||args[0]==='--check'){
   if(args.length>1)fail('only --check without other arguments is accepted');
