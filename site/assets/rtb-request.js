@@ -17,7 +17,7 @@
     en:{title:'Request this tour',intro:'Tell our Budapest team when you would like to go. This is an enquiry, not a reservation.',
       date:'Preferred date',time:'Preferred start time',riders:'Independent riders',language:'Preferred guiding language',
       name:'Contact name',email:'Email',phone:'Phone or WhatsApp',english:'I expressly accept English if my chosen language is unavailable.',
-      contact:'Enter an email address or phone number.',advance:'Please choose a future Budapest departure time.',
+      contact:'Enter an email address or phone number.',advance:'Please choose a Budapest departure at least one hour from now.',
       submit:'Request availability',note:'We will try to send your enquiry securely. If request intake is unavailable, WhatsApp opens with a prefilled message that you must send yourself. Only a reference shown here means the enquiry was received; it is never a reservation.',
       sending:'Sending enquiry…',success:'Enquiry received for human review. This is not a confirmed booking or availability guarantee.',reference:'Request reference',
       unavailable:'Request delivery could not be verified. Retry without editing your details, or contact our team manually. Do not assume an enquiry was received.',
@@ -30,7 +30,7 @@
     he:{title:'בקשת סיור',intro:'ספרו לצוות בודפשט מתי תרצו לצאת. זו פנייה בלבד, לא הזמנה מאושרת.',
       date:'תאריך מועדף',time:'שעת יציאה מועדפת',riders:'רוכבים עצמאיים',language:'שפת הדרכה מבוקשת',
       name:'שם איש קשר',email:'אימייל',phone:'טלפון או WhatsApp',english:'אני מסכים/ה במפורש להדרכה באנגלית אם השפה שבחרתי אינה זמינה.',
-      contact:'יש להזין אימייל או מספר טלפון.',advance:'יש לבחור שעת יציאה עתידית לפי שעון בודפשט.',
+      contact:'יש להזין אימייל או מספר טלפון.',advance:'יש לבחור מועד יציאה לפי שעון בודפשט, לפחות שעה מהעכשיו.',
       submit:'בקשת זמינות',note:'ננסה לשלוח את הפנייה באופן מאובטח. אם קליטת הפניות אינה פעילה, ייפתח WhatsApp עם הודעה מוכנה שתצטרכו לשלוח בעצמכם. רק מספר פנייה שיוצג כאן מעיד על קליטה, ואינו הזמנה.',
       sending:'שולחים פנייה…',success:'הפנייה התקבלה לבדיקה אנושית. זו אינה הזמנה מאושרת או הבטחה לזמינות.',reference:'מספר פנייה',
       unavailable:'לא ניתן לאמת שהפנייה נמסרה. נסו שוב בלי לשנות את הפרטים או צרו קשר ידנית. אין להניח שהפנייה נקלטה.',
@@ -43,7 +43,7 @@
     hu:{title:'Túraigénylés',intro:'Írd meg a budapesti csapatnak, mikor szeretnél indulni. Ez érdeklődés, nem visszaigazolt foglalás.',
       date:'Kívánt dátum',time:'Kívánt indulási idő',riders:'Önálló vezetők',language:'Kért idegenvezetési nyelv',
       name:'Kapcsolattartó neve',email:'E-mail',phone:'Telefon vagy WhatsApp',english:'Kifejezetten elfogadom az angol nyelvű vezetést, ha a választott nyelv nem érhető el.',
-      contact:'Adj meg e-mail-címet vagy telefonszámot.',advance:'Válassz egy jövőbeli indulási időpontot budapesti idő szerint.',
+      contact:'Adj meg e-mail-címet vagy telefonszámot.',advance:'Válassz legalább egy órával későbbi indulási időpontot budapesti idő szerint.',
       submit:'Elérhetőség kérése',note:'Megpróbáljuk biztonságosan elküldeni a kérést. Ha a fogadása nem aktív, a WhatsApp nyílik meg előre kitöltött üzenettel, amelyet neked kell elküldened. Csak az itt megjelenő hivatkozási szám jelzi a fogadást, ez nem foglalás.',
       sending:'Kérés küldése…',success:'A kérés emberi elbírálásra megérkezett. Ez nem visszaigazolt foglalás vagy elérhetőség.',reference:'Kérés azonosítója',
       unavailable:'Nem sikerült ellenőrizni a kézbesítést. Próbáld újra az adatok módosítása nélkül, vagy keresd fel a csapatot. Nem biztos, hogy a kérés beérkezett.',
@@ -110,11 +110,13 @@
     preferredLocalTime:String(data.get('requested_time')||''),
     preferredTimezone:'Europe/Budapest'
   });
-  const budapestToday=()=>{
+  const budapestLocalAt=(timestamp)=>{
     const values=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Budapest',
-      year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(x=>[x.type,x.value]));
-    return [values.year,values.month,values.day].join('-');
+      year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'})
+      .formatToParts(new Date(timestamp)).map(x=>[x.type,x.value]));
+    return [values.year,values.month,values.day].join('-')+'T'+values.hour+':'+values.minute;
   };
+  const budapestToday=()=>budapestLocalAt(Date.now()).slice(0,10);
   const languageField=form.querySelector('[name="requested_guide_language"]');
   const englishChoice=form.querySelector('[name="english_alternative_accepted"]');
   const englishChoiceRow=englishChoice.closest('.voy-rtb-checkbox');
@@ -155,7 +157,12 @@
     if(!draft.email&&!draft.phone){feedback.textContent=labels.contact;return;}
     if(!/^[a-z]{2,3}$/.test(draft.requestedGuideLanguage)||!Number.isInteger(draft.partySize)
       ||draft.partySize<1||draft.partySize>12){feedback.textContent=labels.invalid;return;}
-    if(draft.preferredLocalDate<budapestToday()){feedback.textContent=labels.advance;return;}
+    // Mirror the relay's minimum one-hour lead time before sending a POST.
+    // The relay remains authoritative for DST gaps and ambiguous local times.
+    if(draft.preferredLocalDate+'T'+draft.preferredLocalTime<
+       budapestLocalAt(Date.now()+3600000)){
+      feedback.textContent=labels.advance;return;
+    }
     // No local-to-UTC conversion in the browser. The relay resolves
     // Europe/Budapest, including DST gaps and repeated fall-back times.
     const lines=[
