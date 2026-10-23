@@ -93,7 +93,12 @@ if(args[0]==='--update'){
   if(count<record[key].review_count&&optional!=='--allow-decrease')
     fail('decreasing a publicly stated count requires explicit --allow-decrease');
   if(optional&&optional!=='--allow-decrease')fail('unknown option '+optional);
+  const previous=record[key].review_count;
   Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
+  // The canonical reputation number is also printed in SEO/support/tour and
+  // family pages, not just the two displays on each landing page. Refresh
+  // those pages in the same audited transaction or the legacy QA will fail.
+  const escaping=s=>s.replace(/[.*+?^$\\{}()|[\\]\\]/g,'\\  Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
   // Validate and stage every output in memory BEFORE writing any file.
   const updated=pages.map(({locale,file})=>{
     const full=path.join(root,file);
@@ -101,7 +106,45 @@ if(args[0]==='--update'){
   });
   for(const p of updated)fs.writeFileSync(p.full,p.text);
   fs.writeFileSync(recordPath,JSON.stringify(record,null,2)+'\n');
-  console.log('Updated verified '+key+' count to '+count+' across Budapest EN/HE/HU; review all diffs before publishing.');
+  console.log('Updated verified '+key+' count to '+count+' across Budapest EN/HE/HU; review all diffs before publishing.');');
+  const units={
+    en:key==='tripadvisor'?'reviews':'ratings',
+    he:key==='tripadvisor'?'ביקורות':'דירוגים',
+    hu:'értékelés'
+  };
+  const all=[];
+  for(const locale of ['en','he','hu']){
+    const prefix=locale==='en'?'site/budapest/':'site/'+locale+'/budapest/';
+    const visit=dir=>{
+      for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+        const absolute=path.join(dir,entry.name);
+        if(entry.isDirectory())visit(absolute);
+        else if(entry.isFile()&&entry.name==='index.html')
+          all.push({file:path.relative(root,absolute),full:absolute,locale});
+      }
+    };
+    visit(path.join(root,prefix));
+  }
+  const updated=all.map(({locale,file,full})=>{
+    let html=fs.readFileSync(full,'utf8');
+    if(count!==previous){
+      const from=format(previous,locale),to=format(count,locale);
+      const regexp=key==='getyourguide'
+        ?new RegExp('(?<!\\d)'+escaping(from)+'(?=\\s+'+units[locale]+')','g')
+        :new RegExp('(?<!\\d)'+escaping(from)+'(?!\\d)','g');
+      html=html.replace(regexp,to);
+    }
+    const landing=pages.some(p=>p.file===file);
+    if(landing)html=updatePage(html,record,locale,file);
+    return {full,text:html};
+  });
+  // Validate the full output set before touching the working tree.
+  if(updated.filter(x=>pages.some(p=>path.join(root,p.file)===x.full)).length!==3)
+    fail('missing localized Budapest landing files');
+  for(const p of updated)fs.writeFileSync(p.full,p.text);
+  fs.writeFileSync(recordPath,JSON.stringify(record,null,2)+'\n');
+  console.log('Updated verified '+key+' count to '+count+' across '+all.length+
+    ' Budapest HTML pages; review the generated diffs before publishing.');
 }else if(args.length===0||args[0]==='--check'){
   if(args.length>1)fail('only --check without other arguments is accepted');
   const css=fs.readFileSync(cssPath,'utf8');
