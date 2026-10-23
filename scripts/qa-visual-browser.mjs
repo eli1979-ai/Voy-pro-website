@@ -39,6 +39,8 @@ function check(condition,label){
 }
 async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
   const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+  const runtimeErrors=[];
+  page.on('pageerror',error=>runtimeErrors.push(error.message));
   // Avoid contact with actual vendors, FBM, Google/Meta tracking, or YouTube.
   await page.route('**/*',route=>{
     try{
@@ -68,8 +70,22 @@ async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
       check(await menu.isVisible(),name+' mobile navigation control visible');
       if(await menu.isVisible()){
         await menu.click();
-        check(await page.locator('#mobile-nav-sheet').isVisible(),name+' mobile sheet opens');
-        check(await menu.getAttribute('aria-expanded')==='true',name+' menu reports expanded state');
+        const sheetOpened=await page.locator('#mobile-nav-sheet').isVisible();
+        const expanded=await menu.getAttribute('aria-expanded');
+        check(sheetOpened,name+' mobile sheet opens');
+        check(expanded==='true',name+' menu reports expanded state');
+        if(!sheetOpened||expanded!=='true'){
+          const diagnostic=await page.evaluate(()=>({
+            menu:document.querySelector('.nav-menu-toggle')?.outerHTML,
+            sheet:document.querySelector('#mobile-nav-sheet')?.outerHTML.slice(0,320),
+            cssDisplay:getComputedStyle(document.querySelector('#mobile-nav-sheet')).display,
+            bodyClass:document.body.className,
+            onClick:typeof document.querySelector('.nav-menu-toggle')?.onclick,
+            innerWidth:window.innerWidth,
+            activeElement:document.activeElement?.outerHTML.slice(0,200)
+          }));
+          results.push('DIAGNOSTIC '+name+': '+JSON.stringify({diagnostic,runtimeErrors}).slice(0,2200));
+        }
         await page.keyboard.press('Escape');
         check(!(await page.locator('#mobile-nav-sheet').isVisible()),name+' Escape closes menu');
         check(await menu.getAttribute('aria-expanded')==='false',name+' menu resets aria-expanded');
@@ -79,6 +95,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false}={}){
       check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').count()===1,name+' has source-aware return link');
       check(await page.locator('.ez-destination-chooser').count()===1,name+' has destination chooser');
     }
+    if(runtimeErrors.length)results.push('BROWSER ERRORS '+name+': '+runtimeErrors.join(' | ').slice(0,1200));
     return page;
   }catch(e){
     failures++;results.push('FAIL: '+name+' browser error '+(e.stack||String(e)).slice(0,600));
