@@ -176,6 +176,8 @@ assert(approved.track.children[0]?.attrs?.['aria-hidden']==='true'&&
        approved.track.children[2]?.attrs?.['aria-hidden']==='true',
   'before and after groups must be hidden from assistive technology');
 assert(approved.viewport.scrollLeft===1200,'scroll position must initialize on middle, accessible group');
+assert(!/\\.vp-review-group--(?:before|after)\\s*\\{[^}]*\\border\\s*:/i.test(css),
+  'CSS must not reorder repeated review groups independently from DOM order');
 assert(approved.track.children[1]?.attrs?.['aria-hidden']===undefined,
   'visible middle review group must not be hidden from screen readers');
 assert(approved.track.children[1]?.children?.[0]?.children?.[1]?.tabIndex===0,
