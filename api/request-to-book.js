@@ -117,8 +117,11 @@ async function handler(req,res){
     });
     if(response.status===202){
       const data=await response.json();
-      if(typeof data?.requestId!=='string'||!data.requestId
-         ||data.status!=='pending_review')return say(res,503,{error:'upstream_invalid_response'});
+      // FBM acknowledges the UUID of a persisted tour_booking_requests row.
+      // Do not turn a malformed/stale upstream acknowledgement into public success.
+      if(data?.status!=='pending_review'||typeof data.requestId!=='string'||
+         !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.requestId))
+        return say(res,503,{error:'upstream_invalid_response'});
       return say(res,202,{requestId:data.requestId,status:'pending_review',
         message:'Inquiry received for human review; this is not a reservation.'});
     }

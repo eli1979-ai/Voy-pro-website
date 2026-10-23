@@ -17,7 +17,7 @@ try{
   let calls=[];
   globalThis.fetch=async(url,opts)=>{
     calls.push({url:String(url),opts});
-    return {status:202,json:async()=>({requestId:'test-request-id',status:'pending_review'})};
+    return {status:202,json:async()=>({requestId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',status:'pending_review'})};
   };
   process.env.VOY_RTB_RELAY_ENABLED='false';
   process.env.VOY_RTB_ABUSE_PROTECTION_VERIFIED='true';
@@ -78,7 +78,7 @@ try{
   // alternative to Hebrew without inventing that consent from the locale.
   globalThis.fetch=async(url,opts)=>{
     calls.push({url:String(url),opts});
-    return {status:202,json:async()=>({requestId:'opted-in',status:'pending_review'})};
+    return {status:202,json:async()=>({requestId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',status:'pending_review'})};
   };
   const optedIn={...payload,requestId:'22222222-2222-4222-8222-222222222222',englishAlternativeAccepted:true};
   assert.equal((await parse('POST',optedIn)).status,202);
@@ -92,7 +92,7 @@ try{
     const previous=seen.get(submitted.requestId);
     if(previous&&previous!==JSON.stringify(submitted))return {status:409};
     if(!previous)seen.set(submitted.requestId,JSON.stringify(submitted));
-    return {status:202,json:async()=>({requestId:'stable-crm-request',status:'pending_review'})};
+    return {status:202,json:async()=>({requestId:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',status:'pending_review'})};
   };
   const stableA=await parse('POST',payload);
   const stableB=await parse('POST',payload);
@@ -108,6 +108,30 @@ try{
   assert.deepEqual((await parse('POST',payload)).body,{error:'request_unavailable'});
   globalThis.fetch=async()=>({status:202,json:async()=>({requestId:'ok',status:'approved'})});
   assert.equal((await parse('POST',payload)).status,503);
+  // The upstream claims HTTP 202 only once the FBM request row is linked to CRM.
+  // A malformed response may hide a prior write: fail closed, never echo it
+  // as a confirmation. The browser keeps the same immutable requestId for retry.
+  for(const invalid of [
+    {requestId:'received',status:'pending_review'},
+    {requestId:'00000000-0000-0000-0000-000000000000',status:'pending_review'},
+    {requestId:'aaaaaaaa-aaaa-4aaa-1aaa-aaaaaaaaaaaa',status:'pending_review'},
+    {requestId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa\\n',status:'pending_review'},
+    {requestId:42,status:'pending_review'},
+    {requestId:null,status:'pending_review'},
+    {requestId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',status:'confirmed'},
+  ]){
+    globalThis.fetch=async()=>({status:202,json:async()=>invalid});
+    const malformed=await parse('POST',payload);
+    assert.equal(malformed.status,503);
+    assert.deepEqual(malformed.body,{error:'upstream_invalid_response'});
+    assert.equal(malformed.headers['Cache-Control'],'no-store, max-age=0');
+    assert.equal(JSON.stringify(malformed).includes(process.env.VOY_RTB_FBM_INTAKE_SECRET),false);
+    assert.equal(JSON.stringify(malformed).includes(String(invalid.requestId)),false);
+  }
+  // Missing, broken JSON or a rejected response must not escape as public 202.
+  globalThis.fetch=async()=>({status:202,json:async()=>{throw new Error('bad upstream JSON')}});
+  assert.deepEqual((await parse('POST',payload)).body,{error:'request_unavailable'});
+
   // A permitted hostname on an unapproved TCP port is not the permitted
   // Staging HTTPS origin; must fail closed before any outbound request.
   calls=[];
@@ -120,7 +144,7 @@ try{
   process.env.VOY_RTB_FBM_BASE_URL='https://ezraider-os-staging.vercel.app:443/';
   globalThis.fetch=async(url,opts)=>{
     calls.push({url:String(url),opts});
-    return {status:202,json:async()=>({requestId:'test-default-port',status:'pending_review'})};
+    return {status:202,json:async()=>({requestId:'dddddddd-dddd-4ddd-8ddd-dddddddddddd',status:'pending_review'})};
   };
   assert.equal((await parse('POST',payload)).status,202);
   assert.equal(calls.length,1);
