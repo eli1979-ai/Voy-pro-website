@@ -32,32 +32,34 @@ public-cutover checks; the guard's fixture tests do run in CI.
 **Not a runtime/ownership check:** The script cannot validate Vercel domain
 aliases or live Stripe/FBM credentials. It does not replace those checks.
 
-## Verified environment reality — 21 October 2026 (read-only)
+## Verified environment reality — 23 October 2026 (read-only)
 
-This update was checked against the **connected Vercel and Supabase accounts and the current website `main` source**, not inferred from a deployment's `target=production` label.
+Checked the connected Vercel projects/deployment aliases and current website `main` source; separately consulted checked-in `launch/production-environment.json` and the merged shell-provisioning PRs (#365 and #366). A checked-in attestation is not itself a live database/API acceptance test.
 
-| Surface | Observed current state | Consequence |
+| Surface | Evidence as of 2026-10-23 | Consequence |
 | --- | --- | --- |
-| Vercel website | `voy-pro-staging` (`prj_mllzA4eTnK6ITda3AI7BpHbmVe7j`) | Public aliases share the staging website project |
-| Domain `voy-pro.com` | Verified on `voy-pro-staging` | A READY deployment there is not independently production-isolated |
-| Domain `www.voy-pro.com` | Verified redirect 308 to `voy-pro.com`, same project | Same staging/project boundary |
-| Vercel FBM API | `ezraider-os-staging` (`prj_h5j84vU4HLucTxiWtQQUue9zcn1V`) | No separately identified production FBM project |
-| Other Vercel project | `voy-pro-binary-test` | Test project is not evidence of production readiness |
-| Supabase | One accessible project: `EZRaider OS Staging` (`ieuuobbfginqkngkzbfa`, `ACTIVE_HEALTHY`) | No distinct production database can be verified through this account |
-| Website release source | `site/release.json`: `target=staging`, `seo_indexable=false` | Source deliberately blocks production SEO |
-| Website robots | `site/robots.txt`: `Disallow: /` | Crawlers deliberately excluded |
-| Website runtime API | `ezraider-os-staging.vercel.app/api/v1` | No verified production booking API URL and scoped key |
+| Public website + aliases | `voy-pro.com` and `www.voy-pro.com` still belong to Vercel project `voy-pro-staging` (`prj_mllzA4eTnK6ITda3AI7BpHbmVe7j`); `www` redirects to the apex | Public traffic is **still on the staging project** |
+| Latest staging website build | Vercel READY at `a98d669` on `main`; build emitted successful site/review QA | Verifies build/static contracts **only**, not visual browser QA or independent public release |
+| Separate website Production shell | `voy-pro-production` (`prj_BH99wHz2Loh0gU8UF7zjpgzXT12y`) exists, is protected by SSO, has no domains and **no deployment** | Identity provisioned; **not live or cut over** |
+| Staging FBM API | `ezraider-os-staging` (`prj_h5j84vU4HLucTxiWtQQUue9zcn1V`) remains the website's runtime API | Existing public booking path still depends on staging |
+| Production FBM Vercel identity | `ezraider-os-production` (`prj_fNkNsAOtZVqGlFsBAieFmehkDPeg`) recorded in the checked-in production manifest and #365 | An isolated shell identity **does not attest** to a functioning API, keys or payment readiness |
+| Production Supabase identity | `EZRaider OS Production` project ref `slfwrgssovjqcqdigzqo` recorded after creation on Free in #366; manifest says empty/no migrations | **No usable production schema is attested**; independently verify state before migrations |
+| Staging → Production migrations | #366 recorded 515 repository migration files vs. 564 staging history records (48 extra distinct names) | Reconcile actual histories before any Production schema import |
+| Website release + crawlers | `site/release.json`: `target=staging`, `seo_indexable=false`; `site/robots.txt`: `Disallow: /` | Indexing remains intentionally blocked |
+| Website browser API | `site/assets/runtime-config.js` still targets `ezraider-os-staging.vercel.app/api/v1` with a staging browser key | Production API host/public key and consumer contract are **not verified** |
+| Request-to-Book | Server relay exists but remains disabled; no `VOY_RTB_*` env names in the currently visible `voy-pro-staging` env list | No real website → FBM/CRM intake proven; retain manual WhatsApp fallback |
+| Ingress abuse protection | Active Vercel firewall config request returned `404 Seawall Config not found` | **Not verified**; this does not prove the absence of every security control |
 
-**Verdict: NO-GO for Production switch, payment enablement, indexing and DNS/alias moves.**
-The newly merged affiliate-native booking widget (PR #355) is a pilot foundation only: its existence does not establish authorized partner-origin CORS, affiliate/client-key binding, commission ledger accrual, or production payment readiness.
+**Verdict: NO-GO** for public Production cutover, payment enablement, SEO indexability or DNS/alias changes. A deployment with Vercel target `production` **inside `voy-pro-staging` is not an isolated Production deployment**. Do not turn on the RTB relay based on passed mock tests or a self-declared abuse-protection flag.
 
-### Evidence that would unblock cutover
+The merged affiliate booking widget (#355) remains a pilot foundation, not proof of partner-origin CORS, affiliate/client-key binding, commission accrual or live payment readiness.
 
-1. Identify **separate** production website and FBM deployment project IDs, production Supabase project/ref, and deployment ownership. Obtain proof that none of the production identities reuse staging databases, keys or credentials.
-2. Verify actual production public API URL, browser-scoped key, allowed origin policy and production payment capabilities (no live charges for tests).
-3. Execute catalog → availability → quote → hold → booking/confirmation → Manage Booking read-only or isolated staging tests and production-safe smoke checks under explicit authorization.
-4. Create a reviewed cutover and rollback plan for `voy-pro.com`, `www`, SEO robots/sitemap/indexability and existing EZRaiderEU phased parallel domain handling.
-5. Only **after those external proofs exist**, prepare a separately approved release candidate and run `npm run verify:public-release` with a production-scoped source configuration. Follow with mobile/RTL/WhatsApp/affiliate testing.
-6. Require explicit owner approval for the public aliases, production data changes, payments, credentials, DNS and indexing changes. A successful Preview or production-target build inside `voy-pro-staging` never constitutes that approval.
+### Evidence still required before cutover
 
-No Vercel project/domain, Supabase resource, deployment, payment configuration, runtime key, `robots.txt`, or `release.json` was changed in this audit.
+1. **FBM-owned:** reconcile Staging migration history and provision/verify schema and configuration in the separate Production database. Check real deployment identity, access policies, secrets and rollback/backup procedure; never reuse Staging secrets or data.
+2. **FBM + website contract:** obtain a stable Production public API base URL and browser-scoped client key, verify allowed origins and end-to-end catalog → availability → quote → hold → booking → payment capability → confirmation → Manage Booking, using production-safe checks only. No unauthorized live charges.
+3. **Website Request-to-Book (separate release gate):** verify enforceable path-scoped ingress rate limiting on an isolated ingress, install server-side staging credentials only with approval, and run a synthetic linked request/CRM acceptance and idempotency replay test. Keep `VOY_RTB_RELAY_ENABLED` off until all conditions and owner approval are met. See `docs/budapest-rtb-relay-architecture.md` and FBM issue #820.
+4. **Website release candidate:** prepare a separately reviewed Production-scoped `release.json`, runtime API/client key, crawler settings, canonical/hreflang/sitemap and a domain-switch/rollback plan that preserves the independent EZRaiderEU channel. Run `npm run verify:public-release` and all ordinary validation gates.
+5. **Human checks and approvals:** actual desktop/mobile, touch/RTL, WhatsApp, affiliate attribution, bookings, cancellation and refund behavior must be tested. Explicit owner approval is mandatory for aliases, DNS, indexing, payments, credentials or Production data changes.
+
+**Scope of this revision:** documentation-only reconciliation of read-only observations and already-recorded shell creation. No deploy, database migration, credentials, security policy, payment setting, domain alias, robots or runtime configuration changed.
