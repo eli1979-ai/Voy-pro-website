@@ -30,7 +30,9 @@ const server=createServer(async(req,res)=>{
 await mkdir(out,{recursive:true});
 await new Promise(done=>server.listen(0,'127.0.0.1',done));
 const base='http://127.0.0.1:'+server.address().port;
-const browser=await chromium.launch({headless:true});
+// GitHub's hosted Ubuntu runner already includes Google Chrome; use the
+// system browser in CI instead of downloading a large Playwright Chromium.
+const browser=await chromium.launch({headless:true,...(process.env.CI?{channel:'chrome'}:{})});
 const results=[];
 let failures=0;
 function check(condition,label){
