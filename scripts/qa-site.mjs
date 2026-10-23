@@ -255,8 +255,20 @@ try{
   });
   console.log(result.trim());
 }catch(error){
-  fail('assets/budapest-review-counts.json',
+  fail('assets/budapest-reputation.json',
     'Budapest source count/layout regression: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
+// Protect the weekly update workflow from changing unrelated numeric copy.
+// Exercise synthetic new counts in a temporary clone, never in site/ or FBM.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-budapest-review-update-sandbox.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:25000
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('scripts/budapest-review-counts.mjs',
+    'Budapest weekly count-update simulation: '+String(error.stderr||error.message||error).slice(0,1500));
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
