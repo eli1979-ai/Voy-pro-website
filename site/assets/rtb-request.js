@@ -17,7 +17,7 @@
     en:{title:'Request this tour',intro:'Tell our Budapest team when you would like to go. This is an enquiry, not a reservation.',
       date:'Preferred date',time:'Preferred start time',riders:'Independent riders',language:'Preferred guiding language',
       name:'Contact name',email:'Email',phone:'Phone or WhatsApp',english:'If the requested guiding language is unavailable, English would also work for everyone in our group.',whatsappEnglish:'English as an alternative',yes:'Explicitly accepted for everyone in the group',unanswered:'Not answered (no acceptance recorded)',
-      contact:'Enter an email address or phone number.',advance:'Please choose a Budapest departure at least one hour from now.',
+      contact:'Enter an email address or phone number.',advance:'Please choose a Budapest departure at least one hour from now.',dst:'This local time does not exist or occurs twice during a Budapest clock change. Choose a different time.',
       horizon:'Please choose a date and time within the next 180 days (Budapest time).',
       submit:'Request availability',note:'We will try to send your enquiry securely. If request intake is unavailable, WhatsApp opens with a prefilled message that you must send yourself. Only a reference shown here means the enquiry was received; it is never a reservation.',
       sending:'Sending enquiry…',success:'Enquiry received for human review. This is not a confirmed booking or availability guarantee.',reference:'Request reference',
@@ -31,7 +31,7 @@
     he:{title:'בקשת סיור',intro:'ספרו לצוות בודפשט מתי תרצו לצאת. זו פנייה בלבד, לא הזמנה מאושרת.',
       date:'תאריך מועדף',time:'שעת יציאה מועדפת',riders:'רוכבים עצמאיים',language:'שפת הדרכה מבוקשת',
       name:'שם איש קשר',email:'אימייל',phone:'טלפון או WhatsApp',english:'אם שפת ההדרכה המבוקשת אינה זמינה, אנגלית מתאימה גם לכל חברי הקבוצה.',whatsappEnglish:'אנגלית כשפה חלופית',yes:'אושרה במפורש עבור כל חברי הקבוצה',unanswered:'לא נענתה השאלה (לא ניתנה הסכמה)',
-      contact:'יש להזין אימייל או מספר טלפון.',advance:'יש לבחור מועד יציאה לפי שעון בודפשט, לפחות שעה מהעכשיו.',
+      contact:'יש להזין אימייל או מספר טלפון.',advance:'יש לבחור מועד יציאה לפי שעון בודפשט, לפחות שעה מהעכשיו.',dst:'השעה המקומית שבחרתם אינה קיימת או מופיעה פעמיים בשל מעבר שעון בבודפשט. בחרו שעה אחרת.',
       horizon:'יש לבחור תאריך ושעה בטווח של 180 הימים הקרובים, לפי שעון בודפשט.',
       submit:'בקשת זמינות',note:'ננסה לשלוח את הפנייה באופן מאובטח. אם קליטת הפניות אינה פעילה, ייפתח WhatsApp עם הודעה מוכנה שתצטרכו לשלוח בעצמכם. רק מספר פנייה שיוצג כאן מעיד על קליטה, ואינו הזמנה.',
       sending:'שולחים פנייה…',success:'הפנייה התקבלה לבדיקה אנושית. זו אינה הזמנה מאושרת או הבטחה לזמינות.',reference:'מספר פנייה',
@@ -45,7 +45,7 @@
     hu:{title:'Túraigénylés',intro:'Írd meg a budapesti csapatnak, mikor szeretnél indulni. Ez érdeklődés, nem visszaigazolt foglalás.',
       date:'Kívánt dátum',time:'Kívánt indulási idő',riders:'Önálló vezetők',language:'Kért idegenvezetési nyelv',
       name:'Kapcsolattartó neve',email:'E-mail',phone:'Telefon vagy WhatsApp',english:'Ha a kért idegenvezetési nyelv nem érhető el, az angol az egész csoportunknak megfelelő.',whatsappEnglish:'Angol mint alternatíva',yes:'Kifejezetten elfogadva az egész csoport számára',unanswered:'Nincs válasz (nincs rögzített beleegyezés)',
-      contact:'Adj meg e-mail-címet vagy telefonszámot.',advance:'Válassz legalább egy órával későbbi indulási időpontot budapesti idő szerint.',
+      contact:'Adj meg e-mail-címet vagy telefonszámot.',advance:'Válassz legalább egy órával későbbi indulási időpontot budapesti idő szerint.',dst:'A kiválasztott helyi időpont nem létezik, vagy kétszer fordul elő az óraátállításkor Budapesten. Válassz másik időpontot.',
       horizon:'Válassz indulási dátumot és időpontot a következő 180 napon belül, budapesti idő szerint.',
       submit:'Elérhetőség kérése',note:'Megpróbáljuk biztonságosan elküldeni a kérést. Ha a fogadása nem aktív, a WhatsApp nyílik meg előre kitöltött üzenettel, amelyet neked kell elküldened. Csak az itt megjelenő hivatkozási szám jelzi a fogadást, ez nem foglalás.',
       sending:'Kérés küldése…',success:'A kérés emberi elbírálásra megérkezett. Ez nem visszaigazolt foglalás vagy elérhetőség.',reference:'Kérés azonosítója',
@@ -126,6 +126,27 @@
       .formatToParts(new Date(timestamp)).map(x=>[x.type,x.value]));
     return [values.year,values.month,values.day].join('-')+'T'+values.hour+':'+values.minute;
   };
+  // Resolve a guest-entered Budapest wall minute using the same uniqueness
+  // rule as the server: DST spring gaps have zero instants, autumn folds have
+  // two. A local date/time alone cannot identify either ambiguous departure.
+  // No visitor-local Date.parse(), timezone assumption or external API.
+  const resolveBudapestWallMinute=(day,time)=>{
+    if(!/^\d{4}-\d\d-\d\d$/.test(day)||
+       !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))return null;
+    const [year,month,date]=day.split('-').map(Number);
+    const [hour,minute]=time.split(':').map(Number);
+    const asUtc=Date.UTC(year,month-1,date,hour,minute);
+    if(new Date(asUtc).toISOString().slice(0,16)!==day+'T'+time)return null;
+    let unique=null;
+    for(let offset=-180;offset<=180;offset+=15){
+      const candidate=asUtc-offset*60000;
+      if(budapestLocalAt(candidate)===day+'T'+time){
+        if(unique!==null)return null;
+        unique=candidate;
+      }
+    }
+    return unique;
+  };
   const budapestToday=()=>budapestLocalAt(Date.now()).slice(0,10);
   // The website relay and FBM both reject requests > 180 exact days ahead.
   const budapestLastRequestDate=()=>budapestLocalAt(Date.now()+180*86400000).slice(0,10);
@@ -191,25 +212,23 @@
     if(!draft.email&&!draft.phone){feedback.textContent=labels.contact;return;}
     if(!/^[a-z]{2,3}$/.test(draft.requestedGuideLanguage)||!Number.isInteger(draft.partySize)
       ||draft.partySize<1||draft.partySize>12){feedback.textContent=labels.invalid;return;}
-    // The FBM/relay minimum is a FULL 60 minutes from this instant.
-    // Inputs have minute precision: round the threshold UP, never down,
-    // otherwise e.g. 14:00:59 -> 15:00 would incorrectly pass as 60 min.
-    // The relay remains authoritative for DST gaps and ambiguous local times.
-    const firstEligibleMinute=Math.ceil((Date.now()+3600000)/60000)*60000;
-    if(draft.preferredLocalDate+'T'+draft.preferredLocalTime<
-       budapestLocalAt(firstEligibleMinute)){
+    // Reject absent/repeated wall minutes before sending guest contact
+    // details. The server independently verifies the same DST uniqueness
+    // rule and remains authoritative for all submission decisions.
+    const selectedInstant=resolveBudapestWallMinute(
+      draft.preferredLocalDate,draft.preferredLocalTime);
+    if(selectedInstant===null){feedback.textContent=labels.dst;return;}
+    // Compare instants, not local clock strings: the Budapest UTC offset
+    // can change inside the 60-minute lead or the 180-day horizon.
+    // User inputs are minute-precision; never round the required lead down.
+    if(selectedInstant<Date.now()+3600000){
       feedback.textContent=labels.advance;return;
     }
-    // A minute-precision local time must also stay inside the backend's
-    // 180 * 24h horizon. Round DOWN so the last permitted minute remains
-    // eligible; FBM remains the authority for exact seconds and DST.
-    const lastEligibleMinute=Math.floor((Date.now()+180*86400000)/60000)*60000;
-    if(draft.preferredLocalDate+'T'+draft.preferredLocalTime>
-       budapestLocalAt(lastEligibleMinute)){
+    if(selectedInstant>Date.now()+180*86400000){
       feedback.textContent=labels.horizon;return;
     }
-    // No local-to-UTC conversion in the browser. The relay resolves
-    // Europe/Budapest, including DST gaps and repeated fall-back times.
+    // Send only the selected local date and time; the server performs its
+    // own Europe/Budapest resolution, including gap/fold rejection.
     const lines=[
       labels.title,labels.type+': '+draft.tourSlug,
       labels.date+': '+draft.preferredLocalDate,
