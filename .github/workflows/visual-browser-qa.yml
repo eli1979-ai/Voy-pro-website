@@ -2,8 +2,14 @@ name: VOY PRO browser visual QA
 on:
   pull_request:
     branches: [main]
+    # Run the real-browser gate when customer-facing layouts, interactions or
+    # the QA harness change; static content/docs-only PRs skip the extra runner.
     paths:
+      - 'site/**/*.html'
+      - 'site/assets/*.js'
+      - 'site/assets/*.css'
       - 'scripts/qa-visual-browser.mjs'
+      - 'scripts/check-hu-dynamic-translations.mjs'
       - '.github/workflows/visual-browser-qa.yml'
   workflow_dispatch:
 
