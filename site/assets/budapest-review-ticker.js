@@ -233,33 +233,58 @@
     });
     pause.textContent=t.pause;
     pause.setAttribute('aria-pressed','false');
-    const reduced=Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    // The user's OS motion preference may change while this page stays open.
+    // Never keep a stale auto-scroll loop running when accessibility settings
+    // switch to reduced motion, and never resume automatically afterwards.
+    const motionQuery=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    let reduced=Boolean(motionQuery?.matches);
     if(reduced){
       pauseForReading();
       pause.hidden=true;
     }
     // Time-based speed, independent of locale / row width. Rebase into the
     // middle group continuously to avoid blank space at the end of a cycle.
-    let lastFrame=null;
-    const advance=timestamp=>{
+    let lastFrame=null,animationToken=0;
+    const advance=(timestamp,token)=>{
+      if(reduced||token!==animationToken)return;
       if(lastFrame!==null){
         const elapsed=Math.max(0,Math.min(80,timestamp-lastFrame));
         // Resume must actually restart motion even while the pointer hovers
         // over the carousel or the resume button retains keyboard focus.
         // Pause is controlled explicitly by is-paused (button, touch, drag),
         // not by hover/focus-within which would silently override Resume.
-        if(!reduced&&!dragging&&!root.classList.contains('is-paused')&&
+        if(!dragging&&!root.classList.contains('is-paused')&&
             document.visibilityState!=='hidden'){
           viewport.scrollLeft+=elapsed*.048;
           normalize();
         }
       }
       lastFrame=timestamp;
-      window.requestAnimationFrame?.(advance);
+      window.requestAnimationFrame?.(time=>advance(time,token));
     };
-    // Guests asking the OS for reduced motion may read and navigate the
-    // complete quotes manually; never spin a useless animation-frame loop.
-    if(!reduced)window.requestAnimationFrame?.(advance);
+    const startAutoScroll=()=>{
+      if(reduced)return;
+      lastFrame=null;
+      const token=++animationToken;
+      window.requestAnimationFrame?.(time=>advance(time,token));
+    };
+    motionQuery?.addEventListener?.('change',event=>{
+      const nextReduced=Boolean(event.matches);
+      if(nextReduced===reduced)return;
+      reduced=nextReduced;
+      if(reduced){
+        animationToken++; // invalidate the old callback, even if it is queued
+        pauseForReading();
+        pause.hidden=true;
+      }else{
+        // The preference changed, not the guest's intent: keep the strip
+        // paused until they explicitly press Resume.
+        pause.hidden=false;
+        startAutoScroll();
+      }
+    });
+    // No animation frame is requested while the OS preference is reduced.
+    startAutoScroll();
     window.addEventListener?.('resize',()=>{
       const width=groupWidth();
       if(width>0&&(viewport.scrollLeft<width*.3||viewport.scrollLeft>width*2.7))
