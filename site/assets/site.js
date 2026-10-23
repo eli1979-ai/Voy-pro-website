@@ -455,7 +455,15 @@
     // device or widens the window while the sheet is open, close the modal
     // and release the body's scroll lock before the opener disappears.
     const desktopNav=window.matchMedia?.('(min-width:1181px)');
-    const closeOnDesktop=event=>{if(event.matches&&!sheet.hidden)close();};
+    const closeOnDesktop=event=>{
+      if(!event.matches||sheet.hidden)return;
+      // When the toggle disappears at desktop width, do not strand keyboard
+      // focus inside an aria-modal which is now hidden. The header logo stays
+      // visible across breakpoints; only transfer focus if it was in the sheet.
+      const hadFocus=sheet.contains(document.activeElement);
+      close();
+      if(hadFocus)document.querySelector('header a.brand')?.focus();
+    };
     desktopNav?.addEventListener?.('change',closeOnDesktop);
     if(desktopNav?.matches)close();
     btn.onclick=()=>{sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
