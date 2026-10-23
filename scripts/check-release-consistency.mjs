@@ -12,8 +12,8 @@ const globalHeaders=(deployment.headers||[])
 const globalRobots=globalHeaders.filter(header=>
   String(header.key||'').toLowerCase()==='x-robots-tag');
 const stagingNoindex=globalRobots.some(header=>
-  /\\bnoindex\\b/i.test(String(header.value||''))&&
-  /\\bnofollow\\b/i.test(String(header.value||'')));
+  /\bnoindex\b/i.test(String(header.value||''))&&
+  /\bnofollow\b/i.test(String(header.value||'')));
 const failures=[];
 
 const sitemapCount=(sitemap.match(/<loc>/g)||[]).length;
