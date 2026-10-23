@@ -271,13 +271,13 @@ async function test(){
   const denyCors=async(uri,init)=>new Response(JSON.stringify(
     mocks[PROBES.find(p=>new URL(STAGING+p.route).href===uri).id]),
     {status:200,headers:{'content-type':'application/json'}});
-  assert.equal((await audit(denyCors,configs)).failed,3,'Missing website CORS must fail');
+  assert.equal((await audit(denyCors,configs)).failed,6,'OPTIONS and GET lacking website CORS must fail');
   const missing=async()=>new Response('Not found',{status:404});
-  assert.equal((await audit(missing,configs)).failed,3);
+  assert.equal((await audit(missing,configs)).failed,6);
   const redirect=async()=>new Response(null,{status:307,headers:{location:'https://attacker.invalid/api/v1/experiences'}});
-  assert.equal((await audit(redirect,configs)).failed,3,'No redirect to an external host');
+  assert.equal((await audit(redirect,configs)).failed,6,'No redirect to an external host');
   const malicious=async()=>new Response(null,{status:307,headers:{location:'https://ezraider-os-staging.vercel.app/api/v1/holds'}});
-  assert.equal((await audit(malicious,configs)).failed,3,'No redirect to a mutating API path');
+  assert.equal((await audit(malicious,configs)).failed,6,'No redirect to a mutating API path');
   const negativePreflight=async(uri,init)=>{
     if(init.method==='OPTIONS')return new Response(null,{status:204,headers:{
       ...preflightHeaders,'access-control-allow-headers':'content-type'
