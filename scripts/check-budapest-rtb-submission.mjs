@@ -3,9 +3,9 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const source=readFileSync('site/assets/rtb-request.js','utf8');
-const path='/he/budapest/tours/heroes-square-city-ezraider-tour/';
+const defaultPath='/he/budapest/tours/heroes-square-city-ezraider-tour/';
 
-function browser(fetcher){
+function browser(fetcher,pagePath=defaultPath){
   const nodes=[];
   const locations=[];
   const requests=[];
@@ -67,7 +67,7 @@ function browser(fetcher){
   };
   const ctx={
     document:doc,
-    location:{pathname:path,assign(url){locations.push(url);}},
+    location:{pathname:pagePath,assign(url){locations.push(url);}},
     FormData:class{constructor(){this.data=formData;}get(key){return this.data[key]??null;}},
     crypto:{randomUUID(){uuidCount++;return '11111111-1111-4111-8111-'+String(uuidCount).padStart(12,'0');}},
     fetch:async(url,init)=>{requests.push({url,init});return fetcher(url,init);},
@@ -237,4 +237,53 @@ for(const code of [400,503,500]){
   await b.submit();
   assert.equal(payloadOf(b).requestId,old);
 }
+// Each request-only tour must map to its own canonical FBM slug across
+// English, Hebrew and Hungarian pages, independent of the chosen guiding
+// language. All 9 pages must retain localized acknowledgements and manual
+// WhatsApp handoff when the Staging relay is disabled.
+const routeMatrix=[
+  ['heroes-square-city-ezraider-tour','heroes-square'],
+  ['citadella-advanced-ezraider-tour','citadella-advanced'],
+  ['buda-margaret-extended-tour','buda-margaret-extended']
+];
+const localeMatrix=[
+  ['', 'Enquiry received','Request this tour'],
+  ['he/', 'הפנייה התקבלה','בקשת סיור'],
+  ['hu/', 'megérkezett','Túraigénylés']
+];
+for(const [pageSlug,apiSlug] of routeMatrix){
+  for(const [localePrefix,successLabel,whatsappLabel] of localeMatrix){
+    const pagePath='/'+localePrefix+'budapest/tours/'+pageSlug+'/';
+    const received=browser(acknowledge,pagePath);
+    received.set('requested_guide_language','es');
+    received.set('english_alternative_accepted','yes');
+    await received.submit();
+    assert.equal(received.requests.length,1,pagePath+' must submit to the relay');
+    assert.equal(received.requests[0].url,'/api/request-to-book');
+    assert.equal(payloadOf(received).tourSlug,apiSlug,pagePath+' must map to FBM slug');
+    assert.equal(payloadOf(received).requestedGuideLanguage,'es',
+      pagePath+' cannot infer guiding language from page locale');
+    assert.equal(payloadOf(received).englishAlternativeAccepted,true,
+      pagePath+' must transmit affirmative fallback consent');
+    assert.ok(statusOf(received).includes(successLabel),
+      pagePath+' must display locale-specific inquiry acknowledgement');
+    assert.equal(received.locations.length,0,pagePath+' cannot auto-open WhatsApp on 202');
+
+    const disabled=browser(async()=>({status:404}),pagePath);
+    disabled.set('requested_guide_language','es');
+    await disabled.submit();
+    assert.equal(disabled.requests.length,1);
+    assert.equal(disabled.locations.length,1,pagePath+' needs guest-controlled fallback');
+    const url=new URL(disabled.locations[0]);
+    assert.equal(url.origin,'https://wa.me');
+    assert.equal(url.pathname,'/36300993099');
+    const message=url.searchParams.get('text')||'';
+    assert.ok(message.includes(whatsappLabel),pagePath+' must localize WhatsApp message');
+    assert.ok(message.includes(apiSlug),pagePath+' must identify the correct tour');
+    assert.ok(!statusOf(disabled).includes(successLabel),
+      pagePath+' disabled intake cannot claim CRM receipt');
+  }
+}
+console.log('Budapest RTB route/locale matrix OK: all 3 tour slugs × EN/HE/HU, 202 pending inquiry and disabled 404 WhatsApp.');
+
 console.log('Budapest RTB request UI: 202/404/400/409/503, consent, stable replay, new payload, double submit and network failure OK.');
