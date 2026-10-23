@@ -249,3 +249,13 @@ As of 2026-10-06:
 - production still points to the staging FBM endpoint;
 - production remains intentionally/non-intentionally non-indexable in the deployed release state;
 - Portugal canonical migration and structured B2B enquiry remain blocked by the FBM dependencies above.
+
+## Website-owned read-only Staging public contract watch (23 October 2026)
+
+The website can now run `node scripts/check-fbm-staging-public-api.mjs` to verify three **GET-only** public FBM Staging endpoints against the consumer contract: Budapest destination policy, Budapest experience catalog, and payment capability status. It uses the existing **public browser client key** already committed in `site/assets/runtime-config.js` but never echoes the key or API response bodies. All requests restrict the host to `ezraider-os-staging.vercel.app`, use `Origin: https://voy-pro.com`, require allowed CORS, and reject external/mutating-path redirects. It performs **no** quote, hold, request, booking, Stripe intent, authentication, writes, or customer-data operations.
+
+The GitHub Action `FBM Staging public booking read-only contract` runs for relevant PRs, on manual invocation, and weekly. Its short-lived artifact indicates which public GET route succeeded or failed, without preserving business/financial response values. The synthetic tests run in every normal website build.
+
+**Scope limits:** a green report proves only these public reads responded with compatible shapes at that instant. It is **not** proof of live departure availability, payment activation authorization, staffing, complete booking integration, or a genuinely isolated Production API. It must never change the owner-gated `NO-GO` status from the public-release report.
+
+**Cross-team next gate:** FBM must independently approve Production database migration history/schema, public API URL and scoped browser key, domain CORS, privacy and payment capability mode. Only after those gates can the website run a separate, reviewed **Production-safe read-only** consumer probe, before any live transaction or DNS/SEO switch.
