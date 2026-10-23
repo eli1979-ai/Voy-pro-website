@@ -157,10 +157,13 @@
     if(!draft.email&&!draft.phone){feedback.textContent=labels.contact;return;}
     if(!/^[a-z]{2,3}$/.test(draft.requestedGuideLanguage)||!Number.isInteger(draft.partySize)
       ||draft.partySize<1||draft.partySize>12){feedback.textContent=labels.invalid;return;}
-    // Mirror the relay's minimum one-hour lead time before sending a POST.
+    // The FBM/relay minimum is a FULL 60 minutes from this instant.
+    // Inputs have minute precision: round the threshold UP, never down,
+    // otherwise e.g. 14:00:59 -> 15:00 would incorrectly pass as 60 min.
     // The relay remains authoritative for DST gaps and ambiguous local times.
+    const firstEligibleMinute=Math.ceil((Date.now()+3600000)/60000)*60000;
     if(draft.preferredLocalDate+'T'+draft.preferredLocalTime<
-       budapestLocalAt(Date.now()+3600000)){
+       budapestLocalAt(firstEligibleMinute)){
       feedback.textContent=labels.advance;return;
     }
     // No local-to-UTC conversion in the browser. The relay resolves
