@@ -4,15 +4,25 @@ import assert from 'node:assert/strict';
 const js=fs.readFileSync('site/assets/ezraider-context.js','utf8');
 const siteJs=fs.readFileSync('site/assets/site.js','utf8');
 const links=[
- ['site/index.html','/ezraider/?from=home'],
- ['site/budapest/index.html','/ezraider/?from=budapest'],
- ['site/he/budapest/index.html','/he/ezraider/?from=budapest'],
- ['site/hu/budapest/index.html','/hu/ezraider/?from=budapest'],
- ['site/portugal/index.html','/ezraider/?from=marvao'],
- ['site/he/portugal/index.html','/he/ezraider/?from=marvao'],
- ['site/pt/portugal/index.html','/pt/ezraider/?from=marvao-pt']
+ ['site/index.html','/ezraider/?from=home','/'],
+ ['site/budapest/index.html','/ezraider/?from=budapest','/budapest/'],
+ ['site/he/budapest/index.html','/he/ezraider/?from=budapest','/he/budapest/'],
+ ['site/hu/budapest/index.html','/hu/ezraider/?from=budapest','/hu/budapest/'],
+ ['site/portugal/index.html','/ezraider/?from=marvao','/portugal/'],
+ ['site/he/portugal/index.html','/he/ezraider/?from=marvao','/he/portugal/'],
+ ['site/pt/portugal/index.html','/pt/ezraider/?from=marvao-pt','/pt/portugal/'],
+ ['site/budapest/with-kids/index.html','/ezraider/?from=budapest','/budapest/with-kids/'],
+ ['site/he/budapest/with-kids/index.html','/he/ezraider/?from=budapest','/he/budapest/with-kids/'],
+ ['site/hu/budapest/with-kids/index.html','/hu/ezraider/?from=budapest','/hu/budapest/with-kids/'],
+ ['site/budapest/tours/buda-castle-ezraider-tour/index.html','/ezraider/?from=budapest','/budapest/tours/buda-castle-ezraider-tour/'],
+ ['site/he/budapest/tours/buda-castle-ezraider-tour/index.html','/he/ezraider/?from=budapest','/he/budapest/tours/buda-castle-ezraider-tour/'],
+ ['site/hu/budapest/tours/buda-castle-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/buda-castle-ezraider-tour/']
 ];
-for(const [path,link] of links)assert.ok(fs.readFileSync(path,'utf8').includes('href="'+link+'"'),path+' loses origin-aware link');
+for(const [path,link,origin] of links){
+ const html=fs.readFileSync(path,'utf8');
+ const full='href="'+link+'&amp;return_to='+encodeURIComponent(origin)+'"';
+ assert.ok(html.includes(full),path+' loses its exact originating-page link '+full);
+}
 for(const locale of ['','he/','hu/','pt/']){
  const html=fs.readFileSync('site/'+locale+'ezraider/index.html','utf8');
  assert.ok(html.includes('rel="canonical" href="https://voy-pro.com/'+locale+'ezraider/"'));
@@ -57,6 +67,43 @@ for(const input of ['', '?from=https://evil.example','?from=%2F%2Fevil.example',
 }
 assert.equal(h(run('?from=budapest','hu'),'booking'),'/hu/budapest/#booking');
 assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
+
+// Customers should return to the exact same page, not merely their branch.
+// Keep the booking destination unchanged and persist return_to across locales.
+const exactTour='/he/budapest/tours/buda-castle-ezraider-tour/';
+const originQuery='?from=budapest&return_to='+encodeURIComponent(exactTour);
+const fromTour=run(originQuery,'he','/pt/ezraider/?from=home');
+assert.equal(h(fromTour,'back'),exactTour);
+assert.equal(h(fromTour,'booking'),'/he/budapest/#booking');
+assert.equal(fromTour.language.attributes.href,
+  '/pt/ezraider/?from=budapest&return_to='+encodeURIComponent(exactTour));
+const familyPage='/hu/budapest/with-kids/';
+const fromFamily=run('?from=budapest&return_to='+encodeURIComponent(familyPage),'hu');
+assert.equal(h(fromFamily,'back'),familyPage);
+const marvaoPT=run('?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F','en');
+assert.equal(h(marvaoPT,'back'),'/pt/portugal/');
+assert.equal(h(marvaoPT,'booking'),'/pt/portugal/#request');
+assert.equal(marvaoPT.language.attributes.href,
+  '/he/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F');
+const fromHome=run('?from=home&return_to=%2F');
+assert.equal(h(fromHome,'back'),'/');
+for(const [source,unsafe,fallback] of [
+ ['budapest','https://evil.example/','/he/budapest/'],
+ ['budapest','//evil.example','/he/budapest/'],
+ ['budapest','/portugal/','/he/budapest/'],
+ ['budapest','/budapest/../portugal/','/he/budapest/'],
+ ['budapest','/budapest/%2Fbad/','/he/budapest/'],
+ ['budapest','/budapest/?token=secret','/he/budapest/'],
+ ['budapest','/budapest/#private','/he/budapest/'],
+ ['marvao','/budapest/','/he/portugal/'],
+ ['home','/budapest/','/']
+]){
+ const r=run('?from='+source+'&return_to='+encodeURIComponent(unsafe),'he');
+ assert.equal(h(r,'back'),fallback,'Disallowed return path must fall back to the branch: '+unsafe);
+ assert.ok(!r.language.attributes.href.includes('return_to'),
+   'Unverified return path cannot propagate into another language');
+}
+
 
 // Cross-locale and mobile source routing regressions. Portuguese must retain
 // origin context when moving to EN/HE/HU and when using the mobile language row.
