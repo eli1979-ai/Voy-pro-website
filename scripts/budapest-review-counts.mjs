@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root=process.cwd();
-const recordPath=path.join(root,'site/assets/budapest-review-counts.json');
+const recordPath=path.join(root,'site/assets/budapest-reputation.json');
 const cssPath=path.join(root,'site/assets/site.css');
 const pages=[
   {locale:'en',file:'site/budapest/index.html'},
@@ -22,9 +22,9 @@ const format=(n,locale)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'
 const fail=message=>{throw new Error('Budapest review source/count integrity: '+message)};
 const readRecord=()=>{
   const v=JSON.parse(fs.readFileSync(recordPath,'utf8'));
-  if(v.schemaVersion!==1||!v.sources||keys.some(k=>
-    !Number.isSafeInteger(v.sources[k]?.count)||v.sources[k].count<0||
-    !/^https:\/\//.test(v.sources[k].sourceUrl)))fail('invalid source snapshot');
+  if(v.schema_version!==1||keys.some(k=>
+    !Number.isSafeInteger(v[k]?.review_count)||v[k].review_count<0||
+    !/^https:\/\//.test(v[k].source_url)))fail('invalid source snapshot');
   return v;
 };
 const countMatcher=key=>new RegExp('(<span data-review-count="'+key+'">)([\\d ,]+)(</span>)','g');
@@ -33,7 +33,7 @@ const validatePage=(record,html,locale,filename)=>{
     const found=[...html.matchAll(countMatcher(key))];
     if(found.length!==2)fail(filename+': expected exactly two '+key+' counters (trust + source), got '+found.length);
     for(const match of found)
-      if(match[2]!==format(record.sources[key].count,locale))
+      if(match[2]!==format(record[key].review_count,locale))
         fail(filename+': stale '+key+' count; refresh via --update after source verification');
   }
   const trust=html.indexOf('<section class="trust">');
@@ -63,7 +63,7 @@ const updatePage=(html,record,locale,file)=>{
     let n=0;
     result=result.replace(countMatcher(key),(_full,a,_number,z)=>{
       n++;
-      return a+format(record.sources[key].count,locale)+z;
+      return a+format(record[key].review_count,locale)+z;
     });
     if(n!==2)fail(file+': missing '+key+' trust/source markers');
   }
@@ -90,11 +90,10 @@ if(args[0]==='--update'){
     /^(?:www\.)?getyourguide\.com$/;
   if(source.protocol!=='https:'||!allowed.test(host)||source.username||source.password)
     fail('URL must be the official platform verification page');
-  if(count<record.sources[key].count&&optional!=='--allow-decrease')
+  if(count<record[key].review_count&&optional!=='--allow-decrease')
     fail('decreasing a publicly stated count requires explicit --allow-decrease');
   if(optional&&optional!=='--allow-decrease')fail('unknown option '+optional);
-  record.sources[key]={count,verifiedAt,sourceUrl:url,note:'Manually verified from the official platform listing'};
-  record.updatedAt=verifiedAt;
+  Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
   // Validate and stage every output in memory BEFORE writing any file.
   const updated=pages.map(({locale,file})=>{
     const full=path.join(root,file);
@@ -114,6 +113,6 @@ if(args[0]==='--update'){
   for(const {locale,file} of pages)
     validatePage(record,fs.readFileSync(path.join(root,file),'utf8'),locale,file);
   console.log('Budapest review layout and counts consistent in EN/HE/HU: '+
-    keys.map(k=>k+' '+record.sources[k].count+
-      (record.sources[k].verifiedAt?' verified '+record.sources[k].verifiedAt:' baseline/unverified')).join('; '));
+    keys.map(k=>k+' '+record[k].review_count+
+      (record[k].verified_at?' verified '+record[k].verified_at:' baseline/unverified')).join('; '));
 }else fail('use --check or --update');
