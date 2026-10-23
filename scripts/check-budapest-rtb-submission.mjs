@@ -205,6 +205,41 @@ for(const [pagePath,leadLabel] of [
   assert.equal(b.uuidCount,1);
 }
 
+// The relay and FBM enforce an absolute 180-day horizon, not an
+// unlimited calendar picker. Guard this before transmitting guest contact
+// fields, including the final minute of the allowed 180-day window.
+const horizonStamp=SecondsDate.now()+180*86400000;
+const horizonParts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+  timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit',
+  hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+}).formatToParts(new Date(horizonStamp)).map(x=>[x.type,x.value]));
+const horizonDay=[horizonParts.year,horizonParts.month,horizonParts.day].join('-');
+const horizonMinute=horizonParts.hour+':'+horizonParts.minute;
+const nextWallMinute=new Date(Date.UTC(Number(horizonParts.year),
+  Number(horizonParts.month)-1,Number(horizonParts.day),
+  Number(horizonParts.hour),Number(horizonParts.minute)+1))
+  .toISOString().slice(11,16);
+for(const [pagePath,localizedHorizon] of [
+  ['/budapest/tours/heroes-square-city-ezraider-tour/','180 days'],
+  ['/he/budapest/tours/citadella-advanced-ezraider-tour/','180 הימים'],
+  ['/hu/budapest/tours/buda-margaret-extended-tour/','180 napon']
+]){
+  const b=browser(acknowledge,pagePath,SecondsDate);
+  b.set('requested_date',horizonDay);
+  b.set('requested_time',nextWallMinute);
+  await b.submit();
+  assert.equal(b.requests.length,0,pagePath+' cannot post beyond 180-day horizon');
+  assert.equal(b.uuidCount,0,pagePath+' cannot create a request UUID beyond horizon');
+  assert.equal(b.locations.length,0,pagePath+' cannot start WhatsApp on invalid date');
+  assert.ok(statusOf(b).includes(localizedHorizon),pagePath+' needs localized horizon guidance');
+  b.set('requested_time',horizonMinute);
+  await b.submit();
+  assert.equal(b.requests.length,1,pagePath+' must permit final complete minute of horizon');
+  assert.equal(payloadOf(b).preferredLocalDate,horizonDay);
+  assert.equal(payloadOf(b).preferredLocalTime,horizonMinute);
+  assert.equal(b.uuidCount,1);
+}
+
 // 404 is the sole automatic fallback. WhatsApp must be sent by the guest.
 {
   const b=browser(async()=>({status:404}));
