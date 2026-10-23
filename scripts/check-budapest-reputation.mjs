@@ -14,13 +14,17 @@ function walk(dir){
 }
 
 const pages=roots.flatMap(walk);
-const googleForms=['1,299','1 299'];
+const googleForms=[String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,','),
+  String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,' ')];
 const trip=String(snapshot.tripadvisor.review_count);
 const gyg=String(snapshot.getyourguide.review_count);
 const gygForms=[gyg+' ratings',gyg+' דירוגים',gyg+' értékelés'];
 
 for(const file of pages){
-  const html=fs.readFileSync(file,'utf8');
+  const raw=fs.readFileSync(file,'utf8');
+  // Count-only spans on the Budapest landing page preserve a single snapshot;
+  // strip their markup before running the legacy text-based reputation checks.
+  const html=raw.replace(/<span data-review-count="(?:google|tripadvisor|getyourguide)">([^<]+)<\/span>/g,'$1');
   if(/trust-source">Google/.test(html)&&!googleForms.some(v=>html.includes(v))){
     failures.push(file+': Google review count is not synchronized with snapshot');
   }
@@ -37,7 +41,7 @@ for(const file of pages){
 
 for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-kids/index.html','site/hu/budapest/with-kids/index.html']){
   const html=fs.readFileSync(file,'utf8');
-  if(!googleForms.some(v=>html.includes(v))||!html.includes('659')||!html.includes('#1')||!html.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(html)||!gygForms.some(v=>html.includes(v))){
+  if(!googleForms.some(v=>html.includes(v))||!html.includes(trip)||!html.includes('#1')||!html.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(html)||!gygForms.some(v=>html.includes(v))){
     failures.push(file+': family reputation proof is incomplete');
   }
   if(!html.includes('data-review-source="getyourguide"')||!gygForms.some(v=>html.includes(v))){
@@ -57,4 +61,7 @@ if(failures.length){
   process.exit(1);
 }
 
-console.log('Budapest reputation snapshot OK: Google 5.0 / 1,299; Tripadvisor 5.0 / 659; GetYourGuide 5.0 / 5; family pages surface #1 + Travelers’ Choice 2026.');
+console.log('Budapest reputation snapshot OK: Google '+snapshot.google.rating+'.0 / '+snapshot.google.review_count+
+  '; Tripadvisor '+snapshot.tripadvisor.rating+'.0 / '+trip+
+  '; GetYourGuide '+snapshot.getyourguide.rating+'.0 / '+gyg+
+  '; family pages surface #1 + Travelers’ Choice 2026.');

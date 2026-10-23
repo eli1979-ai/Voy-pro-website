@@ -1,22 +1,28 @@
 {
   "schema_version": 1,
   "location": "Budapest",
-  "verified_at": "2026-10-05",
+  "verified_at": "2026-10-23",
   "google": {
     "rating": 5,
-    "review_count": 1299
+    "review_count": 1315,
+    "verified_at": "2026-10-23",
+    "source_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8"
   },
   "tripadvisor": {
     "rating": 5,
-    "review_count": 659,
+    "review_count": 660,
     "rank": 1,
-    "category_total": 299,
+    "category_total": 303,
     "category": "Outdoor Activities in Budapest",
-    "award": "Travelers’ Choice 2026"
+    "award": "Travelers’ Choice 2026",
+    "verified_at": "2026-10-23",
+    "source_url": "https://www.tripadvisor.co.uk/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html"
   },
   "getyourguide": {
     "status": "verified",
     "rating": 5,
-    "review_count": 5
+    "review_count": 6,
+    "verified_at": "2026-10-23",
+    "source_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/"
   }
 }

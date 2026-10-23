@@ -247,6 +247,18 @@ try{
     'Budapest request UI idempotent relay test: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
+// Budapest review presentation: one consolidated linked-source section, no
+// duplicate mid-page rating callout, and auditable numbers in all languages.
+try{
+  const result=execFileSync(process.execPath,['scripts/budapest-review-counts.mjs','--check'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:10000
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/budapest-review-counts.json',
+    'Budapest source count/layout regression: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
