@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: browser-visual-qa-${{ github.ref }}
+  group: browser-visual-qa-system-chrome-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
