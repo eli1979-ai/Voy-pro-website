@@ -263,7 +263,7 @@
   const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):en;
   // Selecting a guide language records the guest's request, not a verified
   // guide/escort assignment. Do not imply language delivery is guaranteed
-  // until FBM's human language-readiness release gate is approved.
+  // until human-guided language delivery has been independently verified.
   const requestedGuideLanguageLabel=()=>locale==='he'?'שפת הדרכה מבוקשת'
     :locale==='hu'?'Kért idegenvezetési nyelv'
     :locale==='pt'?'Idioma de acompanhamento solicitado'
