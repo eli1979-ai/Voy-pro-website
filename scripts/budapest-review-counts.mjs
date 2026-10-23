@@ -55,9 +55,13 @@ const validatePage=(record,html,locale,filename)=>{
      (html.match(/class="review-source-actions"/g)||[]).length!==1)
     fail(filename+': original Google/Tripadvisor/GYG links or unified CTA missing');
   const sourceBlock=html.slice(sources,ticker);
+  const sticky=(html.match(/<div class="mobilebook">[\s\S]*?<\/div><a class="btn" data-track="booking_cta" href="([^"]+)"/)||[])[1];
+  const localePrefix=locale==='en'?'':'/'+locale;
+  if(sticky!==localePrefix+'/budapest/#booking')
+    fail(filename+': mobile sticky availability CTA required when the duplicate source CTA is visually hidden');
   // The three real review-source links use the same short label, stars,
   // score and rating count hierarchy as the first Budapest trust strip.
-  if(!html.includes('/assets/budapest-review-sources-compact.css?v=20261023r1'))
+  if(!html.includes('/assets/budapest-review-sources-compact.css?v=20261023r2'))
     fail(filename+': Budapest compact review stylesheet missing');
   if((sourceBlock.match(/class="trust-source"/g)||[]).length!==3||
      (sourceBlock.match(/class="stars" aria-hidden="true">★★★★★<\/span>/g)||[]).length!==3||
@@ -197,7 +201,8 @@ if(args[0]==='--update'){
   }
   const compact=fs.readFileSync(path.join(root,'site/assets/budapest-review-sources-compact.css'),'utf8');
   if(!/\.budapest-review-sources \.review-source-grid\s*\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/.test(compact)||
-    !compact.includes('.budapest-review-sources .review-source-card:focus-visible'))
+    !compact.includes('.budapest-review-sources .review-source-card:focus-visible')||
+    !/@media\(max-width:800px\)\s*\{[\s\S]*?\.budapest-review-sources \.review-source-actions\s*\{display:none\}/.test(compact))
     fail('review summary must have three columns and keyboard-visible focus');
   for(const {locale,file} of pages)
     validatePage(record,fs.readFileSync(path.join(root,file),'utf8'),locale,file);
