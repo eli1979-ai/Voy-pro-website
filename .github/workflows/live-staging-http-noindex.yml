@@ -1,4 +1,4 @@
-name: Public Staging HTTP indexing watch
+name: Public Staging HTTP indexing and RTB safety watch
 on:
   schedule:
     # Daily, 08:43 UTC. Read-only checks of the public Staging aliases.
@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/check-live-staging-noindex.mjs'
+      - 'scripts/check-live-rtb-disabled.mjs'
       - '.github/workflows/live-staging-http-noindex.yml'
 
 permissions:
@@ -33,21 +34,28 @@ jobs:
         run: node scripts/check-live-staging-noindex.mjs --test
       - name: Verify actual public Staging HTTP headers (no credentials)
         run: node scripts/check-live-staging-noindex.mjs
+      - name: Offline fail-closed tests for disabled Request-to-Book
+        run: node scripts/check-live-rtb-disabled.mjs --test
+      - name: Audit actual disabled Request-to-Book GET on public aliases
+        run: node scripts/check-live-rtb-disabled.mjs
       - name: Include the observed report in this run
         if: always()
         shell: bash
         run: |
-          if [ -f staging-http-audit/report.md ]; then
-            cat staging-http-audit/report.md >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Live HTTP audit did not produce its expected report." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          for report in staging-http-audit/report.md staging-http-audit/rtb-disabled.md; do
+            if [ -f "$report" ]; then
+              cat "$report" >> "$GITHUB_STEP_SUMMARY"
+              echo >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Audit did not produce $report." >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
       - name: Preserve report after failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: live-staging-http-noindex
-          path: staging-http-audit/report.md
+          name: live-staging-http-safety
+          path: staging-http-audit/
           if-no-files-found: warn
           retention-days: 14
 
@@ -64,13 +72,14 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: live-staging-http-noindex
+          name: live-staging-http-safety
           path: staging-http-audit
         continue-on-error: true
-      - name: Upsert one actionable indexing-safety incident
+      - name: Upsert one actionable Staging HTTP safety incident
         uses: actions/github-script@v7
         env:
           AUDIT_REPORT: staging-http-audit/report.md
+          RTB_REPORT: staging-http-audit/rtb-disabled.md
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -79,13 +88,18 @@ jobs:
             const report=fs.existsSync(process.env.AUDIT_REPORT)
               ?fs.readFileSync(process.env.AUDIT_REPORT,'utf8')
               :'The GitHub runner could not produce the expected HTTP audit report.';
+            const rtbReport=fs.existsSync(process.env.RTB_REPORT)
+              ?fs.readFileSync(process.env.RTB_REPORT,'utf8')
+              :'The GitHub runner could not produce its expected read-only RTB gate audit.';
             const body=[
               marker,
-              '# Staging HTTP indexing protection requires verification',
+              '# Public Staging HTTP safety gates require verification',
               '',
-              'The read-only check of `voy-pro.com` / `www.voy-pro.com` detected a missing HTTP protection header, an inaccessible page, an unexpected redirect or a transient network failure. Investigate the attached response evidence before changing any environment.',
+              'Read-only HTTP checks detected a failure of crawler exclusion or the explicitly disabled Request-to-Book intake. This may also be a transient network/deployment error. Verify actual deployment/relay flags and owner approval before changing any environment.',
               '',
               report,
+              '',
+              rtbReport,
               '',
               '**Actions:** compare Vercel aliases, deployment headers and Staging release metadata; rerun the manual watch to rule out transient network errors. Keep Production cutover/SEO activation blocked until the distinction is verified.',
               '',
@@ -100,7 +114,7 @@ jobs:
             }else{
               const created=await github.rest.issues.create({
                 owner,repo,
-                title:'Check public Staging HTTP noindex protection',
+                title:'Check public Staging HTTP safety gates',
                 body
               });
               core.info('Created Staging indexing incident #'+created.data.number);

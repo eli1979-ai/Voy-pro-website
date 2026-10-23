@@ -2,8 +2,19 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {getCutoverSnapshot,renderCutoverStatus} from './report-public-cutover.mjs';
+import {getCutoverSnapshot,renderCutoverStatus,validPublicApiUrl} from './report-public-cutover.mjs';
 
+for(const malformed of [
+  null,'not a URL','https://::::/api/v1','http://api.example.test/api/v1',
+  'https://user:secret@api.example.test/api/v1',
+  'https://api-staging.example.test/api/v1',
+  'https://api.example.test:9999/api/v1',
+  'https://api.example.test/api/v1?token=123'
+]){
+  assert.equal(validPublicApiUrl(malformed),false,
+    'Malformed or unsafe Production API declarations must fail closed: '+String(malformed));
+}
+assert.equal(validPublicApiUrl('https://api.example.test/api/v1'),true);
 const actual=getCutoverSnapshot();
 assert.equal(actual.decision,'NO-GO','Static source must not self-authorize cutover');
 assert.equal(actual.static_preflight,'BLOCKED','Current checked-in Staging is not Production');
@@ -60,6 +71,13 @@ try{
   assert.equal(unapproved.evidence.find(x=>x.label==='Production infrastructure verification').state,'BLOCKED');
   save('launch/production-environment.json',{...verified,public_api_base_url:null});
   assert.equal(getCutoverSnapshot(root).evidence.find(x=>x.label==='Production public API base URL').state,'BLOCKED');
+  for(const bad of ['https://::::/api/v1','https://api.example.test:7777/api/v1']){
+    save('launch/production-environment.json',{...verified,public_api_base_url:bad});
+    const result=getCutoverSnapshot(root);
+    assert.equal(result.decision,'NO-GO');
+    assert.equal(result.evidence.find(x=>x.label==='Production public API base URL').state,'BLOCKED');
+    assert.equal(result.evidence.find(x=>x.label==='Website runtime uses declared Production API').state,'BLOCKED');
+  }
   console.log('Cutover report QA passed: real Staging NO-GO, synthetic source claims never authorize release, no client keys leaked.');
 }finally{
   fs.rmSync(root,{recursive:true,force:true});
