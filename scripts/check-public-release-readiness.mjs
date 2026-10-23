@@ -32,7 +32,7 @@ export function assessPublicRelease(siteDir = path.resolve('site'), attestationF
     .flatMap(rule=>Array.isArray(rule.headers)?rule.headers:[]);
   if(globalRobotRules.some(header=>
       String(header.key||'').toLowerCase()==='x-robots-tag'&&
-      /\\bnoindex\\b/i.test(String(header.value||'')))){
+      /\bnoindex\b/i.test(String(header.value||'')))){
     failures.push('Production Vercel config must not globally declare X-Robots-Tag noindex');
   }
   let release;
