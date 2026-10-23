@@ -852,3 +852,9 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
   .section.budapest-review-sources{padding-top:18px!important;padding-bottom:14px!important}
   .review-source-actions .btn{width:100%;box-sizing:border-box}
 }
+
+/* Context-aware vehicle guide link on Budapest's advanced and extended tours.
+   Keep the primary availability/enquiry CTA visually dominant. */
+.tour-vehicle-guide-link{margin:12px 0 0;line-height:1.5;font-size:14px;font-weight:700}
+.tour-vehicle-guide-link a{text-decoration:underline;text-underline-offset:3px}
+.tour-vehicle-guide-link a:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}

@@ -16,7 +16,16 @@ const links=[
  ['site/hu/budapest/with-kids/index.html','/hu/ezraider/?from=budapest','/hu/budapest/with-kids/'],
  ['site/budapest/tours/buda-castle-ezraider-tour/index.html','/ezraider/?from=budapest','/budapest/tours/buda-castle-ezraider-tour/'],
  ['site/he/budapest/tours/buda-castle-ezraider-tour/index.html','/he/ezraider/?from=budapest','/he/budapest/tours/buda-castle-ezraider-tour/'],
- ['site/hu/budapest/tours/buda-castle-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/buda-castle-ezraider-tour/']
+ ['site/hu/budapest/tours/buda-castle-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/buda-castle-ezraider-tour/'],
+ ['site/budapest/tours/heroes-square-city-ezraider-tour/index.html','/ezraider/?from=budapest','/budapest/tours/heroes-square-city-ezraider-tour/'],
+ ['site/budapest/tours/citadella-advanced-ezraider-tour/index.html','/ezraider/?from=budapest','/budapest/tours/citadella-advanced-ezraider-tour/'],
+ ['site/budapest/tours/buda-margaret-extended-tour/index.html','/ezraider/?from=budapest','/budapest/tours/buda-margaret-extended-tour/'],
+ ['site/he/budapest/tours/heroes-square-city-ezraider-tour/index.html','/he/ezraider/?from=budapest','/he/budapest/tours/heroes-square-city-ezraider-tour/'],
+ ['site/he/budapest/tours/citadella-advanced-ezraider-tour/index.html','/he/ezraider/?from=budapest','/he/budapest/tours/citadella-advanced-ezraider-tour/'],
+ ['site/he/budapest/tours/buda-margaret-extended-tour/index.html','/he/ezraider/?from=budapest','/he/budapest/tours/buda-margaret-extended-tour/'],
+ ['site/hu/budapest/tours/heroes-square-city-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/heroes-square-city-ezraider-tour/'],
+ ['site/hu/budapest/tours/citadella-advanced-ezraider-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/citadella-advanced-ezraider-tour/'],
+ ['site/hu/budapest/tours/buda-margaret-extended-tour/index.html','/hu/ezraider/?from=budapest','/hu/budapest/tours/buda-margaret-extended-tour/']
 ];
 for(const [path,link,origin] of links){
  const html=fs.readFileSync(path,'utf8');
@@ -68,6 +77,23 @@ for(const input of ['', '?from=https://evil.example','?from=%2F%2Fevil.example',
 assert.equal(h(run('?from=budapest','hu'),'booking'),'/hu/budapest/#booking');
 assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
 
+// Every new tour's vehicle guide must return to its *exact* tour, including
+// after switching guide language. The branch booking must stay in Budapest.
+for(const [page,link,origin] of links.filter(([page])=>
+  /\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/index[.]html$/.test(page))){
+ const html=fs.readFileSync(page,'utf8');
+ assert.equal((html.match(/data-ez-tour-guide/g)||[]).length,1,
+   page+' needs one accessible vehicle-guide link near its enquiry action');
+ const lang=origin.startsWith('/he/')?'he':origin.startsWith('/hu/')?'hu':'en';
+ const r=run('?from=budapest&return_to='+encodeURIComponent(origin),lang,
+   '/pt/ezraider/?from=home');
+ assert.equal(h(r,'back'),origin,page+' guide must return exactly to originating tour');
+ assert.equal(h(r,'booking'),(lang==='en'?'/':'/'+lang+'/')+'budapest/#booking',
+   page+' cannot route booking to another destination');
+ assert.equal(r.language.attributes.href,
+   '/pt/ezraider/?from=budapest&return_to='+encodeURIComponent(origin),
+   page+' guide must retain the originating tour through language switching');
+}
 // Customers should return to the exact same page, not merely their branch.
 // Keep the booking destination unchanged and persist return_to across locales.
 const exactTour='/he/budapest/tours/buda-castle-ezraider-tour/';
