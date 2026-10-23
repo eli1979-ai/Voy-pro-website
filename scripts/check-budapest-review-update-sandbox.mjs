@@ -47,8 +47,31 @@ try{
     ['getyourguide',original.getyourguide.review_count+1]
   ];
   for(const [provider,count] of scenarios){
-    assert.match(run(['--update',provider,String(count),'2026-10-23',snapshots[provider]]),
-      /Updated verified/);
+    const args=['--update',provider,String(count),'2026-10-23',snapshots[provider]];
+    const beforePlanSnapshot=read('site/assets/budapest-reputation.json');
+    const beforePlanLanding=read('site/budapest/index.html');
+    const beforePlanSample=read(sample);
+    const plan=JSON.parse(run([...args,'--dry-run']));
+    assert.deepEqual([plan.mode,plan.platform,plan.newCount],
+      ['dry-run',provider,count],'read-only plan must describe the requested platform');
+    assert.ok(plan.changedPageCount>0&&plan.changedPageCount===plan.changedPages.length,
+      'a real count change must preview specific page edits');
+    assert.ok(plan.changedPages.includes('site/budapest/index.html')&&
+      plan.changedPages.includes('site/he/budapest/index.html')&&
+      plan.changedPages.includes('site/hu/budapest/index.html'),
+      'preview must list every localized Budapest landing page');
+    assert.equal(read('site/assets/budapest-reputation.json'),beforePlanSnapshot,
+      'dry-run must never touch the current reputation snapshot');
+    assert.equal(read('site/budapest/index.html'),beforePlanLanding,
+      'dry-run must never change localized site pages');
+    assert.equal(read(sample),beforePlanSample,
+      'dry-run must leave the injected unrelated numbers untouched');
+    assert.match(run(args),/Updated verified/);
+    const noop=JSON.parse(run([...args,'--dry-run']));
+    assert.equal(noop.changedPageCount,0,
+      'unchanged verified count should not produce a pointless page PR');
+    assert.equal(noop.snapshotChanged,false,
+      'same provider/count/date/source should not modify provenance metadata');
     assert.match(run(['--check']),/Budapest review layout and counts consistent/);
     assert.ok(read(sample).includes(extra),
       'a review-count update must not alter unrelated numeric content: '+provider);
@@ -80,7 +103,7 @@ try{
       'invalid updates must not change the canonical snapshot');
     assert.ok(read(sample).includes(extra),'invalid updates must not change page text');
   }
-  console.log('Budapest weekly review update rehearsal OK: all 3 sources, three languages, source metadata, unrelated-number protection and fail-closed validation; repository checkout unchanged.');
+  console.log('Budapest weekly review update rehearsal OK: preview plans, verified no-op behavior, all 3 sources, three languages, source metadata, unrelated-number protection and fail-closed validation; repository checkout unchanged.');
 }finally{
   fs.rmSync(tmp,{recursive:true,force:true});
 }
