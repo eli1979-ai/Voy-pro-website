@@ -39,14 +39,30 @@ function check(condition,label){
   if(!condition){failures++;results.push('FAIL: '+label);}
   else results.push('PASS: '+label);
 }
-async function visit(name,path,viewport,{fullPage=false,guide=false,booking=false,request=false,b2b=null,localWhatsApp=null,tourFloat=false}={}){
+async function visit(name,path,viewport,{fullPage=false,guide=false,booking=false,request=false,b2b=null,localWhatsApp=null,tourFloat=false,heroImage=false}={}){
   const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
   const runtimeErrors=[];
   page.on('pageerror',error=>runtimeErrors.push(error.message));
   // Avoid contact with actual vendors, FBM, Google/Meta tracking, or YouTube.
-  await page.route('**/*',route=>{
+  await page.route('**/*',async route=>{
     try{
-      if(new URL(route.request().url()).origin===base)return route.continue();
+      const requested=new URL(route.request().url());
+      if(requested.origin===base)return route.continue();
+      // Absolute, first-party media URLs are part of the website snapshot:
+      // replay only /assets from local dist for truthful screenshot QA.
+      // Never fetch the public domain, payment/FBM APIs or external resources.
+      if(['voy-pro.com','www.voy-pro.com'].includes(requested.hostname)&&
+        requested.protocol==='https:'&&requested.pathname.startsWith('/assets/')){
+        // Playwright route.continue forbids changing HTTPS to HTTP. Fulfill
+        // the request with bytes read only from the local static test server.
+        const local=await fetch(base+requested.pathname+requested.search);
+        const body=Buffer.from(await local.arrayBuffer());
+        return route.fulfill({
+          status:local.status,
+          body,
+          contentType:local.headers.get('content-type')||'application/octet-stream'
+        });
+      }
     }catch{}
     return route.abort();
   });
@@ -95,6 +111,17 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,booking=fals
       if(tourFloat){
         check(await page.locator('a.tour-floating-whatsapp[href^="https://wa.me/'+localWhatsApp+'"]').count()===1,
           name+' has destination-specific floating WhatsApp for request-only tour');
+      }
+    }
+    if(heroImage){
+      const hero=page.locator('.hero-photo-frame img').first();
+      check(await hero.count()===1,name+' has a dedicated tour hero photo');
+      if(await hero.count()){
+        const loaded=await hero.evaluate(async img=>{
+          try{await img.decode();return img.naturalWidth>0&&img.naturalHeight>0;}
+          catch{return false;}
+        });
+        check(loaded,name+' tour hero photo decodes from the local built assets');
       }
     }
     await page.screenshot({path:join(out,name+'.png'),fullPage,animations:'disabled',timeout:20000});
@@ -165,15 +192,15 @@ try{
     ['budapest-en-private-mobile','/budapest/private-tours/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-groups-mobile','/budapest/group-tours/',mobile,{booking:true,b2b:'group',localWhatsApp:budapest}],
     ['budapest-en-corporate-desktop','/budapest/corporate-events/',desktop,{booking:true,b2b:'corporate',localWhatsApp:budapest}],
-    ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true}],
-    ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true}],
-    ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true}],
-    ['citadella-en-mobile','/budapest/tours/citadella-advanced-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true}],
-    ['citadella-he-narrow','/he/budapest/tours/citadella-advanced-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true}],
-    ['citadella-hu-desktop','/hu/budapest/tours/citadella-advanced-ezraider-tour/',desktop,{localWhatsApp:budapest,tourFloat:true}],
-    ['extended-en-mobile','/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest}],
-    ['extended-he-mobile','/he/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest}],
-    ['extended-hu-desktop','/hu/budapest/tours/buda-margaret-extended-tour/',desktop,{localWhatsApp:budapest}],
+    ['heroes-en-mobile','/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['heroes-hu-narrow','/hu/budapest/tours/heroes-square-city-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['heroes-he-mobile','/he/budapest/tours/heroes-square-city-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['citadella-en-mobile','/budapest/tours/citadella-advanced-ezraider-tour/',mobile,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['citadella-he-narrow','/he/budapest/tours/citadella-advanced-ezraider-tour/',narrow,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['citadella-hu-desktop','/hu/budapest/tours/citadella-advanced-ezraider-tour/',desktop,{localWhatsApp:budapest,tourFloat:true,heroImage:true}],
+    ['extended-en-mobile','/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest,heroImage:true}],
+    ['extended-he-mobile','/he/budapest/tours/buda-margaret-extended-tour/',mobile,{localWhatsApp:budapest,heroImage:true}],
+    ['extended-hu-desktop','/hu/budapest/tours/buda-margaret-extended-tour/',desktop,{localWhatsApp:budapest,heroImage:true}],
     ['guide-pt-mobile','/pt/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F',mobile,{fullPage:true,guide:true}],
     ['guide-he-mobile','/he/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fbuda-castle-ezraider-tour%2F',mobile,{guide:true}],
     ['guide-hu-desktop','/hu/ezraider/?from=budapest',desktop,{guide:true}]
