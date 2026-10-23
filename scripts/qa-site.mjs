@@ -126,7 +126,7 @@ if(!/Disallow:\s*\//i.test(robots)) errors.push('robots.txt: staging crawl block
 
 const js=read(path.join(site,'assets','site.js'));
 const rtb=read(path.join(site,'assets','rtb-request.js'));
-if(!js.includes("loader.src='/assets/rtb-request.js?v=20261023r6'"))
+if(!js.includes("loader.src='/assets/rtb-request.js?v=20261023r7'"))
   fail('assets/site.js','special-tour request module must load the reviewed RTB asset version (cache-safe)');
 for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour','buda-margaret-extended-tour']){
   if(!rtb.includes(slug))fail('assets/rtb-request.js','missing request route '+slug);
