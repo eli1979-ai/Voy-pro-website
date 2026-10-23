@@ -3,7 +3,8 @@
 // No third-party scraping, API keys, build-time network or fabricated "live" data.
 // Usage:
 //   node scripts/budapest-review-counts.mjs --check
-//   node scripts/budapest-review-counts.mjs --update tripadvisor 660 2026-10-23 https://www.tripadvisor.co.uk/Attraction_Review-...
+//   node scripts/budapest-review-counts.mjs --update tripadvisor 661 2026-10-23 https://www.tripadvisor.co.uk/Attraction_Review-... --dry-run
+//   Repeat without --dry-run only after source verification and checking the plan.
 // For periodic refresh, open the original listing, verify the exact count,
 // then run --update and review/commit the JSON + localized HTML diffs.
 import fs from 'node:fs';
@@ -74,9 +75,14 @@ const updatePage=(html,record,locale,file)=>{
 const args=process.argv.slice(2);
 let record=readRecord();
 if(args[0]==='--update'){
-  if(args.length<5||args.length>6||!keys.includes(args[1]))
-    fail('usage: --update google|tripadvisor|getyourguide COUNT YYYY-MM-DD OFFICIAL_URL [--allow-decrease]');
-  const [,key,countArg,verifiedAt,url,optional]=args;
+  if(args.length<5||args.length>7||!keys.includes(args[1]))
+    fail('usage: --update google|tripadvisor|getyourguide COUNT YYYY-MM-DD OFFICIAL_URL [--dry-run] [--allow-decrease]');
+  const [,key,countArg,verifiedAt,url,...options]=args;
+  const supported=new Set(['--dry-run','--allow-decrease']);
+  if(options.some(option=>!supported.has(option))||new Set(options).size!==options.length)
+    fail('unknown or duplicate update option');
+  const dryRun=options.includes('--dry-run');
+  const allowDecrease=options.includes('--allow-decrease');
   const count=Number(countArg);
   if(!/^\d+$/.test(countArg)||!Number.isSafeInteger(count)||count>10000000)
     fail('count must be a nonnegative integer from the actual public source');
@@ -90,9 +96,8 @@ if(args[0]==='--update'){
     /^(?:www\.)?getyourguide\.com$/;
   if(source.protocol!=='https:'||!allowed.test(host)||source.username||source.password)
     fail('URL must be the official platform verification page');
-  if(count<record[key].review_count&&optional!=='--allow-decrease')
+  if(count<record[key].review_count&&!allowDecrease)
     fail('decreasing a publicly stated count requires explicit --allow-decrease');
-  if(optional&&optional!=='--allow-decrease')fail('unknown option '+optional);
   const previous=record[key].review_count;
   Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
   // The canonical reputation number is also printed in SEO/support/tour and
@@ -142,10 +147,23 @@ if(args[0]==='--update'){
   // Validate the full output set before touching the working tree.
   if(updated.filter(x=>pages.some(p=>path.join(root,p.file)===x.full)).length!==3)
     fail('missing localized Budapest landing files');
-  for(const p of updated)fs.writeFileSync(p.full,p.text);
-  fs.writeFileSync(recordPath,JSON.stringify(record,null,2)+'\n');
-  console.log('Updated verified '+key+' count to '+count+' across '+all.length+
-    ' Budapest HTML pages; review the generated diffs before publishing.');
+  const changedPages=updated.filter(p=>p.text!==fs.readFileSync(p.full,'utf8'));
+  const nextSnapshot=JSON.stringify(record,null,2)+'\n';
+  const snapshotChanged=nextSnapshot!==fs.readFileSync(recordPath,'utf8');
+  if(dryRun){
+    // Safe for the Monday SEO Watch: validate the entire proposed change and
+    // report precisely what WOULD change without touching the working tree.
+    console.log(JSON.stringify({
+      mode:'dry-run',platform:key,oldCount:previous,newCount:count,
+      changedPageCount:changedPages.length,snapshotChanged,
+      changedPages:changedPages.map(p=>path.relative(root,p.full))
+    }));
+  }else{
+    for(const p of changedPages)fs.writeFileSync(p.full,p.text);
+    if(snapshotChanged)fs.writeFileSync(recordPath,nextSnapshot);
+    console.log('Updated verified '+key+' count to '+count+' across '+
+      changedPages.length+' changed Budapest HTML pages; review all diffs before publishing.');
+  }
 }else if(args.length===0||args[0]==='--check'){
   if(args.length>1)fail('only --check without other arguments is accepted');
   const css=fs.readFileSync(cssPath,'utf8');
