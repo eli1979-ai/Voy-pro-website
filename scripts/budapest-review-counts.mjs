@@ -75,14 +75,15 @@ const updatePage=(html,record,locale,file)=>{
 const args=process.argv.slice(2);
 let record=readRecord();
 if(args[0]==='--update'){
-  if(args.length<5||args.length>7||!keys.includes(args[1]))
-    fail('usage: --update google|tripadvisor|getyourguide COUNT YYYY-MM-DD OFFICIAL_URL [--dry-run] [--allow-decrease]');
+  if(args.length<5||args.length>8||!keys.includes(args[1]))
+    fail('usage: --update google|tripadvisor|getyourguide COUNT YYYY-MM-DD OFFICIAL_URL [--dry-run] [--allow-decrease] [--refresh-metadata]');
   const [,key,countArg,verifiedAt,url,...options]=args;
-  const supported=new Set(['--dry-run','--allow-decrease']);
+  const supported=new Set(['--dry-run','--allow-decrease','--refresh-metadata']);
   if(options.some(option=>!supported.has(option))||new Set(options).size!==options.length)
     fail('unknown or duplicate update option');
   const dryRun=options.includes('--dry-run');
   const allowDecrease=options.includes('--allow-decrease');
+  const refreshMetadata=options.includes('--refresh-metadata');
   const count=Number(countArg);
   if(!/^\d+$/.test(countArg)||!Number.isSafeInteger(count)||count>10000000)
     fail('count must be a nonnegative integer from the actual public source');
@@ -99,7 +100,12 @@ if(args[0]==='--update'){
   if(count<record[key].review_count&&!allowDecrease)
     fail('decreasing a publicly stated count requires explicit --allow-decrease');
   const previous=record[key].review_count;
-  Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
+  // The Monday watch may re-verify an unchanged count using a newer date or
+  // a different official URL. That is not a ratings change and should NOT
+  // create a new PR just to bump metadata every single week.
+  // Intentional provenance repairs can opt in with --refresh-metadata.
+  if(count!==previous||refreshMetadata)
+    Object.assign(record[key],{review_count:count,verified_at:verifiedAt,source_url:url});
   // The canonical reputation number is also printed in SEO/support/tour and
   // family pages, not just the two displays on each landing page. Refresh
   // those pages in the same audited transaction or the legacy QA will fail.
@@ -155,14 +161,17 @@ if(args[0]==='--update'){
     // report precisely what WOULD change without touching the working tree.
     console.log(JSON.stringify({
       mode:'dry-run',platform:key,oldCount:previous,newCount:count,
+      noCountChange:count===previous,metadataRefreshRequested:refreshMetadata,
       changedPageCount:changedPages.length,snapshotChanged,
       changedPages:changedPages.map(p=>path.relative(root,p.full))
     }));
   }else{
     for(const p of changedPages)fs.writeFileSync(p.full,p.text);
     if(snapshotChanged)fs.writeFileSync(recordPath,nextSnapshot);
-    console.log('Updated verified '+key+' count to '+count+' across '+
-      changedPages.length+' changed Budapest HTML pages; review all diffs before publishing.');
+    console.log(!snapshotChanged&&changedPages.length===0
+      ? 'No review count change for '+key+' ('+count+'); no files modified.'
+      : 'Updated verified '+key+' count to '+count+' across '+
+        changedPages.length+' changed Budapest HTML pages; review all diffs before publishing.');
   }
 }else if(args.length===0||args[0]==='--check'){
   if(args.length>1)fail('only --check without other arguments is accepted');
