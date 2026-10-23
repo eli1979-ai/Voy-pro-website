@@ -124,7 +124,16 @@ if(args[0]==='--update'){
       const regexp=key==='getyourguide'
         ?new RegExp('(?<!\\d)'+escaping(from)+'(?=\\s+'+units[locale]+')','g')
         :new RegExp('(?<!\\d)'+escaping(from)+'(?!\\d)','g');
-      html=html.replace(regexp,to);
+      // The full page may contain unrelated numbers (prices, IDs or
+      // editorial examples). Only the explicitly designated reputation
+      // sections can carry counts from this snapshot. Do not replace a
+      // matching number merely because it occurs elsewhere on the page.
+      html=html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/g,section=>{
+        if(!/<section\b[^>]*class="trust"/.test(section)&&
+           !section.includes('class="wrap proof"')&&
+           !section.includes('class="review-source-grid"'))return section;
+        return section.replace(regexp,to);
+      });
     }
     const landing=pages.some(p=>p.file===file);
     if(landing)html=updatePage(html,record,locale,file);
