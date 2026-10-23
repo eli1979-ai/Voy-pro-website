@@ -310,6 +310,56 @@ for(const [pagePath,localizedHorizon] of [
   assert.equal(b.created.get('button[type="submit"]').disabled,true);
   assert.ok(statusOf(b).includes('מספר הפנייה'));
 }
+// A 409 is terminal only for the exact conflicting enquiry data. Guests can
+// correct a date/name/language and submit a genuinely NEW request/UUID, but
+// never silently retry the old body, even after editing and reverting.
+for(const [pagePath,conflictLabel] of [
+  ['/budapest/tours/heroes-square-city-ezraider-tour/','enquiry ID'],
+  ['/he/budapest/tours/citadella-advanced-ezraider-tour/','מספר הפנייה'],
+  ['/hu/budapest/tours/buda-margaret-extended-tour/','kérésazonosító']
+]){
+  let attempts=0;
+  const b=browser(async()=>++attempts===1?{status:409}:acknowledge(),pagePath);
+  b.set('requested_guide_language','he');
+  await b.submit();
+  const bad=JSON.stringify(payloadOf(b)),oldId=payloadOf(b).requestId;
+  assert.equal(attempts,1,pagePath+' should issue only one conflicting request');
+  assert.equal(b.uuidCount,1);
+  assert.equal(b.created.get('button[type="submit"]').disabled,true,
+    pagePath+' cannot retry same 409 by clicking again');
+  assert.ok(statusOf(b).includes(conflictLabel));
+  assert.ok(b.statuses.manual?.href.startsWith('https://wa.me/'));
+  await b.submit();
+  assert.equal(attempts,1,'409 must never resend identical data under same request ID');
+  b.set('contact_name','Changed Synthetic Guest');
+  assert.equal(b.created.get('button[type="submit"]').disabled,false,
+    pagePath+' must allow materially changed details after 409');
+  assert.equal(b.statuses.manual,undefined,
+    pagePath+' must remove WhatsApp fallback with stale contact data');
+  assert.equal(statusOf(b),'','old error message must clear after material change');
+  // Restore the original conflict payload: even with a new edit history it
+  // remains blocked, without minting a second UUID or making another POST.
+  b.set('contact_name','Synthetic Guest');
+  assert.equal(b.created.get('button[type="submit"]').disabled,true,
+    pagePath+' must not allow edit-and-revert replay of a 409');
+  assert.ok(statusOf(b).includes(conflictLabel));
+  await b.submit();
+  assert.equal(attempts,1);
+  assert.equal(JSON.stringify(payloadOf(b)),bad);
+  assert.equal(b.uuidCount,1);
+  b.set('contact_name','Changed Synthetic Guest');
+  await b.submit();
+  assert.equal(attempts,2,pagePath+' must permit a new edited enquiry');
+  assert.equal(b.requests.length,2);
+  assert.notEqual(payloadOf(b).requestId,oldId,pagePath+' needs a new UUID');
+  assert.equal(b.uuidCount,2);
+  assert.equal(payloadOf(b).contactName,'Changed Synthetic Guest');
+  assert.equal(b.created.get('button[type="submit"]').disabled,true,
+    'valid 202 must remain terminal with input controls frozen');
+  assert.ok(!statusOf(b).includes(conflictLabel),
+    'new valid 202 should replace previous conflict status');
+  assert.equal(b.locations.length,0,'409 never auto-opens WhatsApp');
+}
 // Validation and unknown upstream status never turn into a success.
 for(const code of [400,503,500]){
   const b=browser(async()=>({status:code}));
