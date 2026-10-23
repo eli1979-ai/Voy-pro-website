@@ -436,7 +436,24 @@
     const btn=document.createElement('button');btn.type='button';btn.className='nav-menu-toggle';btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-controls','mobile-nav-sheet');btn.setAttribute('aria-haspopup','dialog');btn.textContent=t('Menu','תפריט');nav.insertBefore(btn,nav.firstChild);
     const sheet=document.createElement('div');sheet.id='mobile-nav-sheet';sheet.className='mobile-nav-sheet';sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-label',locale==='he'?'תפריט ניווט':locale==='pt'?'Menu de navegação':locale==='hu'?'Navigációs menü':'Navigation menu');sheet.hidden=true;
     const closeMenuLabel=locale==='he'?'סגירת תפריט':locale==='pt'?'Fechar menu':locale==='hu'?'Menü bezárása':t('Close menu','סגירת תפריט');
-    if(!isPortugalPage&&!isBudapestPage){
+    if(document.body?.dataset.intent==='vehicle'){
+      // A destination-neutral guide needs a destination-aware, four-language
+      // mobile menu. The generic network-home menu would lose branch attribution.
+      const mobileOrigin=['budapest','marvao','marvao-pt'].includes(vehicleGuideSource)?vehicleGuideSource:'home';
+      const mobileMarvao=mobileOrigin==='marvao'||mobileOrigin==='marvao-pt';
+      const mobileBudapest=mobileOrigin==='budapest';
+      const mobileBudapestHome=locale==='he'?'/he/budapest/':locale==='hu'?'/hu/budapest/':'/budapest/';
+      const mobileMarvaoHome=mobileOrigin==='marvao-pt'||locale==='pt'?'/pt/portugal/':locale==='he'?'/he/portugal/':'/portugal/';
+      const mobileOriginHome=mobileBudapest?mobileBudapestHome:mobileMarvao?mobileMarvaoHome:'/';
+      const mobileOriginBooking=mobileBudapest?mobileBudapestHome+'#booking':mobileMarvao?mobileMarvaoHome+'#request':'#choose-destination';
+      const vehicleLabels={
+        en:{heading:'Explore EZRaider',back:'Back to your destination',budapest:'Budapest · Hungary',marvao:'Portugal · Marvão',book:'Continue to availability',choose:'Choose destination',contact:'Contact the local team'},
+        he:{heading:'הכירו את איזיריידר',back:'חזרה ליעד שלכם',budapest:'בודפשט · הונגריה',marvao:'מרבאו · פורטוגל',book:'המשך לבדיקת זמינות',choose:'בחירת יעד',contact:'יצירת קשר עם הצוות המקומי'},
+        hu:{heading:'Ismerd meg az EZRaidert',back:'Vissza a helyszínre',budapest:'Budapest · Magyarország',marvao:'Portugália · Marvão',book:'Tovább az időpontokhoz',choose:'Úti cél választása',contact:'Kapcsolat a helyi csapattal'},
+        pt:{heading:'Conheça o EZRaider',back:'Voltar ao destino',budapest:'Budapeste · Hungria',marvao:'Portugal · Marvão',book:'Consultar disponibilidade',choose:'Escolher destino',contact:'Contactar a equipa local'}
+      }[locale]||{heading:'Explore EZRaider',back:'Back',budapest:'Budapest',marvao:'Marvão',book:'Availability',choose:'Choose destination',contact:'Contact local team'};
+      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${vehicleLabels.heading}</b><a data-ez-context="back" href="${mobileOriginHome}">${mobileBudapest||mobileMarvao?vehicleLabels.back:vehicleLabels.choose}</a><a href="${mobileBudapestHome}">${vehicleLabels.budapest}</a><a href="${mobileMarvaoHome}">${vehicleLabels.marvao}</a><div class="mobile-language-row" data-mobile-language-row></div>${mobileOrigin==='home'?'':`<a class="btn secondary" data-mobile-nav-wa href="${whatsAppUrl()}">${vehicleLabels.contact}</a>`}<a class="btn" data-ez-context="booking" href="${mobileOriginBooking}">${mobileOrigin==='home'?vehicleLabels.choose:vehicleLabels.book}</a></div>`;
+    }else if(!isPortugalPage&&!isBudapestPage){
       sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>Choose destination</b><a href="/budapest/">Budapest · Hungary</a><a href="/portugal/">Portugal · Marvão</a><a href="/manage/">Manage Booking</a><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">Ask VOY PRO</a><a href="/#destinations" class="btn">Choose destination</a></div>`;
     }else if(isPortugalPage){
       const portugalHome=locale==='he'?'/he/portugal/':locale==='pt'?'/pt/portugal/':'/portugal/';
