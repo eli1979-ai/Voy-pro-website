@@ -1,0 +1,107 @@
+name: Public Staging HTTP indexing watch
+on:
+  schedule:
+    # Daily, 08:43 UTC. Read-only checks of the public Staging aliases.
+    - cron: '43 8 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/check-live-staging-noindex.mjs'
+      - '.github/workflows/live-staging-http-noindex.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-noindex-watch-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  live-http-audit:
+    if: github.repository == 'eli1979-ai/Voy-pro-website'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline tests for allowed hosts, redirects and header checks
+        run: node scripts/check-live-staging-noindex.mjs --test
+      - name: Verify actual public Staging HTTP headers (no credentials)
+        run: node scripts/check-live-staging-noindex.mjs
+      - name: Include the observed report in this run
+        if: always()
+        shell: bash
+        run: |
+          if [ -f staging-http-audit/report.md ]; then
+            cat staging-http-audit/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Live HTTP audit did not produce its expected report." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Preserve report after failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-staging-http-noindex
+          path: staging-http-audit/report.md
+          if-no-files-found: warn
+          retention-days: 14
+
+  raise-single-incident:
+    # A failed scheduled/manual check creates or updates ONE issue.
+    # PR source code never receives a write-scoped GitHub token.
+    needs: live-http-audit
+    if: always() && github.repository == 'eli1979-ai/Voy-pro-website' && github.event_name != 'pull_request' && needs.live-http-audit.result == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: live-staging-http-noindex
+          path: staging-http-audit
+        continue-on-error: true
+      - name: Upsert one actionable indexing-safety incident
+        uses: actions/github-script@v7
+        env:
+          AUDIT_REPORT: staging-http-audit/report.md
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs=require('fs');
+            const marker='<!-- voy-pro-live-staging-http-noindex -->';
+            const report=fs.existsSync(process.env.AUDIT_REPORT)
+              ?fs.readFileSync(process.env.AUDIT_REPORT,'utf8')
+              :'The GitHub runner could not produce the expected HTTP audit report.';
+            const body=[
+              marker,
+              '# Staging HTTP indexing protection requires verification',
+              '',
+              'The read-only check of `voy-pro.com` / `www.voy-pro.com` detected a missing HTTP protection header, an inaccessible page, an unexpected redirect or a transient network failure. Investigate the attached response evidence before changing any environment.',
+              '',
+              report,
+              '',
+              '**Actions:** compare Vercel aliases, deployment headers and Staging release metadata; rerun the manual watch to rule out transient network errors. Keep Production cutover/SEO activation blocked until the distinction is verified.',
+              '',
+              'This automation never changes DNS, booking, payments, SEO, or Vercel configuration.'
+            ].join('\n');
+            const {owner,repo}=context.repo;
+            const issues=await github.paginate(github.rest.issues.listForRepo,{owner,repo,state:'open',per_page:100});
+            const existing=issues.find(issue=>!issue.pull_request&&issue.body?.includes(marker));
+            if(existing){
+              await github.rest.issues.update({owner,repo,issue_number:existing.number,body});
+              core.info('Updated existing incident #'+existing.number);
+            }else{
+              const created=await github.rest.issues.create({
+                owner,repo,
+                title:'Check public Staging HTTP noindex protection',
+                body
+              });
+              core.info('Created Staging indexing incident #'+created.data.number);
+            }
