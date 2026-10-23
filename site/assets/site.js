@@ -1013,7 +1013,7 @@
   // alternative consent are collected without exposing a private server key.
   if(/^\/(?:he\/|hu\/)?budapest\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/?$/.test(location.pathname)){
     const loader=document.createElement('script');
-    loader.src='/assets/rtb-request.js?v=20261023r9';
+    loader.src='/assets/rtb-request.js?v=20261023r10';
     loader.defer=true;
     document.head.appendChild(loader);
   }
