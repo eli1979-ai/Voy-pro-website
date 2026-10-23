@@ -5,6 +5,15 @@ const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const release=JSON.parse(fs.readFileSync('site/release.json','utf8'));
 const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
 const runtime=fs.readFileSync('site/assets/runtime-config.js','utf8');
+const deployment=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+const globalHeaders=(deployment.headers||[])
+  .filter(rule=>rule.source==='/(.*)')
+  .flatMap(rule=>Array.isArray(rule.headers)?rule.headers:[]);
+const globalRobots=globalHeaders.filter(header=>
+  String(header.key||'').toLowerCase()==='x-robots-tag');
+const stagingNoindex=globalRobots.some(header=>
+  /\\bnoindex\\b/i.test(String(header.value||''))&&
+  /\\bnofollow\\b/i.test(String(header.value||'')));
 const failures=[];
 
 const sitemapCount=(sitemap.match(/<loc>/g)||[]).length;
@@ -22,9 +31,16 @@ if(!release.built_at||Number.isNaN(Date.parse(release.built_at)))failures.push('
 if(runtimeBooking==null)failures.push('runtime-config.js must expose bookingEnabled');
 else if((runtimeBooking==='true')!==release.booking_enabled)failures.push('release.booking_enabled must match runtime bookingEnabled');
 
-// Staging is allowed to build normally, but a source bundle that claims
-// Production must also pass the explicit cutover audit. The normal Git
-// deployment target name alone does not prove that Staging is isolated.
+// Staging's public aliases also expose indexing directives at HTTP level:
+// robots.txt Disallow alone does NOT guarantee URLs cannot be indexed from
+// third-party links. Fail closed if a developer accidentally removes the
+// global X-Robots-Tag while this project still targets Staging.
+if(release.target==='staging'&&!stagingNoindex){
+  failures.push('Staging requires a global Vercel X-Robots-Tag: noindex, nofollow');
+}
+// A source bundle that claims Production must pass the separate owner's
+// cutover audit; VERCEL_ENV=production is only a deployment target, not proof
+// of independently provisioned Production infrastructure.
 if(release.target==='production'){
   const publicFailures=assessPublicRelease();
   for(const reason of publicFailures)failures.push('Production release gate: '+reason);
