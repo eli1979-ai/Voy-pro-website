@@ -247,12 +247,12 @@ const routeMatrix=[
   ['buda-margaret-extended-tour','buda-margaret-extended']
 ];
 const localeMatrix=[
-  ['', 'Enquiry received','Request this tour'],
-  ['he/', 'הפנייה התקבלה','בקשת סיור'],
-  ['hu/', 'megérkezett','Túraigénylés']
+  ['', 'Enquiry received','Request this tour','Too many enquiries'],
+  ['he/', 'הפנייה התקבלה','בקשת סיור','יותר מדי בקשות'],
+  ['hu/', 'megérkezett','Túraigénylés','Túl sok kérés']
 ];
 for(const [pageSlug,apiSlug] of routeMatrix){
-  for(const [localePrefix,successLabel,whatsappLabel] of localeMatrix){
+  for(const [localePrefix,successLabel,whatsappLabel,throttledLabel] of localeMatrix){
     const pagePath='/'+localePrefix+'budapest/tours/'+pageSlug+'/';
     const received=browser(acknowledge,pagePath);
     received.set('requested_guide_language','es');
@@ -282,8 +282,36 @@ for(const [pageSlug,apiSlug] of routeMatrix){
     assert.ok(message.includes(apiSlug),pagePath+' must identify the correct tour');
     assert.ok(!statusOf(disabled).includes(successLabel),
       pagePath+' disabled intake cannot claim CRM receipt');
+
+    // An actual WAF 429 can arrive without JSON. It must never become an
+    // accepted CRM enquiry or silently send WhatsApp. An explicit later retry
+    // must reuse the same immutable browser UUID and payload across locales.
+    let attempts=0;
+    const throttled=browser(async()=>({
+      status:++attempts===1?429:202,
+      json:async()=>({status:'pending_review',requestId:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'})
+    }),pagePath);
+    throttled.set('requested_guide_language','es');
+    throttled.set('english_alternative_accepted','yes');
+    await throttled.submit();
+    assert.equal(attempts,1,pagePath+' must perform one throttled attempt');
+    assert.ok(statusOf(throttled).includes(throttledLabel),
+      pagePath+' must localize the 429 feedback');
+    assert.ok(!statusOf(throttled).includes(successLabel),
+      pagePath+' cannot claim CRM receipt after 429');
+    assert.equal(throttled.locations.length,0,
+      pagePath+' cannot auto-send WhatsApp after rate limit');
+    assert.equal(throttled.created.get('button[type="submit"]').disabled,false);
+    const firstPayload=JSON.stringify(payloadOf(throttled));
+    await throttled.submit();
+    assert.equal(attempts,2);
+    assert.equal(throttled.uuidCount,1,pagePath+' 429 retry must retain UUID');
+    assert.equal(JSON.stringify(payloadOf(throttled)),firstPayload,
+      pagePath+' 429 retry must retain original body');
+    assert.ok(statusOf(throttled).includes(successLabel),
+      pagePath+' a subsequent valid 202 can confirm a pending inquiry');
   }
 }
-console.log('Budapest RTB route/locale matrix OK: all 3 tour slugs × EN/HE/HU, 202 pending inquiry and disabled 404 WhatsApp.');
+console.log('Budapest RTB route/locale matrix OK: all 3 tour slugs × EN/HE/HU, 202 pending inquiry, disabled 404 WhatsApp, and throttled 429 retry.');
 
 console.log('Budapest RTB request UI: 202/404/400/409/503, consent, stable replay, new payload, double submit and network failure OK.');
