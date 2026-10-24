@@ -12,6 +12,8 @@ on:
       - 'scripts/qa-mobile-sitemap.mjs'
       - 'scripts/qa-public-link-assets.mjs'
       - 'scripts/qa-static-asset-budgets.mjs'
+      - 'scripts/render-footer-support-email.mjs'
+      - 'package.json'
       - 'scripts/qa-lab-performance-browser.mjs'
       - 'site/assets/images/**'
       - 'site/assets/brand/**'
