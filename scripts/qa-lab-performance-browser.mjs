@@ -15,6 +15,9 @@ const formats={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-
 const paths=['/','/budapest/','/he/budapest/','/hu/budapest/',
   '/portugal/','/he/portugal/','/pt/portugal/','/ezraider/','/he/ezraider/'];
 const widths=[390,1365];
+// Large unexpected layout shifts on key landing pages are product regressions.
+// A generous lab threshold avoids gating on runner-to-runner timing noise.
+const maxLayoutShift=0.10;
 await mkdir(output,{recursive:true});
 const server=createServer(async(req,res)=>{
   try{
@@ -140,6 +143,8 @@ try{
           if(response?.status()!==200)problem='Page HTTP '+response?.status();
           else if(missingImages.length)problem='Missing above-fold images: '+missingImages.map(x=>x.src).join(', ');
           else if(missingHeroDimensions.length)problem='Hero image missing verified native dimensions';
+          else if(Number(data.metrics?.cls)>maxLayoutShift)
+            problem='Excessive cumulative layout shift: '+data.metrics.cls.toFixed(4)+' > '+maxLayoutShift.toFixed(2);
           else if(critical.length)problem='Local asset requests failed: '+critical.join(', ');
           if(problem)failures.push({path,width,problem});
           const example={path,width,status:response?.status(),problem,...data,
@@ -166,7 +171,8 @@ const lines=[
   '# VOY PRO first-party laboratory performance and imagery report','',
   'Measured against locally built static pages in Chrome with external services blocked.',
   'This is **not** real-user Core Web Vitals, a simulated slow-phone score, or a production LCP claim.',
-  'Times, resource transfers and layout shifts can vary by CI machine. They are diagnostic, not release thresholds.',
+  'Times, resource transfers and LCP vary by CI machine and remain advisory.',
+  'A severe CLS >0.10 under this isolated baseline now fails the QA gate; smaller scores remain diagnostic.',
   '',
   'Page/viewport cases: '+samples.length+'; failures: '+failures.length,'',
   '| Page | Width | Navigation load (lab ms) | Observed LCP (lab ms) | Observed CLS | Above-fold images | Missing image dimensions* |',
