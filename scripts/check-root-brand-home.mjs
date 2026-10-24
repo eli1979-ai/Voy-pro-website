@@ -58,6 +58,11 @@ requireText(siteJs,"destinationId!=='network'","network pages must not enable de
 requireText(siteJs,"if(!isPortugalPage&&!isBudapestPage)","mobile navigation must support the network context");
 requireText(siteJs,"document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});","brand links must resolve to the parent homepage");
 
+requireText(html,'Find the experience that fits your trip','root benefit section must speak to visitors');
+requireText(html,'Know what to expect','root local route guidance missing');
+forbidText(html,'Operational details live inside the destination journey','root homepage must not expose internal operations wording');
+forbidText(html,'customer journey and current booking or request path','root homepage must use customer-facing language');
+
 const supportCard=(html.match(/<article class="content-card network-support-card">([\s\S]*?)<\/article>/)||[])[1]||'';
 if(!supportCard)failures.push('network support direct contact card missing');
 requireText(supportCard,'class="network-support-actions"','network support direct contact actions missing inside card');
