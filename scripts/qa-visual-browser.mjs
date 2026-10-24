@@ -217,10 +217,46 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       }
     }
     if(request){
-      check(await page.locator('#request [data-portugal-request-form]').count()===1,
+      const requestForm=page.locator('#request [data-portugal-request-form]');
+      check(await requestForm.count()===1,
         name+' has local Marvão request form');
-      check(await page.locator('[data-portugal-tour]').count()===3,
+      const routeLinks=page.locator('[data-portugal-tour]');
+      check(await routeLinks.count()===3,
         name+' offers three local route request links');
+      const route=requestForm.locator('select[name="route"]');
+      const date=requestForm.locator('input[name="date"]');
+      const people=requestForm.locator('select[name="people"]');
+      const language=requestForm.locator('select[name="guide_language"]');
+      check((await route.inputValue())===''&&(await language.inputValue())==='',
+        name+' does not silently preselect route or guide language');
+      check(JSON.stringify(await people.locator('option').evaluateAll(list=>list.map(x=>x.value)))===
+        JSON.stringify(['2','3','4']),name+' requests only published 2–4 person group sizes');
+      check(JSON.stringify(await language.locator('option').evaluateAll(list=>list.map(x=>x.value)))===
+        JSON.stringify(['','en','pt']),name+' asks explicitly for local EN/PT guiding');
+      check(/^\\d{4}-\\d{2}-\\d{2}$/.test(await date.getAttribute('min')||''),
+        name+' rejects dates before local request date');
+      // Each public tour CTA must prefill the corresponding local form route.
+      for(const code of ['express','explorer','megalithic']){
+        const cta=page.locator('[data-portugal-tour="'+code+'"]');
+        check(await cta.getAttribute('href')==='#request',name+' '+code+' links to local request form');
+        await cta.click();
+        check(await route.inputValue()===code,name+' '+code+' preselects the correct route');
+      }
+      const initialStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      await route.selectOption('express');
+      await date.fill('2000-01-01');
+      await language.selectOption('en');
+      await requestForm.locator('input[name="full_name"]').fill('Browser fixture');
+      // Bypass HTML native required validation only to exercise the site's
+      // explicit past-date guard. This must never open WhatsApp or submit data.
+      const prevented=await requestForm.evaluate(el=>{
+        const ev=new Event('submit',{bubbles:true,cancelable:true});
+        return !el.dispatchEvent(ev);
+      });
+      const changedStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      check(prevented&&changedStatus!==initialStatus&&changedStatus.length>5,
+        name+' past date gives localized validation instead of sending a request');
+      check(await date.inputValue()==='2000-01-01',name+' invalid preferred date stays editable');
     }
     if(b2b){
       const planner=page.locator('[data-b2b-planner="'+b2b+'"]');
