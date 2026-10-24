@@ -104,6 +104,10 @@ async function scenario(lang,path,{catalogDown=false}={}){
   try{
     const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
     check(response?.status()===200,lang+' local tour route works');
+    const consent=page.locator('[data-consent-essential]');
+    if(await consent.isVisible().catch(()=>false))await consent.click({timeout:3000});
+    await page.waitForFunction(()=>!document.body.classList.contains('consent-open'),
+      null,{timeout:5000});
     const form=page.locator('#availability-form');
     const experience=form.locator('[name="experience"]');
     if(catalogDown){
@@ -133,8 +137,13 @@ async function scenario(lang,path,{catalogDown=false}={}){
       return;
     }
     await experience.locator('option[value="exp_bud_buda"]').waitFor({state:'attached',timeout:12000});
+    await page.waitForFunction(()=>{
+      const bar=document.querySelector('.mobilebook');
+      return bar&&!bar.classList.contains('is-price-loading')&&
+        /70/.test(bar.querySelector('[data-runtime-price]')?.textContent||'');
+    },null,{timeout:10000});
     check(!(await page.locator('.mobilebook').getAttribute('class')).includes('is-price-unavailable')&&
-      (await page.locator('.mobilebook [data-runtime-price]').innerText()).includes('€'),
+      (await page.locator('.mobilebook [data-runtime-price]').innerText()).includes('70'),
       lang+' successful catalog restores verified live amount in mobile bar');
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:9000});
