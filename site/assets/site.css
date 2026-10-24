@@ -959,3 +959,12 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
   text-align:center;
   white-space:nowrap;
 }
+
+/* The Budapest hero image has a tall intrinsic aspect ratio. Avoid its natural
+   min-content width forcing the desktop grid tracks to grow after image load. */
+@media(min-width:801px){
+  body[data-page$="/budapest/"] .hero-grid{
+    grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)
+  }
+  body[data-page$="/budapest/"] .hero-grid > *{min-width:0}
+}
