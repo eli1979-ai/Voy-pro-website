@@ -892,3 +892,8 @@ body[data-page="/"] .network-support-action:hover{filter:brightness(.97)}
 body[data-page="/"] .network-support-action:focus-visible,body[data-page="/"] .network-support-address:focus-visible{outline:3px solid #176da2;outline-offset:3px}
 body[data-page="/"] .network-support-address{display:inline-block;margin-top:10px;font-size:12px;line-height:1.5;color:#35566e;overflow-wrap:anywhere}
 @media(max-width:350px){body[data-page="/"] .network-support-actions{gap:6px}body[data-page="/"] .network-support-action{font-size:13px;padding-inline:4px}}
+
+/* Network home: the fixed WhatsApp bubble must never cover Manage Booking on phones. */
+@media(max-width:800px){
+  body[data-page="/"].home-manage-visible .home-whatsapp{opacity:0;visibility:hidden;pointer-events:none}
+}
