@@ -434,6 +434,26 @@ try{
     ['guide-he-mobile','/he/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fbuda-castle-ezraider-tour%2F',mobile,{guide:true}],
     ['guide-hu-desktop','/hu/ezraider/?from=budapest',desktop,{guide:true}]
   ];
+  // Public Google Business embed smoke preview. This probe is isolated from
+  // all booking, FBM, analytics and original website regression scenarios.
+  // Failure to access Google from a CI runner is diagnostic, not proof the
+  // business place ID is wrong; retain a screenshot for manual verification.
+  {
+    const source=(await readFile(resolve('site/assets/site.js'),'utf8'));
+    const match=source.match(/const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='([^']+)';/);
+    if(match){
+      const map=await browser.newPage({viewport:{width:680,height:510},deviceScaleFactor:1});
+      try{
+        await map.setContent('<!doctype html><html><body style="margin:0"><iframe title="EZRaider Budapest by Voy PRO" src="'+match[1]+'" style="border:0;width:680px;height:500px" allowfullscreen></iframe></body></html>');
+        await map.waitForTimeout(6500);
+        await map.screenshot({path:join(out,'budapest-google-business-map-probe.png')});
+        const frames=map.frames().filter(frame=>frame.url().includes('google.com/maps/embed'));
+        results.push('MAP PROBE: '+frames.map(frame=>frame.url().slice(0,130)).join(';'));
+      }catch(error){
+        results.push('MAP PROBE UNAVAILABLE: '+String(error).slice(0,250));
+      }finally{await map.close();}
+    }
+  }
   for(const [name,path,viewport,opts] of scenarios){
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
