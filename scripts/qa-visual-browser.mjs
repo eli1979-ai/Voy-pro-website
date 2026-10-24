@@ -154,6 +154,13 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(proof.supportGrid===2&&proof.supportContained&&proof.supportLinks.every(a=>a.height>=44&&a.width>=44),
         name+' support channels are two readable accessible buttons contained at '+viewport.width+'px');
       if(viewport.width<=800){
+        // The cookie preferences intentionally hide all floating CTAs.
+        // Explicitly choose essential-only in this isolated browser to
+        // exercise the actual floating-button interaction without analytics.
+        const essential=page.locator('[data-consent-essential]');
+        if(await essential.isVisible())await essential.click();
+        check(await page.locator('.home-whatsapp').isVisible(),
+          name+' floating WhatsApp is available after essential-only consent');
         const manageButton=page.locator('.network-manage-section .btn');
         await manageButton.scrollIntoViewIfNeeded();
         await page.waitForFunction(()=>document.body.classList.contains('home-manage-visible'),null,{timeout:3500});
