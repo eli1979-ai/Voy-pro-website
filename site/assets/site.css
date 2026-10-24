@@ -882,3 +882,13 @@ body[data-page="/"] .network-value-section+.network-manage-section{padding-top:1
   body[data-page="/"] .network-value-section .content-grid{gap:12px}
   body[data-page="/"] .network-manage-section .proof{padding:20px 18px}
 }
+
+/* Network homepage: compact, accessible direct-contact actions inside the support card. */
+body[data-page="/"] .network-support-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+body[data-page="/"] .network-support-action{box-sizing:border-box;display:flex;align-items:center;justify-content:center;min-height:44px;min-width:0;padding:10px 7px;border:1px solid #d7e3ea;border-radius:12px;font-size:14px;font-weight:750;line-height:1.25;text-align:center;text-decoration:none;overflow-wrap:anywhere}
+body[data-page="/"] .network-support-action--whatsapp{background:#e7f6ee;border-color:#b8e2ca;color:#135f39}
+body[data-page="/"] .network-support-action--email{background:#edf5fb;border-color:#cadde9;color:#144f75}
+body[data-page="/"] .network-support-action:hover{filter:brightness(.97)}
+body[data-page="/"] .network-support-action:focus-visible,body[data-page="/"] .network-support-address:focus-visible{outline:3px solid #176da2;outline-offset:3px}
+body[data-page="/"] .network-support-address{display:inline-block;margin-top:10px;font-size:12px;line-height:1.5;color:#35566e;overflow-wrap:anywhere}
+@media(max-width:350px){body[data-page="/"] .network-support-actions{gap:6px}body[data-page="/"] .network-support-action{font-size:13px;padding-inline:4px}}
