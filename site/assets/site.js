@@ -2610,5 +2610,19 @@
   initSelectionRecovery();
   initPaymentReturnNotice();
 
+  // The homepage Manage Booking CTA must never be covered by the floating
+  // WhatsApp shortcut on narrow screens. The in-card contact options remain.
+  (()=>{
+    if(document.body?.dataset.page!=='/'||!('IntersectionObserver' in window))return;
+    const manage=document.querySelector('.network-manage-section .btn');
+    const floating=document.querySelector('a.home-whatsapp');
+    if(!manage||!floating)return;
+    const observer=new IntersectionObserver(entries=>{
+      document.body.classList.toggle('home-manage-visible',
+        entries.some(entry=>entry.target===manage&&entry.isIntersecting));
+    },{threshold:0});
+    observer.observe(manage);
+  })();
+
   window.VOYBookingIntelligence={track,createSession,patchSession,api,bookingEnabled};
 })();
