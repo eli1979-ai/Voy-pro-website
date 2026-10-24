@@ -42,11 +42,31 @@ try{
     });
     // Observe layout shifts without user interaction. LCP is advisory only.
     await page.addInitScript(()=>{
-      window.__voyPerf={cls:0,lcpMs:null,lcpUrl:null};
+      window.__voyPerf={cls:0,lcpMs:null,lcpUrl:null,shifts:[]};
       try{
         new PerformanceObserver(list=>{
-          for(const entry of list.getEntries())
-            if(!entry.hadRecentInput)window.__voyPerf.cls+=entry.value;
+          for(const entry of list.getEntries()){
+            if(entry.hadRecentInput)continue;
+            window.__voyPerf.cls+=entry.value;
+            // Layout Instability API sources identify the *moving* elements,
+            // not necessarily what caused the movement. Keep diagnostics
+            // bounded and never read user input, private text or form data.
+            if(window.__voyPerf.shifts.length>=16)continue;
+            const moved=(entry.sources||[]).slice(0,6).map(source=>{
+              const node=source.node;
+              const selector=node?[
+                node.tagName?.toLowerCase(),
+                node.id?'#'+node.id:'',
+                ...[...node.classList||[]].slice(0,3).map(cls=>'.'+cls)
+              ].join(''):'unknown';
+              const old=source.previousRect||{},next=source.currentRect||{};
+              return {selector,from:[Math.round(old.x||0),Math.round(old.y||0)],
+                to:[Math.round(next.x||0),Math.round(next.y||0)],
+                size:[Math.round(next.width||0),Math.round(next.height||0)]};
+            });
+            window.__voyPerf.shifts.push({time:Math.round(entry.startTime),
+              score:Number(entry.value.toFixed(6)),moved});
+          }
         }).observe({type:'layout-shift',buffered:true});
         new PerformanceObserver(list=>{
           const entries=list.getEntries(),last=entries[entries.length-1];
@@ -159,6 +179,14 @@ const lines=[
   '',
   '* Advisory only: HTML dimensions and CSS aspect-ratio both help reserve layout space.',
   'Unloaded hidden/lazy images and externally hosted third-party assets are deliberately out of scope.',
+  '',
+  '## Largest observed layout shifts (diagnostic only)',
+  ...samples.filter(s=>(s.metrics?.shifts||[]).length).flatMap(s=>
+    (s.metrics.shifts||[]).sort((a,b)=>b.score-a.score).slice(0,3).map(shift=>
+      '- '+s.path+' @ '+s.width+'px, '+shift.time+'ms, impact '+shift.score+
+      ': '+shift.moved.map(m=>m.selector+' '+m.from.join(',')+' → '+m.to.join(',')).join('; '))),
+  '',
+  'Note: shift sources are impacted elements and may not be the root cause.',
   '',
   '## Failures',
   ...(failures.length?failures.map(f=>'- '+f.width+'px '+f.path+': '+f.problem):['- None']),
