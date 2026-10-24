@@ -58,6 +58,16 @@ requireText(siteJs,"destinationId!=='network'","network pages must not enable de
 requireText(siteJs,"if(!isPortugalPage&&!isBudapestPage)","mobile navigation must support the network context");
 requireText(siteJs,"document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});","brand links must resolve to the parent homepage");
 
+const supportCard=(html.match(/<article class="content-card network-support-card">([\s\S]*?)<\/article>/)||[])[1]||'';
+if(!supportCard)failures.push('network support direct contact card missing');
+requireText(supportCard,'class="network-support-actions"','network support direct contact actions missing inside card');
+requireText(supportCard,'href="https://wa.me/36300993099"','network support WhatsApp link missing inside card');
+requireText(supportCard,'data-track="whatsapp_clicked"','network support WhatsApp analytics attribute missing');
+requireText(supportCard,'href="mailto:support@voy-pro.com"','network support email action missing inside card');
+requireText(supportCard,'>support@voy-pro.com</a>','network support visible email address missing inside card');
+requireText(css,'.network-support-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))','network support two-column action layout missing');
+requireText(css,'.network-support-action:focus-visible','network support keyboard focus style missing');
+
 if(failures.length){
   console.error('VOY PRO root-brand guard failed.');
   for(const failure of failures)console.error('- '+failure);
