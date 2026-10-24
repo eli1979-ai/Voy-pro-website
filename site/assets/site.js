@@ -1421,12 +1421,30 @@
   function catalogUnavailableLabel(){
     return locale==='he'?'אפשרויות ומחירים חיים אינם זמינים כרגע':locale==='hu'?'Az élő túraopciók és árak jelenleg nem érhetők el':'Live tour options and prices are temporarily unavailable';
   }
+  // Keep long diagnostic copy in the booking panel. The sticky mobile CTA
+  // is a tiny navigation surface, not a place for an error paragraph.
+  function setRuntimePriceState(state){
+    const verbose=state==='loading'?catalogLoadingLabel():catalogUnavailableLabel();
+    const short=state==='loading'
+      ?(locale==='he'?'בודקים מחיר…':locale==='hu'?'Ár ellenőrzése…':'Checking price…')
+      :(locale==='he'?'מחיר לא זמין':locale==='hu'?'Ár nem elérhető':'Price unavailable');
+    document.querySelectorAll('[data-runtime-price]').forEach(node=>{
+      const bar=node.closest('.mobilebook');
+      node.textContent=bar?short:verbose;
+      if(bar){
+        bar.classList.toggle('is-price-loading',state==='loading');
+        bar.classList.toggle('is-price-unavailable',state==='unavailable');
+        node.setAttribute('aria-label',verbose);
+        node.title=verbose;
+      }
+    });
+  }
   function setCatalogUnavailableUI(selects){
     selects.forEach(select=>{
       select.innerHTML=`<option value="">${escapeHTML(catalogUnavailableLabel())}</option>`;
       select.disabled=true;
     });
-    document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=catalogUnavailableLabel());
+    setRuntimePriceState('unavailable');
     const status=document.querySelector('#availability-status');
     if(status)status.textContent=locale==='he'
       ?'לא ניתן לאמת כרגע אפשרויות, מחיר או זמינות מול מערכת ההזמנות. נסו שוב בעוד רגע.'
@@ -1444,7 +1462,7 @@
       select.innerHTML=`<option value="">${escapeHTML(catalogLoadingLabel())}</option>`;
       select.disabled=true;
     });
-    document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=catalogLoadingLabel());
+    setRuntimePriceState('loading');
     if(submit)submit.disabled=true;
 
     if(!bookingEnabled){
@@ -1452,7 +1470,7 @@
         select.innerHTML=`<option value="">${t('Online booking is temporarily unavailable','ההזמנה החיה בתהליך חיבור')}</option>`;
         select.disabled=true;
       });
-      document.querySelectorAll('[data-runtime-price]').forEach(node=>node.textContent=t('Live price unavailable','מחיר חי אינו זמין'));
+      setRuntimePriceState('unavailable');
       hydrateTourCards([]);
       return [];
     }
@@ -1525,6 +1543,12 @@
       const amount=money(p.priceFrom,p.currency||'EUR');
       // Mobile booking has its own localized "starting at" label above the amount.
       node.textContent=node.closest('.mobilebook')?amount:t('From ','החל מ־')+amount;
+      const bar=node.closest('.mobilebook');
+      if(bar){
+        bar.classList.remove('is-price-loading','is-price-unavailable');
+        node.removeAttribute('aria-label');
+        node.removeAttribute('title');
+      }
     });
   }
 
