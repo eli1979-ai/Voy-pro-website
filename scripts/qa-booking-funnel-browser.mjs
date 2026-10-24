@@ -68,7 +68,7 @@ async function scenario(lang,path,{catalogDown=false}={}){
       'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type',
       'access-control-allow-methods':'GET,POST,PATCH,OPTIONS'};
     if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
-    calls.push({method:req.method(),path:routePath});
+    calls.push({method:req.method(),path:routePath+url.search});
     let status=200,data={};
     if(routePath==='/marketing/experiments')data={experiments:[]};
     else if(routePath==='/destinations/budapest')data={
@@ -89,6 +89,10 @@ async function scenario(lang,path,{catalogDown=false}={}){
         {id:'22222222-2222-4222-8222-222222222222',time:'10:30',sellable:true,requestable:false}
       ]};
       else data={slots:[]};
+    }else if(routePath==='/payments/capabilities'&&req.method()==='GET'){
+      // The real customer page checks payment capabilities on load. This is
+      // read-only; it must never initiate a payment.
+      data={online_card:false};
     }else if(routePath.startsWith('/payments/')||routePath.startsWith('/holds')||
       routePath.startsWith('/bookings')||routePath.startsWith('/quotes')){
       // A browser QA regression must never progress to checkout or payment.
@@ -159,11 +163,14 @@ async function scenario(lang,path,{catalogDown=false}={}){
 
     phase='slow';
     await submit.click();
-    await page.waitForFunction(()=>document.querySelector('#availability-status')?.textContent
-      ?.match(/Checking|בודקים|ellenőrzi/i),null,{timeout:10000});
-    // Wait until the delayed fetch has started, then invalidate the search.
-    for(let i=0;i<30&&!calls.some(c=>c.path.includes('/availability')&&c.path.includes('riders_16_plus=3'));i++)
-      await wait(25);
+    // Wait for the delayed request itself, rather than translated loading copy.
+    // All locales must issue a search for the new group composition.
+    await page.waitForFunction(()=>document.querySelector('#availability-status')?.textContent?.length>0,
+      null,{timeout:10000});
+    for(let i=0;i<40&&!calls.some(c=>c.path.includes('/availability')&&c.path.includes('riders_16_plus=3'));i++)
+      await wait(30);
+    check(calls.some(c=>c.path.includes('/availability')&&c.path.includes('riders_16_plus=3')),
+      lang+' delayed availability request actually started before selection change');
     await form.locator('[name="children"]').selectOption('2');
     await wait(800);
     check(await page.locator('#slotlist button').count()===0,
