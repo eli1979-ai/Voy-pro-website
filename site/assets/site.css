@@ -968,3 +968,13 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
   }
   body[data-page$="/budapest/"] .hero-grid > *{min-width:0}
 }
+
+/* Reserve enough height for the Budapest rider-policy fact while verified
+   eligibility replaces the initial placeholder. It otherwise changes from
+   one to two lines and pushes the hero CTA/photo downward on narrow phones.
+   Does not change the policy wording, pricing or booking rules. */
+@media(max-width:800px){
+  body[data-page$="/budapest/"] .hero .facts [data-runtime-rider-policy]{
+    min-block-size:48px;
+  }
+}
