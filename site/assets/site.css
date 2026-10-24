@@ -948,3 +948,14 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
   .nav-menu-toggle{min-width:44px;min-height:44px;box-sizing:border-box;
     align-items:center;justify-content:center}
 }
+
+/* Keep the Budapest hero's live-price badge geometry stable while FBM
+   catalog status changes. The verbose explanation stays in #availability-status. */
+.hero .facts [data-home-live-price]{
+  min-inline-size:150px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  white-space:nowrap;
+}
