@@ -168,14 +168,26 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(collision.hidden&&collision.clickSafe,name+' floating WhatsApp cannot obstruct visible Manage Booking CTA');
         await page.evaluate(()=>window.scrollTo(0,0));
         await page.waitForFunction(()=>!document.body.classList.contains('home-manage-visible'),null,{timeout:3500});
+        // Wait for rendering as well as observer/class state; browser can
+        // evaluate CSS in a different frame from the IntersectionObserver.
+        await page.waitForFunction(()=>{
+          const link=document.querySelector('.home-whatsapp');
+          const style=link&&getComputedStyle(link);
+          return !!link&&!document.body.classList.contains('home-manage-visible')&&
+            style.visibility==='visible'&&style.display!=='none'&&
+            Number(style.opacity)>0;
+        },null,{timeout:2500}).catch(()=>{});
         const restored=await page.evaluate(()=>{
           const whatsapp=document.querySelector('.home-whatsapp');
           const style=whatsapp&&getComputedStyle(whatsapp);
-          return !!whatsapp&&!document.body.classList.contains('home-manage-visible')&&
-            style.visibility==='visible'&&style.display!=='none'&&
-            parseFloat(style.opacity||'1')>0;
+          return {ok:!!whatsapp&&!document.body.classList.contains('home-manage-visible')&&
+            style.visibility==='visible'&&style.display!=='none'&&Number(style.opacity)>0,
+            display:style?.display,visibility:style?.visibility,opacity:style?.opacity,
+            bodyClass:document.body.className,
+            hasManageClass:document.body.classList.contains('home-manage-visible')};
         });
-        check(restored,name+' floating WhatsApp becomes visible again after Manage Booking leaves the viewport');
+        check(restored.ok,name+' floating WhatsApp becomes visible again after Manage Booking leaves the viewport');
+        if(!restored.ok)results.push('DIAGNOSTIC '+name+' restore '+JSON.stringify(restored));
       }
       for(const slug of ['budapest','portugal']){
         try{
