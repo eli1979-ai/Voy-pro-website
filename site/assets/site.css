@@ -858,3 +858,27 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 .tour-vehicle-guide-link{margin:12px 0 0;line-height:1.5;font-size:14px;font-weight:700}
 .tour-vehicle-guide-link a{text-decoration:underline;text-underline-offset:3px}
 .tour-vehicle-guide-link a:focus-visible{outline:2px solid currentColor;outline-offset:3px;border-radius:3px}
+
+
+/* Network homepage: each hero photo is its own accessible destination link,
+   with its label directly below that photo (not one shared overlay caption). */
+.parent-hero-mosaic::after{display:none!important}
+.parent-hero-mosaic .parent-hero-grid{aspect-ratio:auto!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.parent-hero-mosaic .parent-hero-destination{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:#111f2a;color:#fff;text-decoration:none;position:relative}
+.parent-hero-mosaic .parent-hero-destination+.parent-hero-destination{border-inline-start:2px solid rgba(255,255,255,.7)}
+.parent-hero-mosaic .parent-hero-destination img{display:block;width:100%;height:auto!important;min-height:0!important;aspect-ratio:3/4!important;object-fit:cover!important;border:0!important}
+.parent-hero-mosaic .parent-hero-destination--budapest img{object-position:center 72%!important}
+.parent-hero-mosaic .parent-hero-destination--marvao img{object-position:center 76%!important}
+.parent-hero-mosaic .parent-hero-caption{display:flex;align-items:center;justify-content:center;flex:1 0 auto;box-sizing:border-box;min-height:47px;padding:10px 7px;background:#142632;color:#fff;text-align:center;font-size:13px;font-weight:850;line-height:1.25;letter-spacing:.02em}
+.parent-hero-mosaic .parent-hero-destination:hover .parent-hero-caption{background:#1c465e}
+.parent-hero-mosaic .parent-hero-destination:focus-visible{outline:3px solid #83c7ef;outline-offset:-4px;z-index:3}
+/* Shorten only the closing transition on the network homepage. */
+body[data-page="/"] .network-value-section{padding-bottom:10px!important}
+body[data-page="/"] .network-value-section+.network-manage-section{padding-top:12px!important;padding-bottom:22px!important}
+@media(max-width:800px){
+  .parent-hero-mosaic .parent-hero-caption{font-size:11px;min-height:46px;padding:9px 4px;overflow-wrap:anywhere}
+  body[data-page="/"] .network-value-section{padding-bottom:3px!important}
+  body[data-page="/"] .network-value-section+.network-manage-section{padding-top:10px!important;padding-bottom:16px!important}
+  body[data-page="/"] .network-value-section .content-grid{gap:12px}
+  body[data-page="/"] .network-manage-section .proof{padding:20px 18px}
+}
