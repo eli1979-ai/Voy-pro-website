@@ -107,9 +107,8 @@ async function scenario(lang,path,{catalogDown=false}={}){
     const form=page.locator('#availability-form');
     const experience=form.locator('[name="experience"]');
     if(catalogDown){
+      await page.locator('.mobilebook.is-price-unavailable [data-runtime-price]').waitFor({state:'visible',timeout:9000});
       await experience.locator('option').first().waitFor({state:'attached',timeout:9000});
-      await page.waitForFunction(()=>document.querySelector('#availability-form [name="experience"]')?.disabled &&
-        document.querySelector('#availability-status')?.textContent?.includes(''),null,{timeout:9000});
       check(await experience.isDisabled(),lang+' failed catalog disables experience choice');
       check(await form.locator('button[type="submit"]').isDisabled(),
         lang+' failed catalog disables availability submission');
@@ -117,9 +116,26 @@ async function scenario(lang,path,{catalogDown=false}={}){
         lang+' failed catalog never displays an unverified live price');
       check(calls.filter(c=>c.path.includes('/availability')).length===0,
         lang+' catalog failure does not request availability');
+      const state=await page.locator('.mobilebook').evaluate(bar=>{
+        const price=bar.querySelector('[data-runtime-price]');
+        const cta=bar.querySelector('a.btn');
+        const p=price.getBoundingClientRect(),b=bar.getBoundingClientRect(),a=cta.getBoundingClientRect();
+        return {text:price.textContent,description:price.getAttribute('aria-label'),
+          barHeight:b.height,priceRight:p.right,ctaLeft:a.left,ctaRight:a.right,viewport:innerWidth,
+          scrollWidth:document.documentElement.scrollWidth};
+      });
+      const expected=lang==='he'?'מחיר לא זמין':lang==='hu'?'Ár nem elérhető':'Price unavailable';
+      check(state.text===expected,lang+' sticky bar keeps concise localized unverified-price message');
+      check(state.description.length>state.text.length,lang+' longer diagnostic remains accessible');
+      check(state.barHeight<=105&&state.priceRight<state.ctaLeft+3&&state.ctaRight<=state.viewport+2&&state.scrollWidth<=state.viewport+2,
+        lang+' sticky price and booking action do not collide or overflow');
+      await page.screenshot({path:join(out,'booking-'+lang+'-offline.png'),fullPage:false});
       return;
     }
     await experience.locator('option[value="exp_bud_buda"]').waitFor({state:'attached',timeout:12000});
+    check(!(await page.locator('.mobilebook').getAttribute('class')).includes('is-price-unavailable')&&
+      (await page.locator('.mobilebook [data-runtime-price]').innerText()).includes('€'),
+      lang+' successful catalog restores verified live amount in mobile bar');
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:9000});
     check(await guide.inputValue()==='',lang+' guide language is never silently chosen');
@@ -189,6 +205,8 @@ try{
   await scenario('he',paths[1][1]);
   await scenario('hu',paths[2][1]);
   await scenario('en',paths[0][1],{catalogDown:true});
+  await scenario('he',paths[1][1],{catalogDown:true});
+  await scenario('hu',paths[2][1],{catalogDown:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
