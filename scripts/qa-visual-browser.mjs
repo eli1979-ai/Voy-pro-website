@@ -83,6 +83,35 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
     check(metrics.scrollWidth<=metrics.width+2,name+' no horizontal page overflow ('+metrics.scrollWidth+'/'+metrics.width+')');
     check(metrics.hasNav,name+' has navigation');
     check(await page.locator('footer').count()===1,name+' has exactly one footer');
+    // The tour proof arrangement must work in a real browser, not just static HTML.
+    if(path.includes('/budapest/tours/')||path.endsWith('/budapest/private-tours/')){
+      const compact=await page.evaluate(()=>{
+        const top=document.querySelector('.trust .trust-grid');
+        const bottom=document.querySelector('.tour-review-compact .review-source-grid');
+        const ticker=document.querySelector('[data-vp-reviews-root]');
+        const firstSection=document.querySelector('.tour-detail-page .section:not(.booking):not(.tour-review-compact)');
+        const computed=top?getComputedStyle(top):null;
+        return {
+          top:!!top,bottom:!!bottom,ticker:!!ticker,
+          columns:computed?.gridTemplateColumns.split(/\\s+/).length||0,
+          sourceCount:bottom?.querySelectorAll('a[href^="https://"]').length||0,
+          topPadding:firstSection?parseFloat(getComputedStyle(firstSection).paddingTop):null,
+          legacy:document.querySelectorAll('.review-source-grid').length
+        };
+      });
+      check(compact.top&&compact.bottom&&compact.ticker,name+' has 2 compact ratings points + verified ticker');
+      check(compact.sourceCount===3&&compact.legacy===1,name+' has precisely three verified platform links at bottom');
+      if(viewport.width<=800){
+        check(compact.columns===3,name+' shows all rating sources in one compact mobile row');
+        check(compact.topPadding!==null&&compact.topPadding<=24,name+' mobile tour sections are tightened (<=24px top)');
+      }
+      const carousel=page.locator('[data-vp-reviews-root]');
+      try{await carousel.waitFor({state:'visible',timeout:8000});}
+      catch{/* Assert below also records failures without stopping screenshot capture. */}
+      check(await carousel.isVisible(),name+' verified full-text review ticker renders from approved manifest');
+      check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
+        name+' approved 20-review data powers three continuous carousel copies');
+    }
     if(path.startsWith('/he/'))check(metrics.direction==='rtl',name+' preserves Hebrew RTL direction');
     if(booking){
       check(await page.locator('#booking #availability-form').count()===1,name+' has one Budapest booking form');
@@ -258,6 +287,9 @@ try{
     ['marvao-en-desktop','/portugal/',desktop,{request:true,localWhatsApp:marvao}],
     ['budapest-he-family-mobile','/he/budapest/with-kids/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-hu-family-narrow','/hu/budapest/with-kids/',narrow,{booking:true,localWhatsApp:budapest}],
+    ['budapest-buda-en-mobile','/budapest/tours/buda-castle-ezraider-tour/',mobile,{fullPage:true,booking:true,localWhatsApp:budapest}],
+    ['budapest-buda-he-narrow','/he/budapest/tours/buda-castle-ezraider-tour/',narrow,{booking:true,localWhatsApp:budapest}],
+    ['budapest-margaret-hu-mobile','/hu/budapest/tours/margaret-island-ezraider-tour/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-private-mobile','/budapest/private-tours/',mobile,{booking:true,tourGuide:true,localWhatsApp:budapest}],
     ['budapest-he-private-mobile','/he/budapest/private-tours/',mobile,{booking:true,tourGuide:true,localWhatsApp:budapest}],
     ['budapest-hu-private-narrow','/hu/budapest/private-tours/',narrow,{booking:true,tourGuide:true,localWhatsApp:budapest}],
