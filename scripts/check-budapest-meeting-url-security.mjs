@@ -15,6 +15,12 @@ requireText("if(budapest&&(!meeting?.address||!meeting?.maps_url))return;",'dest
 // *business* listing, not the address-only Google Maps URL from destination
 // metadata. FBM continues to own the meeting address and security checks.
 const businessUrl='https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
+requireText("const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='';",
+  'Google generated embed slot must be empty until verified');
+requireText("parsed.pathname==='/maps/embed'",
+  'Only the dedicated Google embed path may be used');
+requireText("(parsed.searchParams.get('pb')||'').length>=50",
+  'Google-generated embed must include a substantial place-specific payload');
 requireText("const BUDAPEST_BUSINESS_MAPS_URL='"+businessUrl+"'",
   'Budapest verified Google Business listing link is missing');
 requireText('maps:BUDAPEST_BUSINESS_MAPS_URL,',
@@ -39,7 +45,7 @@ const to=js.indexOf('  function routeVisualCoords(',from);
 if(from<0||to<from)failures.push('Cannot locate branch meeting-point renderer');
 else{
  const source=js.slice(from,to)+'\ninjectBranchMeetingPoint();';
- function render(path,meeting){
+ function render(path,meeting,embedded=''){
    let output='';
    const document={
      querySelector(sel){return sel==='main'?{appendChild(el){output=el.innerHTML;}}:null;},
@@ -49,11 +55,13 @@ else{
      budapestName:'VOY PRO Budapest',maps:'Open in Google Maps',exactPin:'Exact meeting point',
      portugalTitle:'Marvão',portugalBody:'Meet here',portugalName:'Pombais Experience & Villas',
      portugalAddress:'Marvão, Portugal'};
-   vm.runInNewContext(source,{
+   const simulated=source.replace("const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='';",
+     "const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='"+embedded+"';");
+   vm.runInNewContext(simulated,{
      document,routePath:path,locale:'en',WEBSITE_VISUAL_COPY:{en:labels},
      budapestMeetingPoint:()=>meeting,
      escapeHTML:value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'),
-     encodeURIComponent,Set
+     encodeURIComponent,Set,URL
    },{timeout:1000});
    return output;
  }
@@ -89,6 +97,22 @@ else{
      failures.push(path+' accessible in-map action name must match the business');
    if(!html.includes(meeting.address))failures.push(path+' dropped live meeting address');
  }
+ const demoEmbed='https://www.google.com/maps/embed?pb='+encodeURIComponent('!1m18!1m12!1m3!1d3000!2d19.055!3d47.494!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13!1sChIJR_q2zJXdQUcRtUmmtT-Ozb8');
+ for(const path of ['/budapest/','/he/budapest/','/hu/budapest/']){
+   const html=render(path,meeting,demoEmbed);
+   if(!html.includes('class="meeting-map-card meeting-map-card--google"'))
+     failures.push(path+' cannot select the exact Google business embed');
+   if(!html.includes('www.google.com/maps/embed?pb='))
+     failures.push(path+' Google iframe src missing');
+   if(html.includes('www.openstreetmap.org/export/embed.html'))
+     failures.push(path+' OSM fallback should not render once official Google embed is configured');
+   if(!html.includes('<b>EZRaider Budapest by Voy PRO</b>'))
+     failures.push(path+' official Google map label missing');
+ }
+ if(!render('/budapest/',meeting,'https://evil.example/maps/embed?pb=abcdef').includes('class="meeting-map-card meeting-map-card--business"'))
+   failures.push('Untrusted map-embed host must fail closed to existing map');
+ if(!render('/budapest/',meeting,'https://www.google.com/maps?q=EZRaider&output=embed').includes('class="meeting-map-card meeting-map-card--business"'))
+   failures.push('Unbound Google search URL must not replace exact business embed');
  if(render('/budapest/',{address:meeting.address,maps_url:''})!=='')
    failures.push('Invalid FBM Google Maps URL must still fail closed');
  const portugal=render('/portugal/',null);
