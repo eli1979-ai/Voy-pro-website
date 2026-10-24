@@ -2506,11 +2506,31 @@
     // not a generic pin for Városház utca 14.
     const BUDAPEST_BUSINESS_MAPS_URL='https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
     const BUDAPEST_BUSINESS_DISPLAY_NAME='EZRaider Budapest by Voy PRO';
+    // A Google Place embed with the business CID and exact coordinates verified
+    // against the connected Google Business Profile on 2026-10-24.
+    // Registered business: locations/10872060211622121425;
+    // Maps URI: https://maps.google.com/maps?cid=13820859235751578037
+    // Place ID: ChIJR_q2zJXdQUcRtUmmtT-Ozb8
+    // This is an explicit CID-based map, never a free-text Maps search.
+    const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1000.385!2d19.0552!3d47.4944!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xbfcd8e3fb5a649b5!2sEZRaider%20Budapest%20by%20Voy%20PRO!5e0!3m2!1sen!2shu!4v1792838880000!5m2!1sen!2shu';
+    let officialGoogleEmbed='';
+    if(BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC){
+      try{
+        const parsed=new URL(BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC);
+        if(parsed.protocol==='https:'&&parsed.hostname==='www.google.com'&&
+            parsed.pathname==='/maps/embed'&&
+            (parsed.searchParams.get('pb')||'').includes('0x0:0xbfcd8e3fb5a649b5')&&
+            (parsed.searchParams.get('pb')||'').includes('47.4944')&&
+            (parsed.searchParams.get('pb')||'').includes('19.0552')){
+          officialGoogleEmbed=parsed.toString();
+        }
+      }catch(_error){/* Leave existing map unchanged if the embed is invalid. */}
+    }
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
       maps:BUDAPEST_BUSINESS_MAPS_URL,
-      // Coordinate pinned from the business listing, not a Google text search.
-      mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=19.053724%2C47.493333%2C19.056524%2C47.494933&layer=mapnik&marker=47.494133%2C19.055124'
+      // Fallback map pin from the connected Google Business Profile (not a guessed point).
+      mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=19.053800%2C47.493600%2C19.056600%2C47.495200&layer=mapnik&marker=47.4944%2C19.0552'
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
       maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
@@ -2528,7 +2548,13 @@
         <div class="meeting-point-address"><b>${escapeHTML(data.name)}</b><strong>${escapeHTML(data.address)}</strong></div>
         <a class="btn secondary meeting-point-button" href="${escapeHTML(data.maps)}" target="_blank" rel="noopener" data-track="meeting_point_maps">${escapeHTML(copy.maps)}</a>
       </div>
-      ${budapest?`<div class="meeting-map-card meeting-map-card--business">
+      ${budapest?(officialGoogleEmbed?`<div class="meeting-map-card meeting-map-card--google">
+        <iframe class="meeting-map-frame"
+          title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
+          src="${escapeHTML(officialGoogleEmbed)}"
+          loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></div>
+      </div>`:`<div class="meeting-map-card meeting-map-card--business">
         <iframe class="meeting-map-frame meeting-map-frame--business"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
           src="${escapeHTML(data.mapPreview)}"
@@ -2544,7 +2570,7 @@
           <span class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></span>
         </a>
         <span class="meeting-map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a></span>
-      </div>`:`<div class="meeting-map-card">
+      </div>`):`<div class="meeting-map-card">
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"

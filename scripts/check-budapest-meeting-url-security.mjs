@@ -15,13 +15,23 @@ requireText("if(budapest&&(!meeting?.address||!meeting?.maps_url))return;",'dest
 // *business* listing, not the address-only Google Maps URL from destination
 // metadata. FBM continues to own the meeting address and security checks.
 const businessUrl='https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
+requireText("const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='https://www.google.com/maps/embed?pb=",
+  'CID-anchored Google business embed is missing');
+requireText("0xbfcd8e3fb5a649b5",
+  'Google business CID must match connected Business Profile metadata');
+requireText("!2d19.0552!3d47.4944",
+  'Google embed must use the coordinates returned by the connected Business Profile');
+requireText("parsed.pathname==='/maps/embed'",
+  'Only the dedicated Google embed path may be used');
+requireText("(parsed.searchParams.get('pb')||'').includes('0x0:0xbfcd8e3fb5a649b5')",
+  'Google embed should accept only the exact business CID');
 requireText("const BUDAPEST_BUSINESS_MAPS_URL='"+businessUrl+"'",
   'Budapest verified Google Business listing link is missing');
 requireText('maps:BUDAPEST_BUSINESS_MAPS_URL,',
   'Budapest map CTA must use the business profile URL');
 requireText("mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=",
   'Budapest fixed-marker location preview is missing');
-requireText('marker=47.494133%2C19.055124',
+requireText('marker=47.4944%2C19.0552',
   'Budapest map marker must stay pinned to the verified location');
 requireText('class="meeting-map-business-link"',
   'Budapest in-map click must use an owned full-map business link');
@@ -39,7 +49,7 @@ const to=js.indexOf('  function routeVisualCoords(',from);
 if(from<0||to<from)failures.push('Cannot locate branch meeting-point renderer');
 else{
  const source=js.slice(from,to)+'\ninjectBranchMeetingPoint();';
- function render(path,meeting){
+ function render(path,meeting,embedded=null){
    let output='';
    const document={
      querySelector(sel){return sel==='main'?{appendChild(el){output=el.innerHTML;}}:null;},
@@ -49,23 +59,27 @@ else{
      budapestName:'VOY PRO Budapest',maps:'Open in Google Maps',exactPin:'Exact meeting point',
      portugalTitle:'Marvão',portugalBody:'Meet here',portugalName:'Pombais Experience & Villas',
      portugalAddress:'Marvão, Portugal'};
-   vm.runInNewContext(source,{
+   const sourceEmbed=source.match(/const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='([^']*)';/);
+   if(!sourceEmbed)throw new Error('Missing registered Google embed source');
+   const simulated=source.replace(sourceEmbed[0],
+     "const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='"+(embedded===null?sourceEmbed[1]:embedded)+"';");
+   vm.runInNewContext(simulated,{
      document,routePath:path,locale:'en',WEBSITE_VISUAL_COPY:{en:labels},
      budapestMeetingPoint:()=>meeting,
      escapeHTML:value=>String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'),
-     encodeURIComponent,Set
+     encodeURIComponent,Set,URL
    },{timeout:1000});
    return output;
  }
  const meeting={address:'Városház utca 14, 1052 Budapest, Hungary',
    maps_url:'https://www.google.com/maps/search/?api=1&query=old-address'};
  for(const path of ['/budapest/','/he/budapest/','/hu/budapest/']){
-   const html=render(path,meeting);
+   const html=render(path,meeting,'');
    if(!html.includes(businessUrl))failures.push(path+' business Google Maps link absent');
    if(html.includes('query=old-address'))failures.push(path+' still links to the generic address');
    if(!html.includes('www.openstreetmap.org/export/embed.html?bbox='))
      failures.push(path+' fixed-coordinate map preview is missing');
-   if(!html.includes('marker=47.494133%2C19.055124'))
+   if(!html.includes('marker=47.4944%2C19.0552'))
      failures.push(path+' business marker is misplaced');
    if(html.includes('www.google.com/maps?q='))
      failures.push(path+' still embeds Google results that can include competitors');
@@ -89,6 +103,28 @@ else{
      failures.push(path+' accessible in-map action name must match the business');
    if(!html.includes(meeting.address))failures.push(path+' dropped live meeting address');
  }
+ const demoEmbed=null; // Select the actual embedded URL recorded in the website.
+ for(const path of ['/budapest/','/he/budapest/','/hu/budapest/']){
+   const html=render(path,meeting,demoEmbed);
+   if(!html.includes('class="meeting-map-card meeting-map-card--google"'))
+     failures.push(path+' cannot select the exact Google business embed');
+   if(!html.includes('www.google.com/maps/embed?pb='))
+     failures.push(path+' Google iframe src missing');
+   if(html.includes('www.openstreetmap.org/export/embed.html'))
+     failures.push(path+' OSM fallback should not render once official Google embed is configured');
+   if(!html.includes('<b>EZRaider Budapest by Voy PRO</b>'))
+     failures.push(path+' official Google map label missing');
+ }
+ const actual=render('/budapest/',meeting);
+ if(!actual.includes('0xbfcd8e3fb5a649b5')||!actual.includes('47.4944')||
+    !actual.includes('19.0552')||!actual.includes('class="meeting-map-card meeting-map-card--google"'))
+   failures.push('Live Budapest page must embed the exact Google Business CID and coordinates');
+ if(!render('/budapest/',meeting,'https://evil.example/maps/embed?pb=abcdef').includes('class="meeting-map-card meeting-map-card--business"'))
+   failures.push('Untrusted map-embed host must fail closed to existing map');
+ if(!render('/budapest/',meeting,'https://www.google.com/maps?q=EZRaider&output=embed').includes('class="meeting-map-card meeting-map-card--business"'))
+   failures.push('Unbound Google search URL must not replace exact business embed');
+ if(!render('/budapest/',meeting,'https://www.google.com/maps/embed?pb=!1m3!1s0x0%3A0x1234567890123456!2d19.0552!3d47.4944').includes('class="meeting-map-card meeting-map-card--business"'))
+   failures.push('Other businesses CID must not be accepted');
  if(render('/budapest/',{address:meeting.address,maps_url:''})!=='')
    failures.push('Invalid FBM Google Maps URL must still fail closed');
  const portugal=render('/portugal/',null);
