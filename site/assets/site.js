@@ -1430,7 +1430,14 @@
       :(locale==='he'?'מחיר לא זמין':locale==='hu'?'Ár nem elérhető':'Price unavailable');
     document.querySelectorAll('[data-runtime-price]').forEach(node=>{
       const bar=node.closest('.mobilebook');
-      node.textContent=bar?short:verbose;
+      const heroPrice=node.matches('.hero .facts [data-home-live-price]');
+      // The main booking panel owns the full error. A long sentence inside
+      // the hero's wrapping badges moves its CTA and picture at load time.
+      node.textContent=(bar||heroPrice)?short:verbose;
+      if(heroPrice){
+        node.setAttribute('aria-label',verbose);
+        node.title=verbose;
+      }
       if(bar){
         bar.classList.toggle('is-price-loading',state==='loading');
         bar.classList.toggle('is-price-unavailable',state==='unavailable');
@@ -1544,8 +1551,8 @@
       // Mobile booking has its own localized "starting at" label above the amount.
       node.textContent=node.closest('.mobilebook')?amount:t('From ','החל מ־')+amount;
       const bar=node.closest('.mobilebook');
-      if(bar){
-        bar.classList.remove('is-price-loading','is-price-unavailable');
+      if(bar)bar.classList.remove('is-price-loading','is-price-unavailable');
+      if(bar||node.matches('.hero .facts [data-home-live-price]')){
         node.removeAttribute('aria-label');
         node.removeAttribute('title');
       }
