@@ -2529,8 +2529,8 @@
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
       maps:BUDAPEST_BUSINESS_MAPS_URL,
-      // Coordinate pinned from the business listing, not a Google text search.
-      mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=19.053724%2C47.493333%2C19.056524%2C47.494933&layer=mapnik&marker=47.494133%2C19.055124'
+      // Fallback map pin from the connected Google Business Profile (not a guessed point).
+      mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=19.053800%2C47.493600%2C19.056600%2C47.495200&layer=mapnik&marker=47.4944%2C19.0552'
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
       maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
