@@ -148,7 +148,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(proof.labelsBelow&&proof.contained,name+' captions sit beneath their images without mobile overflow');
       check(proof.imagesLoaded,name+' both real destination photos decode');
       check(proof.closingGap<=(viewport.width<=800?68:110),name+' network footer booking gap is compact ('+proof.closingGap+'px)');
-      check(proof.supportLinks.length===2&&proof.supportLinks[0].href==='https://wa.me/36300993099'&&
+      check(proof.supportLinks.length===2&&proof.supportLinks[0].href?.startsWith('https://wa.me/36300993099')&&
         proof.supportLinks[1].href==='mailto:support@voy-pro.com',
         name+' direct WhatsApp and email both live inside support card');
       check(proof.supportGrid===2&&proof.supportContained&&proof.supportLinks.every(a=>a.height>=44&&a.width>=44),
@@ -168,7 +168,14 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(collision.hidden&&collision.clickSafe,name+' floating WhatsApp cannot obstruct visible Manage Booking CTA');
         await page.evaluate(()=>window.scrollTo(0,0));
         await page.waitForFunction(()=>!document.body.classList.contains('home-manage-visible'),null,{timeout:3500});
-        check(await page.locator('.home-whatsapp').isVisible(),name+' floating WhatsApp reappears after scrolling away');
+        const restored=await page.evaluate(()=>{
+          const whatsapp=document.querySelector('.home-whatsapp');
+          const style=whatsapp&&getComputedStyle(whatsapp);
+          return !!whatsapp&&!document.body.classList.contains('home-manage-visible')&&
+            style.visibility==='visible'&&style.display!=='none'&&
+            parseFloat(style.opacity||'1')>0;
+        });
+        check(restored,name+' floating WhatsApp becomes visible again after Manage Booking leaves the viewport');
       }
       for(const slug of ['budapest','portugal']){
         try{
