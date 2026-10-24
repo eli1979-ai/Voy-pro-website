@@ -929,3 +929,15 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
   }
   body[data-page="/he/ezraider/"] header .wrap.nav{padding-inline:12px}
 }
+
+/* Compact mobile states when live price cannot be verified. Keep CTA reachable;
+   the complete error explanation remains in the main booking panel. */
+@media(max-width:800px){
+ .mobilebook.is-price-loading .mobile-price-copy,
+ .mobilebook.is-price-unavailable .mobile-price-copy{flex:0 1 128px;min-width:0}
+ .mobilebook.is-price-loading [data-runtime-price],
+ .mobilebook.is-price-unavailable [data-runtime-price]{
+   display:block;max-width:128px;white-space:normal;overflow-wrap:break-word;
+   line-height:1.2;font-size:clamp(11px,3vw,14px)
+ }
+}
