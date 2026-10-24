@@ -941,3 +941,10 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
    line-height:1.2;font-size:clamp(11px,3vw,14px)
  }
 }
+
+/* Tablet / compact-laptop navigation: maintain the same 44px minimum
+   keyboard and touch target as smaller mobile layouts. */
+@media(min-width:801px) and (max-width:1180px){
+  .nav-menu-toggle{min-width:44px;min-height:44px;box-sizing:border-box;
+    align-items:center;justify-content:center}
+}
