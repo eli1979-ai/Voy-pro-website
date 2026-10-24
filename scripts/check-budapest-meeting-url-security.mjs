@@ -31,7 +31,7 @@ requireText('maps:BUDAPEST_BUSINESS_MAPS_URL,',
   'Budapest map CTA must use the business profile URL');
 requireText("mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=",
   'Budapest fixed-marker location preview is missing');
-requireText('marker=47.494133%2C19.055124',
+requireText('marker=47.4944%2C19.0552',
   'Budapest map marker must stay pinned to the verified location');
 requireText('class="meeting-map-business-link"',
   'Budapest in-map click must use an owned full-map business link');
@@ -79,7 +79,7 @@ else{
    if(html.includes('query=old-address'))failures.push(path+' still links to the generic address');
    if(!html.includes('www.openstreetmap.org/export/embed.html?bbox='))
      failures.push(path+' fixed-coordinate map preview is missing');
-   if(!html.includes('marker=47.494133%2C19.055124'))
+   if(!html.includes('marker=47.4944%2C19.0552'))
      failures.push(path+' business marker is misplaced');
    if(html.includes('www.google.com/maps?q='))
      failures.push(path+' still embeds Google results that can include competitors');
