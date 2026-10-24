@@ -112,6 +112,41 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
         name+' approved 20-review data powers three continuous carousel copies');
     }
+    if(path==='/'){
+      const proof=await page.evaluate(()=>{
+        const root=document.querySelector('.parent-hero-mosaic');
+        const cards=[...document.querySelectorAll('.parent-hero-destination')];
+        const lower=document.querySelector('.network-manage-section .proof');
+        const prior=document.querySelector('.network-value-section .content-grid .content-card:last-child');
+        return {isMosaic:!!root,links:cards.map(a=>a.getAttribute('href')),
+          captions:cards.map(a=>a.querySelector('.parent-hero-caption')?.textContent.trim()),
+          imagesLoaded:cards.every(a=>a.querySelector('img')?.naturalWidth>0),
+          labelsBelow:cards.every(a=>{
+            const image=a.querySelector('img')?.getBoundingClientRect();
+            const label=a.querySelector('.parent-hero-caption')?.getBoundingClientRect();
+            return image&&label&&label.top>=image.bottom-1&&label.width>0;
+          }),
+          contained:cards.every(a=>{
+            const box=a.getBoundingClientRect();
+            const frame=root?.getBoundingClientRect();
+            return frame&&box.width>0&&box.left>=frame.left-2&&box.right<=frame.right+2;
+          }),
+          closingGap:lower&&prior?Math.round(lower.getBoundingClientRect().top-prior.getBoundingClientRect().bottom):999
+        };
+      });
+      check(proof.isMosaic&&proof.links.join('|')==='/budapest/|/portugal/',name+' each home mosaic photo links to the correct destination');
+      check(proof.captions.join('|')==='Hungary · Budapest|Portugal · Marvão',name+' uses one label directly under each relevant photo');
+      check(proof.labelsBelow&&proof.contained,name+' captions sit beneath their images without mobile overflow');
+      check(proof.imagesLoaded,name+' both real destination photos decode');
+      check(proof.closingGap<=(viewport.width<=800?68:110),name+' network footer booking gap is compact ('+proof.closingGap+'px)');
+      for(const slug of ['budapest','portugal']){
+        try{
+          await page.locator('.parent-hero-destination--'+(slug==='portugal'?'marvao':slug)+' img').click({timeout:5000});
+          check(new URL(page.url()).pathname==='/'+slug+'/',name+' clicking '+slug+' photo opens local destination');
+          await page.goBack({waitUntil:'domcontentloaded',timeout:10000});
+        }catch(error){check(false,name+' photo navigation '+slug+': '+String(error).slice(0,170));}
+      }
+    }
     if(path.startsWith('/he/'))check(metrics.direction==='rtl',name+' preserves Hebrew RTL direction');
     if(booking){
       check(await page.locator('#booking #availability-form').count()===1,name+' has one Budapest booking form');
