@@ -1,0 +1,31 @@
+/* Only Budapest public tour detail pages. Preserve the destination landing,
+   checkout flows and Portugal layouts. */
+.tour-detail-page .section:not(.booking):not(.tour-review-compact){padding-block:36px}
+.tour-detail-page .section:not(.booking):not(.tour-review-compact)+.section:not(.booking):not(.tour-review-compact){padding-top:18px}
+.tour-detail-page .section:not(.booking) h2{margin-bottom:14px}
+.tour-detail-page .content-grid,.tour-detail-page .related-grid{gap:12px}
+.tour-detail-page .content-card,.tour-detail-page .related-card{padding:18px;min-height:0}
+.tour-detail-page .content-card p,.tour-detail-page .related-card p{margin-bottom:4px;line-height:1.55}
+.tour-detail-page .route-compare{padding-block:32px}
+.tour-detail-page .tour-review-compact{padding-block:20px 12px}
+.tour-detail-page .tour-review-compact+.vp-reviews{margin-top:0}
+@media(max-width:800px){
+  .tour-detail-page .section:not(.booking):not(.tour-review-compact){padding-block:23px}
+  .tour-detail-page .section:not(.booking):not(.tour-review-compact)+.section:not(.booking):not(.tour-review-compact){padding-top:12px}
+  .tour-detail-page .section:not(.booking) h2{margin:5px 0 13px}
+  .tour-detail-page .content-grid,.tour-detail-page .related-grid{gap:10px}
+  .tour-detail-page .content-card,.tour-detail-page .related-card{padding:17px}
+  .tour-detail-page .content-card h3,.tour-detail-page .related-card h3{margin-top:2px}
+  .tour-detail-page .route-compare{padding-block:22px}
+  .tour-detail-page .route-compare-grid{gap:10px}
+  .tour-detail-page .trust-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .tour-detail-page .trust-item{min-width:0;padding:11px 5px;border-bottom:0;border-inline-end:1px solid var(--line)}
+  .tour-detail-page .trust-item:last-child{border-inline-end:0}
+  .tour-detail-page .trust-source{font-size:10px}
+  .tour-detail-page .stars{font-size:10px;letter-spacing:0}
+  .tour-detail-page .trust-score{font-size:17px}
+  .tour-detail-page .trust-sub{font-size:8px;line-height:1.25;overflow-wrap:anywhere}
+  .tour-detail-page .tour-review-compact{padding-block:12px 8px}
+  .tour-detail-page .faq2{gap:10px}
+  .tour-detail-page .faq2 details{padding:13px 15px}
+}
