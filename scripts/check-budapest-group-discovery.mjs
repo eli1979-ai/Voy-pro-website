@@ -82,9 +82,10 @@ for(const {locale,prefix,home} of vehicleFiles){
     'href="'+manufacturer+'"','href="'+manufacturerManual+'"',
     'Thule Yepp 2 Maxi Rack Mount','Thule Yepp Junior',
     'https://www.thule.com/', 'class="section ez-safety"', 'id="safety"',
-    'data-ez-context="booking"', 'data-intent="vehicle"',
+    'data-ez-destination-card="budapest"','data-ez-destination-card="marvao"', 'data-intent="vehicle"',
     'src="/assets/ezraider-guide.js"', 'href="/assets/ezraider-guide.css"'
   ])if(!html.includes(marker))failures.push(path+': missing '+marker);
+  if(html.includes('data-ez-context="booking"'))failures.push(path+': redundant choose-destination action remains');
   if(html.includes('https://www.ezraider.com/wp-content/uploads/2021/09/EZRaider-en.pdf'))failures.push(path+': outdated manufacturer manual redirect link remains');
   if(/(?:around ages 1.?3|גילאי 1.?3|1.?3 éves)/.test(html))failures.push(path+': child-seat suitability must not use unsupported local age band');
   const hero=(html.match(/<section class="ez-hero">([\s\S]*?)<\/section>/)||[])[1]||'';
