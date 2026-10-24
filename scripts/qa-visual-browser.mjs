@@ -367,8 +367,8 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         await page.waitForURL(url=>url.pathname===prefix+'ezraider/',{timeout:8000});
         check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').getAttribute('href')===sourcePath,
           name+' guide Back action returns exactly to tour');
-        check(await page.locator('.ez-hero [data-ez-context="booking"]').getAttribute('href')===prefix+'budapest/#booking',
-          name+' guide still books Budapest, not another location');
+        check(await page.locator('.ez-destination-chooser [data-ez-destination-card="budapest"] .tour-choice-actions a').getAttribute('href')===prefix+'budapest/',
+          name+' only the final destination card routes Budapest visitors locally');
         const pt=await page.locator('[data-ez-language][hreflang="pt"]').first().getAttribute('href');
         check(pt?.includes('from=budapest')&&pt.includes('return_to='+encodeURIComponent(sourcePath)),
           name+' switching guide to Portuguese retains original tour context');
