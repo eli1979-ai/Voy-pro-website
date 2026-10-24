@@ -917,3 +917,15 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
  .meeting-map-business-link{bottom:39px;width:min(85%,420px)}
  .meeting-map-business-link .meeting-map-label{padding:10px}
 }
+
+/* Website-wide mobile sweep: comfortable menu target and safe narrow-screen
+   text wrapping. Four-language RTL vehicle guide needs modest horizontal room. */
+@media(max-width:800px){
+  .nav-menu-toggle{min-height:44px;min-width:44px;box-sizing:border-box;align-items:center;justify-content:center}
+}
+@media(max-width:330px){
+  body[data-page="/hu/budapest/unique-things-to-do/"] .hero h1{
+    overflow-wrap:anywhere;hyphens:auto
+  }
+  body[data-page="/he/ezraider/"] header .wrap.nav{padding-inline:12px}
+}
