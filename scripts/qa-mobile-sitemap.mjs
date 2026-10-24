@@ -120,7 +120,7 @@ try{
             issues.push('Horizontal overflow '+metrics.scrollWidth+'/'+metrics.bodyWidth+'/'+width);
           if(metrics.h1Position&&(metrics.h1Position.left< -2||metrics.h1Position.right>width+2))
             issues.push('H1 clipped horizontally');
-          if(metrics.menu&&(metrics.menu.left< -2||metrics.menu.right>width+2||metrics.menu.height<28))
+          if(metrics.menu&&(metrics.menu.left< -2||metrics.menu.right>width+2||metrics.menu.height<44))
             issues.push('Mobile menu clipped or too small');
           if(metrics.headerHorizontal&&(metrics.headerHorizontal.left< -2||metrics.headerHorizontal.right>width+2))
             issues.push('Header outside viewport');
