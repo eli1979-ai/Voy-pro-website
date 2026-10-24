@@ -71,8 +71,14 @@ else{
      failures.push(path+' still embeds Google results that can include competitors');
    if(!html.includes('class="meeting-map-business-link"'))
      failures.push(path+' clickable map link is missing');
-   if(html.split('maps.app.goo.gl/F4DHtcpbWZrVjpqz5').length-1!==2)
-     failures.push(path+' both external and in-map buttons must open identical business URLs');
+   if(html.split('maps.app.goo.gl/F4DHtcpbWZrVjpqz5').length-1!==3)
+     failures.push(path+' external, map-top and named-place links must open identical Google Business listing URLs');
+   if(!html.includes('class="meeting-map-open" href="'+businessUrl+'"'))
+     failures.push(path+' in-map Google button is not a direct business link');
+   if(!html.includes('class="meeting-map-business-link" href="'+businessUrl+'"'))
+     failures.push(path+' branded business label is not a direct Google link');
+   if(html.includes('aria-hidden="true"')||html.includes('tabindex="-1"'))
+     failures.push(path+' interactive map iframe must be accessible and keyboard focusable');
    if(!html.includes('OpenStreetMap contributors'))
      failures.push(path+' required map attribution is missing');
    if(!html.includes('class="meeting-map-label"><small>Exact meeting point</small><b>EZRaider Budapest by Voy PRO</b>'))
@@ -91,12 +97,22 @@ else{
 }
 
 const css=fs.readFileSync('site/assets/site.css','utf8');
-if(!css.includes('.meeting-map-card--business .meeting-map-frame--business{pointer-events:none}'))
- failures.push('Business map iframe must not swallow user clicks');
-if(!css.includes('.meeting-map-business-link{position:absolute;inset:0;z-index:4;'))
- failures.push('Entire map must open the business link');
+if(!css.includes('.meeting-map-card--business .meeting-map-frame--business{pointer-events:auto}'))
+ failures.push('Map iframe must accept drag, pan, zoom and keyboard events');
+if(!css.includes('.meeting-map-business-link{position:absolute;left:50%;bottom:38px;'))
+ failures.push('Branded business label must not cover the interactive map');
+if(css.includes('.meeting-map-business-link{position:absolute;inset:0;'))
+ failures.push('Old full-overlay intercept would block map gestures');
+if(!css.includes('.meeting-map-business-link .meeting-map-label{position:static;'))
+ failures.push('Business name label should be positioned inside its link only');
 if(!css.includes('.meeting-map-attribution a'))
  failures.push('OpenStreetMap attribution link must remain accessible');
+
+// A genuine business Place ID is available for a future official Google
+// Maps Embed API integration; unlike text searches it cannot target a competitor.
+const reputation=JSON.parse(fs.readFileSync('site/assets/budapest-reputation.json','utf8'));
+if(!String(reputation.google?.source_url||'').includes('query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8'))
+ failures.push('Google Business Place ID source of truth is missing or changed');
 
 if(failures.length){
   console.error('Budapest meeting-point URL security guard failed.');
