@@ -18,7 +18,21 @@ requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
 requireText(html,'class="hero-photo-frame parent-hero-mosaic"','root hero must use the destination-neutral mosaic');
 requireText(html,'src="/assets/images/budapest/img12.jpg"','root hero must represent Budapest');
 requireText(html,'src="/assets/images/portugal/marvao-01.jpg"','root hero must represent Marvão');
-requireText(html,'Hungary · Budapest · Portugal · Marvão','root hero caption must represent the parent destination set');
+for(const [locale,path,image] of [
+  ['budapest','/budapest/','/assets/images/budapest/img12.jpg'],
+  ['marvao','/portugal/','/assets/images/portugal/marvao-01.jpg']
+]){
+  const entry=new RegExp('<a class="parent-hero-destination parent-hero-destination--'+locale+'" href="'+path.replaceAll('/','\\/')+'"[^>]*>[\\s\\S]*?<img[^>]*src="'+image.replaceAll('/','\\/')+'"[\\s\\S]*?<span class="parent-hero-caption">');
+  if(!entry.test(html))failures.push('network photo/caption must link '+locale+' directly');
+}
+requireText(html,'<span class="parent-hero-caption">Hungary · Budapest</span>','Budapest image needs its own visible caption');
+requireText(html,'<span class="parent-hero-caption">Portugal · Marvão</span>','Marvão image needs its own visible caption');
+forbidText(html,'<figcaption>Hungary · Budapest · Portugal · Marvão</figcaption>','old combined image caption must disappear');
+requireText(html,'class="section network-value-section"','network values need independently scoped closing spacing');
+requireText(html,'class="section network-manage-section"','booking management must follow the trimmed final gap');
+const css=read('site/assets/site.css');
+requireText(css,'.parent-hero-mosaic .parent-hero-caption','individual photo caption style missing');
+requireText(css,'body[data-page="/"] .network-value-section+.network-manage-section','network-only lower section rhythm missing');
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" property="og:image"','root social card must use a VOY PRO parent-brand asset');
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" name="twitter:image"','root Twitter card must use a VOY PRO parent-brand asset');
 requireText(html,'name="twitter:title"','root Twitter card title missing');
