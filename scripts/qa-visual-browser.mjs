@@ -93,7 +93,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const computed=top?getComputedStyle(top):null;
         return {
           top:!!top,bottom:!!bottom,ticker:!!ticker,
-          columns:computed?.gridTemplateColumns.split(/\\s+/).length||0,
+          columns:computed?.gridTemplateColumns.trim().split(' ').length||0,
           sourceCount:bottom?.querySelectorAll('a[href^="https://"]').length||0,
           topPadding:firstSection?parseFloat(getComputedStyle(firstSection).paddingTop):null,
           legacy:document.querySelectorAll('.review-source-grid').length
