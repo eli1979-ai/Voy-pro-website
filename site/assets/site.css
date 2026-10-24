@@ -917,3 +917,12 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
  .meeting-map-business-link{bottom:39px;width:min(85%,420px)}
  .meeting-map-business-link .meeting-map-label{padding:10px}
 }
+
+/* Small-phone visual QA: retain usable mobile menu hit area and wrap
+   exceptionally long Hungarian compound headings without horizontal clipping. */
+@media(max-width:330px){
+  .nav-menu-toggle{min-height:36px;box-sizing:border-box;align-items:center;justify-content:center}
+  body[data-page="/hu/budapest/unique-things-to-do/"] .hero h1{
+    overflow-wrap:anywhere;hyphens:auto
+  }
+}
