@@ -86,6 +86,13 @@ try{
             const m=menu?.getBoundingClientRect();
             const hb=header?.getBoundingClientRect();
             const vw=innerWidth;
+            const skip=document.querySelector('a.skip-link');
+            const skipHref=skip?.getAttribute('href')||'';
+            const skipTarget=skipHref.startsWith('#')?document.getElementById(skipHref.slice(1)):null;
+            const language=document.documentElement.lang;
+            const effectiveDirection=getComputedStyle(document.documentElement).direction;
+            const mainCount=document.querySelectorAll('main').length;
+            const h1Count=document.querySelectorAll('h1').length;
             const sectionGaps=[];
             const sections=[...document.querySelectorAll('main > section, main > .section')];
             for(let j=1;j<sections.length;j++){
@@ -99,6 +106,8 @@ try{
               h1:heading?.textContent.trim()||'',
               h1Position:h?{left:Math.round(h.left),right:Math.round(h.right),width:Math.round(h.width)}:null,
               headerExists:!!header,footerExists:!!footer,
+              language,effectiveDirection,mainCount,h1Count,skipTarget:!!skipTarget,
+              skipHref,skipVisibleText:!!skip?.textContent.trim(),
               headerHorizontal:hb?{left:Math.round(hb.left),right:Math.round(hb.right)}:null,
               menu:menu&&getComputedStyle(menu).display!=='none'?{left:Math.round(m.left),right:Math.round(m.right),height:Math.round(m.height)}:null,
               overflowCandidates:root.scrollWidth>vw+2?[...body.querySelectorAll('*')].filter(el=>{
@@ -117,6 +126,14 @@ try{
           const issues=[];
           if(status!==200)issues.push('HTTP '+status);
           if(!metrics.headerExists||!metrics.footerExists||!metrics.h1)issues.push('Missing header/footer/H1');
+          if(metrics.h1Count!==1||metrics.mainCount!==1)
+            issues.push('Expected exactly one H1 and one main landmark: '+metrics.h1Count+'/'+metrics.mainCount);
+          if(!metrics.skipTarget||!metrics.skipVisibleText)
+            issues.push('Missing meaningful skip link to existing main content target');
+          if(!metrics.language)
+            issues.push('Missing document language');
+          if(pathname.startsWith('/he/')&&metrics.effectiveDirection!=='rtl')
+            issues.push('Hebrew page direction is not RTL');
           if(metrics.scrollWidth>width+2||metrics.bodyWidth>width+2)
             issues.push('Horizontal overflow '+metrics.scrollWidth+'/'+metrics.bodyWidth+'/'+width);
           if(metrics.h1Position&&(metrics.h1Position.left< -2||metrics.h1Position.right>width+2))
