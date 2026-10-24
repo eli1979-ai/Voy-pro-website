@@ -52,5 +52,24 @@
 .ez-context-note{background:#e8f5f2;border-inline-start:4px solid #008579;color:#173c43;padding:5px 18px;margin-block:12px 18px}
 .ez-context-note p{line-height:1.6;font-size:.91rem;margin:12px 0}
 .ez-destination-chooser{background:#f0f7f8}
-.ez-destination-chooser .ez-card .btn{margin-top:16px}
+.ez-destination-chooser .tour-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ez-destination-chooser .wrap#choose-destination{scroll-margin-top:92px}
 @media(max-width:620px){.ez-context-toolbar{align-items:flex-start;flex-direction:column}.ez-context-note{margin-inline:12px}}
+
+/* Compact the editorial flow without changing shared booking or location layouts. */
+.ez-main .section{padding-block:clamp(28px,3vw,42px)}
+.ez-main .ez-destination-chooser{padding-block:clamp(28px,3vw,42px)}
+.ez-inline-photo{margin-top:18px}
+.ez-manufacturer{margin-top:16px;gap:6px 14px;align-items:baseline}
+.ez-main .ez-manufacturer a,.ez-main .ez-seat-model>a{font-size:12px;font-weight:500;line-height:1.45;color:#49636c;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.ez-main .ez-manufacturer a:hover,.ez-main .ez-seat-model>a:hover{color:#006b77}
+.ez-main .ez-manufacturer a:focus-visible,.ez-main .ez-seat-model>a:focus-visible{outline:2px solid #006b77;outline-offset:3px}
+.ez-main .ez-destination-chooser .tour-choice-grid{gap:16px}
+@media(max-width:800px){.ez-main .ez-destination-chooser .tour-choice-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:620px){
+ .ez-main .section,.ez-main .ez-destination-chooser{padding-block:26px}
+ .ez-main .ez-hero{padding-bottom:24px}
+ .ez-main .ez-context-note{margin-block:8px 12px}
+ .ez-main .ez-section-lead{margin-bottom:18px}
+ .ez-main .ez-manufacturer{margin-top:12px;gap:6px 12px}
+ .ez-main .ez-destination-chooser .tour-choice-card{min-width:0}
+}
