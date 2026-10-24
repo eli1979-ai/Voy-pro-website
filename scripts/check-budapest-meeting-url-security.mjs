@@ -75,6 +75,12 @@ else{
      failures.push(path+' both external and in-map buttons must open identical business URLs');
    if(!html.includes('OpenStreetMap contributors'))
      failures.push(path+' required map attribution is missing');
+   if(!html.includes('class="meeting-map-label"><small>Exact meeting point</small><b>EZRaider Budapest by Voy PRO</b>'))
+     failures.push(path+' in-map business display name differs from Google listing');
+   if(!html.includes('class="meeting-point-address"><b>VOY PRO Budapest</b>'))
+     failures.push(path+' separate external meeting-point heading must remain unchanged');
+   if(!html.includes('aria-label="Open in Google Maps — EZRaider Budapest by Voy PRO"'))
+     failures.push(path+' accessible in-map action name must match the business');
    if(!html.includes(meeting.address))failures.push(path+' dropped live meeting address');
  }
  if(render('/budapest/',{address:meeting.address,maps_url:''})!=='')
