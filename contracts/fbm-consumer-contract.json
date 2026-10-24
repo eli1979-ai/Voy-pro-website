@@ -171,7 +171,7 @@
             "country": "Hungary",
             "currency": "EUR",
             "timezone": "Europe/Budapest",
-            "configuration_version": 1,
+            "configuration_version": 2,
             "booking_horizon_days": 365,
             "rider_policy": {
               "standard_min_age": 16,
@@ -184,7 +184,7 @@
             },
             "meeting_point": {
               "address": "Városház utca 14, 1052 Budapest, Hungary",
-              "maps_url": "https://maps.app.goo.gl/BNqXWux5XAnHi2W19"
+              "maps_url": "https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac"
             }
           },
           "required_fields": [
