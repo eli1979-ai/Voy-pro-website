@@ -35,7 +35,8 @@ await new Promise(done=>server.listen(0,'127.0.0.1',done));
 const origin='http://127.0.0.1:'+server.address().port;
 const browser=await chromium.launch({headless:true,...(process.env.CI?{channel:'chrome'}:{})});
 const rows=[];
-const widths=[320,390];
+// Include narrow phones, common phones, tablets and narrow laptops.
+const widths=[320,390,768,1024];
 const namedScreens=new Set(['/', '/budapest/', '/portugal/', '/ezraider/']);
 let screenshots=0;
 const errors=[];
@@ -130,8 +131,8 @@ try{
             await page.screenshot({path:join(out,name),fullPage:false}).catch(()=>{});
             screenshots++;
           }
-          if(!issue&&width===390&&namedScreens.has(pathname)){
-            await page.screenshot({path:join(out,'sample-'+(pathname==='/'?'home':pathname.split('/')[1])+'.png'),fullPage:false}).catch(()=>{});
+          if(!issue&&(width===390||width===768||width===1024)&&namedScreens.has(pathname)){
+            await page.screenshot({path:join(out,'sample-'+width+'-'+(pathname==='/'?'home':pathname.split('/')[1])+'.png'),fullPage:false}).catch(()=>{});
           }
         }catch(e){issue='Page evaluation failed: '+String(e).slice(0,180);}
         const row={path:pathname,width,http:status,issue,...metrics};
