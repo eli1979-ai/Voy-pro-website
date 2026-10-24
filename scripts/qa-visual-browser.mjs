@@ -233,7 +233,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         JSON.stringify(['2','3','4']),name+' requests only published 2–4 person group sizes');
       check(JSON.stringify(await language.locator('option').evaluateAll(list=>list.map(x=>x.value)))===
         JSON.stringify(['','en','pt']),name+' asks explicitly for local EN/PT guiding');
-      check(/^\\d{4}-\\d{2}-\\d{2}$/.test(await date.getAttribute('min')||''),
+      check(/^\d{4}-\d{2}-\d{2}$/.test(await date.getAttribute('min')||''),
         name+' rejects dates before local request date');
       // Each public tour CTA must prefill the corresponding local form route.
       for(const code of ['express','explorer','megalithic']){
