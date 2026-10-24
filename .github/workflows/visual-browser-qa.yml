@@ -12,6 +12,7 @@ on:
       - 'scripts/qa-mobile-sitemap.mjs'
       - 'scripts/qa-public-link-assets.mjs'
       - 'scripts/qa-static-asset-budgets.mjs'
+      - 'scripts/qa-lab-performance-browser.mjs'
       - 'site/assets/images/**'
       - 'site/assets/brand/**'
       - 'scripts/qa-affiliate-widget-browser.mjs'
@@ -50,6 +51,8 @@ jobs:
         run: node scripts/qa-public-link-assets.mjs
       - name: Enforce first-party static asset size budgets
         run: node scripts/qa-static-asset-budgets.mjs
+      - name: Record offline page load, visible images and layout shift diagnostics
+        run: node scripts/qa-lab-performance-browser.mjs
       - name: Test booking dates, composition, empty slots and stale responses with mocked API
         run: node scripts/qa-booking-funnel-browser.mjs
       - name: Verify embedded affiliate widget in actual Chrome with mocked APIs
