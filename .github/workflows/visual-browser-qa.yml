@@ -9,6 +9,7 @@ on:
       - 'site/assets/*.js'
       - 'site/assets/*.css'
       - 'scripts/qa-visual-browser.mjs'
+      - 'scripts/qa-mobile-sitemap.mjs'
       - 'scripts/qa-affiliate-widget-browser.mjs'
       - 'scripts/check-hu-dynamic-translations.mjs'
       - '.github/workflows/visual-browser-qa.yml'
@@ -38,6 +39,8 @@ jobs:
           google-chrome --version
       - name: Real browser desktop, mobile, RTL and branch navigation checks
         run: node scripts/qa-visual-browser.mjs
+      - name: Audit all 50 multilingual sitemap pages at 320px and 390px
+        run: node scripts/qa-mobile-sitemap.mjs
       - name: Verify embedded affiliate widget in actual Chrome with mocked APIs
         run: node scripts/qa-affiliate-widget-browser.mjs
       - name: Upload screenshots and results even after a failed assertion
