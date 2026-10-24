@@ -131,6 +131,15 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
             const frame=root?.getBoundingClientRect();
             return frame&&box.width>0&&box.left>=frame.left-2&&box.right<=frame.right+2;
           }),
+          supportLinks:[...document.querySelectorAll('.network-support-card .network-support-action')].map(a=>({href:a.getAttribute('href'),height:Math.round(a.getBoundingClientRect().height),width:Math.round(a.getBoundingClientRect().width)})),
+          supportGrid:getComputedStyle(document.querySelector('.network-support-actions')).gridTemplateColumns.split(' ').filter(Boolean).length,
+          supportContained:(()=>{
+            const card=document.querySelector('.network-support-card');
+            return card&&[...card.querySelectorAll('.network-support-action')].every(a=>{
+              const b=a.getBoundingClientRect(),p=card.getBoundingClientRect();
+              return b.left>=p.left-2&&b.right<=p.right+2;
+            });
+          })(),
           closingGap:lower&&prior?Math.round(lower.getBoundingClientRect().top-prior.getBoundingClientRect().bottom):999
         };
       });
@@ -139,6 +148,28 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(proof.labelsBelow&&proof.contained,name+' captions sit beneath their images without mobile overflow');
       check(proof.imagesLoaded,name+' both real destination photos decode');
       check(proof.closingGap<=(viewport.width<=800?68:110),name+' network footer booking gap is compact ('+proof.closingGap+'px)');
+      check(proof.supportLinks.length===2&&proof.supportLinks[0].href==='https://wa.me/36300993099'&&
+        proof.supportLinks[1].href==='mailto:support@voy-pro.com',
+        name+' direct WhatsApp and email both live inside support card');
+      check(proof.supportGrid===2&&proof.supportContained&&proof.supportLinks.every(a=>a.height>=44&&a.width>=44),
+        name+' support channels are two readable accessible buttons contained at '+viewport.width+'px');
+      if(viewport.width<=800){
+        const manageButton=page.locator('.network-manage-section .btn');
+        await manageButton.scrollIntoViewIfNeeded();
+        await page.waitForFunction(()=>document.body.classList.contains('home-manage-visible'),null,{timeout:3500});
+        const collision=await page.evaluate(()=>{
+          const manage=document.querySelector('.network-manage-section .btn');
+          const whatsapp=document.querySelector('.home-whatsapp');
+          const button=manage.getBoundingClientRect();
+          const elem=document.elementFromPoint(button.left+button.width/2,button.top+button.height/2);
+          return {hidden:getComputedStyle(whatsapp).visibility==='hidden',
+            clickSafe:elem===manage||manage.contains(elem)};
+        });
+        check(collision.hidden&&collision.clickSafe,name+' floating WhatsApp cannot obstruct visible Manage Booking CTA');
+        await page.evaluate(()=>window.scrollTo(0,0));
+        await page.waitForFunction(()=>!document.body.classList.contains('home-manage-visible'),null,{timeout:3500});
+        check(await page.locator('.home-whatsapp').isVisible(),name+' floating WhatsApp reappears after scrolling away');
+      }
       for(const slug of ['budapest','portugal']){
         try{
           await page.locator('.parent-hero-destination--'+(slug==='portugal'?'marvao':slug)+' img').click({timeout:5000});
@@ -311,7 +342,8 @@ try{
   // These are smoke checks, not real payment/availability/API integrations.
   const scenarios=[
     ['home-desktop','/',desktop,{fullPage:true}],
-    ['home-mobile','/',mobile,{}],
+    ['home-mobile','/',mobile,{fullPage:true}],
+    ['home-narrow','/',narrow,{fullPage:true}],
     ['budapest-en-desktop','/budapest/',desktop,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-mobile','/budapest/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-he-mobile','/he/budapest/',mobile,{fullPage:true,booking:true,localWhatsApp:budapest}],
