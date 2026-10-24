@@ -71,7 +71,7 @@ else{
      failures.push(path+' still embeds Google results that can include competitors');
    if(!html.includes('class="meeting-map-business-link"'))
      failures.push(path+' clickable map link is missing');
-   if((html.match(/maps.app.goo.gl\\/F4DHtcpbWZrVjpqz5/g)||[]).length!==2)
+   if(html.split('maps.app.goo.gl/F4DHtcpbWZrVjpqz5').length-1!==2)
      failures.push(path+' both external and in-map buttons must open identical business URLs');
    if(!html.includes('OpenStreetMap contributors'))
      failures.push(path+' required map attribution is missing');
