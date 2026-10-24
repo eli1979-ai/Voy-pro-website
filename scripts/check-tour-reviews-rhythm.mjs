@@ -43,6 +43,11 @@ for(const p of paths){
  for(const file of ['budapest-review-ticker.css?v=20261023r6','budapest-review-sources-compact.css?v=20261023r2','budapest-tour-rhythm.css?v=20261024r1'])assert(html.includes(file),p+': style missing '+file);
  for(const source of ['google_maps','tripadvisor','getyourguide'])assert(new RegExp('class="review-source-card" data-review-source="'+source+'" href="https://').test(html),p+': authentic outbound source '+source+' missing');
  for(const token of ['data-vp-reviews-left','data-vp-reviews-right','data-vp-reviews-pause','data-vp-reviews-viewport','data-vp-reviews-track'])assert(html.includes(token),p+': review control missing '+token);
+ if(p.includes('/tours/')){
+   assert(!/<section[^>]*class="[^"]*\broute-compare\b/.test(html),p+': comparison cards must not appear inside an individual tour page');
+ }else{
+   assert(/<section class="section route-compare">/.test(html),p+': private route chooser must remain on private tour landing');
+ }
  assert(html.includes('id="main-content"'),p+': main landmark missing');
 }
 assert(paths.length===18,'Expected six Budapest tour/private pages in three languages');

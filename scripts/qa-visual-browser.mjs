@@ -85,6 +85,10 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
     check(await page.locator('footer').count()===1,name+' has exactly one footer');
     // The tour proof arrangement must work in a real browser, not just static HTML.
     if(path.includes('/budapest/tours/')||path.endsWith('/budapest/private-tours/')){
+      if(path.includes('/budapest/tours/')){
+        check(await page.locator('section.route-compare').count()===0,
+          name+' specific tour detail does not display generic choose-your-route grid');
+      }
       const compact=await page.evaluate(()=>{
         const top=document.querySelector('.trust .trust-grid');
         const bottom=document.querySelector('.tour-review-compact .review-source-grid');
