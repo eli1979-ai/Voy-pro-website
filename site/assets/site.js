@@ -2501,10 +2501,14 @@
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
     const meeting=budapest?budapestMeetingPoint():null;
     if(budapest&&(!meeting?.address||!meeting?.maps_url))return;
+    // The FBM destination record controls the operational address, but the
+    // customer-facing Google Maps button should open our business listing,
+    // not a generic pin for Városház utca 14.
+    const BUDAPEST_BUSINESS_MAPS_URL='https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
-      maps:meeting.maps_url,
-      mapQuery:meeting.address,
+      maps:BUDAPEST_BUSINESS_MAPS_URL,
+      mapQuery:'EZRaider Budapest by Voy PRO, Városház u. 14, 1052 Budapest, Hungary',
       mapZoom:19
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
