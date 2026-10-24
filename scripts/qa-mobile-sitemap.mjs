@@ -100,6 +100,16 @@ try{
               headerExists:!!header,footerExists:!!footer,
               headerHorizontal:hb?{left:Math.round(hb.left),right:Math.round(hb.right)}:null,
               menu:menu&&getComputedStyle(menu).display!=='none'?{left:Math.round(m.left),right:Math.round(m.right),height:Math.round(m.height)}:null,
+              overflowCandidates:root.scrollWidth>vw+2?[...body.querySelectorAll('*')].filter(el=>{
+                const style=getComputedStyle(el);
+                if(style.display==='none'||style.visibility==='hidden')return false;
+                const rect=el.getBoundingClientRect();
+                return rect.width>0&&(rect.left< -2||rect.right>vw+2);
+              }).slice(0,12).map(el=>{
+                const r=el.getBoundingClientRect();
+                return {tag:el.tagName.toLowerCase(),className:String(el.className||'').slice(0,75),
+                  left:Math.round(r.left),right:Math.round(r.right),text:(el.textContent||'').trim().slice(0,35)};
+              }):[],
               gaps:sectionGaps.slice(0,5)
             };
           });
