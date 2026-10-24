@@ -19,9 +19,15 @@ requireText("const BUDAPEST_BUSINESS_MAPS_URL='"+businessUrl+"'",
   'Budapest verified Google Business listing link is missing');
 requireText('maps:BUDAPEST_BUSINESS_MAPS_URL,',
   'Budapest map CTA must use the business profile URL');
-requireText("mapQuery:'EZRaider Budapest by Voy PRO, Városház u. 14, 1052 Budapest, Hungary',",
-  'embedded Budapest map should search the named business, not the address');
-if(js.includes('mapQuery:meeting.address,'))failures.push('Budapest embedded map is still address-only');
+requireText("mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=",
+  'Budapest fixed-marker location preview is missing');
+requireText('marker=47.494133%2C19.055124',
+  'Budapest map marker must stay pinned to the verified location');
+requireText('class="meeting-map-business-link"',
+  'Budapest in-map click must use an owned full-map business link');
+requireText('href="${escapeHTML(data.maps)}"',
+  'In-map link must use the exact business URL');
+if(js.includes("mapQuery:'EZRaider Budapest by Voy PRO"))failures.push('Ambiguous name search must not return to Budapest map');
 requireText("maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac'",
   'Portugal maps must remain unchanged');
 
@@ -57,9 +63,19 @@ else{
    const html=render(path,meeting);
    if(!html.includes(businessUrl))failures.push(path+' business Google Maps link absent');
    if(html.includes('query=old-address'))failures.push(path+' still links to the generic address');
-   const query=encodeURIComponent('EZRaider Budapest by Voy PRO, Városház u. 14, 1052 Budapest, Hungary');
-   if(!html.includes('maps?q='+query))failures.push(path+' embedded map lacks business query');
-   if(!html.includes(meeting.address))failures.push(path+' dropped FBM-sourced meeting address');
+   if(!html.includes('www.openstreetmap.org/export/embed.html?bbox='))
+     failures.push(path+' fixed-coordinate map preview is missing');
+   if(!html.includes('marker=47.494133%2C19.055124'))
+     failures.push(path+' business marker is misplaced');
+   if(html.includes('www.google.com/maps?q='))
+     failures.push(path+' still embeds Google results that can include competitors');
+   if(!html.includes('class="meeting-map-business-link"'))
+     failures.push(path+' clickable map link is missing');
+   if((html.match(/maps.app.goo.gl\\/F4DHtcpbWZrVjpqz5/g)||[]).length!==2)
+     failures.push(path+' both external and in-map buttons must open identical business URLs');
+   if(!html.includes('OpenStreetMap contributors'))
+     failures.push(path+' required map attribution is missing');
+   if(!html.includes(meeting.address))failures.push(path+' dropped live meeting address');
  }
  if(render('/budapest/',{address:meeting.address,maps_url:''})!=='')
    failures.push('Invalid FBM Google Maps URL must still fail closed');
@@ -67,6 +83,14 @@ else{
  if(!portugal.includes('https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac'))
    failures.push('Marvão business map route changed unexpectedly');
 }
+
+const css=fs.readFileSync('site/assets/site.css','utf8');
+if(!css.includes('.meeting-map-card--business .meeting-map-frame--business{pointer-events:none}'))
+ failures.push('Business map iframe must not swallow user clicks');
+if(!css.includes('.meeting-map-business-link{position:absolute;inset:0;z-index:4;'))
+ failures.push('Entire map must open the business link');
+if(!css.includes('.meeting-map-attribution a'))
+ failures.push('OpenStreetMap attribution link must remain accessible');
 
 if(failures.length){
   console.error('Budapest meeting-point URL security guard failed.');
