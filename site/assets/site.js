@@ -2508,8 +2508,8 @@
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
       maps:BUDAPEST_BUSINESS_MAPS_URL,
-      mapQuery:'EZRaider Budapest by Voy PRO, Városház u. 14, 1052 Budapest, Hungary',
-      mapZoom:19
+      // Coordinate pinned from the business listing, not a Google text search.
+      mapPreview:'https://www.openstreetmap.org/export/embed.html?bbox=19.053724%2C47.493333%2C19.056524%2C47.494933&layer=mapnik&marker=47.494133%2C19.055124'
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
       maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
@@ -2527,7 +2527,19 @@
         <div class="meeting-point-address"><b>${escapeHTML(data.name)}</b><strong>${escapeHTML(data.address)}</strong></div>
         <a class="btn secondary meeting-point-button" href="${escapeHTML(data.maps)}" target="_blank" rel="noopener" data-track="meeting_point_maps">${escapeHTML(copy.maps)}</a>
       </div>
-      <div class="meeting-map-card">
+      ${budapest?`<div class="meeting-map-card meeting-map-card--business">
+        <iframe class="meeting-map-frame meeting-map-frame--business"
+          title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
+          src="${escapeHTML(data.mapPreview)}" tabindex="-1" aria-hidden="true"
+          loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        <a class="meeting-map-business-link" href="${escapeHTML(data.maps)}"
+          target="_blank" rel="noopener noreferrer" data-track="meeting_point_maps"
+          aria-label="${escapeHTML(copy.maps)} — ${escapeHTML(data.name)}">
+          <span class="meeting-map-open">${escapeHTML(copy.maps)} ↗</span>
+          <span class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></span>
+        </a>
+        <span class="meeting-map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a></span>
+      </div>`:`<div class="meeting-map-card">
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
@@ -2536,7 +2548,7 @@
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen></iframe>
         <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></div>
-      </div>
+      </div>`}
     </div>`;
     document.querySelector('main')?.appendChild(section);
   }
