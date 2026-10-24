@@ -333,7 +333,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
     }
     await page.screenshot({path:join(out,name+'.png'),fullPage,animations:'disabled',timeout:20000});
     results.push('SCREENSHOT: '+name+'.png | '+viewport.width+'x'+viewport.height+' | '+metrics.lang+' | '+metrics.heading.slice(0,70));
-    if(viewport.width<=800){
+    if(viewport.width<=1180){
       const menu=page.locator('.nav-menu-toggle');
       check(await menu.isVisible(),name+' mobile navigation control visible');
       if(await menu.isVisible()){
@@ -342,6 +342,18 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const expanded=await menu.getAttribute('aria-expanded');
         check(sheetOpened,name+' mobile sheet opens');
         check(expanded==='true',name+' menu reports expanded state');
+        if(sheetOpened){
+          check(await page.evaluate(()=>document.activeElement===document.querySelector('.mobile-nav-close')),
+            name+' modal receives initial keyboard focus');
+          await page.keyboard.press('Shift+Tab');
+          check(await page.evaluate(()=>{
+            const root=document.querySelector('#mobile-nav-sheet');
+            return document.activeElement===Array.from(root.querySelectorAll('button,a[href]')).at(-1);
+          }),name+' Shift+Tab wraps focus to last mobile nav link');
+          await page.keyboard.press('Tab');
+          check(await page.evaluate(()=>document.activeElement===document.querySelector('.mobile-nav-close')),
+            name+' Tab wraps focus to modal close control');
+        }
         if(!sheetOpened||expanded!=='true'){
           const diagnostic=await page.evaluate(()=>({
             menu:document.querySelector('.nav-menu-toggle')?.outerHTML,
@@ -357,6 +369,8 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         await page.keyboard.press('Escape');
         check(!(await page.locator('#mobile-nav-sheet').isVisible()),name+' Escape closes menu');
         check(await menu.getAttribute('aria-expanded')==='false',name+' menu resets aria-expanded');
+        check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
+          name+' Escape returns focus to original menu button');
       }
     }
     if(guide){
@@ -436,6 +450,7 @@ try{
     ['home-narrow','/',narrow,{fullPage:true}],
     ['budapest-en-desktop','/budapest/',desktop,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-mobile','/budapest/',mobile,{booking:true,localWhatsApp:budapest}],
+    ['budapest-en-tablet','/budapest/',{width:1024,height:800},{booking:true,localWhatsApp:budapest}],
     ['budapest-he-mobile','/he/budapest/',mobile,{fullPage:true,booking:true,localWhatsApp:budapest}],
     ['budapest-hu-narrow','/hu/budapest/',narrow,{booking:true,localWhatsApp:budapest}],
     ['marvao-pt-mobile','/pt/portugal/',mobile,{fullPage:true,request:true,localWhatsApp:marvao}],
