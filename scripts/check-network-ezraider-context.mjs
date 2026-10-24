@@ -45,11 +45,27 @@ for(const locale of ['','he/','hu/','pt/']){
  const html=fs.readFileSync('site/'+locale+'ezraider/index.html','utf8');
  assert.ok(html.includes('rel="canonical" href="https://voy-pro.com/'+locale+'ezraider/"'));
  assert.ok(html.includes('id="choose-destination"')&&html.includes('data-ez-context="back"'));
- assert.ok(html.includes('data-ez-context="booking"')&&html.includes('src="/assets/ezraider-context.js"'));
+ assert.ok(!html.includes('data-ez-context="booking"')&&html.includes('src="/assets/ezraider-context.js"'),
+   'Only the final destination chooser belongs in the guide content; source-aware mobile routing stays in JS');
+ assert.equal((html.match(/class="section tour-picker ez-destination-chooser"/g)||[]).length,1,'Exactly one final location-selection section');
+ assert.equal((html.match(/data-ez-destination-card=/g)||[]).length,2,'Exactly Budapest and Marvão');
+ for(const destination of ['budapest','marvao'])assert.ok(html.includes('data-ez-destination-card="'+destination+'"'));
+ for(const removed of ['class="section ez-outro"','data-ez-context="family"','data-ez-context="contact"','destination-card--prague'])assert.ok(!html.includes(removed),'Extra navigation / Prague still on guide: '+removed);
+ assert.ok(html.includes('class="tour-choice-grid"')&&html.includes('class="section tour-picker ez-destination-chooser"'),'Shared homepage card format required');
+ assert.ok(html.indexOf('class="section tour-picker ez-destination-chooser"')>html.indexOf('class="section ez-family"'),'Destination selection must appear after family content');
  assert.ok(!html.includes('href="/'+locale+'budapest/#booking"'));
  assert.ok(!html.includes('data-runtime-price'));
  for(const lang of ['en','he','hu','pt'])assert.ok(html.includes('hreflang="'+lang+'"'));
 }
+const guideStyle=fs.readFileSync('site/assets/ezraider-guide.css','utf8');
+assert.ok(guideStyle.includes('.ez-main .section{padding-block:clamp(28px,3vw,42px)}'));
+assert.ok(guideStyle.includes('.ez-main .ez-manufacturer a,.ez-main .ez-seat-model>a{font-size:12px'));
+assert.ok(guideStyle.includes('.ez-main .ez-destination-chooser .tour-choice-grid{grid-template-columns:minmax(0,1fr)}'));
+const homepageCss=fs.readFileSync('site/assets/site.css','utf8');
+assert.ok(homepageCss.includes('.tour-picker#destinations .destination-card--budapest')&&
+ homepageCss.includes('.tour-picker#destinations .destination-card--marvao'),
+ 'Guide must retain the same destination-card visual format as network homepage');
+
 const redirects=JSON.parse(fs.readFileSync('vercel.json','utf8')).redirects;
 assert.equal(redirects.filter(r=>r.source.includes('/budapest/ezraider/')).length,3);
 assert.ok(siteJs.includes("vehicleGuideSource==='marvao-pt'"));

@@ -326,6 +326,30 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
     if(guide){
       check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').count()===1,name+' has source-aware return link');
       check(await page.locator('.ez-destination-chooser').count()===1,name+' has destination chooser');
+      const chooser=page.locator('section.ez-destination-chooser');
+      check(await chooser.locator('.destination-card').count()===2 &&
+        await chooser.locator('[data-ez-destination-card="budapest"]').count()===1 &&
+        await chooser.locator('[data-ez-destination-card="marvao"]').count()===1,
+        name+' only Budapest and Marvão use the network-home destination-card format');
+      check(await page.locator('.ez-outro').count()===0 &&
+        await page.locator('main [data-ez-context="booking"], main [data-ez-context="family"], main [data-ez-context="contact"]').count()===0,
+        name+' removes the repeated destination calls above the final chooser');
+      const guideRhythm=await page.evaluate(()=>{
+        const section=document.querySelector('.ez-learning');
+        const m=document.querySelector('.ez-manufacturer a');
+        const seats=[...document.querySelectorAll('.ez-seat-model>a')];
+        const columns=getComputedStyle(document.querySelector('.ez-destination-chooser .tour-choice-grid')).gridTemplateColumns.trim().split(' ').length;
+        return {sectionPadding:parseFloat(getComputedStyle(section).paddingTop),
+          manufacturer:parseFloat(getComputedStyle(m).fontSize),
+          seats:seats.map(e=>parseFloat(getComputedStyle(e).fontSize)),
+          columns};
+      });
+      check(guideRhythm.manufacturer<=13&&guideRhythm.seats.length===2&&guideRhythm.seats.every(x=>x<=13),
+        name+' manufacturer and child-seat links are quieter editorial links');
+      check(guideRhythm.sectionPadding<=(viewport.width<=620?30:45),
+        name+' guide spacing compact at '+viewport.width+'px');
+      check(guideRhythm.columns===(viewport.width<=800?1:2),
+        name+' final destination cards reflow correctly');
     }
     if(tourGuide){
       const link=page.locator('a[data-ez-tour-guide]');
@@ -343,8 +367,8 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         await page.waitForURL(url=>url.pathname===prefix+'ezraider/',{timeout:8000});
         check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').getAttribute('href')===sourcePath,
           name+' guide Back action returns exactly to tour');
-        check(await page.locator('.ez-hero [data-ez-context="booking"]').getAttribute('href')===prefix+'budapest/#booking',
-          name+' guide still books Budapest, not another location');
+        check(await page.locator('.ez-destination-chooser [data-ez-destination-card="budapest"] .tour-choice-actions a').getAttribute('href')===prefix+'budapest/',
+          name+' only the final destination card routes Budapest visitors locally');
         const pt=await page.locator('[data-ez-language][hreflang="pt"]').first().getAttribute('href');
         check(pt?.includes('from=budapest')&&pt.includes('return_to='+encodeURIComponent(sourcePath)),
           name+' switching guide to Portuguese retains original tour context');
@@ -405,6 +429,7 @@ try{
     ['extended-en-mobile','/budapest/tours/buda-margaret-extended-tour/',mobile,{rtb:true,tourGuide:true,localWhatsApp:budapest,heroImage:true}],
     ['extended-he-mobile','/he/budapest/tours/buda-margaret-extended-tour/',mobile,{rtb:true,tourGuide:true,localWhatsApp:budapest,heroImage:true}],
     ['extended-hu-desktop','/hu/budapest/tours/buda-margaret-extended-tour/',desktop,{rtb:true,tourGuide:true,localWhatsApp:budapest,heroImage:true}],
+    ['guide-en-mobile','/ezraider/?from=home&return_to=%2F',mobile,{fullPage:true,guide:true}],
     ['guide-pt-mobile','/pt/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F',mobile,{fullPage:true,guide:true}],
     ['guide-he-mobile','/he/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fbuda-castle-ezraider-tour%2F',mobile,{guide:true}],
     ['guide-hu-desktop','/hu/ezraider/?from=budapest',desktop,{guide:true}]
@@ -416,7 +441,7 @@ try{
       if(name==='guide-pt-mobile'){
         const expected='/pt/portugal/';
         check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').getAttribute('href')===expected,'PT Marvão guide back returns to PT branch');
-        check(await page.locator('.ez-hero [data-ez-context="booking"]').getAttribute('href')==='/pt/portugal/#request','PT Marvão booking links to local availability');
+        check(await page.locator('.ez-destination-chooser [data-ez-destination-card="marvao"] .tour-choice-actions a').getAttribute('href')==='/pt/portugal/','PT Marvão destination card opens localized local route information');
         await page.locator('.nav-menu-toggle').click();
         const sheet=page.locator('#mobile-nav-sheet');
         check(await sheet.locator('[data-mobile-language-row] [data-ez-language]').count()===4,'PT guide mobile offers four language links');
