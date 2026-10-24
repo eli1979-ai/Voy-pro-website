@@ -2506,6 +2506,21 @@
     // not a generic pin for Városház utca 14.
     const BUDAPEST_BUSINESS_MAPS_URL='https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
     const BUDAPEST_BUSINESS_DISPLAY_NAME='EZRaider Budapest by Voy PRO';
+    // Paste ONLY the src from Google Maps > Share > Embed a map for this exact
+    // business listing. A short Google Maps link is not an embeddable URL.
+    // Empty until the exact Google-generated iframe source is provided.
+    const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='';
+    let officialGoogleEmbed='';
+    if(BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC){
+      try{
+        const parsed=new URL(BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC);
+        if(parsed.protocol==='https:'&&parsed.hostname==='www.google.com'&&
+            parsed.pathname==='/maps/embed'&&
+            (parsed.searchParams.get('pb')||'').length>=50){
+          officialGoogleEmbed=parsed.toString();
+        }
+      }catch(_error){/* Leave existing map unchanged if the embed is invalid. */}
+    }
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
       maps:BUDAPEST_BUSINESS_MAPS_URL,
@@ -2528,7 +2543,13 @@
         <div class="meeting-point-address"><b>${escapeHTML(data.name)}</b><strong>${escapeHTML(data.address)}</strong></div>
         <a class="btn secondary meeting-point-button" href="${escapeHTML(data.maps)}" target="_blank" rel="noopener" data-track="meeting_point_maps">${escapeHTML(copy.maps)}</a>
       </div>
-      ${budapest?`<div class="meeting-map-card meeting-map-card--business">
+      ${budapest?(officialGoogleEmbed?`<div class="meeting-map-card meeting-map-card--google">
+        <iframe class="meeting-map-frame"
+          title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
+          src="${escapeHTML(officialGoogleEmbed)}"
+          loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></div>
+      </div>`:`<div class="meeting-map-card meeting-map-card--business">
         <iframe class="meeting-map-frame meeting-map-frame--business"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
           src="${escapeHTML(data.mapPreview)}"
@@ -2544,7 +2565,7 @@
           <span class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></span>
         </a>
         <span class="meeting-map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a></span>
-      </div>`:`<div class="meeting-map-card">
+      </div>`):`<div class="meeting-map-card">
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
