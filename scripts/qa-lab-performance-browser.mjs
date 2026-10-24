@@ -13,7 +13,7 @@ const formats={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-
   '.avif':'image/avif','.woff':'font/woff','.woff2':'font/woff2',
   '.json':'application/json'};
 const paths=['/','/budapest/','/he/budapest/','/hu/budapest/',
-  '/portugal/','/pt/portugal/','/ezraider/','/he/ezraider/'];
+  '/portugal/','/he/portugal/','/pt/portugal/','/ezraider/','/he/ezraider/'];
 const widths=[390,1365];
 await mkdir(output,{recursive:true});
 const server=createServer(async(req,res)=>{
@@ -112,9 +112,14 @@ try{
             return result;
           });
           const missingImages=data.images.filter(x=>x.naturalWidth===0);
+          const missingHeroDimensions=data.images.filter(x=>
+            !x.intrinsicDimensions&&
+            (path.includes('/budapest/')||path.includes('/portugal/'))&&
+            /(?:img12\.jpg|marvao-01\.jpg)/.test(x.src));
           const critical=lostLocal.filter(x=>/\.(js|css|svg|png|jpe?g|webp|woff2?)$/i.test(x));
           if(response?.status()!==200)problem='Page HTTP '+response?.status();
           else if(missingImages.length)problem='Missing above-fold images: '+missingImages.map(x=>x.src).join(', ');
+          else if(missingHeroDimensions.length)problem='Hero image missing verified native dimensions';
           else if(critical.length)problem='Local asset requests failed: '+critical.join(', ');
           if(problem)failures.push({path,width,problem});
           const example={path,width,status:response?.status(),problem,...data,
