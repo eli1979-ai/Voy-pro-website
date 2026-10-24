@@ -24,7 +24,7 @@ for(const [src,width,height] of [
   ['/assets/images/budapest/img12.jpg','800','1200'],
   ['/assets/images/portugal/marvao-01.jpg','605','605']
 ]){
-  const tag=[...html.matchAll(/<img\\b[^>]*>/g)].map(m=>m[0]).find(item=>item.includes('src="'+src+'"'));
+  const tag=[...html.matchAll(/<img\b[^>]*>/g)].map(m=>m[0]).find(item=>item.includes('src="'+src+'"'));
   check(!!tag&&tag.includes('width="'+width+'"')&&tag.includes('height="'+height+'"'),
     'Homepage destination hero must preserve real source dimensions: '+src);
 }
