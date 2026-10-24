@@ -11,6 +11,9 @@ on:
       - 'scripts/qa-visual-browser.mjs'
       - 'scripts/qa-mobile-sitemap.mjs'
       - 'scripts/qa-public-link-assets.mjs'
+      - 'scripts/qa-static-asset-budgets.mjs'
+      - 'site/assets/images/**'
+      - 'site/assets/brand/**'
       - 'scripts/qa-affiliate-widget-browser.mjs'
       - 'scripts/qa-booking-funnel-browser.mjs'
       - 'scripts/check-hu-dynamic-translations.mjs'
@@ -45,6 +48,8 @@ jobs:
         run: node scripts/qa-mobile-sitemap.mjs
       - name: Check every internal link and local image asset
         run: node scripts/qa-public-link-assets.mjs
+      - name: Enforce first-party static asset size budgets
+        run: node scripts/qa-static-asset-budgets.mjs
       - name: Test booking dates, composition, empty slots and stale responses with mocked API
         run: node scripts/qa-booking-funnel-browser.mjs
       - name: Verify embedded affiliate widget in actual Chrome with mocked APIs
