@@ -2505,6 +2505,7 @@
     // customer-facing Google Maps button should open our business listing,
     // not a generic pin for Városház utca 14.
     const BUDAPEST_BUSINESS_MAPS_URL='https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
+    const BUDAPEST_BUSINESS_DISPLAY_NAME='EZRaider Budapest by Voy PRO';
     const data=budapest?{
       title:copy.budapestTitle,body:copy.budapestBody,name:copy.budapestName,address:meeting.address,
       maps:BUDAPEST_BUSINESS_MAPS_URL,
@@ -2529,14 +2530,14 @@
       </div>
       ${budapest?`<div class="meeting-map-card meeting-map-card--business">
         <iframe class="meeting-map-frame meeting-map-frame--business"
-          title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
+          title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
           src="${escapeHTML(data.mapPreview)}" tabindex="-1" aria-hidden="true"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
         <a class="meeting-map-business-link" href="${escapeHTML(data.maps)}"
           target="_blank" rel="noopener noreferrer" data-track="meeting_point_maps"
-          aria-label="${escapeHTML(copy.maps)} — ${escapeHTML(data.name)}">
+          aria-label="${escapeHTML(copy.maps)} — ${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}">
           <span class="meeting-map-open">${escapeHTML(copy.maps)} ↗</span>
-          <span class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></span>
+          <span class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></span>
         </a>
         <span class="meeting-map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a></span>
       </div>`:`<div class="meeting-map-card">
