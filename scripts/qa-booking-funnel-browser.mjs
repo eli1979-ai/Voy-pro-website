@@ -125,13 +125,17 @@ async function scenario(lang,path,{catalogDown=false}={}){
         const cta=bar.querySelector('a.btn');
         const p=price.getBoundingClientRect(),b=bar.getBoundingClientRect(),a=cta.getBoundingClientRect();
         return {text:price.textContent,description:price.getAttribute('aria-label'),
-          barHeight:b.height,priceRight:p.right,ctaLeft:a.left,ctaRight:a.right,viewport:innerWidth,
+          barHeight:b.height,priceLeft:p.left,priceRight:p.right,ctaLeft:a.left,ctaRight:a.right,viewport:innerWidth,
           scrollWidth:document.documentElement.scrollWidth};
       });
       const expected=lang==='he'?'מחיר לא זמין':lang==='hu'?'Ár nem elérhető':'Price unavailable';
       check(state.text===expected,lang+' sticky bar keeps concise localized unverified-price message');
       check(state.description.length>state.text.length,lang+' longer diagnostic remains accessible');
-      check(state.barHeight<=105&&state.priceRight<state.ctaLeft+3&&state.ctaRight<=state.viewport+2&&state.scrollWidth<=state.viewport+2,
+      check(state.barHeight<=105&&
+        (state.priceRight<=state.ctaLeft+3||state.ctaRight<=state.priceLeft+3)&&
+        state.ctaLeft>=-2&&state.ctaRight<=state.viewport+2&&
+        state.priceLeft>=-2&&state.priceRight<=state.viewport+2&&
+        state.scrollWidth<=state.viewport+2,
         lang+' sticky price and booking action do not collide or overflow');
       await page.screenshot({path:join(out,'booking-'+lang+'-offline.png'),fullPage:false});
       return;
