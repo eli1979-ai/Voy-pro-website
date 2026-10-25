@@ -109,7 +109,21 @@ try{
           const data=await page.evaluate(()=>{
             const result={metrics:window.__voyPerf||{},resources:[],images:[],
               domNodes:document.getElementsByTagName('*').length,
-              scrollWidth:document.documentElement.scrollWidth};
+              scrollWidth:document.documentElement.scrollWidth, mobileHero:null};
+            // Ensure the mobile destination hero occupies a stable cross-axis
+            // width; a centered auto-width flex child previously shifted by
+            // ~89px after its first-party portrait photo decoded.
+            const heroGrid=document.querySelector('.hero-grid');
+            const heroCard=heroGrid?.querySelector(':scope > aside.hero-card');
+            if(heroGrid&&heroCard){
+              const a=heroGrid.getBoundingClientRect(),b=heroCard.getBoundingClientRect();
+              result.mobileHero={
+                flexDirection:getComputedStyle(heroGrid).flexDirection,
+                alignItems:getComputedStyle(heroGrid).alignItems,
+                leftOffsetPx:Math.round((b.left-a.left)*100)/100,
+                widthDifferencePx:Math.round((b.width-a.width)*100)/100
+              };
+            }
             const navigation=performance.getEntriesByType('navigation')[0];
             if(navigation)result.metrics.navigationCompleteMs=Math.round(navigation.loadEventEnd);
             for(const resource of performance.getEntriesByType('resource')){
@@ -140,11 +154,20 @@ try{
             (path.includes('/budapest/')||path.includes('/portugal/'))&&
             /(?:img12\.jpg|marvao-01\.jpg)/.test(x.src));
           const critical=lostLocal.filter(x=>/\.(js|css|svg|png|jpe?g|webp|woff2?)$/i.test(x));
+          const destinationMobileHero=width===390&&
+            /^\/(?:he\/|hu\/|pt\/)?(?:budapest|portugal)\/$/.test(path);
+          const hero=data.mobileHero;
+          const unstableHero=destinationMobileHero&&(
+            !hero||hero.flexDirection!=='column'||hero.alignItems!=='stretch'||
+            Math.abs(hero.leftOffsetPx)>2||Math.abs(hero.widthDifferencePx)>2
+          );
           if(response?.status()!==200)problem='Page HTTP '+response?.status();
           else if(missingImages.length)problem='Missing above-fold images: '+missingImages.map(x=>x.src).join(', ');
           else if(missingHeroDimensions.length)problem='Hero image missing verified native dimensions';
           else if(Number(data.metrics?.cls)>maxLayoutShift)
             problem='Excessive cumulative layout shift: '+data.metrics.cls.toFixed(4)+' > '+maxLayoutShift.toFixed(2);
+          else if(unstableHero)
+            problem='Mobile destination hero must stretch to a stable full width: '+JSON.stringify(hero);
           else if(critical.length)problem='Local asset requests failed: '+critical.join(', ');
           if(problem)failures.push({path,width,problem});
           const example={path,width,status:response?.status(),problem,...data,
