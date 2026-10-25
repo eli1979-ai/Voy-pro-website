@@ -9,6 +9,7 @@ on:
     paths:
       - 'scripts/check-live-staging-noindex.mjs'
       - 'scripts/check-live-rtb-disabled.mjs'
+      - 'scripts/check-live-staging-runtime-boundary.mjs'
       - '.github/workflows/live-staging-http-noindex.yml'
 
 permissions:
@@ -38,11 +39,15 @@ jobs:
         run: node scripts/check-live-rtb-disabled.mjs --test
       - name: Audit actual disabled Request-to-Book GET on public aliases
         run: node scripts/check-live-rtb-disabled.mjs
+      - name: Offline safety tests for public staging runtime identity
+        run: node scripts/check-live-staging-runtime-boundary.mjs --test
+      - name: Audit public runtime environment boundary (read-only)
+        run: node scripts/check-live-staging-runtime-boundary.mjs
       - name: Include the observed report in this run
         if: always()
         shell: bash
         run: |
-          for report in staging-http-audit/report.md staging-http-audit/rtb-disabled.md; do
+          for report in staging-http-audit/report.md staging-http-audit/rtb-disabled.md staging-http-audit/runtime-boundary.md; do
             if [ -f "$report" ]; then
               cat "$report" >> "$GITHUB_STEP_SUMMARY"
               echo >> "$GITHUB_STEP_SUMMARY"
@@ -80,6 +85,7 @@ jobs:
         env:
           AUDIT_REPORT: staging-http-audit/report.md
           RTB_REPORT: staging-http-audit/rtb-disabled.md
+          RUNTIME_REPORT: staging-http-audit/runtime-boundary.md
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -91,6 +97,9 @@ jobs:
             const rtbReport=fs.existsSync(process.env.RTB_REPORT)
               ?fs.readFileSync(process.env.RTB_REPORT,'utf8')
               :'The GitHub runner could not produce its expected read-only RTB gate audit.';
+            const runtimeReport=fs.existsSync(process.env.RUNTIME_REPORT)
+              ?fs.readFileSync(process.env.RUNTIME_REPORT,'utf8')
+              :'The GitHub runner could not produce the runtime boundary audit.';
             const body=[
               marker,
               '# Public Staging HTTP safety gates require verification',
@@ -100,6 +109,8 @@ jobs:
               report,
               '',
               rtbReport,
+              '',
+              runtimeReport,
               '',
               '**Actions:** compare Vercel aliases, deployment headers and Staging release metadata; rerun the manual watch to rule out transient network errors. Keep Production cutover/SEO activation blocked until the distinction is verified.',
               '',
