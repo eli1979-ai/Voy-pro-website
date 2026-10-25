@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -121,11 +121,15 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     }]:[];
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
+      const expectedTotal=withExtras&&payload?.extras?.some(x=>x.quantity>0)?130:120;
       data=malformedBookingReply==='missing-reference'
         ?{status:'confirmed',manage_token:null}
         :malformedBookingReply==='missing-status'
           ?{reference:'VOY-FAKE-CONFIRMED',manage_token:null}
-          :{reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null};
+          :{reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null,
+            total:bookingPriceMismatch==='different-total'?expectedTotal+25:expectedTotal,
+            discount:20,currency:'EUR',
+            ...(bookingPriceMismatch==='missing-partner-code'?{}:{promo_code_applied:payload?.promo_code})};
     }else if(path==='/api/v1/booking-capacity-requests'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       data=malformedStaffReply==='missing-reference'
@@ -383,6 +387,28 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       });
     }
     await root.locator('#confirmButton').click();
+    if(bookingPriceMismatch){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const receipt=await root.locator('#success').innerText();
+      check(receipt.includes('Booking price needs verification')&&
+        receipt.includes('Booking reference: VOY-FAKE-CONFIRMED')&&
+        !receipt.includes('Your booking has been received'),
+        name+' final price or coupon mismatch yields booking reference, not an ordinary confirmation');
+      check((await root.locator('#status.error').innerText()).includes('partner discount needs staff verification')&&
+        receipt.includes('before making another booking attempt'),
+        name+' affected customer receives clear manual reconciliation guidance');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#confirmButton').isDisabled(),
+        name+' mismatched final price cannot be booked or paid twice');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path==='/api/v1/bookings').length===1&&
+        !calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+        name+' final mismatch does not duplicate booking or delete possibly converted hold');
+      check(errors.length===0,name+' no uncaught browser exceptions on final booking price mismatch');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(departureStartsBeforeSubmit){
       await root.locator('#status.error').waitFor({timeout:10000});
       const message=await root.locator('#status').innerText();
@@ -621,6 +647,8 @@ try{
   await run('mobile-quote-expires-before-hold',{mobile:true,quoteExpiresBeforeConfirmation:true});
   await run('desktop-departure-starts-before-confirm',{departureStartsBeforeSubmit:true});
   await run('mobile-departure-starts-before-staff-request',{mobile:true,staffRequest:true,departureStartsBeforeSubmit:true});
+  await run('desktop-final-booking-price-mismatch',{bookingPriceMismatch:'different-total'});
+  await run('mobile-final-booking-missing-affiliate-discount',{mobile:true,bookingPriceMismatch:'missing-partner-code'});
   await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
   await run('desktop-switch-departure-clears-extras',{withExtras:true,switchSlotAfterExtras:true});
   await run('mobile-switch-departure-clears-extras',{mobile:true,withExtras:true,switchSlotAfterExtras:true});

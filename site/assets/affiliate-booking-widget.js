@@ -598,6 +598,20 @@
           completed=true;
           return;
         }
+        // A successful booking may still have an unexpected final price
+        // or an omitted affiliate attribution. The server may already have
+        // committed it, so show its reference and require staff reconciliation
+        // instead of claiming the partner's quoted price was honored or retrying.
+        const sameMoney=(actual,expected)=>typeof actual==='number'&&
+          Number.isFinite(actual)&&Math.round(actual*100)===Math.round(expected*100);
+        if(!sameMoney(booking.total,quote.total)||
+          !sameMoney(booking.discount,quote.discount)||
+          booking.currency!==quote.currency||
+          String(booking.promo_code_applied||'').trim().toUpperCase()!==affiliate){
+          showAffiliatePriceReviewResponse(booking);
+          completed=true;
+          return;
+        }
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
         completed=true;
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
@@ -642,6 +656,20 @@
       box.append(textNode('p','Requested guiding language: '+guideLabel()));
       box.append(textNode('p','This is not a confirmed booking. VOY PRO staff will review your requested time and contact you before any payment or reservation is confirmed.'));
       setStatus('Request sent for human review.','success');
+    }
+    function showAffiliatePriceReviewResponse(booking){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // Keep the server-issued reference; never DELETE a hold that may have
+      // converted to a completed booking or issue a duplicate final POST.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Booking price needs verification'));
+      box.append(textNode('p','Booking reference: '+booking.reference));
+      box.append(textNode('p','Reported status: '+booking.status));
+      box.append(textNode('p','The confirmed price or partner discount could not be matched to the amount quoted. Your booking may already exist. Please contact VOY PRO with the reference above before making another booking attempt.'));
+      setStatus('Final booking price or partner discount needs staff verification. Do not submit again.','error');
     }
     function showUnverifiedBookingResponse(){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
