@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -123,10 +123,16 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         new Date(Date.now()+(badHold==='past-expiry'?-60000:600000)).toISOString()}),
       requires_staff_confirmation:false
     };
-    else if(path==='/api/v1/ancillary/offers')data=withExtras?[{
-      product_id:'extra-camera',name:'Camera rental',price_minor:1000,
-      max_per_booking:3,available_quantity:3,currency:'EUR',product_kind:'rental'
-    }]:[];
+    else if(path==='/api/v1/ancillary/offers'){
+      data=withExtras||badOffers?[{
+        product_id:'extra-camera',name:'Camera rental',price_minor:1000,
+        max_per_booking:3,available_quantity:3,currency:'EUR',product_kind:'rental'
+      }]:[];
+      if(badOffers==='missing-price')delete data[0].price_minor;
+      if(badOffers==='invalid-limit')data[0].max_per_booking='unlimited';
+      if(badOffers==='currency-mismatch')data[0].currency='USD';
+      if(badOffers==='duplicate-product')data.push({...data[0]});
+    }
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       const expectedTotal=withExtras&&payload?.extras?.some(x=>x.quantity>0)?130:120;
@@ -345,6 +351,24 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       return;
     }
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
+    if(badOffers){
+      const warning=root.locator('#extras [role="status"]');
+      await warning.waitFor({timeout:10000});
+      check((await warning.innerText()).includes('could not be verified'),
+        name+' incomplete ancillary list gives clear customer guidance');
+      const qty=root.locator('#extras input[data-product-id="extra-camera"]');
+      check(await qty.count()===(badOffers==='duplicate-product'?1:0),
+        name+' malformed, mismatched or duplicate product rows cannot be selected');
+      check(await root.locator('#price').innerText().then(s=>s.includes('Total:')),
+        name+' authoritative FBM tour quote remains visible');
+      check(await root.locator('#confirmButton').isEnabled(),
+        name+' unverified optional extras do not block ordinary booking');
+      check(!calls.some(c=>c.path==='/api/v1/quotes'&&c.payload?.extras?.length),
+        name+' no malformed extra quantity is sent in a requote');
+      check(errors.length===0,name+' no browser JavaScript errors');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(allocatedHold){
       check(calls.some(c=>c.path==='/api/v1/holds'&&c.payload?.slot_id===slotId),
         name+' customer requested slot retains its identity on FBM hold creation');
@@ -687,6 +711,10 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 }
 try{
   await run('desktop-booking');
+  await run('desktop-ancillary-missing-price',{badOffers:'missing-price'});
+  await run('mobile-ancillary-invalid-limit',{mobile:true,badOffers:'invalid-limit'});
+  await run('desktop-ancillary-cross-currency',{badOffers:'currency-mismatch'});
+  await run('mobile-ancillary-duplicate-product',{mobile:true,badOffers:'duplicate-product'});
   await run('desktop-overnight-budapest-date-rollover',{midnightRollover:true});
   await run('mobile-overnight-budapest-date-rollover',{mobile:true,midnightRollover:true});
   await run('mobile-pending-request',{mobile:true,staffRequest:true});
