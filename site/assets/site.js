@@ -230,7 +230,9 @@
     "Choose the guiding language that works for your group. We do not select a language automatically.":"Válaszd ki a csoportodnak megfelelő idegenvezetési nyelvet. Nem választunk automatikusan nyelvet.",
     "Guide languages unavailable – contact our team":"Az idegenvezetési nyelvek nem érhetők el – lépj kapcsolatba a csapatunkkal.",
     "Heroes’ Square":"Hősök tere",
-    "Citadella Advanced":"Citadella – haladó túra"
+    "Citadella Advanced":"Citadella – haladó túra",
+    "Your selected date is now in the past in Budapest. Choose another date.":"A kiválasztott dátum már elmúlt Budapesten. Válassz új dátumot.",
+    "This date is outside the current booking window. Choose an earlier date.":"Ez a dátum kívül esik a foglalási időszakon. Válassz korábbi dátumot."
   };
   function huDynamic(en){
     if(HU[en]) return HU[en];
@@ -2229,17 +2231,13 @@
       const selectedDate=dateInput?.value||'';
       if(dateInput&&selectedDate&&selectedDate<today){
         invalidateAvailabilityResults();
-        status.textContent=locale==='hu'
-          ?'A kiválasztott dátum már elmúlt Budapesten. Válassz új dátumot.'
-          :t('Your selected date is now in the past in Budapest. Choose another date.','התאריך שנבחר כבר חלף בבודפשט. בחרו תאריך חדש.');
+        status.textContent=t('Your selected date is now in the past in Budapest. Choose another date.','התאריך שנבחר כבר חלף בבודפשט. בחרו תאריך חדש.');
         dateInput.focus({preventScroll:true});
         return;
       }
       if(dateInput&&dateInput.max&&selectedDate>dateInput.max){
         invalidateAvailabilityResults();
-        status.textContent=locale==='hu'
-          ?'Ez a dátum kívül esik a foglalási időszakon. Válassz korábbi dátumot.'
-          :t('This date is outside the current booking window. Choose an earlier date.','התאריך מחוץ לטווח ההזמנות הנוכחי. בחרו תאריך מוקדם יותר.');
+        status.textContent=t('This date is outside the current booking window. Choose an earlier date.','התאריך מחוץ לטווח ההזמנות הנוכחי. בחרו תאריך מוקדם יותר.');
         dateInput.focus({preventScroll:true});
         return;
       }
