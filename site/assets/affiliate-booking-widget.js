@@ -330,6 +330,9 @@
           child_passengers_3_15:String(c.child_passengers_3_15),
           baby_passengers_1_2:String(c.baby_passengers_1_2),
           is_private:String(isPrivate()),
+          // Request preference only. FBM availability does not yet attest
+          // staff language coverage; booking/dispatch remains authoritative.
+          guide_language:selectedGuideLanguage(),
         });
         const avail=await api('/experiences/'+encodeURIComponent(exp.id)+'/availability?'+query.toString());
         if(version!==generation)return;

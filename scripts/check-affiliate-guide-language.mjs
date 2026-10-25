@@ -15,8 +15,8 @@ required('languageSelect.disabled=!offered.length;','Missing catalog languages m
 required("if(loading||!requireSelectedGuideLanguage())return;",'Availability/hold must require a choice');
 required("if(!requireSelectedGuideLanguage())return;\n      const staffRequest=",
   'Request-to-Book and checkout must revalidate the language');
-assert.equal((widget.match(/guide_language:selectedGuideLanguage\(\)/g)||[]).length,2,
-  'Hold and capacity-request paths must send a catalog-valid language');
+assert.equal((widget.match(/guide_language:selectedGuideLanguage\(\)/g)||[]).length,3,
+  'Availability, hold and capacity-request paths must send a catalog-valid language');
 assert.ok(!widget.includes('guide_language:languageSelect.value||null'),
   'The partner widget must not silently send a null guide language');
 assert.ok(!widget.includes('english_alternative_accepted'),

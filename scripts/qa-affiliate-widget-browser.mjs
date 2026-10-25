@@ -111,7 +111,8 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     await root.locator('#searchButton').click();
     const departure=root.locator('#slots button').first();
     await departure.waitFor({timeout:10000});
-    check(calls.some(c=>c.path.includes('/availability?')),name+' catalog-valid request reaches mocked availability');
+    check(calls.some(c=>c.path.includes('/availability?')&&c.path.includes('guide_language=he')),
+      name+' catalog-valid Hebrew preference travels with affiliate availability request');
     // Language-specific sellable/requestable departure results must be removed
     // immediately when the guiding language changes, before any hold or CRM
     // request can be issued from that stale result.
@@ -123,6 +124,9 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     await departure.waitFor({timeout:10000});
     check(await departure.count()===1,
       name+' searching with current language produces a fresh departure');
+    const availabilityCalls=calls.filter(c=>c.path.includes('/availability?'));
+    check(availabilityCalls.length===2&&availabilityCalls.every(c=>c.path.includes('guide_language=he')),
+      name+' refreshed affiliate availability never omits or changes the chosen language');
     await departure.click();
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
     check(staffRequest?!calls.some(c=>c.path==='/api/v1/holds'):
