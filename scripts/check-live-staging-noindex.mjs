@@ -27,6 +27,31 @@ function checkedUrl(value){
     throw Error('Refusing non-public or unexpected redirect target');
   return url;
 }
+// Derive the protected public page set from the checked-in canonical sitemap.
+// The sitemap is untrusted input: fail the audit before ANY network request if
+// it tries to introduce another host, unexpected paths, duplicate URLs, or
+// a suddenly truncated/expanded set of pages.
+export function sitemapProbes(xml=fs.readFileSync('site/sitemap.xml','utf8')){
+  if(typeof xml!=='string'||!/^\s*<\?xml\s/.test(xml)||
+     !/<urlset\b[^>]*>[\s\S]*<\/urlset>\s*$/.test(xml))
+    throw Error('Invalid canonical sitemap document');
+  const urls=[...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map(m=>m[1]);
+  if(urls.length<40||urls.length>80)throw Error('Unexpected canonical sitemap URL count');
+  const seen=new Set();
+  return urls.map((entry,index)=>{
+    const parsed=checkedUrl(entry);
+    if(parsed.origin!=='https://voy-pro.com'||
+       !/^\/(?:[a-z0-9-]+\/)*$/.test(parsed.pathname)||
+       parsed.href!==entry||seen.has(parsed.href))
+      throw Error('Unapproved, malformed or repeated sitemap URL at index '+index);
+    seen.add(parsed.href);
+    return [parsed.href,'Canonical sitemap page '+(index+1)];
+  });
+}
+export const CANONICAL_PAGES=sitemapProbes();
+export const LIVE_PROBES=[...PROBES,...CANONICAL_PAGES.filter(([url])=>
+  !PROBES.some(([existing])=>existing===url))];
+
 const hasDirective=(header,directive)=>
   String(header||'').split(',').some(part=>part.trim().toLowerCase()===directive);
 
@@ -60,22 +85,33 @@ async function fetchPublic(url,fetcher){
   throw Error('Too many redirects');
 }
 
-export async function audit(fetcher=fetch,probes=PROBES){
+export async function audit(fetcher=fetch,probes=LIVE_PROBES){
+  if(!Array.isArray(probes)||probes.length>90)
+    throw Error('Refusing oversized live HTTP audit');
   const rows=[];
-  for(const [uri,label] of probes){
-    try{
-      const r=await fetchPublic(uri,fetcher);
-      const noindex=hasDirective(r.header,'noindex');
-      const nofollow=hasDirective(r.header,'nofollow');
-      const robots=r.url.endsWith('/robots.txt')?
-        /^Disallow:\s*\/\s*$/im.test(r.robots):true;
-      const ok=noindex&&nofollow&&robots;
-      rows.push({label,url:uri,final:r.url,header:r.header,
-        ok,reason:ok?'HTTP 200, noindex, nofollow'+(r.robots?', robots blocked':''):
-          'Missing noindex/nofollow HTTP header or staging robots.txt Disallow: /'});
-    }catch(error){
-      rows.push({label,url:uri,ok:false,reason:String(error?.message||error).slice(0,220)});
-    }
+  // Bounded six-way GET concurrency keeps the daily Staging watch well below
+  // its CI time budget, without hammering the public site or its booking API.
+  for(let offset=0;offset<probes.length;offset+=6){
+    const batch=await Promise.all(probes.slice(offset,offset+6).map(async([uri,label])=>{
+      try{
+        const r=await fetchPublic(uri,fetcher);
+        const noindex=hasDirective(r.header,'noindex');
+        const nofollow=hasDirective(r.header,'nofollow');
+        const robots=r.url.endsWith('/robots.txt')?
+          /^Disallow:\s*\/\s*$/im.test(r.robots):true;
+        // A misrouted page returning the homepage must not pass indexing QA.
+        const requestedPath=checkedUrl(uri).pathname;
+        const finalPath=checkedUrl(r.url).pathname;
+        const samePath=requestedPath===finalPath;
+        const ok=noindex&&nofollow&&robots&&samePath;
+        return {label,url:uri,final:r.url,header:r.header,ok,
+          reason:ok?'HTTP 200, noindex, nofollow'+(r.robots?', robots blocked':''):
+            'Missing crawler controls or public route redirected to a different path'};
+      }catch(error){
+        return {label,url:uri,ok:false,reason:String(error?.message||error).slice(0,220)};
+      }
+    }));
+    rows.push(...batch);
   }
   return {rows,passed:rows.filter(row=>row.ok).length,failed:rows.filter(row=>!row.ok).length};
 }
@@ -86,6 +122,7 @@ export function report(result){
     '**Checked:** '+new Date().toISOString()+' (UTC). Read-only GET of public URLs; no customer data, cookies, credentials or upstream booking API calls.',
     '',
     '**Result:** '+result.passed+'/'+result.rows.length+' passed; '+result.failed+' failed.',
+    '**Canonical coverage:** '+CANONICAL_PAGES.length+' sitemap pages plus required public alias, private management, and robots guards. Each sitemap entry is validated against the approved public origin before network access.',
     '',
     '| Public URL | Result | HTTP evidence |',
     '| --- | --- | --- |',
@@ -119,6 +156,23 @@ async function test(){
     ['https://voy-pro.com/','Home'],['https://voy-pro.com/budapest/','Budapest'],
     ['https://www.voy-pro.com/','www alias'],['https://voy-pro.com/robots.txt','Robots']
   ];
+  assert.equal(CANONICAL_PAGES.length,50,'Current public sitemap contains 50 pages');
+  assert.equal(LIVE_PROBES.filter(([url])=>url==='https://voy-pro.com/').length,1,
+    'No duplicate homepage requests');
+  assert.throws(()=>sitemapProbes('<?xml version="1.0"?><urlset><url><loc>https://evil.example/</loc></url></urlset>'),
+    'Unexpected sitemap host or truncated page count fails closed');
+  const sample='<urlset>'+Array.from({length:50},(_,i)=>
+    '<url><loc>https://voy-pro.com/page-'+i+'/</loc></url>').join('')+'</urlset>';
+  const validSample='<?xml version="1.0"?>'+sample;
+  assert.equal(sitemapProbes(validSample).length,50);
+  assert.throws(()=>sitemapProbes(validSample.replace('https://voy-pro.com/page-1/',
+    'https://evil.example/page-1/')),'Sitemap cannot introduce off-host requests');
+  assert.throws(()=>sitemapProbes(validSample.replace('https://voy-pro.com/page-1/',
+    'https://voy-pro.com/page-0/')),'Sitemap cannot reuse an existing URL');
+  assert.throws(()=>sitemapProbes(validSample.replace('https://voy-pro.com/page-1/',
+    'https://voy-pro.com/page-1/?token=secret')),'Sitemap cannot add query strings');
+  assert.throws(()=>sitemapProbes(validSample.replace('https://voy-pro.com/page-1/',
+    'https://voy-pro.com/page-1/#booking')),'Sitemap cannot add fragments');
   const pass=await audit(fetchMock,small);
   assert.equal(pass.failed,0,report(pass));
   assert.equal(pass.passed,4);
@@ -141,6 +195,9 @@ async function test(){
   fixtures.set('https://www.voy-pro.com/',()=>new Response(null,{status:308,headers:{location:'https://voy-pro.com/'}}));
   fixtures.set('https://voy-pro.com/budapest/',()=>new Response('Nope',{status:404}));
   assert.equal((await audit(fetchMock,small)).failed,1,'Missing public page must fail');
+  fixtures.set('https://voy-pro.com/budapest/',()=>new Response(null,{status:308,
+    headers:{location:'https://voy-pro.com/'}}));
+  assert.equal((await audit(fetchMock,small)).failed,1,'Redirect to the homepage cannot hide a missing route');
   assert.throws(()=>checkedUrl('https://voy-pro.com/?token=secret'),'Queries are not an audit target');
   console.log('Live Staging HTTP audit unit tests pass: redirects, public allowlist, headers, robots, missing pages.');
 }
