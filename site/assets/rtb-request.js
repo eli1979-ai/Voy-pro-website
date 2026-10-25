@@ -162,8 +162,15 @@
   languageField.addEventListener('change',updateEnglishAlternative);
   updateEnglishAlternative();
   const dateField=form.querySelector('[name="requested_date"]');
-  dateField.min=budapestToday();
-  dateField.max=budapestLastRequestDate();
+  // A guest may reopen a long-lived request tab after Budapest midnight.
+  // Refresh the displayed bounds on date focus as well as at submission;
+  // retain the exact 180-day relay limit and the guest's selected date.
+  const refreshDateLimits=()=>{
+    dateField.min=budapestToday();
+    dateField.max=budapestLastRequestDate();
+  };
+  refreshDateLimits();
+  dateField.addEventListener('focus',refreshDateLimits);
   const submitButton=form.querySelector('button[type="submit"]');
   const feedback=form.querySelector('.voy-rtb-feedback');
   // Keep visible guest details fixed while the exact immutable POST is in
@@ -199,8 +206,7 @@
   form.addEventListener('submit',async event=>{
     event.preventDefault();
     if(inFlight||successful)return;
-    dateField.min=budapestToday();
-    dateField.max=budapestLastRequestDate();
+    refreshDateLimits();
     feedback.textContent='';
     feedback.classList.remove('voy-rtb-success');
     form.querySelector('[data-rtb-manual]')?.remove();
