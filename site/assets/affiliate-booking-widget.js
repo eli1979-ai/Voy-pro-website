@@ -51,7 +51,7 @@
     // injected into HTML; all dynamic text uses textContent/createElement.
     root.innerHTML=`
       <style>
-        :host{display:block;--accent:#125789;--ink:#1b2934;--line:#cddae5;font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+        :host{display:block;direction:ltr;--accent:#125789;--ink:#1b2934;--line:#cddae5;font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
         *{box-sizing:border-box}
         .card{border:1px solid var(--line);border-radius:16px;padding:clamp(14px,3vw,24px);max-width:760px;background:#fff;box-shadow:0 8px 30px #102a4014}
         h2{font-size:1.3rem;margin:0 0 4px}h3{font-size:1.08rem;margin:4px 0 12px}
