@@ -81,6 +81,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
   };
   mountEl.attachShadow=()=>root;
   const requests={
+    '/api/v1/destinations/budapest':{booking_horizon_days:21},
     '/api/v1/experiences?destination=budapest':[
       {id:'exp_bud_buda',title:'Buda Tour',priceFrom:70,currency:'EUR',
         bookingEnabled:true,privateAllowed:true,privateMinRiders:2,
@@ -206,7 +207,15 @@ async function flush(){
 {
   const app=mount();
   await flush();
-  assert.equal(app.calls[0].key,'/api/v1/experiences?destination=budapest');
+  assert(app.calls.some(c=>c.key==='/api/v1/experiences?destination=budapest'),
+    'Widget must fetch the server-owned tour catalog');
+  assert(app.calls.some(c=>c.key==='/api/v1/destinations/budapest'),
+    'Widget must request the canonical Budapest date horizon');
+  const dateField=app.search.elements.date;
+  const days=Math.round((Date.parse(dateField.max+'T12:00:00Z')-
+    Date.parse(dateField.min+'T12:00:00Z'))/86400000);
+  assert.equal(days,21,'Date max must derive from the server horizon as calendar days');
+  assert.equal(dateField.value,dateField.min,'Current Budapest date remains initially selected');
   app.search.elements.experience.value='exp_bud_buda';
   await app.search.elements.experience.trigger('change');
   app.search.elements.language.value='he';
