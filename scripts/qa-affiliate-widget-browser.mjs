@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -89,9 +89,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         starts_at:new Date(Date.now()-60000).toISOString(),sellable:true,requestable:false},
       {id:slotId,time:'10:00',starts_at:new Date(Date.now()+60000).toISOString(),
         sellable:!staffRequest,requestable:staffRequest}
-    ]:[{
-      id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest
-    }]};
+    ]:[
+      {id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest},
+      ...(switchSlotAfterExtras?[{id:'44444444-4444-4444-8444-444444444444',
+        time:'11:00',sellable:true,requestable:false}]:[])
+    ]};
     else if(path==='/api/v1/promotions/validate')
       data={valid:payload?.code==='TESTPARTNER',code:'TESTPARTNER'};
     else if(path==='/api/v1/quotes'){
@@ -316,6 +318,18 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         name+' selected optional rental has an FBM-requoted total');
       check(!await root.locator('#confirmButton').isDisabled(),
         name+' validated extra reprice restores the submit control');
+      if(switchSlotAfterExtras){
+        await root.locator('#slots button').nth(1).click();
+        await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
+        await root.locator('#price').getByText('€120.00',{exact:false}).waitFor({timeout:10000});
+        check(await root.locator('#extras input[data-product-id="extra-camera"]').inputValue()==='0',
+          name+' switching to second departure visually clears earlier ancillary quantity');
+        check(calls.filter(c=>c.path==='/api/v1/quotes').at(-1)?.payload?.extras?.length===0,
+          name+' next departure quote contains no extras from previous hold');
+        check(calls.filter(c=>c.path==='/api/v1/holds').at(-1)?.payload?.slot_id===
+          '44444444-4444-4444-8444-444444444444',
+          name+' new hold targets only the second departure');
+      }
     }
     check(staffRequest?!calls.some(c=>c.path==='/api/v1/holds'):
       calls.some(c=>c.path==='/api/v1/holds'&&c.payload?.guide_language==='he'),
@@ -325,6 +339,16 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
     await root.locator('#confirmButton').click();
+    if(switchSlotAfterExtras){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const posts=calls.filter(c=>c.path==='/api/v1/bookings');
+      check(posts.length===1&&Array.isArray(posts[0]?.payload?.extras)&&
+        posts[0].payload.extras.length===0,
+        name+' confirmed booking payload cannot contain stale ancillary from previous slot');
+      check(errors.length===0,name+' no JS errors on cross-departure ancillary reset');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(malformedStaffReply){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const receipt=await root.locator('#success').innerText();
@@ -508,6 +532,8 @@ try{
   await run('desktop-quote-with-missing-total',{badQuote:'missing-total'});
   await run('mobile-quote-with-invalid-currency',{mobile:true,badQuote:'invalid-currency'});
   await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
+  await run('desktop-switch-departure-clears-extras',{withExtras:true,switchSlotAfterExtras:true});
+  await run('mobile-switch-departure-clears-extras',{mobile:true,withExtras:true,switchSlotAfterExtras:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
