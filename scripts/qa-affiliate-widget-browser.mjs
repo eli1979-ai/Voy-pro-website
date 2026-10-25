@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -90,7 +90,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       {id:slotId,time:'10:00',starts_at:new Date(Date.now()+60000).toISOString(),
         sellable:!staffRequest,requestable:staffRequest}
     ]:[
-      {id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest},
+      {id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest,
+        ...(departureStartsBeforeSubmit?{starts_at:new Date(Date.now()+60000).toISOString()}: {})},
       ...(switchSlotAfterExtras?[{id:'44444444-4444-4444-8444-444444444444',
         time:'11:00',sellable:true,requestable:false}]:[])
     ]};
@@ -342,6 +343,14 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="email"]').fill('fixture@example.invalid');
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
+    if(departureStartsBeforeSubmit){
+      // User opened checkout while the departure was in the future. Advance
+      // browser-only clock beyond starts_at, leaving FBM fixtures unchanged.
+      await page.evaluate(()=>{
+        const originalNow=Date.now;
+        Date.now=()=>originalNow()+2*60*1000;
+      });
+    }
     if(quoteExpiresBeforeConfirmation){
       // The quote and hold are separate. Advance only the test browser clock
       // beyond the short quote deadline, but before the 10-minute hold TTL.
@@ -351,6 +360,31 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       });
     }
     await root.locator('#confirmButton').click();
+    if(departureStartsBeforeSubmit){
+      await root.locator('#status.error').waitFor({timeout:10000});
+      const message=await root.locator('#status').innerText();
+      check(message.includes('departure has already started'),
+        name+' departed slot rejected again at confirmation time');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#slots button').count()===0&&
+        await root.locator('#confirmButton').isDisabled(),
+        name+' expired departure no longer has actionable checkout or stale slots');
+      check(!calls.some(c=>c.path==='/api/v1/bookings'||
+        c.path==='/api/v1/booking-capacity-requests'||c.path==='/api/v1/payments/intents'),
+        name+' past departure cannot send booking, staff request or payment');
+      if(!staffRequest){
+        for(let i=0;i<25&&!calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/'));i++)
+          await new Promise(done=>setTimeout(done,20));
+        check(calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+          name+' stale paid departure releases unused hold via FBM');
+      }else{
+        check(!calls.some(c=>c.path==='/api/v1/holds'),
+          name+' pending staff request never reserves a hold');
+      }
+      check(errors.length===0,name+' no JS error after departure starts before final submit');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(quoteExpiresBeforeConfirmation){
       await root.locator('#status.error').waitFor({timeout:10000});
       const message=await root.locator('#status').innerText();
@@ -562,6 +596,8 @@ try{
   await run('mobile-quote-with-expired-expiry',{mobile:true,badQuote:'expired-expiry'});
   await run('desktop-quote-expires-before-hold',{quoteExpiresBeforeConfirmation:true});
   await run('mobile-quote-expires-before-hold',{mobile:true,quoteExpiresBeforeConfirmation:true});
+  await run('desktop-departure-starts-before-confirm',{departureStartsBeforeSubmit:true});
+  await run('mobile-departure-starts-before-staff-request',{mobile:true,staffRequest:true,departureStartsBeforeSubmit:true});
   await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
   await run('desktop-switch-departure-clears-extras',{withExtras:true,switchSlotAfterExtras:true});
   await run('mobile-switch-departure-clears-extras',{mobile:true,withExtras:true,switchSlotAfterExtras:true});
