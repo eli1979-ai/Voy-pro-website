@@ -152,6 +152,26 @@ async function scenario(lang,path,{catalogDown=false}={}){
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:9000});
     check(await guide.inputValue()==='',lang+' guide language is never silently chosen');
+    // Changing products must not silently reinterpret a previously chosen
+    // guiding language as consent to another one. Availability remains server-
+    // owned; these are UI-only transitions with the mocked public catalog.
+    await guide.selectOption('he');
+    await experience.selectOption('exp_bud_margaret');
+    check(!(await guide.locator('option').evaluateAll(opts=>opts.some(o=>o.value==='he'))),
+      lang+' switching to a tour without Hebrew removes unsupported language');
+    check(await guide.inputValue()==='',
+      lang+' unsupported guiding language is cleared instead of defaulting to English');
+    const beforeMissingGuide=calls.filter(c=>c.path.includes('/availability')).length;
+    await form.locator('button[type="submit"]').click();
+    check(calls.filter(c=>c.path.includes('/availability')).length===beforeMissingGuide,
+      lang+' switching tours without new guide choice cannot search availability');
+    await guide.selectOption('hu');
+    await experience.selectOption('exp_bud_buda');
+    check(await guide.inputValue()==='hu',
+      lang+' explicitly chosen language survives switch when both tours support it');
+    // Restore an empty required field for the original missing-language
+    // submission test. It must not inherit the choice from the switch tests.
+    await guide.selectOption('');
     check(await form.locator('button[type="submit"]').isEnabled(),lang+' search available with live catalog');
     const submit=form.locator('button[type="submit"]');
     await submit.click();
@@ -183,6 +203,15 @@ async function scenario(lang,path,{catalogDown=false}={}){
       lang+' unsellable and non-requestable slot is disabled');
     check(await page.locator('#slotlist button').nth(1).isEnabled(),
       lang+' sellable slot remains selectable');
+    // Guide language is part of the availability request. A changed language
+    // must invalidate sellable slots immediately; never reuse a former guide-
+    // specific result or proceed to a hold with an obsolete request.
+    await guide.selectOption(lang==='en'?'he':'en');
+    check(await page.locator('#slotlist button').count()===0,
+      lang+' changing guide language immediately clears previous sellable slots');
+    check((await page.locator('#availability-status').innerText()).length>10,
+      lang+' language change announces that a new availability search is needed');
+    await guide.selectOption(lang);
     // Do not click sellable departure: that could trigger a hold or checkout.
     await form.locator('[name="adults"]').selectOption('3');
     check(await page.locator('#slotlist button').count()===0,
