@@ -32,7 +32,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -105,7 +105,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     else if(path==='/api/v1/ancillary/offers')data=[];
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
-      data={reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null};
+      data=malformedBookingReply==='missing-reference'
+        ?{status:'confirmed',manage_token:null}
+        :malformedBookingReply==='missing-status'
+          ?{reference:'VOY-FAKE-CONFIRMED',manage_token:null}
+          :{reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null};
     }else if(path==='/api/v1/booking-capacity-requests'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       data={type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE'};
@@ -266,6 +270,26 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
     await root.locator('#confirmButton').click();
+    if(malformedBookingReply){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const result=await root.locator('#success').innerText();
+      check(result.includes('Booking status needs verification')&&
+        !result.includes('Your booking has been received')&&
+        !result.includes('Status: confirmed'),
+        name+' malformed 200 response never creates a fabricated booking receipt');
+      check(await root.locator('#status.error').count()===1&&
+        result.includes('Please contact VOY PRO before making another booking attempt.'),
+        name+' ambiguous successful HTTP reply gives explicit human reconciliation guidance');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#confirmButton').isDisabled(),
+        name+' no repeat booking is offered after unverifiable 200 reply');
+      check(calls.filter(c=>c.path==='/api/v1/bookings').length===1&&
+        !calls.some(c=>c.path==='/api/v1/holds/'+slotId),
+        name+' malformed receipt cannot spawn additional commercial actions');
+      check(errors.length===0,name+' no uncaught JavaScript errors in incomplete receipt case');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(holdExpiresDuringPost){
       for(let i=0;i<50&&!calls.some(c=>c.path==='/api/v1/bookings');i++)
         await new Promise(done=>setTimeout(done,20));
@@ -369,6 +393,8 @@ try{
   await run('mobile-booking-error-after-local-expiry',{mobile:true,holdExpiresDuringPost:'error'});
   await run('desktop-hold-with-missing-expiry',{badHold:'missing-expiry'});
   await run('mobile-hold-with-invalid-expiry',{mobile:true,badHold:'invalid-expiry'});
+  await run('desktop-booking-success-without-reference',{malformedBookingReply:'missing-reference'});
+  await run('mobile-booking-success-without-status',{mobile:true,malformedBookingReply:'missing-status'});
   await run('desktop-hold-already-expired',{badHold:'past-expiry'});
   await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
 }finally{
