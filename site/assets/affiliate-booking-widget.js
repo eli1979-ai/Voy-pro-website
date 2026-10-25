@@ -135,6 +135,19 @@
     }
     dateField.min=todayBudapest();
     dateField.value=dateField.min;
+    // FBM owns the Budapest booking horizon. Respect it in the date picker
+    // without hardcoding a number or preventing a catalog-only fallback when
+    // destination config is temporarily unavailable.
+    const applyDestinationHorizon=(destination)=>{
+      const days=destination?.booking_horizon_days;
+      if(!Number.isSafeInteger(days)||days<=0)return;
+      const budapestToday=todayBudapest();
+      const end=new Date(budapestToday+'T12:00:00Z');
+      end.setUTCDate(end.getUTCDate()+days);
+      if(!Number.isFinite(end.getTime()))return;
+      dateField.min=budapestToday;
+      dateField.max=end.toISOString().slice(0,10);
+    };
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
     let retryKey=null,expiryTimer=null,readyForOnline=false;
     const selectedExtras=new Map();
@@ -485,6 +498,9 @@
       $('#searchButton').disabled=true;return;}
     (async()=>{
       setBusy(true);setStatus('Loading live tours…');
+      // Date-horizon lookup must not hold up catalog or payment capability
+      // rendering. An unavailable config leaves the backend authoritative.
+      api('/destinations/budapest').then(applyDestinationHorizon).catch(()=>{});
       try{
         const [catalog,capabilities]=await Promise.all([
           api('/experiences?destination=budapest'),
