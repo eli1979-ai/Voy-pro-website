@@ -644,6 +644,14 @@
             completed=true;
             return;
           }
+          // An accepted staff request still has no fixed final price.
+          // But the FBM response must preserve this partner coupon in its
+          // server-calculated pricing attribution.
+          if(String(request.pricing?.promo_code_applied||'').trim().toUpperCase()!==affiliate){
+            showStaffAffiliateAttributionReviewResponse(request);
+            completed=true;
+            return;
+          }
           showRequestSuccess(request.reference);
           completed=true;
         }catch(error){
@@ -796,6 +804,19 @@
       box.append(textNode('p','Requested guiding language: '+guideLabel()));
       box.append(textNode('p','FBM did not verify that this language was recorded for your booking or staff request. Your request may already exist. Contact VOY PRO with the reference before submitting again.'));
       setStatus('Guiding language requires staff verification. Do not submit again.','error');
+    }
+    function showStaffAffiliateAttributionReviewResponse(request){
+      // Staff may have already received the request. Never send a second
+      // request or claim the partner discount/commission was recorded.
+      chosenSlot=null;quote=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Partner attribution needs verification'));
+      box.append(textNode('p','Request reference: '+request.reference));
+      box.append(textNode('p','Requested guiding language: '+guideLabel()));
+      box.append(textNode('p','Your request may already be with our team, but FBM did not confirm this partner offer was applied. No price or reservation is confirmed. Please contact VOY PRO with the reference before sending another request.'));
+      setStatus('Partner discount attribution needs staff review. Do not submit again.','error');
     }
     function showUnverifiedStaffRequestResponse(){
       // Staff requests reserve no vehicles and collect no payment, but a
