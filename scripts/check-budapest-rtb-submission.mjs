@@ -606,4 +606,33 @@ for(const [pageSlug,apiSlug] of routeMatrix){
 }
 console.log('Budapest RTB route/locale matrix OK: all 3 tour slugs × EN/HE/HU, 202 pending inquiry, disabled 404 WhatsApp, and throttled 429 retry.');
 
+// A long-lived RTB tab must update its local date picker before the guest
+// selects a date on the next Budapest day; focus never sends guest data.
+{
+  let clockMs=Date.parse('2026-10-23T12:00:00.000Z');
+  class AdjustableDate extends Date{
+    constructor(...args){super(...(args.length?args:[clockMs]));}
+    static now(){return clockMs;}
+  }
+  for(const route of [
+    '/budapest/tours/heroes-square-city-ezraider-tour/',
+    '/he/budapest/tours/citadella-advanced-ezraider-tour/',
+    '/hu/budapest/tours/buda-margaret-extended-tour/'
+  ]){
+    const b=browser(acknowledge,route,AdjustableDate);
+    const date=b.created.get('[name="requested_date"]');
+    const oldMin=date.min,oldMax=date.max;
+    assert.equal(oldMin,'2026-10-23',route+' initial Budapest minimum');
+    assert.equal(date.listeners.focus?.length,1,route+' date focus guard installed');
+    clockMs=Date.parse('2026-10-24T12:00:00.000Z');
+    date.listeners.focus[0]();
+    assert.equal(date.min,'2026-10-24',route+' date minimum refreshed on focus');
+    assert.ok(date.max>oldMax,route+' end of 180-day request range also advances');
+    assert.equal(b.requests.length,0,route+' date focus causes no request');
+    assert.equal(b.uuidCount,0,route+' date focus creates no idempotency key');
+    clockMs=Date.parse('2026-10-23T12:00:00.000Z');
+  }
+}
+console.log('Budapest RTB date picker focus refresh OK in EN/HE/HU; no POST or guest data.');
+
 console.log('Budapest RTB request UI: 202/404/400/409/503, consent, stable replay, new payload, double submit and network failure OK.');
