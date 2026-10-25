@@ -25,7 +25,7 @@ const check=(value,label)=>{
   if(value)lines.push('PASS: '+label);
   else{failures++;lines.push('FAIL: '+label);}
 };
-const tourId='exp_bud_buda',slotId='22222222-2222-4222-8222-222222222222';
+const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
 async function run(name,{mobile=false,staffRequest=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
@@ -51,7 +51,9 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     let data;
     if(path==='/api/v1/experiences?destination=budapest')
       data=[{id:tourId,title:'Buda Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
-        guideLanguages:['en','he'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
+        guideLanguages:['en','he'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12},
+        {id:alternateTourId,title:'Margaret Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
+          guideLanguages:['en','hu'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
     else if(path==='/api/v1/payments/capabilities')data={online_card:false};
     else if(path.includes('/availability?'))data={slots:[{
       id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest
@@ -92,11 +94,35 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     await root.locator('#searchButton').click();
     check(!calls.some(c=>c.path.includes('/availability?')),
       name+' native required validation blocks missing guide language');
+    // A partner switching products must make a fresh explicit guide-language
+    // choice. Never carry Hebrew into a product whose catalog lacks Hebrew.
+    await language.selectOption('he');
+    await experience.selectOption(alternateTourId);
+    check(await language.inputValue()===''&&await language.locator('option[value="he"]').count()===0,
+      name+' switching affiliate tour clears unsupported Hebrew without an English default');
+    await root.locator('#searchButton').click();
+    check(!calls.some(c=>c.path.includes('/availability?')),
+      name+' changed affiliate tour cannot search without a fresh guide choice');
+    await language.selectOption('hu');
+    await experience.selectOption(tourId);
+    check(await language.inputValue()===''&&await language.locator('option[value="hu"]').count()===0,
+      name+' returning to original affiliate tour clears unsupported Hungarian');
     await language.selectOption('he');
     await root.locator('#searchButton').click();
     const departure=root.locator('#slots button').first();
     await departure.waitFor({timeout:10000});
     check(calls.some(c=>c.path.includes('/availability?')),name+' catalog-valid request reaches mocked availability');
+    // Language-specific sellable/requestable departure results must be removed
+    // immediately when the guiding language changes, before any hold or CRM
+    // request can be issued from that stale result.
+    await language.selectOption('en');
+    check(await departure.count()===0,
+      name+' affiliate language change invalidates previously displayed departure');
+    await language.selectOption('he');
+    await root.locator('#searchButton').click();
+    await departure.waitFor({timeout:10000});
+    check(await departure.count()===1,
+      name+' searching with current language produces a fresh departure');
     await departure.click();
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
     check(staffRequest?!calls.some(c=>c.path==='/api/v1/holds'):
