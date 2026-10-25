@@ -475,8 +475,14 @@
             method:'POST',headers:{'idempotency-key':retryKey},body:requestBody,
           });
           if(version!==generation)return;
-          if(request?.type!=='booking_capacity_request'||request?.status!=='pending'||!request?.reference)
-            throw new Error('Request response could not be verified. Please contact VOY PRO.');
+          // A 2xx response with no verifiable pending reference may still
+          // represent a saved staff request. Do not retry or fabricate success.
+          if(request?.type!=='booking_capacity_request'||request?.status!=='pending'||
+            typeof request?.reference!=='string'||!request.reference.trim()){
+            showUnverifiedStaffRequestResponse();
+            completed=true;
+            return;
+          }
           showRequestSuccess(request.reference);
           completed=true;
         }catch(error){
@@ -559,6 +565,17 @@
           }
         }
       }
+    }
+    function showUnverifiedStaffRequestResponse(){
+      // Staff requests reserve no vehicles and collect no payment, but a
+      // malformed 2xx reply can still represent a saved CRM request.
+      chosenSlot=null;quote=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Staff request status needs verification'));
+      box.append(textNode('p','The service did not return a verifiable staff request reference. Your request may already have been received. Please contact VOY PRO before sending another request.'));
+      setStatus('Staff request outcome is uncertain. Contact VOY PRO before retrying.','error');
     }
     function showRequestSuccess(reference){
       // A capacity request creates no customer booking, payment or hold.
