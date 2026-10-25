@@ -496,6 +496,13 @@
       if(!staffRequest&&
         (!Number.isFinite(Date.parse(String(quote.expiresAt||'')))||
           Date.parse(String(quote.expiresAt||''))<=Date.now())){
+        // A previous final POST may already have committed despite a 503.
+        // After its quote expires, do NOT suggest a fresh booking or delete
+        // the hold, which may have been converted by the original request.
+        if(submittedIntent!==null){
+          showPreviouslySubmittedQuoteExpiredResponse();
+          return;
+        }
         // FBM issues separate quote and hold deadlines. A valid hold does not
         // authorize silently submitting a quote that has already expired.
         quote=null;chosenSlot=null;
@@ -670,6 +677,19 @@
       box.append(textNode('p','Reported status: '+booking.status));
       box.append(textNode('p','The confirmed price or partner discount could not be matched to the amount quoted. Your booking may already exist. Please contact VOY PRO with the reference above before making another booking attempt.'));
       setStatus('Final booking price or partner discount needs staff verification. Do not submit again.','error');
+    }
+    function showPreviouslySubmittedQuoteExpiredResponse(){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // The first request may have been accepted. Keep the possibly converted
+      // hold untouched and do not create a new idempotency key or booking.
+      hold=null;quote=null;chosenSlot=null;
+      $('#confirmButton').disabled=true;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Previous booking attempt needs verification'));
+      box.append(textNode('p','Your earlier confirmation attempt may already have created a booking, but its quoted price has now expired. Please contact VOY PRO to confirm the booking outcome before making another attempt.'));
+      setStatus('Earlier booking attempt may have succeeded. Do not submit a new booking before checking with VOY PRO.','error');
     }
     function showUnverifiedBookingResponse(){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
