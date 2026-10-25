@@ -247,7 +247,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         picker.value===oldDate,name+' reopening calendar after midnight updates its FBM range before search');
       check(!calls.some(c=>c.path.includes('/availability?')),
         name+' picker focus causes no availability or commercial API request');
-      await root.locator('#searchButton').click();
+      check(await dateField.evaluate(el=>el.validity.rangeUnderflow),
+        name+' browser natively prevents a previously selected past date');
+      // Native invalid inputs suppress the browser submit event. Invoke the
+      // submit handler directly as well to verify the independent app guard.
+      await root.locator('#search').evaluate(form=>
+        form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
       const fresh=await dateField.evaluate(el=>({min:el.min,max:el.max,value:el.value}));
       check(fresh.min==='2026-10-26'&&fresh.max==='2026-11-16'&&
         fresh.value==='2026-10-25',name+' refreshed FBM 21-day date bounds without silently changing selection');
