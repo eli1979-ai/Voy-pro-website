@@ -355,6 +355,10 @@
         }});
         if(version!==generation){await api('/holds/'+encodeURIComponent(held.id),{method:'DELETE'}).catch(()=>{});return;}
         hold=held;
+        const expiresAt=new Date(held?.expires_at).getTime();
+        if(typeof held?.id!=='string'||!held.id.trim()||
+          !Number.isFinite(expiresAt)||expiresAt<=Date.now())
+          throw new Error('The booking hold could not be verified. Please choose another departure.');
         if(held.requires_staff_confirmation)throw new Error('This departure requires staff confirmation.');
         offers=await api('/ancillary/offers',{method:'POST',body:{slot_id:held.departure_id||slot.id}}).catch(()=>[]);
         if(version!==generation)return;
