@@ -259,7 +259,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await date.inputValue()==='2000-01-01',name+' invalid preferred date stays editable');
       // Reproduce a mobile/desktop Marvão tab left open into the next Lisbon
       // calendar day. This cannot navigate to WhatsApp or contact real APIs.
-      await page.clock.setFixedTime(new Date('2026-10-25T23:01:30.000Z'));
+      await page.clock.setFixedTime(new Date('2026-10-26T00:01:30.000Z'));
       await date.fill('2026-10-25');
       await date.blur();
       await date.focus();
