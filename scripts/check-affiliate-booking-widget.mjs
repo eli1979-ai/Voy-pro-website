@@ -112,6 +112,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     }
     if(key==='/api/v1/holds'&&payload)return {
       id:'33333333-3333-4333-8333-333333333333',departure_id:payload.slot_id,
+      requested_slot_id:payload.slot_id,guide_language:payload.guide_language,
       expires_at:expires,is_private:payload.is_private,requires_staff_confirmation:false,
     };
     if(key==='/api/v1/ancillary/offers')return [{
