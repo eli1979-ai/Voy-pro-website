@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -92,7 +92,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     ]:[
       {id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest,
         ...(departureStartsBeforeSubmit?{starts_at:new Date(Date.now()+60000).toISOString()}: {})},
-      ...(switchSlotAfterExtras?[{id:'44444444-4444-4444-8444-444444444444',
+      ...(switchSlotAfterExtras||slowHoldReleaseSwitch?[{id:'44444444-4444-4444-8444-444444444444',
         time:'11:00',sellable:true,requestable:false}]:[])
     ]};
     else if(path==='/api/v1/promotions/validate')
@@ -134,8 +134,10 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
           ?{type:'booking_capacity_request',status:'approved',reference:'VP-CAP-FAKE'}
           :{type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE'};
     }
-    else if(method==='DELETE'&&path.startsWith('/api/v1/holds/'))
+    else if(method==='DELETE'&&path.startsWith('/api/v1/holds/')){
+      if(slowHoldReleaseSwitch)await new Promise(done=>setTimeout(done,650));
       return route.fulfill({status:204,headers:h,body:''});
+    }
     else return route.fulfill({status:500,headers:{...h,'content-type':'application/json'},
       body:JSON.stringify({error:'Unmocked API route'})});
     return route.fulfill({status:200,headers:{...h,'content-type':'application/json'},
@@ -310,6 +312,27 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       return;
     }
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
+    if(slowHoldReleaseSwitch){
+      const promoCount=calls.filter(c=>c.path==='/api/v1/promotions/validate').length;
+      await root.locator('#slots button').nth(1).click();
+      for(let i=0;i<50&&!calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/'));i++)
+        await new Promise(done=>setTimeout(done,20));
+      check(calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+        name+' old departure hold release starts before changing guide language');
+      await language.selectOption('en');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#slots button').count()===0,
+        name+' guide language change immediately invalidates departure/checkout');
+      await new Promise(done=>setTimeout(done,800));
+      check(calls.filter(c=>c.path==='/api/v1/promotions/validate').length===promoCount&&
+        !calls.some(c=>c.path==='/api/v1/holds'&&c.payload?.slot_id==='44444444-4444-4444-8444-444444444444'),
+        name+' late hold release cannot revive old departure or request its promo and hold');
+      check((await root.locator('#status').innerText()).includes('Selection changed. Check availability again.'),
+        name+' previous asynchronous selection cannot overwrite current feedback');
+      check(errors.length===0,name+' no JavaScript exceptions in delayed hold-release race');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(withExtras){
       const qty=root.locator('#extras input[data-product-id="extra-camera"]');
       await qty.fill('1');
@@ -601,6 +624,8 @@ try{
   await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
   await run('desktop-switch-departure-clears-extras',{withExtras:true,switchSlotAfterExtras:true});
   await run('mobile-switch-departure-clears-extras',{mobile:true,withExtras:true,switchSlotAfterExtras:true});
+  await run('desktop-change-guide-during-hold-release',{slowHoldReleaseSwitch:true});
+  await run('mobile-change-guide-during-hold-release',{mobile:true,slowHoldReleaseSwitch:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
