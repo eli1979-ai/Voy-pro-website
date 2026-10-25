@@ -169,7 +169,9 @@ async function scenario(lang,path,{catalogDown=false}={}){
     await experience.selectOption('exp_bud_buda');
     check(await guide.inputValue()==='hu',
       lang+' explicitly chosen language survives switch when both tours support it');
-    await guide.selectOption(lang);
+    // Restore an empty required field for the original missing-language
+    // submission test. It must not inherit the choice from the switch tests.
+    await guide.selectOption('');
     check(await form.locator('button[type="submit"]').isEnabled(),lang+' search available with live catalog');
     const submit=form.locator('button[type="submit"]');
     await submit.click();
