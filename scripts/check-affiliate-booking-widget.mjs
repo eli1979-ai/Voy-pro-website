@@ -102,7 +102,8 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       const data={
         promo_code_applied:wrongPartnerQuote?'OTHERPARTNER':payload.promo_code,
         total:payload.is_private?180:120,discount:20,
-        currency:'EUR',lines:[{type:'discount',label:'Partner discount',line_total_minor:-2000}],
+        currency:'EUR',expiresAt:new Date(Date.now()+10*60*1000).toISOString(),
+        lines:[{type:'discount',label:'Partner discount',line_total_minor:-2000}],
       };
       if(payload.extras?.length)data.total+=10;
       return data;
