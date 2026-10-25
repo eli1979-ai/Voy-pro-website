@@ -534,12 +534,24 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       const endpoint=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
       const first=calls.filter(c=>c.path===endpoint);
       check(first.length===1,name+' simulated transient failure sends exactly one final POST');
-      check(!await experience.isDisabled()&&!await language.isDisabled()&&
-        !await dateField.isDisabled()&&!await root.locator('#changeButton').isDisabled()&&
+      check(await experience.isDisabled()&&await language.isDisabled()&&
+        await dateField.isDisabled()&&await root.locator('#changeButton').isDisabled()&&
+        await root.locator('#searchButton').isDisabled()&&
+        await root.locator('#slots button').first().isDisabled()&&
         !await root.locator('#confirmButton').isDisabled(),
-        name+' rejected final POST restores tour, language, date and booking controls');
+        name+' uncertain final POST prevents a new search/departure while keeping same-key retry available');
       check(await root.locator('#checkout:not(.hidden)').count()===1,
-        name+' failed request keeps original checkout details visible for retry');
+        name+' failed request keeps original checkout details visible for same-key retry');
+      const callsBeforeGuard=calls.length;
+      await root.locator('#changeButton').evaluate(el=>el.dispatchEvent(
+        new MouseEvent('click',{bubbles:true,cancelable:true})));
+      await root.locator('#search').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      await root.locator('#slots button').first().evaluate(el=>el.dispatchEvent(
+        new MouseEvent('click',{bubbles:true,cancelable:true})));
+      check(calls.length===callsBeforeGuard&&
+        await root.locator('#checkout:not(.hidden)').count()===1,
+        name+' scripted click/submit cannot delete converted hold or create a second departure after ambiguous POST');
       if(quoteExpiresAfterFailedPost){
         await page.evaluate(()=>{
           const realNow=Date.now;
