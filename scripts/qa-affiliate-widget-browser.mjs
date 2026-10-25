@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -110,7 +110,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     }
     else if(path==='/api/v1/holds')data={
       ...(badHold==='missing-id'?{}:{id:'33333333-3333-4333-8333-333333333333'}),
-      departure_id:slotId,
+      departure_id:allocatedHold?'55555555-5555-4555-8555-555555555555':(payload?.slot_id||slotId),
+      ...(badHold==='missing-requested-slot'?{}:{requested_slot_id:badHold==='wrong-requested-slot'
+        ?'66666666-6666-4666-8666-666666666666':(payload?.slot_id||slotId)}),
+      guide_language:badHold==='wrong-guide-language'?'en':
+        badHold==='missing-guide-language'?null:payload?.guide_language,
       ...(badHold==='missing-expiry'?{}:{expires_at:badHold==='invalid-expiry'?'not-a-date':
         new Date(Date.now()+(badHold==='past-expiry'?-60000:600000)).toISOString()}),
       requires_staff_confirmation:false
@@ -316,6 +320,15 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       return;
     }
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
+    if(allocatedHold){
+      check(calls.some(c=>c.path==='/api/v1/holds'&&c.payload?.slot_id===slotId),
+        name+' customer requested slot retains its identity on FBM hold creation');
+      check(calls.some(c=>c.path==='/api/v1/ancillary/offers'&&
+        c.payload?.slot_id==='55555555-5555-4555-8555-555555555555'),
+        name+' canonical allocated departure is used only for inventory-linked ancillary offers');
+      check(await root.locator('#checkout:not(.hidden)').count()===1,
+        name+' valid FBM inventory reallocation does not incorrectly block checkout');
+    }
     if(slowHoldReleaseSwitch){
       const promoCount=calls.filter(c=>c.path==='/api/v1/promotions/validate').length;
       await root.locator('#slots button').nth(1).click();
@@ -676,6 +689,11 @@ try{
   await run('mobile-staff-request-with-wrong-status',{mobile:true,staffRequest:true,malformedStaffReply:'wrong-status'});
   await run('desktop-hold-already-expired',{badHold:'past-expiry'});
   await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
+  await run('desktop-hold-with-wrong-requested-slot',{badHold:'wrong-requested-slot'});
+  await run('mobile-hold-with-missing-requested-slot',{mobile:true,badHold:'missing-requested-slot'});
+  await run('desktop-hold-with-wrong-guide-language',{badHold:'wrong-guide-language'});
+  await run('mobile-hold-with-missing-guide-language',{mobile:true,badHold:'missing-guide-language'});
+  await run('desktop-legitimate-reallocated-hold',{allocatedHold:true});
   await run('desktop-wordpress-rtl-embed',{wpRtl:true});
   await run('mobile-wordpress-rtl-staff-request',{mobile:true,staffRequest:true,wpRtl:true});
   await run('desktop-quote-with-missing-total',{badQuote:'missing-total'});
