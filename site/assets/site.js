@@ -396,13 +396,22 @@
     const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
     const routeSelect=form.querySelector('[name="route"]');
     const dateInput=form.querySelector('[name="date"]');
-    if(dateInput)dateInput.min=portugalDate(0);
+    // WordPress, browser back/forward and mobile tabs can stay open overnight.
+    // Use the local Lisbon calendar date for the visible picker and validation.
+    const syncPortugalRequestDateMin=()=>{
+      const today=portugalDate(0);
+      if(dateInput)dateInput.min=today;
+      return today;
+    };
+    syncPortugalRequestDateMin();
+    dateInput?.addEventListener('focus',syncPortugalRequestDateMin);
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
       if(routeSelect&&routeNames[route])routeSelect.value=route;
     }));
     form.addEventListener('submit',async e=>{
       e.preventDefault();
+      const today=syncPortugalRequestDateMin();
       const f=new FormData(form);
       const route=String(f.get('route')||'').trim();
       const date=String(f.get('date')||'').trim();
@@ -415,7 +424,7 @@
         if(status)status.textContent=labels.missing;
         return;
       }
-      if(date<portugalDate(0)){
+      if(date<today){
         if(status)status.textContent=labels.past;
         dateInput?.focus({preventScroll:true});
         return;
