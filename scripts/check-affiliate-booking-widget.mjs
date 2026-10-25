@@ -90,6 +90,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     '/api/v1/payments/capabilities':{online_card:false},
   };
   let held=false;
+  let acceptedQuote=null;
   let expires=new Date(Date.now()+15*60*1000).toISOString();
   const responseFor=(key,payload)=>{
     if(key.includes('/availability?')){
@@ -106,6 +107,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
         lines:[{type:'discount',label:'Partner discount',line_total_minor:-2000}],
       };
       if(payload.extras?.length)data.total+=10;
+      acceptedQuote=data;
       return data;
     }
     if(key==='/api/v1/holds'&&payload)return {
@@ -118,6 +120,8 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     }];
     if(key==='/api/v1/bookings')return {
       reference:'VOY-MOCK-BOOKING',status:'confirmed',manage_token:'not-a-real-token',
+      total:acceptedQuote?.total,discount:acceptedQuote?.discount,
+      currency:acceptedQuote?.currency,promo_code_applied:payload.promo_code,
     };
     if(key==='/api/v1/booking-capacity-requests')return {
       type:'booking_capacity_request',status:'pending',reference:'VP-CAP-TEST',
