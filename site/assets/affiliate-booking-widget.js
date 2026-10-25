@@ -150,9 +150,28 @@
     };
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
     let retryKey=null,expiryTimer=null,readyForOnline=false;
+    let submissionLock=null;
     const selectedExtras=new Map();
     const setStatus=(message='',kind='')=>{status.textContent=message;status.className='status '+kind;};
-    const setBusy=(value)=>{loading=value;$('#searchButton').disabled=value;$('#confirmButton').disabled=value;};
+    const setBusy=(value)=>{
+      loading=value;
+      $('#searchButton').disabled=Boolean(value||submissionLock);
+      $('#confirmButton').disabled=Boolean(value||submissionLock);
+    };
+    // Final POST can succeed after the user changes an in-flight selection.
+    // Freeze the original intent until the server responds, preserving previous
+    // disabled states (e.g. a tour without private booking).
+    const lockFinalSubmission=()=>{
+      if(submissionLock)return;
+      const controls=[...form.querySelectorAll('input,select'),...customer.querySelectorAll('input,select'),$('#changeButton')];
+      submissionLock=controls.map(control=>[control,control.disabled]);
+      controls.forEach(control=>{control.disabled=true;});
+    };
+    const unlockFinalSubmission=()=>{
+      if(!submissionLock)return;
+      const locked=submissionLock;submissionLock=null;
+      locked.forEach(([control,disabled])=>{control.disabled=disabled;});
+    };
     const textNode=(name,value)=>{const el=document.createElement(name);el.textContent=String(value);return el;};
     const composition=()=>({
       riders_16_plus:Number(form.elements.riders.value),
@@ -184,6 +203,7 @@
       return !Number.isFinite(start)||start<=Date.now();
     };
     function invalidate(){
+      if(submissionLock)return;
       generation++;
       if(expiryTimer)clearInterval(expiryTimer);
       expiryTimer=null;
@@ -403,7 +423,9 @@
       if(!staffRequest&&!['pay_arrival_card','pay_arrival_cash','pay_now_card'].includes(method))return;
       if(!retryKey)retryKey=crypto.randomUUID();
       if(staffRequest){
-        const version=generation;setBusy(true);setStatus('Sending your staff-confirmation request…');
+        const version=generation;
+        let completed=false;
+        lockFinalSubmission();setBusy(true);setStatus('Sending your staff-confirmation request…');
         try{
           const request=await api('/booking-capacity-requests',{
             method:'POST',headers:{'idempotency-key':retryKey},
@@ -418,9 +440,15 @@
           if(request?.type!=='booking_capacity_request'||request?.status!=='pending'||!request?.reference)
             throw new Error('Request response could not be verified. Please contact VOY PRO.');
           showRequestSuccess(request.reference);
+          completed=true;
         }catch(error){
           if(version===generation)setStatus(error.message||'Request could not be submitted. Please retry.','error');
-        }finally{if(version===generation)setBusy(false);}
+        }finally{
+          if(version===generation){
+            if(!completed)unlockFinalSubmission();
+            setBusy(false);
+          }
+        }
         return;
       }
       const submission={
@@ -429,7 +457,9 @@
         extras,
         customer:{full_name:name,email,phone,preferred_language:'en'},
       };
-      const version=generation;setBusy(true);setStatus('Confirming your booking securely…');
+      const version=generation;
+      let completed=false;
+      lockFinalSubmission();setBusy(true);setStatus('Confirming your booking securely…');
       try{
         if(method==='pay_now_card'){
           const pay=await api('/payments/intents',{method:'POST',headers:{'idempotency-key':retryKey},
@@ -437,6 +467,7 @@
           if(version!==generation)return;
           if(pay.status==='completed'){
             showSuccess(pay.booking_reference||pay.booking_id,'Payment confirmed',null);
+            completed=true;
             return;
           }
           const address=new URL(pay.checkout_url||'',location.href);
@@ -444,6 +475,7 @@
             throw new Error('Secure card checkout is not currently available.');
           // Stripe is the only allowed external checkout. No payment card
           // details are ever collected in the partner page or this widget.
+          completed=true;
           location.assign(address.href);
           return;
         }
@@ -451,8 +483,14 @@
           body:{...submission,payment_method:method}});
         if(version!==generation)return;
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
+        completed=true;
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
-      finally{if(version===generation)setBusy(false);}
+      finally{
+        if(version===generation){
+          if(!completed)unlockFinalSubmission();
+          setBusy(false);
+        }
+      }
     }
     function showRequestSuccess(reference){
       // A capacity request creates no customer booking, payment or hold.
