@@ -178,7 +178,7 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}
       check(calls.some(c=>c.path.includes('/availability?')&&c.path.includes('date=2026-10-26')),
         lang+' corrected Budapest date searches canonical mocked availability');
       check(!calls.some(c=>
-        /^\/(?:holds|quotes|bookings)(?:\/?|\?|$)/.test(c.path)||
+        /^\/(?:holds|quotes|bookings)(?:[/?]|$)/.test(c.path)||
         (/^\/payments\//.test(c.path)&&!c.path.startsWith('/payments/capabilities'))),
         lang+' midnight test never attempts hold, booking or payment');
       check(pageErrors.length===0,lang+' overnight validation creates no JS exceptions');
