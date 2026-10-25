@@ -2203,7 +2203,8 @@
       return today;
     };
     if(dateInput){
-      dateInput.value=dateInput.value||refreshAvailabilityDateBounds();
+      const today=refreshAvailabilityDateBounds();
+      if(!dateInput.value)dateInput.value=today;
       dateInput.addEventListener('focus',refreshAvailabilityDateBounds);
     }
     ensurePrivateUpgrade(form);
