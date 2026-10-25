@@ -356,6 +356,9 @@
       setBusy(true);
       const version=++generation;
       await releaseHold();
+      // Network cleanup can take time. If tour, guide language or party size
+      // changed while deleting the prior hold, do not revive the stale slot.
+      if(version!==generation)return;
       selectedExtras.clear();extras=[];offers=[];
       chosenSlot=slot;
       $('#checkout').classList.add('hidden');
