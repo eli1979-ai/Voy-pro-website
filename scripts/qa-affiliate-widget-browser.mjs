@@ -124,6 +124,10 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       requires_staff_confirmation:false
     };
     else if(path==='/api/v1/ancillary/offers'){
+      if(badOffers==='unavailable')return route.fulfill({
+        status:503,headers:{...h,'content-type':'application/json'},
+        body:JSON.stringify({error:'Synthetic optional extras outage'})
+      });
       data=withExtras||badOffers?[{
         product_id:'extra-camera',name:'Camera rental',price_minor:1000,
         max_per_booking:3,available_quantity:3,currency:'EUR',product_kind:'rental'
@@ -712,6 +716,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 try{
   await run('desktop-booking');
   await run('desktop-ancillary-missing-price',{badOffers:'missing-price'});
+  await run('desktop-ancillary-service-unavailable',{badOffers:'unavailable'});
+  await run('mobile-ancillary-service-unavailable',{mobile:true,badOffers:'unavailable'});
   await run('mobile-ancillary-invalid-limit',{mobile:true,badOffers:'invalid-limit'});
   await run('desktop-ancillary-cross-currency',{badOffers:'currency-mismatch'});
   await run('mobile-ancillary-duplicate-product',{mobile:true,badOffers:'duplicate-product'});
