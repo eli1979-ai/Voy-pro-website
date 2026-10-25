@@ -978,3 +978,12 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
     min-block-size:48px;
   }
 }
+
+/* Desktop Budapest landing: preallocate the complete height of its verified
+   800x1200 portrait hero before image decoding. This retains the original
+   full-image/contain treatment (no cropping or changed media assets). */
+@media(min-width:801px){
+  body[data-page$="/budapest/"] .hero-card[data-media-slot="hero"]{
+    aspect-ratio:2/3;
+  }
+}
