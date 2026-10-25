@@ -202,6 +202,17 @@
       const locked=submissionLock;submissionLock=null;
       locked.forEach(([control,disabled])=>{control.disabled=disabled;});
     };
+    // An attempted commercial POST may have committed even when the response
+    // was 503/network failure. Permit only the exact same-key retry; never
+    // release the possibly converted hold or start a second departure.
+    const freezeNewSelectionAfterSubmission=()=>{
+      if(submittedIntent===null)return;
+      const controls=[...form.querySelectorAll('input,select'),
+        ...$('#extras').querySelectorAll('input,select'),
+        ...$('#slots').querySelectorAll('button'),
+        $('#searchButton'),$('#changeButton')];
+      controls.forEach(control=>{control.disabled=true;});
+    };
     const textNode=(name,value)=>{const el=document.createElement(name);el.textContent=String(value);return el;};
     const composition=()=>({
       riders_16_plus:Number(form.elements.riders.value),
@@ -234,6 +245,11 @@
     };
     function invalidate(){
       if(submissionLock)return;
+      if(submittedIntent!==null){
+        freezeNewSelectionAfterSubmission();
+        setStatus('A previous booking or staff request may already have been received. Retry only the same request or contact VOY PRO before changing your selection.','error');
+        return;
+      }
       generation++;
       if(expiryTimer)clearInterval(expiryTimer);
       expiryTimer=null;
@@ -304,6 +320,12 @@
         qty.max=String(Math.max(0,Math.min(12,Number(offer.max_per_booking??12),Number(offer.available_quantity??12))));
         qty.value='0';qty.setAttribute('aria-label',offer.name+' quantity');
         qty.addEventListener('change',()=>{
+          if(submittedIntent!==null){
+            qty.value=String(selectedExtras.get(offer.product_id)||0);
+            freezeNewSelectionAfterSubmission();
+            setStatus('A previous booking attempt may already have been received. Do not change paid extras before checking with VOY PRO.','error');
+            return;
+          }
           if(submissionLock){
             qty.value=String(selectedExtras.get(offer.product_id)||0);
             return;
@@ -349,6 +371,11 @@
       },1000);
     }
     async function selectSlot(slot){
+      if(submittedIntent!==null){
+        freezeNewSelectionAfterSubmission();
+        setStatus('Your previous request may already be recorded. Retry the identical request or contact VOY PRO before choosing another departure.','error');
+        return;
+      }
       if(loading||!requireSelectedGuideLanguage())return;
       // Choosing a different departure must also discard extras from the
       // previous hold. The re-rendered quantities start at zero; retaining the
@@ -423,6 +450,11 @@
     }
     async function loadAvailability(event){
       event.preventDefault();
+      if(submittedIntent!==null){
+        freezeNewSelectionAfterSubmission();
+        setStatus('The previous submission may already have been received. Please retry the original request or contact VOY PRO before searching again.','error');
+        return;
+      }
       if(loading||!requireSelectedGuideLanguage())return;
       invalidate();
       const version=generation;
@@ -553,6 +585,7 @@
           if(version===generation){
             if(!completed)unlockFinalSubmission();
             setBusy(false);
+            if(!completed)freezeNewSelectionAfterSubmission();
           }
         }
         return;
@@ -626,6 +659,7 @@
         if(version===generation){
           if(!completed)unlockFinalSubmission();
           setBusy(false);
+          if(!completed)freezeNewSelectionAfterSubmission();
           // A failed/ambiguous server response after the hold deadline must
           // not offer the now-invalid hold as an ordinary retry. The customer
           // may have been booked server-side, so explicitly request staff help
