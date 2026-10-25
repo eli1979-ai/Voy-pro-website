@@ -164,9 +164,21 @@
       dateField.max=end.toISOString().slice(0,10);
     };
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
-    let retryKey=null,expiryTimer=null,readyForOnline=false;
+    let retryKey=null,submittedIntent=null,expiryTimer=null,readyForOnline=false;
     let submissionLock=null;
     const selectedExtras=new Map();
+    // A retry with an existing idempotency key must repeat the exact same
+    // commercial request. The first POST might have committed despite an
+    // upstream error, so never reuse its key with changed customer/price data.
+    const keepOriginalRetryIntent=(endpoint,payload)=>{
+      const intent=JSON.stringify({endpoint,payload});
+      if(submittedIntent!==null&&submittedIntent!==intent){
+        setStatus('Booking details changed after the previous submission. To avoid a duplicate or mismatched booking, restore the original details or contact VOY PRO before making another attempt.','error');
+        return false;
+      }
+      submittedIntent=intent;
+      return true;
+    };
     const setStatus=(message='',kind='')=>{status.textContent=message;status.className='status '+kind;};
     const setBusy=(value)=>{
       loading=value;
@@ -223,7 +235,7 @@
       if(expiryTimer)clearInterval(expiryTimer);
       expiryTimer=null;
       const old=hold;
-      hold=null;quote=null;chosenSlot=null;extras=[];offers=[];retryKey=null;
+      hold=null;quote=null;chosenSlot=null;extras=[];offers=[];retryKey=null;submittedIntent=null;
       selectedExtras.clear();setBusy(false);
       $('#results').classList.add('hidden');$('#checkout').classList.add('hidden');
       $('#slots').replaceChildren();$('#extras').replaceChildren();$('#price').replaceChildren();
@@ -446,20 +458,21 @@
       const method=customer.elements.payment.value;
       if(!staffRequest&&method==='pay_now_card'&&!readyForOnline)return;
       if(!staffRequest&&!['pay_arrival_card','pay_arrival_cash','pay_now_card'].includes(method))return;
-      if(!retryKey)retryKey=crypto.randomUUID();
       if(staffRequest){
+        const requestBody={
+          slot_id:chosenSlot.id,group_composition:composition(),
+          is_private:false,guide_language:selectedGuideLanguage(),
+          promo_code:affiliate,
+          customer:{full_name:name,email,phone,preferred_language:'en'},
+        };
+        if(!keepOriginalRetryIntent('/booking-capacity-requests',requestBody))return;
+        if(!retryKey)retryKey=crypto.randomUUID();
         const version=generation;
         let completed=false;
         lockFinalSubmission();setBusy(true);setStatus('Sending your staff-confirmation request…');
         try{
           const request=await api('/booking-capacity-requests',{
-            method:'POST',headers:{'idempotency-key':retryKey},
-            body:{
-              slot_id:chosenSlot.id,group_composition:composition(),
-              is_private:false,guide_language:selectedGuideLanguage(),
-              promo_code:affiliate,
-              customer:{full_name:name,email,phone,preferred_language:'en'},
-            },
+            method:'POST',headers:{'idempotency-key':retryKey},body:requestBody,
           });
           if(version!==generation)return;
           if(request?.type!=='booking_capacity_request'||request?.status!=='pending'||!request?.reference)
@@ -482,13 +495,20 @@
         extras,
         customer:{full_name:name,email,phone,preferred_language:'en'},
       };
+      const online=method==='pay_now_card';
+      const endpoint=online?'/payments/intents':'/bookings';
+      const finalBody=online
+        ?{...submission,payment_type:'online',payment_method:'pay_now_card'}
+        :{...submission,payment_method:method};
+      if(!keepOriginalRetryIntent(endpoint,finalBody))return;
+      if(!retryKey)retryKey=crypto.randomUUID();
       const version=generation;
       let completed=false;
       lockFinalSubmission();setBusy(true);setStatus('Confirming your booking securely…');
       try{
-        if(method==='pay_now_card'){
+        if(online){
           const pay=await api('/payments/intents',{method:'POST',headers:{'idempotency-key':retryKey},
-            body:{...submission,payment_type:'online',payment_method:'pay_now_card'}});
+            body:finalBody});
           if(version!==generation)return;
           if(pay.status==='completed'){
             showSuccess(pay.booking_reference||pay.booking_id,'Payment confirmed',null);
@@ -505,7 +525,7 @@
           return;
         }
         const booking=await api('/bookings',{method:'POST',headers:{'idempotency-key':retryKey},
-          body:{...submission,payment_method:method}});
+          body:finalBody});
         if(version!==generation)return;
         // HTTP 2xx alone is not a verified booking. FBM's canonical public
         // booking contract requires a non-empty reference and status. When
