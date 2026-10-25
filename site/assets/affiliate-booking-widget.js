@@ -164,6 +164,9 @@
       return budapestToday;
     };
     dateField.value=refreshBookingDateBounds();
+    // Opening an old WordPress tab's calendar must show the current local
+    // range before the guest selects a date, not only on availability search.
+    dateField.addEventListener('focus',refreshBookingDateBounds);
     // FBM owns the Budapest booking horizon, including its day-to-day shift.
     const applyDestinationHorizon=(destination)=>{
       const days=destination?.booking_horizon_days;
