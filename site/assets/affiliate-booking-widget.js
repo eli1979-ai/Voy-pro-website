@@ -26,8 +26,16 @@
         document.addEventListener('DOMContentLoaded',()=>install(script),{once:true});
       return;
     }
-    script.dataset.voyMounted='true';
+    // CMS templates sometimes include the same partner embed script twice.
+    // Only the first script may attach the closed shadow root and own this
+    // container; a duplicate must not throw or create a second booking form.
+    if(target.dataset.voyAffiliateMounted==='true'){
+      script.dataset.voyMounted='true';
+      return;
+    }
     const root=target.attachShadow({mode:'closed'});
+    target.dataset.voyAffiliateMounted='true';
+    script.dataset.voyMounted='true';
     const affiliate=String(script.dataset.affiliate||'').trim().toUpperCase();
     const clientKey=String(script.dataset.clientKey||'').trim();
     let apiRoot;

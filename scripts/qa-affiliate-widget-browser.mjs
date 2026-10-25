@@ -11,8 +11,12 @@ const originAPI='https://fbm-widget-fixture.invalid';
 const partnerScript='<script src="/assets/affiliate-booking-widget.js" data-voy-affiliate-widget data-target="affiliate-target" data-affiliate="TESTPARTNER" data-client-key="public_fixture_key" data-api-root="'+originAPI+'"></script>';
 const pageHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Partner</title></head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main>'+partnerScript+'</body></html>';
 const headEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Head Embed</title>'+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
+const duplicateEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Double Partner Embed</title>'+partnerScript+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
 const server=createServer((req,res)=>{
-  if(req.url==='/'||req.url==='/?head-embed'){res.writeHead(200,{'content-type':'text/html'});res.end(req.url==='/?head-embed'?headEmbedHTML:pageHTML);}
+  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'){
+    res.writeHead(200,{'content-type':'text/html'});
+    res.end(req.url==='/?duplicate-embed'?duplicateEmbedHTML:req.url==='/?head-embed'?headEmbedHTML:pageHTML);
+  }
   else if(req.url==='/assets/affiliate-booking-widget.js'){
     res.writeHead(200,{'content-type':'text/javascript'});res.end(widget);
   }else{res.writeHead(404);res.end('not found');}
@@ -28,7 +32,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -103,7 +107,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       body:JSON.stringify(data)});
   });
   try{
-    const response=await page.goto(host+(headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
+    const response=await page.goto(host+(duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
     check(response?.status()===200,name+' local partner host loads');
     const root=page.locator('#affiliate-target');
     const experience=root.locator('select[name="experience"]');
@@ -113,6 +117,16 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         name+' script in document head waits for target before marking mounted');
       check(await root.locator('section[aria-label="VOY PRO partner booking"]').count()===1,
         name+' head-included embed attaches exactly one accessible widget');
+    }
+    if(duplicateEmbed){
+      check(await page.locator('script[data-voy-affiliate-widget]').count()===2,
+        name+' partner CMS fixture loaded two independent copies of same script');
+      check(await page.locator('script[data-voy-mounted="true"]').count()===2,
+        name+' both script tags settled without trying to attach second shadow root');
+      check(await root.locator('section[aria-label="VOY PRO partner booking"]').count()===1,
+        name+' duplicated script tags render exactly one booking widget');
+      check(await root.getAttribute('data-voy-affiliate-mounted')==='true',
+        name+' target is marked as independently installed');
     }
     const dateField=root.locator('input[name="date"]');
     await dateField.evaluate(el=>new Promise((ok,fail)=>{
@@ -295,6 +309,8 @@ try{
   await run('mobile-staff-request-retry-after-503',{mobile:true,staffRequest:true,firstPostFails:true});
   await run('desktop-head-embed-booking',{headEmbed:true});
   await run('mobile-head-embed-staff-request',{mobile:true,staffRequest:true,headEmbed:true});
+  await run('desktop-duplicate-head-scripts',{duplicateEmbed:true});
+  await run('mobile-duplicate-head-scripts',{mobile:true,staffRequest:true,duplicateEmbed:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
