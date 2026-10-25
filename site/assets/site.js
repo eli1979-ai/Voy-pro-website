@@ -2193,7 +2193,7 @@
     const dateInput=form.querySelector('input[name="date"]');
     // A guest may leave the booking page open across Budapest midnight.
     // Refresh calendar bounds without modifying their chosen date or the
-    // horizon supplied by FBM; the backend remains the availability authority.
+    // configured booking horizon; the backend remains the availability authority.
     const refreshAvailabilityDateBounds=()=>{
       const today=budapestDate(0);
       if(!dateInput)return today;
