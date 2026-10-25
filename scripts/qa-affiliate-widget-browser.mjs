@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -94,8 +94,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     }]};
     else if(path==='/api/v1/promotions/validate')
       data={valid:payload?.code==='TESTPARTNER',code:'TESTPARTNER'};
-    else if(path==='/api/v1/quotes')data={promo_code_applied:payload?.promo_code,total:120,
-      discount:20,currency:'EUR',lines:[{label:'Partner discount',line_total_minor:-2000}]};
+    else if(path==='/api/v1/quotes'){
+      data={promo_code_applied:payload?.promo_code,total:120,
+        discount:20,currency:'EUR',lines:[{label:'Partner discount',line_total_minor:-2000}]};
+      if(badQuote==='missing-total')delete data.total;
+      if(badQuote==='invalid-currency')data.currency='NOT_A_CURRENCY';
+    }
     else if(path==='/api/v1/holds')data={
       ...(badHold==='missing-id'?{}:{id:'33333333-3333-4333-8333-333333333333'}),
       departure_id:slotId,
@@ -261,6 +265,22 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(availabilityCalls.length===2&&availabilityCalls.every(c=>c.path.includes('guide_language=he')),
       name+' refreshed affiliate availability never omits or changes the chosen language');
     await departure.click();
+    if(badQuote){
+      await root.locator('#status.error').waitFor({timeout:10000});
+      const status=await root.locator('#status').innerText();
+      check(status.includes('booking price could not be verified'),
+        name+' malformed FBM quote shows an explicit unverified-price error');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#confirmButton').isDisabled()&&
+        !calls.some(c=>c.path==='/api/v1/holds'),
+        name+' malformed price cannot create hold or open checkout');
+      check(!calls.some(c=>c.path==='/api/v1/bookings'||
+        c.path==='/api/v1/payments/intents'||c.path==='/api/v1/booking-capacity-requests'),
+        name+' malformed price never triggers booking, staff request or payment');
+      check(errors.length===0,name+' no JS exceptions handling malformed price');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(badHold){
       await root.locator('#status.error').waitFor({timeout:10000});
       const status=await root.locator('#status').innerText();
@@ -455,6 +475,8 @@ try{
   await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
   await run('desktop-wordpress-rtl-embed',{wpRtl:true});
   await run('mobile-wordpress-rtl-staff-request',{mobile:true,staffRequest:true,wpRtl:true});
+  await run('desktop-quote-with-missing-total',{badQuote:'missing-total'});
+  await run('mobile-quote-with-invalid-currency',{mobile:true,badQuote:'invalid-currency'});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
