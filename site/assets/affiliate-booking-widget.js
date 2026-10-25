@@ -191,7 +191,9 @@
     // disabled states (e.g. a tour without private booking).
     const lockFinalSubmission=()=>{
       if(submissionLock)return;
-      const controls=[...form.querySelectorAll('input,select'),...customer.querySelectorAll('input,select'),$('#changeButton')];
+      const controls=[...form.querySelectorAll('input,select'),
+        ...customer.querySelectorAll('input,select'),
+        ...$('#extras').querySelectorAll('input,select'),$('#changeButton')];
       submissionLock=controls.map(control=>[control,control.disabled]);
       controls.forEach(control=>{control.disabled=true;});
     };
@@ -299,6 +301,10 @@
         qty.max=String(Math.max(0,Math.min(12,Number(offer.max_per_booking??12),Number(offer.available_quantity??12))));
         qty.value='0';qty.setAttribute('aria-label',offer.name+' quantity');
         qty.addEventListener('change',()=>{
+          if(submissionLock){
+            qty.value=String(selectedExtras.get(offer.product_id)||0);
+            return;
+          }
           const quantity=Number(qty.value);
           if(qty.value.trim()===''||!Number.isInteger(quantity)||quantity<0||quantity>Number(qty.max)){
             setStatus('Please enter a valid quantity.','error');qty.value=String(selectedExtras.get(offer.product_id)||0);return;
