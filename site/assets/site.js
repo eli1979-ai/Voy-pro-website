@@ -2189,7 +2189,23 @@
         :t('Selection changed. Search again to refresh availability.','הבחירה השתנתה. חפשו שוב כדי לרענן את הזמינות.');
     };
     const dateInput=form.querySelector('input[name="date"]');
-    if(dateInput){dateInput.min=budapestDate(0);const horizon=Number(destinationRuntime?.booking_horizon_days);if(Number.isInteger(horizon)&&horizon>0)dateInput.max=budapestDate(horizon);else dateInput.removeAttribute('max');if(!dateInput.value)dateInput.value=budapestDate(0);}
+    // A guest may leave the booking page open across Budapest midnight.
+    // Refresh calendar bounds without modifying their chosen date or the
+    // horizon supplied by FBM; the backend remains the availability authority.
+    const refreshAvailabilityDateBounds=()=>{
+      const today=budapestDate(0);
+      if(!dateInput)return today;
+      dateInput.min=today;
+      const horizon=Number(destinationRuntime?.booking_horizon_days);
+      if(Number.isSafeInteger(horizon)&&horizon>0)
+        dateInput.max=budapestDate(horizon);
+      else dateInput.removeAttribute('max');
+      return today;
+    };
+    if(dateInput){
+      dateInput.value=dateInput.value||refreshAvailabilityDateBounds();
+      dateInput.addEventListener('focus',refreshAvailabilityDateBounds);
+    }
     ensurePrivateUpgrade(form);
     ensureGuideLanguageField(form);
     enhanceBookingFormLayout(form);
@@ -2208,6 +2224,24 @@
     form.addEventListener('submit',async e=>{
       e.preventDefault();
       if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
+      const today=refreshAvailabilityDateBounds();
+      const selectedDate=dateInput?.value||'';
+      if(dateInput&&selectedDate&&selectedDate<today){
+        invalidateAvailabilityResults();
+        status.textContent=locale==='hu'
+          ?'A kiválasztott dátum már elmúlt Budapesten. Válassz új dátumot.'
+          :t('Your selected date is now in the past in Budapest. Choose another date.','התאריך שנבחר כבר חלף בבודפשט. בחרו תאריך חדש.');
+        dateInput.focus({preventScroll:true});
+        return;
+      }
+      if(dateInput&&dateInput.max&&selectedDate>dateInput.max){
+        invalidateAvailabilityResults();
+        status.textContent=locale==='hu'
+          ?'Ez a dátum kívül esik a foglalási időszakon. Válassz korábbi dátumot.'
+          :t('This date is outside the current booking window. Choose an earlier date.','התאריך מחוץ לטווח ההזמנות הנוכחי. בחרו תאריך מוקדם יותר.');
+        dateInput.focus({preventScroll:true});
+        return;
+      }
       const searchGeneration=++availabilitySearchGeneration;
       invalidateCheckoutPreparation();
       releaseHold();document.querySelector('#live-checkout-shell')?.setAttribute('hidden','');slots.innerHTML='';
