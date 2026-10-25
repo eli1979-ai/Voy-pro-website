@@ -712,6 +712,15 @@
           completed=true;
           return;
         }
+        // The public FBM contract permits arbitrary non-empty status strings.
+        // A cancelled/refunded/unknown reply must not be presented as a
+        // successful tour booking, even when HTTP 2xx and prices match.
+        // A booking may already exist: retain its reference and lock retries.
+        if(!['confirmed','paid','partially_paid'].includes(booking.status)){
+          showUnexpectedBookingStatusResponse(booking);
+          completed=true;
+          return;
+        }
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
         completed=true;
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
@@ -771,6 +780,20 @@
       box.append(textNode('p','Reported status: '+booking.status));
       box.append(textNode('p','The confirmed price or partner discount could not be matched to the amount quoted. Your booking may already exist. Please contact VOY PRO with the reference above before making another booking attempt.'));
       setStatus('Final booking price or partner discount needs staff verification. Do not submit again.','error');
+    }
+    function showUnexpectedBookingStatusResponse(booking){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // Never delete a hold possibly converted by the server, and never
+      // offer a fresh final POST after an ambiguous booking response.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Booking needs staff review'));
+      box.append(textNode('p','Booking reference: '+booking.reference));
+      box.append(textNode('p','Reported status: '+booking.status));
+      box.append(textNode('p','This status does not verify an active tour booking. Please contact VOY PRO with this reference before trying to book again.'));
+      setStatus('Booking status requires staff verification. Do not submit again.','error');
     }
     function showPreviouslySubmittedQuoteExpiredResponse(){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
