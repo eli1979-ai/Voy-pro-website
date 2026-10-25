@@ -671,14 +671,38 @@
           const pay=await api('/payments/intents',{method:'POST',headers:{'idempotency-key':retryKey},
             body:finalBody});
           if(version!==generation)return;
-          if(pay.status==='completed'){
-            showSuccess(pay.booking_reference||pay.booking_id,'Payment confirmed',null);
+          const referenceOk=typeof pay?.booking_reference==='string'&&
+            Boolean(pay.booking_reference.trim());
+          const bookingIdOk=typeof pay?.booking_id==='string'&&
+            Boolean(pay.booking_id.trim());
+          if(pay?.status==='completed'){
+            // A replay may represent a real charge. Never invent a receipt or
+            // submit again if its booking identity cannot be verified.
+            if(!referenceOk||!bookingIdOk||pay.ui_mode!=='none'){
+              showUnverifiedOnlinePaymentResponse(pay);
+              completed=true;
+              return;
+            }
+            showSuccess(pay.booking_reference,'Payment confirmed',null);
             completed=true;
             return;
           }
-          const address=new URL(pay.checkout_url||'',location.href);
-          if(pay.status!=='requires_action'||address.protocol!=='https:'||address.hostname!=='checkout.stripe.com')
-            throw new Error('Secure card checkout is not currently available.');
+          const quoteMatches=typeof pay?.amount==='number'&&
+            Number.isFinite(pay.amount)&&
+            Math.round(pay.amount*100)===Math.round(quote.total*100)&&
+            pay.currency===quote.currency;
+          let address;
+          try{address=new URL(pay?.checkout_url||'',location.href);}catch{}
+          if(pay?.status!=='requires_action'||pay?.ui_mode!=='redirect'||
+             !referenceOk||!bookingIdOk||!quoteMatches||
+             address?.protocol!=='https:'||address?.hostname!=='checkout.stripe.com'){
+            // FBM may have prepared a booking/session even though the
+            // redirect is unsafe. Keep the original result for staff review;
+            // do not release the hold or start another payment attempt.
+            showUnverifiedOnlinePaymentResponse(pay);
+            completed=true;
+            return;
+          }
           // Stripe is the only allowed external checkout. No payment card
           // details are ever collected in the partner page or this widget.
           completed=true;
@@ -780,6 +804,20 @@
       box.append(textNode('p','Reported status: '+booking.status));
       box.append(textNode('p','The confirmed price or partner discount could not be matched to the amount quoted. Your booking may already exist. Please contact VOY PRO with the reference above before making another booking attempt.'));
       setStatus('Final booking price or partner discount needs staff verification. Do not submit again.','error');
+    }
+    function showUnverifiedOnlinePaymentResponse(pay){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // Payment preparation might have created a booking or provider session.
+      // Never DELETE its hold or offer an unrelated second checkout.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Online payment needs verification'));
+      if(typeof pay?.booking_reference==='string'&&pay.booking_reference.trim())
+        box.append(textNode('p','Booking reference: '+pay.booking_reference.trim()));
+      box.append(textNode('p','The payment service returned incomplete, unexpected or mismatched checkout details. A booking or payment may already exist. Contact VOY PRO before attempting payment or booking again.'));
+      setStatus('Online payment request needs staff verification. Do not submit again.','error');
     }
     function showUnexpectedBookingStatusResponse(booking){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
