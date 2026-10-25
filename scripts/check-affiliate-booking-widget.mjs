@@ -51,7 +51,7 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed'}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -120,7 +120,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       price_minor:1000,currency:'EUR',max_per_booking:2,available_quantity:4,
     }];
     if(key==='/api/v1/bookings')return {
-      reference:'VOY-MOCK-BOOKING',status:'confirmed',manage_token:'not-a-real-token',
+      reference:'VOY-MOCK-BOOKING',status:bookingStatus,manage_token:'not-a-real-token',
       total:acceptedQuote?.total,discount:acceptedQuote?.discount,
       currency:acceptedQuote?.currency,promo_code_applied:payload.promo_code,
     };
@@ -371,6 +371,35 @@ async function flush(){
   assert.match(app.elements['#status'].textContent,/not attributed/i);
 }
 
+// The backend's public response schema accepts any non-empty status string.
+ // In particular, HTTP 2xx + a valid reference must NOT make a cancelled,
+ // refunded, pending or unknown result look like an active confirmed booking.
+for(const bookingStatus of ['cancelled','refunded','pending','unknown_status']){
+  const app=mount({bookingStatus});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  assert.equal(app.calls.filter(call=>call.key==='/api/v1/bookings').length,1,
+    'Unexpected '+bookingStatus+' status must not cause automatic booking retry');
+  const detail=app.elements['#success'].children.map(node=>node.textContent).join(' ');
+  assert.match(detail,/Booking needs staff review/,
+    'Unexpected booking status must use a manual verification outcome');
+  assert.match(detail,/VOY-MOCK-BOOKING/,
+    'Keep the server reference for staff reconciliation');
+  assert.match(detail,new RegExp('Reported status: '+bookingStatus),
+    'Show the actual status instead of inferring confirmed');
+  assert.doesNotMatch(detail,/Your booking has been received/,
+    'Never label unusual status as a successful booking');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Ambiguous/terminal status must close the final booking form');
+  assert(!app.calls.some(call=>call.options.method==='DELETE'),
+    'Do not release a hold possibly converted by the booking server');
+  assert.match(app.elements['#status'].textContent,/Do not submit again/,
+    'Prevent a customer from creating a second booking without staff review');
+}
 {
   const app=mount({staffConfirmation:true});
   await chooseFirstDeparture(app);
