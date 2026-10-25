@@ -257,6 +257,27 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(prevented&&changedStatus!==initialStatus&&changedStatus.length>5,
         name+' past date gives localized validation instead of sending a request');
       check(await date.inputValue()==='2000-01-01',name+' invalid preferred date stays editable');
+      // Reproduce a mobile/desktop Marvão tab left open into the next Lisbon
+      // calendar day. This cannot navigate to WhatsApp or contact real APIs.
+      await page.clock.setFixedTime(new Date('2026-10-26T00:01:30.000Z'));
+      await date.fill('2026-10-25');
+      await date.blur();
+      await date.focus();
+      check(await date.getAttribute('min')==='2026-10-26',
+        name+' overnight Lisbon calendar advances the displayed minimum');
+      check(await date.inputValue()==='2026-10-25',
+        name+' overnight guard preserves guest date for explicit correction');
+      const originalUrl=page.url();
+      const staleRequestPrevented=await requestForm.evaluate(el=>
+        !el.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+      const message=await requestForm.locator('[data-portugal-request-status]').innerText();
+      const expectedPastMessage=name.includes('-pt-')?'Escolha a data de hoje':
+        name.includes('-he-')?'יש לבחור את התאריך':'Choose today or a future date';
+      check(staleRequestPrevented&&message.includes(expectedPastMessage),
+        name+' next-day past date is rejected with a localized status');
+      check(page.url()===originalUrl&&
+        await date.inputValue()==='2026-10-25',
+        name+' rejected overnight date does not navigate or silently change');
     }
     if(b2b){
       const planner=page.locator('[data-b2b-planner="'+b2b+'"]');

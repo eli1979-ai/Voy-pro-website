@@ -4,8 +4,10 @@ const js=fs.readFileSync('site/assets/site.js','utf8');
 const failures=[];
 for(const marker of [
   "timeZone:'Europe/Lisbon'",
-  "if(dateInput)dateInput.min=portugalDate(0);",
-  "if(date<portugalDate(0)){",
+  "syncPortugalRequestDateMin();",
+  "dateInput?.addEventListener?.('focus',syncPortugalRequestDateMin);",
+  "const today=syncPortugalRequestDateMin();",
+  "if(date<today){",
   "dateInput?.focus({preventScroll:true});",
   "past:'Choose today or a future date.'",
   "past:'Escolha a data de hoje ou uma data futura.'",
