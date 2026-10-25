@@ -283,9 +283,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       check(await root.locator('#checkout:not(.hidden)').count()===0&&
         await root.locator('#confirmButton').isDisabled(),
         name+' no repeat booking is offered after unverifiable 200 reply');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
       check(calls.filter(c=>c.path==='/api/v1/bookings').length===1&&
-        !calls.some(c=>c.path==='/api/v1/holds/'+slotId),
-        name+' malformed receipt cannot spawn additional commercial actions');
+        !calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+        name+' malformed receipt cannot retry booking or prematurely release possibly converted hold');
       check(errors.length===0,name+' no uncaught JavaScript errors in incomplete receipt case');
       await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
       return;
