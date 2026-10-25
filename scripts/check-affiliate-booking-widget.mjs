@@ -23,7 +23,7 @@ const required=[
   "isPrivate()&&hold?.id?{hold_id:hold.id}:{}",
   "'/ancillary/offers'",
   "Boolean(capabilities?.online_card",
-  "address.hostname!=='checkout.stripe.com'",
+  "address?.hostname!=='checkout.stripe.com'",
 ];
 for(const str of required)assert(code.includes(str),'Required affiliate-widget boundary missing: '+str);
 assert(!/\biframe\b/.test(code.replace(/\/\*[\s\S]*?\*\//g,'')),'Do not weaken global frame protection');
@@ -51,7 +51,7 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed'}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -87,7 +87,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
         bookingEnabled:true,privateAllowed:true,privateMinRiders:2,
         guideLanguages:['en','he'],maxIndependentRiders:12},
     ],
-    '/api/v1/payments/capabilities':{online_card:false},
+    '/api/v1/payments/capabilities':{online_card:onlinePayment,provider:onlinePayment?'stripe':null},
   };
   let held=false;
   let acceptedQuote=null;
@@ -119,6 +119,24 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       product_id:'44444444-4444-4444-8444-444444444444',name:'Fleece hat',
       price_minor:1000,currency:'EUR',max_per_booking:2,available_quantity:4,
     }];
+    if(key==='/api/v1/payments/intents'){
+      const result={
+        status:badPaymentReply==='completed-missing-reference'||badPaymentReply==='completed'?'completed':'requires_action',
+        ui_mode:badPaymentReply==='completed-missing-reference'||badPaymentReply==='completed'?'none':'redirect',
+        booking_id:'44444444-4444-4444-8444-444444444444',
+        booking_reference:'VP-PAY-MOCK',
+        amount:acceptedQuote?.total??120,currency:acceptedQuote?.currency??'EUR',
+        checkout_url:'https://checkout.stripe.com/c/pay/cs_test_mock_only'
+      };
+      if(badPaymentReply==='wrong-total')result.amount+=15;
+      if(badPaymentReply==='wrong-currency')result.currency='USD';
+      if(badPaymentReply==='untrusted-host')result.checkout_url='https://untrusted.example.invalid/checkout';
+      if(badPaymentReply==='missing-reference'||badPaymentReply==='completed-missing-reference')
+        delete result.booking_reference;
+      if(badPaymentReply==='completed'||badPaymentReply==='completed-missing-reference')
+        result.amount=0;
+      return result;
+    }
     if(key==='/api/v1/bookings')return {
       reference:'VOY-MOCK-BOOKING',status:bookingStatus,manage_token:'not-a-real-token',
       total:acceptedQuote?.total,discount:acceptedQuote?.discount,
@@ -371,6 +389,46 @@ async function flush(){
   assert.match(app.elements['#status'].textContent,/not attributed/i);
 }
 
+// Online Stripe redirects must carry the exact quoted amount/currency
+// and a verifiable booking identity. The simulated URLs are never opened.
+for(const badPaymentReply of ['wrong-total','wrong-currency','untrusted-host',
+  'missing-reference','completed-missing-reference']){
+  const app=mount({onlinePayment:true,badPaymentReply});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  app.customer.elements.payment.value='pay_now_card';
+  await app.customer.trigger('submit');
+  assert.equal(app.calls.filter(c=>c.key==='/api/v1/payments/intents').length,1,
+    'Ambiguous online payment must submit once with the preserved idempotency key');
+  assert.equal(app.redirect(),null,
+    'Mismatch '+badPaymentReply+' must not redirect the guest to Stripe/another site');
+  assert.match(app.elements['#status'].textContent,/Do not submit again/,
+    'Ambiguous online payment requires staff review and locks another checkout');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Ambiguous online payment must close the checkout form');
+  assert(!app.calls.some(c=>c.options.method==='DELETE'),
+    'Possible prepared payment must not release a converted hold');
+}
+for(const badPaymentReply of [null,'completed']){
+  const app=mount({onlinePayment:true,badPaymentReply});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  app.customer.elements.payment.value='pay_now_card';
+  await app.customer.trigger('submit');
+  if(badPaymentReply===null)
+    assert.match(String(app.redirect()),/^https:\/\/checkout\.stripe\.com\//,
+      'Valid server-quoted online checkout must retain the Stripe redirect');
+  else
+    assert.match(app.elements['#success'].children.map(x=>x.textContent).join(' '),
+      /VP-PAY-MOCK.*Payment confirmed/s,
+      'Idempotent completed payment with verified booking identity shows a receipt');
+}
 // The backend's public response schema accepts any non-empty status string.
  // In particular, HTTP 2xx + a valid reference must NOT make a cancelled,
  // refunded, pending or unknown result look like an active confirmed booking.
