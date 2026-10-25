@@ -637,6 +637,13 @@
             completed=true;
             return;
           }
+          // FBM might persist a staff request with a different or missing
+          // guiding language; keep the reference for human reconciliation.
+          if(String(request.guide_language||'').trim().toLowerCase()!==selectedGuideLanguage()){
+            showGuideLanguageReviewResponse(request);
+            completed=true;
+            return;
+          }
           showRequestSuccess(request.reference);
           completed=true;
         }catch(error){
@@ -745,6 +752,13 @@
           completed=true;
           return;
         }
+        // A verified booking must preserve the explicit language choice;
+        // never silently accept a null or different persisted language.
+        if(String(booking.guide_language||'').trim().toLowerCase()!==selectedGuideLanguage()){
+          showGuideLanguageReviewResponse(booking);
+          completed=true;
+          return;
+        }
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
         completed=true;
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
@@ -768,6 +782,20 @@
           }
         }
       }
+    }
+    function showGuideLanguageReviewResponse(record){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // FBM may already have created a booking or pending staff request.
+      // Avoid a second final POST or deleting a potentially converted hold.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Guiding language needs verification'));
+      box.append(textNode('p','Reference: '+record.reference));
+      box.append(textNode('p','Requested guiding language: '+guideLabel()));
+      box.append(textNode('p','FBM did not verify that this language was recorded for your booking or staff request. Your request may already exist. Contact VOY PRO with the reference before submitting again.'));
+      setStatus('Guiding language requires staff verification. Do not submit again.','error');
     }
     function showUnverifiedStaffRequestResponse(){
       // Staff requests reserve no vehicles and collect no payment, but a
