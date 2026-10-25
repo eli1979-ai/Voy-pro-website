@@ -17,9 +17,16 @@
   };
   function install(script){
     if(script.dataset.voyMounted==='true')return;
-    script.dataset.voyMounted='true';
     const target=document.getElementById(script.dataset.target||'voy-affiliate-booking');
-    if(!target)return;
+    if(!target){
+      // Some partners load the standalone script in <head> before the target
+      // container has been parsed. Retry once at DOM readiness rather than
+      // falsely marking a missing target as successfully mounted.
+      if(document.readyState==='loading')
+        document.addEventListener('DOMContentLoaded',()=>install(script),{once:true});
+      return;
+    }
+    script.dataset.voyMounted='true';
     const root=target.attachShadow({mode:'closed'});
     const affiliate=String(script.dataset.affiliate||'').trim().toUpperCase();
     const clientKey=String(script.dataset.clientKey||'').trim();
