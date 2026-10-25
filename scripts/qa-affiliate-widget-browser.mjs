@@ -32,7 +32,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -95,9 +95,13 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       data={valid:payload?.code==='TESTPARTNER',code:'TESTPARTNER'};
     else if(path==='/api/v1/quotes')data={promo_code_applied:payload?.promo_code,total:120,
       discount:20,currency:'EUR',lines:[{label:'Partner discount',line_total_minor:-2000}]};
-    else if(path==='/api/v1/holds')data={id:'33333333-3333-4333-8333-333333333333',
-      departure_id:slotId,expires_at:new Date(Date.now()+600000).toISOString(),
-      requires_staff_confirmation:false};
+    else if(path==='/api/v1/holds')data={
+      ...(badHold==='missing-id'?{}:{id:'33333333-3333-4333-8333-333333333333'}),
+      departure_id:slotId,
+      ...(badHold==='missing-expiry'?{}:{expires_at:badHold==='invalid-expiry'?'not-a-date':
+        new Date(Date.now()+(badHold==='past-expiry'?-60000:600000)).toISOString()}),
+      requires_staff_confirmation:false
+    };
     else if(path==='/api/v1/ancillary/offers')data=[];
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
@@ -236,6 +240,23 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(availabilityCalls.length===2&&availabilityCalls.every(c=>c.path.includes('guide_language=he')),
       name+' refreshed affiliate availability never omits or changes the chosen language');
     await departure.click();
+    if(badHold){
+      await root.locator('#status.error').waitFor({timeout:10000});
+      const status=await root.locator('#status').innerText();
+      check(status.includes('hold could not be verified'),
+        name+' malformed, missing or expired FBM hold is rejected with a clear error');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        !calls.some(c=>c.path==='/api/v1/ancillary/offers'),
+        name+' no checkout or ancillary sales offered for unverifiable hold');
+      check(!calls.some(c=>c.path==='/api/v1/bookings'||c.path==='/api/v1/payments/intents'),
+        name+' unverifiable hold never reaches booking or payment');
+      check(badHold==='missing-id'||
+        calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+        name+' invalid hold with ID is released through canonical delete');
+      check(errors.length===0,name+' no JavaScript errors handling invalid hold');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
     check(staffRequest?!calls.some(c=>c.path==='/api/v1/holds'):
       calls.some(c=>c.path==='/api/v1/holds'&&c.payload?.guide_language==='he'),
@@ -346,6 +367,10 @@ try{
   await run('mobile-duplicate-head-scripts',{mobile:true,staffRequest:true,duplicateEmbed:true});
   await run('desktop-booking-success-after-local-expiry',{holdExpiresDuringPost:'success'});
   await run('mobile-booking-error-after-local-expiry',{mobile:true,holdExpiresDuringPost:'error'});
+  await run('desktop-hold-with-missing-expiry',{badHold:'missing-expiry'});
+  await run('mobile-hold-with-invalid-expiry',{mobile:true,badHold:'invalid-expiry'});
+  await run('desktop-hold-already-expired',{badHold:'past-expiry'});
+  await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
