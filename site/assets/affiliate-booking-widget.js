@@ -159,8 +159,8 @@
         const end=new Date(budapestToday+'T12:00:00Z');
         end.setUTCDate(end.getUTCDate()+bookingHorizonDays);
         if(Number.isFinite(end.getTime()))dateField.max=end.toISOString().slice(0,10);
-        else dateField.removeAttribute('max');
-      }else dateField.removeAttribute('max');
+        else dateField.max='';
+      }else dateField.max='';
       return budapestToday;
     };
     dateField.value=refreshBookingDateBounds();
