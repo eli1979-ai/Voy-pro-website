@@ -429,7 +429,14 @@
         if(version!==generation){await api('/holds/'+encodeURIComponent(held.id),{method:'DELETE'}).catch(()=>{});return;}
         hold=held;
         const expiresAt=new Date(held?.expires_at).getTime();
+        // FBM may allocate a different physical departure under the shared
+        // inventory policy. requested_slot_id, not departure_id, must match
+        // the customer's selected slot; preserve the original guide-language
+        // preference rather than silently accepting a lost/mismatched request.
         if(typeof held?.id!=='string'||!held.id.trim()||
+          typeof held?.requested_slot_id!=='string'||held.requested_slot_id!==slot.id||
+          typeof held?.departure_id!=='string'||!held.departure_id.trim()||
+          String(held?.guide_language||'').trim().toLowerCase()!==selectedGuideLanguage()||
           !Number.isFinite(expiresAt)||expiresAt<=Date.now())
           throw new Error('The booking hold could not be verified. Please choose another departure.');
         if(held.requires_staff_confirmation)throw new Error('This departure requires staff confirmation.');
