@@ -43,7 +43,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -177,7 +177,9 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         :malformedStaffReply==='wrong-status'
           ?{type:'booking_capacity_request',status:'approved',reference:'VP-CAP-FAKE'}
           :{type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE',
-            guide_language:badFinalGuideLanguage==='missing'?null:(badFinalGuideLanguage||'he')};
+            guide_language:badFinalGuideLanguage==='missing'?null:(badFinalGuideLanguage||'he'),
+            pricing:{promo_code_applied:badStaffPromoCode==='missing'?null:
+              (badStaffPromoCode||payload?.promo_code)}};
     }
     else if(method==='DELETE'&&path.startsWith('/api/v1/holds/')){
       if(slowHoldReleaseSwitch)await new Promise(done=>setTimeout(done,650));
@@ -567,6 +569,25 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
       return;
     }
+    if(badStaffPromoCode){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const receipt=await root.locator('#success').innerText();
+      check(receipt.includes('Partner attribution needs verification')&&
+        receipt.includes('Request reference: VP-CAP-FAKE')&&
+        !receipt.includes('Your confirmation request was received'),
+        name+' wrong/missing partner code keeps request reference but denies ordinary receipt');
+      check((await root.locator('#status.error').innerText()).includes('Do not submit again')&&
+        await root.locator('#checkout:not(.hidden)').count()===0,
+        name+' staff promotion discrepancy locks another submission');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path==='/api/v1/booking-capacity-requests').length===1&&
+        !calls.some(c=>c.path==='/api/v1/bookings'||c.path==='/api/v1/payments/intents'||c.path==='/api/v1/holds'),
+        name+' no repeated staff request, hold, booking or payment after mismatch');
+      check(errors.length===0,name+' partner mismatch has no Chrome exceptions');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(badFinalGuideLanguage){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const receipt=await root.locator('#success').innerText();
@@ -814,6 +835,8 @@ try{
   await run('mobile-staff-request-with-wrong-status',{mobile:true,staffRequest:true,malformedStaffReply:'wrong-status'});
   await run('desktop-booking-with-wrong-persisted-language',{badFinalGuideLanguage:'en'});
   await run('mobile-staff-request-with-missing-persisted-language',{mobile:true,staffRequest:true,badFinalGuideLanguage:'missing'});
+  await run('desktop-staff-request-wrong-partner-pricing',{staffRequest:true,badStaffPromoCode:'OTHERPARTNER'});
+  await run('mobile-staff-request-missing-partner-pricing',{mobile:true,staffRequest:true,badStaffPromoCode:'missing'});
   await run('desktop-hold-already-expired',{badHold:'past-expiry'});
   await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
   await run('desktop-hold-with-wrong-requested-slot',{badHold:'wrong-requested-slot'});
