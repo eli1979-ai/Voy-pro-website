@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -95,7 +95,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     else if(path==='/api/v1/promotions/validate')
       data={valid:payload?.code==='TESTPARTNER',code:'TESTPARTNER'};
     else if(path==='/api/v1/quotes'){
-      data={promo_code_applied:payload?.promo_code,total:120,
+      data={promo_code_applied:payload?.promo_code,
+        total:withExtras&&payload?.extras?.some(x=>x.quantity>0)?130:120,
         discount:20,currency:'EUR',lines:[{label:'Partner discount',line_total_minor:-2000}]};
       if(badQuote==='missing-total')delete data.total;
       if(badQuote==='invalid-currency')data.currency='NOT_A_CURRENCY';
@@ -107,7 +108,10 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         new Date(Date.now()+(badHold==='past-expiry'?-60000:600000)).toISOString()}),
       requires_staff_confirmation:false
     };
-    else if(path==='/api/v1/ancillary/offers')data=[];
+    else if(path==='/api/v1/ancillary/offers')data=withExtras?[{
+      product_id:'extra-camera',name:'Camera rental',price_minor:1000,
+      max_per_booking:3,available_quantity:3,currency:'EUR',product_kind:'rental'
+    }]:[];
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       data=malformedBookingReply==='missing-reference'
@@ -299,6 +303,18 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       return;
     }
     await root.locator('#checkout:not(.hidden)').waitFor({timeout:10000});
+    if(withExtras){
+      const qty=root.locator('#extras input[data-product-id="extra-camera"]');
+      await qty.fill('1');
+      for(let i=0;i<50&&!calls.some(c=>c.path==='/api/v1/quotes'&&
+        c.payload?.extras?.some(x=>x.quantity===1));i++)
+        await new Promise(done=>setTimeout(done,20));
+      await root.locator('#price').getByText('€130.00',{exact:false}).waitFor({timeout:10000});
+      check(calls.some(c=>c.path==='/api/v1/quotes'&&c.payload?.extras?.some(x=>x.quantity===1)),
+        name+' selected optional rental has an FBM-requoted total');
+      check(!await root.locator('#confirmButton').isDisabled(),
+        name+' validated extra reprice restores the submit control');
+    }
     check(staffRequest?!calls.some(c=>c.path==='/api/v1/holds'):
       calls.some(c=>c.path==='/api/v1/holds'&&c.payload?.guide_language==='he'),
       name+' hold uses requested language; staff request does not reserve');
@@ -415,6 +431,18 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       check(await experience.isDisabled()&&await language.isDisabled()&&
         await dateField.isDisabled()&&await root.locator('#changeButton').isDisabled(),
         name+' tour, language, date and change button remain locked during final POST');
+      if(withExtras){
+        const quantity=root.locator('#extras input[data-product-id="extra-camera"]');
+        check(await quantity.isDisabled()&&await quantity.inputValue()==='1',
+          name+' chosen extra quantity is locked while final booking POST is pending');
+        await quantity.evaluate(el=>{
+          el.value='2';
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        });
+        check(await quantity.inputValue()==='1'&&
+          calls.filter(c=>c.path==='/api/v1/quotes').length===2,
+          name+' forced quantity-change event cannot trigger repricing during submission');
+      }
       // Even script-triggered form submission cannot bypass the in-flight
       // guard; the original idempotency key and requested intent stay stable.
       await root.locator('#customer').evaluate(el=>el.dispatchEvent(
@@ -477,6 +505,7 @@ try{
   await run('mobile-wordpress-rtl-staff-request',{mobile:true,staffRequest:true,wpRtl:true});
   await run('desktop-quote-with-missing-total',{badQuote:'missing-total'});
   await run('mobile-quote-with-invalid-currency',{mobile:true,badQuote:'invalid-currency'});
+  await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
