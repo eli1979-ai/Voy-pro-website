@@ -175,6 +175,14 @@
       return result;
     }
     const offerPrice=(item)=>money(Number(item.price_minor||0)/100,item.currency||'EUR');
+    // Departure schedules can cross their start time while a partner is
+    // looking at an availability result. The backend remains authoritative,
+    // but an already-started (or malformed) timestamp must not be actionable.
+    const expiredDeparture=(slot)=>{
+      if(!slot?.starts_at)return false;
+      const start=new Date(slot.starts_at).getTime();
+      return !Number.isFinite(start)||start<=Date.now();
+    };
     function invalidate(){
       generation++;
       if(expiryTimer)clearInterval(expiryTimer);
@@ -353,6 +361,7 @@
         const panel=$('#slots');panel.replaceChildren();
         let sellable=0;
         for(const slot of avail.slots||[]){
+          if(expiredDeparture(slot))continue;
           const button=document.createElement('button');button.type='button';
           const allowed=Boolean(slot.sellable);
           const canRequest=Boolean(slot.requestable&&!allowed&&!isPrivate());
@@ -361,6 +370,11 @@
           button.className=allowed||canRequest?'':'unavailable';
           button.setAttribute('aria-pressed','false');
           button.addEventListener('click',()=>{
+            if(expiredDeparture(slot)){
+              invalidate();
+              setStatus('This departure is no longer available. Please check availability again.','error');
+              return;
+            }
             for(const node of panel.querySelectorAll('button'))node.setAttribute('aria-pressed','false');
             button.setAttribute('aria-pressed','true');return selectSlot(slot);
           });
