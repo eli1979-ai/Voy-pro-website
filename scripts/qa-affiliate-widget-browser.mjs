@@ -241,6 +241,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       const oldDate=await dateField.inputValue();
       check(oldDate==='2026-10-25',name+' tab began with Budapest local October 25');
       await page.clock.setFixedTime(new Date('2026-10-25T23:01:30.000Z'));
+      await dateField.focus();
+      const picker=await dateField.evaluate(el=>({min:el.min,max:el.max,value:el.value}));
+      check(picker.min==='2026-10-26'&&picker.max==='2026-11-16'&&
+        picker.value===oldDate,name+' reopening calendar after midnight updates its FBM range before search');
+      check(!calls.some(c=>c.path.includes('/availability?')),
+        name+' picker focus causes no availability or commercial API request');
       await root.locator('#searchButton').click();
       const fresh=await dateField.evaluate(el=>({min:el.min,max:el.max,value:el.value}));
       check(fresh.min==='2026-10-26'&&fresh.max==='2026-11-16'&&
