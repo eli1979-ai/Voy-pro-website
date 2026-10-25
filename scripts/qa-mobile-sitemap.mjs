@@ -93,6 +93,28 @@ try{
             const effectiveDirection=getComputedStyle(document.documentElement).direction;
             const mainCount=document.querySelectorAll('main').length;
             const h1Count=document.querySelectorAll('h1').length;
+            // Measure two independently fixed controls as rendered, rather than
+            // relying on CSS class strings or assuming a static WhatsApp offset.
+            const visibleRect=element=>{
+              if(!element)return null;
+              const style=getComputedStyle(element),r=element.getBoundingClientRect();
+              if(style.display==='none'||style.visibility==='hidden'||
+                 Number(style.opacity)===0||r.width<=0||r.height<=0)return null;
+              return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
+                width:r.width,height:r.height,position:style.position};
+            };
+            const bookingBar=document.querySelector('.mobilebook');
+            const stickyBar=visibleRect(bookingBar);
+            const bookButton=stickyBar?visibleRect(bookingBar.querySelector('a.btn')):null;
+            const whatsappButtons=[...document.querySelectorAll('a.whatsapp')]
+              .map(visibleRect).filter(Boolean);
+            const intersects=(a,b)=>!!a&&!!b&&
+              Math.min(a.right,b.right)-Math.max(a.left,b.left)>2&&
+              Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2;
+            const stickyOverlap=stickyBar&&whatsappButtons.some(r=>intersects(stickyBar,r));
+            const stickyButtonClipped=!!bookButton&&(
+              bookButton.left< -2||bookButton.right>vw+2||
+              bookButton.top< -2||bookButton.bottom>innerHeight+2);
             const sectionGaps=[];
             const sections=[...document.querySelectorAll('main > section, main > .section')];
             for(let j=1;j<sections.length;j++){
@@ -108,6 +130,10 @@ try{
               headerExists:!!header,footerExists:!!footer,
               language,effectiveDirection,mainCount,h1Count,skipTarget:!!skipTarget,
               skipHref,skipVisibleText:!!skip?.textContent.trim(),
+              stickyOverlap:!!stickyOverlap,stickyButtonClipped,
+              stickyBar:stickyBar?{height:Math.round(stickyBar.height),
+                top:Math.round(stickyBar.top)}:null,
+              whatsappVisible:whatsappButtons.length,
               headerHorizontal:hb?{left:Math.round(hb.left),right:Math.round(hb.right)}:null,
               menu:menu&&getComputedStyle(menu).display!=='none'?{left:Math.round(m.left),right:Math.round(m.right),height:Math.round(m.height)}:null,
               overflowCandidates:root.scrollWidth>vw+2?[...body.querySelectorAll('*')].filter(el=>{
@@ -142,6 +168,10 @@ try{
             issues.push('Mobile menu clipped or too small');
           if(metrics.headerHorizontal&&(metrics.headerHorizontal.left< -2||metrics.headerHorizontal.right>width+2))
             issues.push('Header outside viewport');
+          if(metrics.stickyOverlap)
+            issues.push('Floating WhatsApp overlaps mobile booking CTA bar');
+          if(metrics.stickyButtonClipped)
+            issues.push('Mobile booking CTA partly outside viewport');
           issue=issues.join('; ');
           if(issue&&screenshots<10){
             const name='failure-'+String(screenshots+1).padStart(2,'0')+'-'+width+'.png';
@@ -173,9 +203,11 @@ const summary=[
   '',
   'Failed: '+errors.length,
   '',
-  '| Width | Path | Result | Max section gap (>110px, advisory) |',
-  '| ---: | --- | --- | --- |',
-  ...rows.map(r=>'| '+r.width+' | `'+r.path+'` | '+(r.issue||'PASS')+' | '+(r.gaps?.join(', ')||'—')+' |'),
+  '| Width | Path | Result | Mobile bar height | Visible WhatsApp CTAs | Large section gaps* |',
+  '| ---: | --- | --- | ---: | ---: | --- |',
+  ...rows.map(r=>'| '+r.width+' | `'+r.path+'` | '+(r.issue||'PASS')+
+    ' | '+(r.stickyBar?.height??'—')+' | '+(r.whatsappVisible??'—')+
+    ' | '+(r.gaps?.join(', ')||'—')+' |'),
   '',
   '## Failures',
   ...(errors.length?errors.map(e=>'- '+e.width+'px '+e.path+': '+e.reason):['- None']),
