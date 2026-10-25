@@ -404,7 +404,7 @@
       return today;
     };
     syncPortugalRequestDateMin();
-    dateInput?.addEventListener('focus',syncPortugalRequestDateMin);
+    dateInput?.addEventListener?.('focus',syncPortugalRequestDateMin);
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
       if(routeSelect&&routeNames[route])routeSelect.value=route;
