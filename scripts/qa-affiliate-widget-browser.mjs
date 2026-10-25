@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -101,7 +101,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       data={promo_code_applied:payload?.promo_code,
         total:withExtras&&payload?.extras?.some(x=>x.quantity>0)?130:120,
         discount:20,currency:'EUR',expiresAt:new Date(Date.now()+
-          (quoteExpiresBeforeConfirmation?2:10)*60*1000).toISOString(),
+          (quoteExpiresBeforeConfirmation||quoteExpiresAfterFailedPost?2:10)*60*1000).toISOString(),
         lines:[{label:'Partner discount',line_total_minor:-2000}]};
       if(badQuote==='missing-total')delete data.total;
       if(badQuote==='invalid-currency')data.currency='NOT_A_CURRENCY';
@@ -540,6 +540,31 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         name+' rejected final POST restores tour, language, date and booking controls');
       check(await root.locator('#checkout:not(.hidden)').count()===1,
         name+' failed request keeps original checkout details visible for retry');
+      if(quoteExpiresAfterFailedPost){
+        await page.evaluate(()=>{
+          const realNow=Date.now;
+          Date.now=()=>realNow()+3*60*1000;
+        });
+        await root.locator('#confirmButton').click();
+        await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+        const receipt=await root.locator('#success').innerText();
+        check(receipt.includes('Previous booking attempt needs verification')&&
+          receipt.includes('may already have created a booking')&&
+          !receipt.includes('Your booking has been received'),
+          name+' prior 503 followed by quote expiry does not suggest an entirely new booking');
+        check((await root.locator('#status.error').innerText()).includes('Earlier booking attempt may have succeeded')&&
+          await root.locator('#checkout:not(.hidden)').count()===0&&
+          await root.locator('#confirmButton').isDisabled(),
+          name+' expired quote after ambiguous POST has clear staff recovery and locked checkout');
+        await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+          new Event('submit',{bubbles:true,cancelable:true})));
+        check(calls.filter(c=>c.path==='/api/v1/bookings').length===1&&
+          !calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+          name+' ambiguous POST and expired quote cannot retry or delete possibly converted hold');
+        check(errors.length===0,name+' no uncaught JavaScript exceptions during uncertain quote expiry');
+        await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+        return;
+      }
       if(mutatedRetryAfter503){
         const customerEmail=root.locator('#customer [name="email"]');
         const originalEmail=await customerEmail.inputValue();
@@ -621,6 +646,8 @@ try{
   await run('mobile-slow-staff-request',{mobile:true,staffRequest:true,slowFinalSubmission:true});
   await run('desktop-booking-retry-after-503',{firstPostFails:true});
   await run('mobile-staff-request-retry-after-503',{mobile:true,staffRequest:true,firstPostFails:true});
+  await run('desktop-quote-expired-after-ambiguous-booking',{firstPostFails:true,quoteExpiresAfterFailedPost:true});
+  await run('mobile-quote-expired-after-ambiguous-booking-with-extra',{mobile:true,withExtras:true,firstPostFails:true,quoteExpiresAfterFailedPost:true});
   await run('desktop-mutated-booking-retry-after-503',{firstPostFails:true,mutatedRetryAfter503:true});
   await run('mobile-mutated-staff-request-retry-after-503',{mobile:true,staffRequest:true,firstPostFails:true,mutatedRetryAfter503:true});
   await run('desktop-head-embed-booking',{headEmbed:true});
