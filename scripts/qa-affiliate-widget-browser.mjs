@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -99,9 +99,13 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     else if(path==='/api/v1/quotes'){
       data={promo_code_applied:payload?.promo_code,
         total:withExtras&&payload?.extras?.some(x=>x.quantity>0)?130:120,
-        discount:20,currency:'EUR',lines:[{label:'Partner discount',line_total_minor:-2000}]};
+        discount:20,currency:'EUR',expiresAt:new Date(Date.now()+
+          (quoteExpiresBeforeConfirmation?2:10)*60*1000).toISOString(),
+        lines:[{label:'Partner discount',line_total_minor:-2000}]};
       if(badQuote==='missing-total')delete data.total;
       if(badQuote==='invalid-currency')data.currency='NOT_A_CURRENCY';
+      if(badQuote==='missing-expiry')delete data.expiresAt;
+      if(badQuote==='expired-expiry')data.expiresAt=new Date(Date.now()-60000).toISOString();
     }
     else if(path==='/api/v1/holds')data={
       ...(badHold==='missing-id'?{}:{id:'33333333-3333-4333-8333-333333333333'}),
@@ -338,7 +342,30 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="email"]').fill('fixture@example.invalid');
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
+    if(quoteExpiresBeforeConfirmation){
+      // The quote and hold are separate. Advance only the test browser clock
+      // beyond the short quote deadline, but before the 10-minute hold TTL.
+      await page.evaluate(()=>{
+        const actualNow=Date.now;
+        Date.now=()=>actualNow()+3*60*1000;
+      });
+    }
     await root.locator('#confirmButton').click();
+    if(quoteExpiresBeforeConfirmation){
+      await root.locator('#status.error').waitFor({timeout:10000});
+      const message=await root.locator('#status').innerText();
+      check(message.includes('quoted price expired'),
+        name+' quote expiry independently blocks checkout before hold expiry');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#confirmButton').isDisabled(),
+        name+' quoted price is not shown as actionable after deadline');
+      check(calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/'))&&
+        !calls.some(c=>c.path==='/api/v1/bookings'||c.path==='/api/v1/payments/intents'),
+        name+' expired quote releases hold without posting a booking or payment');
+      check(errors.length===0,name+' no JS errors on quote expiration');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(switchSlotAfterExtras){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const posts=calls.filter(c=>c.path==='/api/v1/bookings');
@@ -531,6 +558,10 @@ try{
   await run('mobile-wordpress-rtl-staff-request',{mobile:true,staffRequest:true,wpRtl:true});
   await run('desktop-quote-with-missing-total',{badQuote:'missing-total'});
   await run('mobile-quote-with-invalid-currency',{mobile:true,badQuote:'invalid-currency'});
+  await run('desktop-quote-with-missing-expiry',{badQuote:'missing-expiry'});
+  await run('mobile-quote-with-expired-expiry',{mobile:true,badQuote:'expired-expiry'});
+  await run('desktop-quote-expires-before-hold',{quoteExpiresBeforeConfirmation:true});
+  await run('mobile-quote-expires-before-hold',{mobile:true,quoteExpiresBeforeConfirmation:true});
   await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
   await run('desktop-switch-departure-clears-extras',{withExtras:true,switchSlotAfterExtras:true});
   await run('mobile-switch-departure-clears-extras',{mobile:true,withExtras:true,switchSlotAfterExtras:true});

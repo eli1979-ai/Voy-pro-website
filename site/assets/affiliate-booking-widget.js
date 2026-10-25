@@ -248,11 +248,14 @@
     // currency. A missing/invalid amount must never be rendered as €0.00
     // or treated as an accepted final price for booking.
     function requireVerifiableQuote(candidate){
+      const quoteDeadline=typeof candidate?.expiresAt==='string'
+        ?Date.parse(candidate.expiresAt):NaN;
       if(!candidate||typeof candidate.total!=='number'||
         !Number.isFinite(candidate.total)||candidate.total<0||
         typeof candidate.discount!=='number'||!Number.isFinite(candidate.discount)||
         candidate.discount<0||typeof candidate.currency!=='string'||
-        !/^[A-Z]{3}$/.test(candidate.currency)||!Array.isArray(candidate.lines))
+        !/^[A-Z]{3}$/.test(candidate.currency)||!Array.isArray(candidate.lines)||
+        !Number.isFinite(quoteDeadline)||quoteDeadline<=Date.now())
         throw new Error('The booking price could not be verified. Please check your selection or contact VOY PRO.');
       return candidate;
     }
@@ -478,6 +481,19 @@
       if(loading||!chosenSlot||(!staffRequest&&(!hold||!quote)))return;
       if(!staffRequest&&new Date(hold.expires_at).getTime()<=Date.now()){
         setStatus('Your hold expired. Please check availability again.','error');return;
+      }
+      if(!staffRequest&&
+        (!Number.isFinite(Date.parse(String(quote.expiresAt||'')))||
+          Date.parse(String(quote.expiresAt||''))<=Date.now())){
+        // FBM issues separate quote and hold deadlines. A valid hold does not
+        // authorize silently submitting a quote that has already expired.
+        quote=null;chosenSlot=null;
+        $('#checkout').classList.add('hidden');
+        setBusy(true);
+        await releaseHold();
+        setBusy(false);
+        setStatus('Your quoted price expired. Choose a departure again to get a fresh price.','error');
+        return;
       }
       const name=String(customer.elements.name.value||'').trim();
       const email=String(customer.elements.email.value||'').trim();
