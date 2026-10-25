@@ -23,7 +23,7 @@ const required=[
   "isPrivate()&&hold?.id?{hold_id:hold.id}:{}",
   "'/ancillary/offers'",
   "Boolean(capabilities?.online_card",
-  "address.hostname!=='checkout.stripe.com'",
+  "address?.hostname!=='checkout.stripe.com'",
 ];
 for(const str of required)assert(code.includes(str),'Required affiliate-widget boundary missing: '+str);
 assert(!/\biframe\b/.test(code.replace(/\/\*[\s\S]*?\*\//g,'')),'Do not weaken global frame protection');
