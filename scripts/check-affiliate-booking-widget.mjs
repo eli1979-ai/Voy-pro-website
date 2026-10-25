@@ -51,7 +51,7 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he'}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER'}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -145,7 +145,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     };
     if(key==='/api/v1/booking-capacity-requests')return {
       type:'booking_capacity_request',status:'pending',reference:'VP-CAP-TEST',
-      guide_language:staffGuideLanguage,
+      guide_language:staffGuideLanguage,pricing:{promo_code_applied:staffPromoCode},
     };
     throw new Error('Unexpected mocked route: '+key);
   };
@@ -430,6 +430,34 @@ for(const badPaymentReply of [null,'completed']){
     assert.match(app.elements['#success'].children.map(x=>x.textContent).join(' '),
       /VP-PAY-MOCK.*Payment confirmed/s,
       'Idempotent completed payment with verified booking identity shows a receipt');
+}
+// Staff-review requests are not bookings, but the returned FBM pricing
+// must still attribute the request to the originating affiliate offer.
+for(const staffPromoCode of [null,'OTHERPARTNER','']){
+  const app=mount({staffConfirmation:true,staffPromoCode});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  const requests=app.calls.filter(c=>c.key==='/api/v1/booking-capacity-requests');
+  assert.equal(requests.length,1,'Ambiguous promotion attribution cannot submit twice');
+  assert.equal(requests[0]?.payload.promo_code,'TESTPARTNER',
+    'Original affiliate code was sent to FBM');
+  const receipt=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+  assert.match(receipt,/Partner attribution needs verification/,
+    'Partner mismatch must have manual verification rather than a success receipt');
+  assert.match(receipt,/Request reference: VP-CAP-TEST/,
+    'Staff can reconcile the actual pending request');
+  assert.doesNotMatch(receipt,/Your confirmation request was received/,
+    'Do not claim expected partner discount was recorded');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Pending ambiguous request must close the form');
+  assert.match(app.elements['#status'].textContent,/Do not submit again/,
+    'Avoid another staff request after uncertain response');
+  assert(!app.calls.some(c=>c.key==='/api/v1/bookings'||c.key==='/api/v1/payments/intents'),
+    'Pending staff request cannot create booking or payment');
 }
 // Validate the guide language persisted by FBM, not only the one submitted.
 for(const badLanguage of [null,'en','fr']){
