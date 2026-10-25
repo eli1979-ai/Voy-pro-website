@@ -26,9 +26,10 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
+  let delayNextAvailability=false;
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
     const shadow=Element.prototype.attachShadow;
@@ -36,7 +37,7 @@ async function run(name,{mobile=false,staffRequest=false}={}){
       return shadow.call(this,{...settings,mode:'open'});
     };
   });
-  await page.route('**/*',route=>{
+  await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
     if(url.origin===host)return route.continue();
     if(url.origin!==originAPI||!url.pathname.startsWith('/api/v1/'))return route.abort();
@@ -48,6 +49,10 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     if(!['GET','POST','DELETE'].includes(method))return route.abort();
     const payload=method==='POST'?req.postDataJSON():null;
     calls.push({path,method,payload});
+    if(staleLanguageRace&&delayNextAvailability&&path.includes('/availability?')){
+      delayNextAvailability=false;
+      await new Promise(done=>setTimeout(done,650));
+    }
     let data;
     if(path==='/api/v1/experiences?destination=budapest')
       data=[{id:tourId,title:'Buda Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
@@ -108,6 +113,27 @@ async function run(name,{mobile=false,staffRequest=false}={}){
     check(await language.inputValue()===''&&await language.locator('option[value="hu"]').count()===0,
       name+' returning to original affiliate tour clears unsupported Hungarian');
     await language.selectOption('he');
+    if(staleLanguageRace){
+      delayNextAvailability=true;
+      await root.locator('#searchButton').click();
+      for(let i=0;i<50&&!calls.some(c=>c.path.includes('/availability?'));i++)
+        await new Promise(done=>setTimeout(done,20));
+      check(calls.some(c=>c.path.includes('/availability?')&&c.path.includes('guide_language=he')),
+        name+' delayed availability begins with explicitly chosen Hebrew');
+      await language.selectOption('en');
+      check(await root.locator('#slots button').count()===0,
+        name+' guide-language switch immediately clears old departures');
+      await new Promise(done=>setTimeout(done,750));
+      check(await root.locator('#slots button').count()===0,
+        name+' late Hebrew availability response cannot resurrect slots after English selection');
+      check(await root.locator('#results').evaluate(node=>node.classList.contains('hidden')),
+        name+' late response never reopens old availability panel');
+      check(!calls.some(c=>/^\/api\/v1\/(?:holds|quotes|bookings|booking-capacity-requests)/.test(c.path)),
+        name+' a stale availability response never triggers commercial requests');
+      check(errors.length===0,name+' no JavaScript errors in delayed-language fixture');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     await root.locator('#searchButton').click();
     const departure=root.locator('#slots button').first();
     await departure.waitFor({timeout:10000});
@@ -164,6 +190,8 @@ async function run(name,{mobile=false,staffRequest=false}={}){
 try{
   await run('desktop-booking');
   await run('mobile-pending-request',{mobile:true,staffRequest:true});
+  await run('desktop-late-language-response',{staleLanguageRace:true});
+  await run('mobile-late-language-response',{mobile:true,staleLanguageRace:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
