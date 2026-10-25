@@ -51,7 +51,7 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he'}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -139,11 +139,13 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     }
     if(key==='/api/v1/bookings')return {
       reference:'VOY-MOCK-BOOKING',status:bookingStatus,manage_token:'not-a-real-token',
+      guide_language:bookingGuideLanguage,
       total:acceptedQuote?.total,discount:acceptedQuote?.discount,
       currency:acceptedQuote?.currency,promo_code_applied:payload.promo_code,
     };
     if(key==='/api/v1/booking-capacity-requests')return {
       type:'booking_capacity_request',status:'pending',reference:'VP-CAP-TEST',
+      guide_language:staffGuideLanguage,
     };
     throw new Error('Unexpected mocked route: '+key);
   };
@@ -428,6 +430,50 @@ for(const badPaymentReply of [null,'completed']){
     assert.match(app.elements['#success'].children.map(x=>x.textContent).join(' '),
       /VP-PAY-MOCK.*Payment confirmed/s,
       'Idempotent completed payment with verified booking identity shows a receipt');
+}
+// Validate the guide language persisted by FBM, not only the one submitted.
+for(const badLanguage of [null,'en','fr']){
+  for(const staffConfirmation of [false,true]){
+    const app=mount(staffConfirmation
+      ?{staffConfirmation,staffGuideLanguage:badLanguage}
+      :{bookingGuideLanguage:badLanguage});
+    await chooseFirstDeparture(app);
+    app.customer.elements.name.value='Example Person';
+    app.customer.elements.email.value='guest@example.invalid';
+    app.customer.elements.phone.value='+1555000000';
+    app.customer.elements.terms.checked=true;
+    await app.customer.trigger('submit');
+    const endpoint=staffConfirmation?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
+    assert.equal(app.calls.filter(c=>c.key===endpoint).length,1,
+      'Language mismatch never sends an automatic second booking or staff request');
+    const receipt=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+    assert.match(receipt,/Guiding language needs verification/,
+      'Missing/mismatched recorded language goes to manual review');
+    assert.match(receipt,/Reference: (?:VP-CAP-TEST|VOY-MOCK-BOOKING)/,
+      'Keep the real booking or staff-request reference');
+    assert.match(receipt,/Requested guiding language: Hebrew/,
+      'Preserve original customer choice');
+    assert.doesNotMatch(receipt,/Your booking has been received|Your confirmation request was received/,
+      'Do not claim a successfully persisted language');
+    assert(app.elements['#checkout'].classList.contains('hidden'),
+      'Close checkout after language discrepancy');
+    assert.match(app.elements['#status'].textContent,/Do not submit again/,
+      'Warn against an unverified second submission');
+    assert(!app.calls.some(c=>c.options.method==='DELETE'),
+      'Do not release possibly converted hold');
+  }
+}
+{
+  const app=mount({bookingGuideLanguage:'HE'});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  assert.match(app.elements['#success'].children.map(x=>x.textContent).join(' '),
+    /Your booking has been received/,
+    'A case-insensitive valid recorded guide language must still succeed');
 }
 // The backend's public response schema accepts any non-empty status string.
  // In particular, HTTP 2xx + a valid reference must NOT make a cancelled,
