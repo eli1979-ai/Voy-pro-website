@@ -26,7 +26,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false;
@@ -78,10 +78,13 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       departure_id:slotId,expires_at:new Date(Date.now()+600000).toISOString(),
       requires_staff_confirmation:false};
     else if(path==='/api/v1/ancillary/offers')data=[];
-    else if(path==='/api/v1/bookings')
+    else if(path==='/api/v1/bookings'){
+      if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       data={reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null};
-    else if(path==='/api/v1/booking-capacity-requests')
+    }else if(path==='/api/v1/booking-capacity-requests'){
+      if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       data={type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE'};
+    }
     else if(method==='DELETE'&&path.startsWith('/api/v1/holds/'))
       return route.fulfill({status:204,headers:h,body:''});
     else return route.fulfill({status:500,headers:{...h,'content-type':'application/json'},
@@ -205,6 +208,21 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
     await root.locator('#confirmButton').click();
+    if(slowFinalSubmission){
+      const endpoint=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
+      for(let i=0;i<50&&!calls.some(c=>c.path===endpoint);i++)
+        await new Promise(done=>setTimeout(done,20));
+      check(calls.some(c=>c.path===endpoint),name+' final request was sent before response delay');
+      check(await experience.isDisabled()&&await language.isDisabled()&&
+        await dateField.isDisabled()&&await root.locator('#changeButton').isDisabled(),
+        name+' tour, language, date and change button remain locked during final POST');
+      // Even script-triggered form submission cannot bypass the in-flight
+      // guard; the original idempotency key and requested intent stay stable.
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path===endpoint).length===1,
+        name+' repeated submission during pending request cannot create duplicate POSTs');
+    }
     await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
     const receipt=await root.locator('#success').innerText();
     check(receipt.includes('Requested guiding language: Hebrew'),
@@ -236,6 +254,8 @@ try{
   await run('mobile-late-language-response',{mobile:true,staleLanguageRace:true});
   await run('desktop-expired-departure',{expiredSlots:true});
   await run('mobile-expired-departure',{mobile:true,expiredSlots:true});
+  await run('desktop-slow-booking-submit',{slowFinalSubmission:true});
+  await run('mobile-slow-staff-request',{mobile:true,staffRequest:true,slowFinalSubmission:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
