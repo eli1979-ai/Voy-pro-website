@@ -987,3 +987,15 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
     aspect-ratio:2/3;
   }
 }
+
+/* Mobile Budapest/Marvão hero photos should occupy a stable full-width
+   flex item before the image finishes decoding. On column flex layouts,
+   inherited desktop align-items:center otherwise lets the card grow from
+   an intrinsic-width centered child, shifting it sideways (real Chrome
+   observations 2026-10-25). No desktop or booking changes. */
+@media(max-width:800px){
+  body[data-page$="/budapest/"] .hero-grid,
+  body[data-page$="/portugal/"] .hero-grid{
+    align-items:stretch;
+  }
+}
