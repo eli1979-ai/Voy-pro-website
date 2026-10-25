@@ -183,7 +183,8 @@
     const setBusy=(value)=>{
       loading=value;
       $('#searchButton').disabled=Boolean(value||submissionLock);
-      $('#confirmButton').disabled=Boolean(value||submissionLock);
+      $('#confirmButton').disabled=Boolean(value||submissionLock||
+        (!requiresStaffRequest()&&!quote));
     };
     // Final POST can succeed after the user changes an in-flight selection.
     // Freeze the original intent until the server responds, preserving previous
@@ -241,6 +242,18 @@
       $('#slots').replaceChildren();$('#extras').replaceChildren();$('#price').replaceChildren();
       if(old?.id)api('/holds/'+encodeURIComponent(old.id),{method:'DELETE'}).catch(()=>{});
     }
+    // The public FBM quote contract requires monetary totals and ISO
+    // currency. A missing/invalid amount must never be rendered as €0.00
+    // or treated as an accepted final price for booking.
+    function requireVerifiableQuote(candidate){
+      if(!candidate||typeof candidate.total!=='number'||
+        !Number.isFinite(candidate.total)||candidate.total<0||
+        typeof candidate.discount!=='number'||!Number.isFinite(candidate.discount)||
+        candidate.discount<0||typeof candidate.currency!=='string'||
+        !/^[A-Z]{3}$/.test(candidate.currency)||!Array.isArray(candidate.lines))
+        throw new Error('The booking price could not be verified. Please check your selection or contact VOY PRO.');
+      return candidate;
+    }
     function renderQuote(){
       if(!quote)return;
       const parent=$('#price');parent.replaceChildren();
@@ -269,7 +282,7 @@
         if(version!==generation)return;
         if(String(updated.promo_code_applied||'').toUpperCase()!==affiliate)
           throw new Error('Partner attribution could not be verified. Please contact VOY PRO.');
-        quote=updated;renderQuote();setStatus('');
+        quote=requireVerifiableQuote(updated);renderQuote();setStatus('');
       }catch(error){
         if(version===generation){quote=null;$('#price').replaceChildren();setStatus(error.message,'error');}
       }finally{if(version===generation)setBusy(false);}
@@ -355,10 +368,11 @@
         }
         $('#confirmButton').textContent='Confirm booking';
         customer.elements.payment.disabled=false;
-        quote=await api('/quotes',{method:'POST',body:{
+        const initialQuote=await api('/quotes',{method:'POST',body:{
           slot_id:slot.id,group_composition:composition(),is_private:isPrivate(),extras:[],promo_code:affiliate,
         }});
         if(version!==generation)return;
+        quote=requireVerifiableQuote(initialQuote);
         if(String(quote.promo_code_applied||'').toUpperCase()!==affiliate)
           throw new Error('The booking price was not attributed to your partner.');
         const held=await api('/holds',{method:'POST',body:{
