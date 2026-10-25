@@ -507,6 +507,16 @@
         const booking=await api('/bookings',{method:'POST',headers:{'idempotency-key':retryKey},
           body:{...submission,payment_method:method}});
         if(version!==generation)return;
+        // HTTP 2xx alone is not a verified booking. FBM's canonical public
+        // booking contract requires a non-empty reference and status. When
+        // either is missing, the server may still have committed a booking:
+        // never invent a receipt or offer another unverified final POST.
+        if(typeof booking?.reference!=='string'||!booking.reference.trim()||
+          typeof booking?.status!=='string'||!booking.status.trim()){
+          showUnverifiedBookingResponse();
+          completed=true;
+          return;
+        }
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
         completed=true;
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
@@ -540,6 +550,18 @@
       box.append(textNode('p','Requested guiding language: '+guideLabel()));
       box.append(textNode('p','This is not a confirmed booking. VOY PRO staff will review your requested time and contact you before any payment or reservation is confirmed.'));
       setStatus('Request sent for human review.','success');
+    }
+    function showUnverifiedBookingResponse(){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // A malformed successful HTTP response can follow a committed booking.
+      // Do not release the possibly converted hold or allow another POST.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Booking status needs verification'));
+      box.append(textNode('p','The booking service did not provide a verifiable booking reference and status. Your booking may have been created. Please contact VOY PRO before making another booking attempt.'));
+      setStatus('Booking outcome could not be verified. Contact VOY PRO before retrying.','error');
     }
     function showSuccess(reference,result,token){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
