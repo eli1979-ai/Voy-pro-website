@@ -233,6 +233,26 @@ async function scenario(lang,path,{catalogDown=false}={}){
     await wait(800);
     check(await page.locator('#slotlist button').count()===0,
       lang+' delayed response cannot restore stale availability after a change');
+
+    // Also challenge the in-flight guide-language boundary, not just changes
+    // in rider/passenger counts. An old-language response must never restore
+    // any sellable departure or unlock checkout after the customer switches.
+    const previousRequestCount=calls.filter(c=>c.path.includes('/availability')).length;
+    const slowGuideLanguage=lang==='en'?'he':'en';
+    await guide.selectOption(slowGuideLanguage);
+    await submit.click();
+    for(let i=0;i<50&&calls.filter(c=>c.path.includes('/availability')).length<=previousRequestCount;i++)
+      await wait(25);
+    const languageRequest=calls.filter(c=>c.path.includes('/availability')).at(-1);
+    check(calls.filter(c=>c.path.includes('/availability')).length>previousRequestCount&&
+      languageRequest?.path.includes('guide_language='+slowGuideLanguage),
+      lang+' delayed availability started with explicitly selected guide language');
+    await guide.selectOption(lang);
+    await wait(800);
+    check(await page.locator('#slotlist button').count()===0,
+      lang+' old-language delayed availability cannot restore sellable or requestable slots');
+    check((await page.locator('#availability-status').innerText()).length>10,
+      lang+' language switch retains a visible recheck explanation after delayed response');
     check(!await page.locator('#live-checkout-shell').isVisible().catch(()=>false),
       lang+' no checkout shown by these availability tests');
     check(pageErrors.length===0,lang+' no JavaScript errors'+(pageErrors.length?' '+pageErrors.join('; '):''));
