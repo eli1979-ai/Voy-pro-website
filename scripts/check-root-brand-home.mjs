@@ -37,6 +37,10 @@ requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-d
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" name="twitter:image"','root Twitter card must use a VOY PRO parent-brand asset');
 requireText(html,'name="twitter:title"','root Twitter card title missing');
 requireText(html,'name="twitter:description"','root Twitter card description missing');
+requireText(html,'content="VOY PRO brand logo" property="og:image:alt"','root social image alt must match the actual brand logo');
+requireText(html,'content="VOY PRO brand logo" name="twitter:image:alt"','root Twitter image alt must match the actual brand logo');
+forbidText(html,'content="Guests exploring Budapest by EZRaider with VOY PRO" property="og:image:alt"','root social image alt must not describe an unrelated Budapest ride');
+forbidText(html,'content="Guests exploring Budapest by EZRaider with VOY PRO" name="twitter:image:alt"','root Twitter image alt must not describe an unrelated Budapest ride');
 forbidText(html,'content="https://voy-pro.com/assets/images/budapest/img12.jpg" property="og:image"','root OG image must not be Budapest-only');
 forbidText(html,'content="https://voy-pro.com/assets/images/budapest/img12.jpg" name="twitter:image"','root Twitter image must not be Budapest-only');
 requireText(html,'"@type":"Organization"','root homepage must declare VOY PRO Organization schema');
