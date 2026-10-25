@@ -5,7 +5,7 @@ const failures=[];
 for(const marker of [
   "timeZone:'Europe/Lisbon'",
   "syncPortugalRequestDateMin();",
-  "dateInput?.addEventListener('focus',syncPortugalRequestDateMin);",
+  "dateInput?.addEventListener?.('focus',syncPortugalRequestDateMin);",
   "const today=syncPortugalRequestDateMin();",
   "if(date<today){",
   "dateInput?.focus({preventScroll:true});",
