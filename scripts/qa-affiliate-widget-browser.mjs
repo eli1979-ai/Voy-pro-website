@@ -26,10 +26,10 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
-  let delayNextAvailability=false;
+  let delayNextAvailability=false,finalAttempts=0;
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
     const shadow=Element.prototype.attachShadow;
@@ -48,7 +48,15 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     if(method==='OPTIONS')return route.fulfill({status:204,headers:h,body:''});
     if(!['GET','POST','DELETE'].includes(method))return route.abort();
     const payload=method==='POST'?req.postDataJSON():null;
-    calls.push({path,method,payload});
+    calls.push({path,method,payload,idempotencyKey:req.headers()['idempotency-key']||null});
+    if(firstPostFails&&method==='POST'&&
+      (path==='/api/v1/bookings'||path==='/api/v1/booking-capacity-requests')){
+      finalAttempts++;
+      if(finalAttempts===1)return route.fulfill({
+        status:503,headers:{...h,'content-type':'application/json'},
+        body:JSON.stringify({error:'Simulated temporary upstream failure'})
+      });
+    }
     if(staleLanguageRace&&delayNextAvailability&&path.includes('/availability?')){
       delayNextAvailability=false;
       await new Promise(done=>setTimeout(done,650));
@@ -208,6 +216,25 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
     await root.locator('#confirmButton').click();
+    if(firstPostFails){
+      await root.locator('#status.error').waitFor({timeout:10000});
+      const endpoint=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
+      const first=calls.filter(c=>c.path===endpoint);
+      check(first.length===1,name+' simulated transient failure sends exactly one final POST');
+      check(!await experience.isDisabled()&&!await language.isDisabled()&&
+        !await dateField.isDisabled()&&!await root.locator('#changeButton').isDisabled()&&
+        !await root.locator('#confirmButton').isDisabled(),
+        name+' rejected final POST restores tour, language, date and booking controls');
+      check(await root.locator('#checkout:not(.hidden)').count()===1,
+        name+' failed request keeps original checkout details visible for retry');
+      await root.locator('#confirmButton').click();
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const attempts=calls.filter(c=>c.path===endpoint);
+      check(attempts.length===2&&attempts.every(c=>c.idempotencyKey===first[0]?.idempotencyKey)&&
+        Boolean(first[0]?.idempotencyKey)&&
+        JSON.stringify(attempts[0]?.payload)===JSON.stringify(attempts[1]?.payload),
+        name+' retry uses same idempotency key and identical original commercial payload');
+    }
     if(slowFinalSubmission){
       const endpoint=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
       for(let i=0;i<50&&!calls.some(c=>c.path===endpoint);i++)
@@ -256,6 +283,8 @@ try{
   await run('mobile-expired-departure',{mobile:true,expiredSlots:true});
   await run('desktop-slow-booking-submit',{slowFinalSubmission:true});
   await run('mobile-slow-staff-request',{mobile:true,staffRequest:true,slowFinalSubmission:true});
+  await run('desktop-booking-retry-after-503',{firstPostFails:true});
+  await run('mobile-staff-request-retry-after-503',{mobile:true,staffRequest:true,firstPostFails:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
