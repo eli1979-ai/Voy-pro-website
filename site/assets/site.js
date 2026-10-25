@@ -506,17 +506,22 @@
   function rescueMarkup(message){return `${message}<div class="status-actions"><a class="btn secondary" href="#" data-inline-wa>${t('Ask us on WhatsApp','פנייה ב‑WhatsApp')}</a><a class="btn secondary" href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('View Buda tour','לצפייה בסיור בודה')}</a></div>`}
   function bindInlineWhatsApp(root=document){root.querySelectorAll('[data-inline-wa]').forEach(a=>{a.href=whatsAppUrl();a.onclick=()=>track('whatsapp_clicked',{page,context:'booking_rescue'})})}
   function budapestDate(offsetDays=0){
-    const dt=new Date(Date.now()+offsetDays*86400000);
-    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
+    // Start from today's Budapest calendar day. Adding elapsed 24-hour periods
+    // is wrong across DST: a 21-day booking window can shift by one day.
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
     const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));
-    return `${v.year}-${v.month}-${v.day}`;
+    const day=new Date(Date.UTC(Number(v.year),Number(v.month)-1,Number(v.day)));
+    day.setUTCDate(day.getUTCDate()+offsetDays);
+    return day.toISOString().slice(0,10);
   }
 
   function portugalDate(offsetDays=0){
-    const dt=new Date(Date.now()+offsetDays*86400000);
-    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
+    // Marvão uses the Lisbon *calendar day*, never the visitor's local time.
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Lisbon',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
     const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));
-    return `${v.year}-${v.month}-${v.day}`;
+    const day=new Date(Date.UTC(Number(v.year),Number(v.month)-1,Number(v.day)));
+    day.setUTCDate(day.getUTCDate()+offsetDays);
+    return day.toISOString().slice(0,10);
   }
 
   let visitorId = getStore('voy_visitor_id') || uuid();
