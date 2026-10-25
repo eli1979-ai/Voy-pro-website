@@ -347,9 +347,17 @@
     }
     async function selectSlot(slot){
       if(loading||!requireSelectedGuideLanguage())return;
-      await releaseHold();
+      // Choosing a different departure must also discard extras from the
+      // previous hold. The re-rendered quantities start at zero; retaining the
+      // old payload would silently book extras no longer shown to the guest.
+      setBusy(true);
       const version=++generation;
-      chosenSlot=slot;setBusy(true);$('#checkout').classList.add('hidden');setStatus('Checking your partner discount…');
+      await releaseHold();
+      selectedExtras.clear();extras=[];offers=[];
+      chosenSlot=slot;
+      $('#checkout').classList.add('hidden');
+      $('#extras').replaceChildren();$('#price').replaceChildren();
+      setStatus('Checking your partner discount…');
       try{
         const promo=await api('/promotions/validate',{method:'POST',body:{code:affiliate,slot_id:slot.id}});
         if(version!==generation)return;
