@@ -148,20 +148,28 @@
       languageSelect.focus();
       return false;
     }
-    dateField.min=todayBudapest();
-    dateField.value=dateField.min;
-    // FBM owns the Budapest booking horizon. Respect it in the date picker
-    // without hardcoding a number or preventing a catalog-only fallback when
-    // destination config is temporarily unavailable.
+    // A WordPress partner tab can stay open overnight. Refresh local Budapest
+    // date limits at each search; never silently change the guest's selected
+    // date or invent a booking horizon when destination configuration is absent.
+    let bookingHorizonDays=null;
+    const refreshBookingDateBounds=()=>{
+      const budapestToday=todayBudapest();
+      dateField.min=budapestToday;
+      if(Number.isSafeInteger(bookingHorizonDays)&&bookingHorizonDays>0){
+        const end=new Date(budapestToday+'T12:00:00Z');
+        end.setUTCDate(end.getUTCDate()+bookingHorizonDays);
+        if(Number.isFinite(end.getTime()))dateField.max=end.toISOString().slice(0,10);
+        else dateField.max='';
+      }else dateField.max='';
+      return budapestToday;
+    };
+    dateField.value=refreshBookingDateBounds();
+    // FBM owns the Budapest booking horizon, including its day-to-day shift.
     const applyDestinationHorizon=(destination)=>{
       const days=destination?.booking_horizon_days;
       if(!Number.isSafeInteger(days)||days<=0)return;
-      const budapestToday=todayBudapest();
-      const end=new Date(budapestToday+'T12:00:00Z');
-      end.setUTCDate(end.getUTCDate()+days);
-      if(!Number.isFinite(end.getTime()))return;
-      dateField.min=budapestToday;
-      dateField.max=end.toISOString().slice(0,10);
+      bookingHorizonDays=days;
+      refreshBookingDateBounds();
     };
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
     let retryKey=null,submittedIntent=null,expiryTimer=null,readyForOnline=false;
@@ -463,11 +471,18 @@
         return;
       }
       if(loading||!requireSelectedGuideLanguage())return;
+      const today=refreshBookingDateBounds();
       invalidate();
+      if(dateField.value&&dateField.value<today){
+        setStatus('Your selected date is now in the past in Budapest. Choose a new date and check availability again.','error');
+        dateField.focus();
+        return;
+      }
       const version=generation;
       const exp=experiences.find(x=>x.id===experienceSelect.value);
       const c=composition();
-      if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(dateField.value)||dateField.value<todayBudapest()||
+      if(!exp||!/^\d{4}-\d{2}-\d{2}$/.test(dateField.value)||dateField.value<today||
+        (dateField.max&&dateField.value>dateField.max)||
         !Number.isInteger(c.riders_16_plus)||c.riders_16_plus<1||
         c.riders_16_plus>Number(exp.maxIndependentRiders||12)||
         ![c.child_passengers_3_15,c.baby_passengers_1_2].every(v=>Number.isInteger(v)&&v>=0&&v<=12)||
