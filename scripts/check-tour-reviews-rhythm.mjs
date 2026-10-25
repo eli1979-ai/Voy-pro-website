@@ -53,8 +53,8 @@ for(const p of paths){
  // A static old tour count must not survive when the main location changes.
  const topHtml=html.slice(trust,html.indexOf('</section>',trust));
  const lowerHtml=html.slice(lower,ticker);
- const topCards=[...topHtml.matchAll(/<div class="trust-item">([\\s\\S]*?)<\\/div><\\/div>/g)].map(m=>m[1]);
- const lowerCards=[...lowerHtml.matchAll(/<a class="review-source-card" data-review-source="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>/g)]
+ const topCards=[...topHtml.matchAll(/<div class="trust-item">([\s\S]*?)<\/div><\/div>/g)].map(m=>m[1]);
+ const lowerCards=[...lowerHtml.matchAll(/<a class="review-source-card" data-review-source="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)]
    .map(m=>({source:m[1],body:m[2]}));
  assert.equal(topCards.length,3,p+': expected exactly three top trust cards');
  assert.equal(lowerCards.length,3,p+': expected exactly three linked review-source cards');
@@ -67,7 +67,7 @@ for(const p of paths){
  }
  const endOfMain=html.indexOf('</main>',ticker);
  assert(endOfMain>ticker,p+': ticker must finish inside main');
- assert.equal((html.slice(lower,endOfMain).match(/<section\\b/g)||[]).length,2,
+ assert.equal((html.slice(lower,endOfMain).match(/<section\b/g)||[]).length,2,
    p+': compact source strip and testimonial ticker must be the final two main sections');
 
  assert((html.match(/data-review-source="/g)||[]).length===3,p+': 3 source links');
