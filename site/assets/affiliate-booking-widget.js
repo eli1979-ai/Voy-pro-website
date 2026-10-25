@@ -479,6 +479,14 @@
       if(!requireSelectedGuideLanguage())return;
       const staffRequest=requiresStaffRequest();
       if(loading||!chosenSlot||(!staffRequest&&(!hold||!quote)))return;
+      // A departure can start after availability was loaded and after the
+      // guest opened checkout. Check again at the last actionable moment,
+      // for both booked departures and staff-review requests.
+      if(expiredDeparture(chosenSlot)){
+        invalidate();
+        setStatus('This departure has already started. Choose a future departure and check availability again.','error');
+        return;
+      }
       if(!staffRequest&&new Date(hold.expires_at).getTime()<=Date.now()){
         setStatus('Your hold expired. Please check availability again.','error');return;
       }
