@@ -172,6 +172,7 @@
       refreshBookingDateBounds();
     };
     let experiences=[],chosenSlot=null,hold=null,quote=null,offers=[],extras=[],generation=0,loading=false;
+    let offerWarning=false;
     let retryKey=null,submittedIntent=null,expiryTimer=null,readyForOnline=false;
     let submissionLock=null;
     const selectedExtras=new Map();
@@ -242,7 +243,31 @@
       if(!response.ok)throw new Error(result?.error||result?.message||'Booking service unavailable ('+response.status+').');
       return result;
     }
-    const offerPrice=(item)=>money(Number(item.price_minor||0)/100,item.currency||'EUR');
+    const offerPrice=(item)=>money(item.price_minor/100,item.currency);
+    // FBM is the source of truth for optional extras. An incomplete/invalid
+    // ancillary record must never appear as a free item or an unlimited
+    // quantity. Valid offers still work; unverified rows are not selectable.
+    const verifyAvailableOffers=(raw,currency)=>{
+      if(!Array.isArray(raw))return {items:[],hadInvalid:true};
+      const seen=new Set();
+      let hadInvalid=false;
+      const items=raw.filter(item=>{
+        const valid=item&&typeof item==='object'&&
+          typeof item.product_id==='string'&&item.product_id.trim().length>0&&
+          !seen.has(item.product_id)&&
+          typeof item.name==='string'&&item.name.trim().length>0&&
+          Number.isSafeInteger(item.price_minor)&&item.price_minor>=0&&
+          typeof item.currency==='string'&&item.currency===currency&&
+          (item.max_per_booking==null||
+            (Number.isSafeInteger(item.max_per_booking)&&item.max_per_booking>0))&&
+          (item.available_quantity==null||
+            (Number.isSafeInteger(item.available_quantity)&&item.available_quantity>=0));
+        if(!valid){hadInvalid=true;return false;}
+        seen.add(item.product_id);
+        return true;
+      });
+      return {items,hadInvalid};
+    };
     // Departure schedules can cross their start time while a partner is
     // looking at an availability result. The backend remains authoritative,
     // but an already-started (or malformed) timestamp must not be actionable.
@@ -262,7 +287,7 @@
       if(expiryTimer)clearInterval(expiryTimer);
       expiryTimer=null;
       const old=hold;
-      hold=null;quote=null;chosenSlot=null;extras=[];offers=[];retryKey=null;submittedIntent=null;
+      hold=null;quote=null;chosenSlot=null;extras=[];offers=[];offerWarning=false;retryKey=null;submittedIntent=null;
       selectedExtras.clear();setBusy(false);
       $('#results').classList.add('hidden');$('#checkout').classList.add('hidden');
       $('#slots').replaceChildren();$('#extras').replaceChildren();$('#price').replaceChildren();
@@ -318,6 +343,12 @@
     }
     function renderOffers(){
       const panel=$('#extras');panel.replaceChildren();
+      if(offerWarning){
+        const warning=textNode('p','Some optional extras could not be verified and are not displayed. VOY PRO calculates your final booking price.');
+        warning.className='hint';
+        warning.setAttribute('role','status');
+        panel.appendChild(warning);
+      }
       if(!offers.length)return;
       panel.appendChild(textNode('h3','Optional extras'));
       for(const offer of offers){
@@ -394,7 +425,7 @@
       // Network cleanup can take time. If tour, guide language or party size
       // changed while deleting the prior hold, do not revive the stale slot.
       if(version!==generation)return;
-      selectedExtras.clear();extras=[];offers=[];
+      selectedExtras.clear();extras=[];offers=[];offerWarning=false;
       chosenSlot=slot;
       $('#checkout').classList.add('hidden');
       $('#extras').replaceChildren();$('#price').replaceChildren();
@@ -409,7 +440,7 @@
           // canonical Request to Book workflow. Never create a hold or claim
           // final availability, price, payment or confirmation here.
           if(isPrivate())throw new Error('Private confirmations need direct help from VOY PRO.');
-          quote=null;offers=[];extras=[];renderOffers();
+          quote=null;offers=[];extras=[];offerWarning=false;renderOffers();
           $('#price').replaceChildren(
             textNode('p','Staff will confirm the available equipment and your affiliate-adjusted final price before booking.')
           );
@@ -448,9 +479,11 @@
           !Number.isFinite(expiresAt)||expiresAt<=Date.now())
           throw new Error('The booking hold could not be verified. Please choose another departure.');
         if(held.requires_staff_confirmation)throw new Error('This departure requires staff confirmation.');
-        offers=await api('/ancillary/offers',{method:'POST',body:{slot_id:held.departure_id||slot.id}}).catch(()=>[]);
+        const rawOffers=await api('/ancillary/offers',{method:'POST',body:{slot_id:held.departure_id||slot.id}}).catch(()=>[]);
         if(version!==generation)return;
-        if(!Array.isArray(offers))offers=[];
+        const verifiedOffers=verifyAvailableOffers(rawOffers,quote.currency);
+        offers=verifiedOffers.items;
+        offerWarning=verifiedOffers.hadInvalid;
         renderOffers();
         if(isPrivate())await refreshQuote({preserveGeneration:true});else renderQuote();
         if(version!==generation)return;
