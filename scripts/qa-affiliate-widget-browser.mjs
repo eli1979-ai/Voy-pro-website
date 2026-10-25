@@ -33,9 +33,13 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
+  // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
+  // Simulate a WordPress tab left open across that boundary, without
+  // changing the real system clock or sending live booking requests.
+  if(midnightRollover)await page.clock.install({time:new Date('2026-10-25T22:59:30.000Z')});
   let delayNextAvailability=false,finalAttempts=0;
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
@@ -223,6 +227,27 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(await language.inputValue()===''&&await language.locator('option[value="hu"]').count()===0,
       name+' returning to original affiliate tour clears unsupported Hungarian');
     await language.selectOption('he');
+    if(midnightRollover){
+      const oldDate=await dateField.inputValue();
+      check(oldDate==='2026-10-25',name+' tab began with Budapest local October 25');
+      await page.clock.setFixedTime(new Date('2026-10-25T23:01:30.000Z'));
+      await root.locator('#searchButton').click();
+      const fresh=await dateField.evaluate(el=>({min:el.min,max:el.max,value:el.value}));
+      check(fresh.min==='2026-10-26'&&fresh.max==='2026-11-16'&&
+        fresh.value==='2026-10-25',name+' refreshed FBM 21-day date bounds without silently changing selection');
+      check((await root.locator('#status').innerText()).includes('now in the past in Budapest'),
+        name+' old selected date is explicitly rejected after Budapest midnight');
+      check(!calls.some(c=>c.path.includes('/availability?')),
+        name+' stale previous-day date never reaches the booking API');
+      await dateField.fill('2026-10-26');
+      await root.locator('#searchButton').click();
+      await root.locator('#slots button').first().waitFor({timeout:10000});
+      check(calls.some(c=>c.path.includes('/availability?')&&c.path.includes('date=2026-10-26')),
+        name+' corrected date searches only current Budapest day');
+      check(errors.length===0,name+' no JavaScript errors after overnight date correction');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(expiredSlots){
       await root.locator('#searchButton').click();
       const departures=root.locator('#slots button');
@@ -662,6 +687,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 }
 try{
   await run('desktop-booking');
+  await run('desktop-overnight-budapest-date-rollover',{midnightRollover:true});
+  await run('mobile-overnight-budapest-date-rollover',{mobile:true,midnightRollover:true});
   await run('mobile-pending-request',{mobile:true,staffRequest:true});
   await run('desktop-late-language-response',{staleLanguageRace:true});
   await run('mobile-late-language-response',{mobile:true,staleLanguageRace:true});
