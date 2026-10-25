@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,wpRtl=false,mutatedRetryAfter503=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -113,7 +113,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
           :{reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null};
     }else if(path==='/api/v1/booking-capacity-requests'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
-      data={type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE'};
+      data=malformedStaffReply==='missing-reference'
+        ?{type:'booking_capacity_request',status:'pending'}
+        :malformedStaffReply==='wrong-status'
+          ?{type:'booking_capacity_request',status:'approved',reference:'VP-CAP-FAKE'}
+          :{type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE'};
     }
     else if(method==='DELETE'&&path.startsWith('/api/v1/holds/'))
       return route.fulfill({status:204,headers:h,body:''});
@@ -283,6 +287,28 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
     await root.locator('#confirmButton').click();
+    if(malformedStaffReply){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const receipt=await root.locator('#success').innerText();
+      check(receipt.includes('Staff request status needs verification')&&
+        !receipt.includes('Your confirmation request was received')&&
+        !receipt.includes('Request reference:'),
+        name+' unverifiable 2xx staff request never creates a fabricated request receipt');
+      check((await root.locator('#status.error').innerText()).includes('Staff request outcome is uncertain')&&
+        receipt.includes('Please contact VOY PRO before sending another request.'),
+        name+' incomplete response gives explicit staff reconciliation guidance');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        await root.locator('#confirmButton').isDisabled(),
+        name+' uncertain request outcome locks the final customer form');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path==='/api/v1/booking-capacity-requests').length===1&&
+        !calls.some(c=>c.path==='/api/v1/bookings'||c.path==='/api/v1/holds'),
+        name+' uncertain staff request cannot send a second POST, booking or hold');
+      check(errors.length===0,name+' no JavaScript errors from malformed staff response');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(malformedBookingReply){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const result=await root.locator('#success').innerText();
@@ -423,6 +449,8 @@ try{
   await run('mobile-hold-with-invalid-expiry',{mobile:true,badHold:'invalid-expiry'});
   await run('desktop-booking-success-without-reference',{malformedBookingReply:'missing-reference'});
   await run('mobile-booking-success-without-status',{mobile:true,malformedBookingReply:'missing-status'});
+  await run('desktop-staff-request-without-reference',{staffRequest:true,malformedStaffReply:'missing-reference'});
+  await run('mobile-staff-request-with-wrong-status',{mobile:true,staffRequest:true,malformedStaffReply:'wrong-status'});
   await run('desktop-hold-already-expired',{badHold:'past-expiry'});
   await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
   await run('desktop-wordpress-rtl-embed',{wpRtl:true});
