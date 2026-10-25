@@ -12,10 +12,11 @@ const partnerScript='<script src="/assets/affiliate-booking-widget.js" data-voy-
 const pageHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Partner</title></head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main>'+partnerScript+'</body></html>';
 const headEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Head Embed</title>'+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
 const duplicateEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Double Partner Embed</title>'+partnerScript+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
+const wpLikeHTML='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isolated RTL WordPress-style partner fixture</title><style>.entry-content button,.entry-content input,.entry-content select{background:#f00!important;color:#000!important}body{font-family:serif}</style></head><body><article class="entry-content"><h1>דף שותף לדוגמה</h1><form id="wp-contact"><label>טופס עצמאי <input type="text" value="guest"></label><button type="button">Host form</button></form><div id="affiliate-target"></div>'+partnerScript+'</article></body></html>';
 const server=createServer((req,res)=>{
-  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'){
+  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'||req.url==='/?wp-rtl'){
     res.writeHead(200,{'content-type':'text/html'});
-    res.end(req.url==='/?duplicate-embed'?duplicateEmbedHTML:req.url==='/?head-embed'?headEmbedHTML:pageHTML);
+    res.end(req.url==='/?wp-rtl'?wpLikeHTML:req.url==='/?duplicate-embed'?duplicateEmbedHTML:req.url==='/?head-embed'?headEmbedHTML:pageHTML);
   }
   else if(req.url==='/assets/affiliate-booking-widget.js'){
     res.writeHead(200,{'content-type':'text/javascript'});res.end(widget);
@@ -32,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,wpRtl=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -122,7 +123,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       body:JSON.stringify(data)});
   });
   try{
-    const response=await page.goto(host+(duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
+    const response=await page.goto(host+(wpRtl?'/?wp-rtl':duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
     check(response?.status()===200,name+' local partner host loads');
     const root=page.locator('#affiliate-target');
     const experience=root.locator('select[name="experience"]');
@@ -132,6 +133,18 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         name+' script in document head waits for target before marking mounted');
       check(await root.locator('section[aria-label="VOY PRO partner booking"]').count()===1,
         name+' head-included embed attaches exactly one accessible widget');
+    }
+    if(wpRtl){
+      const hostButton=page.locator('#wp-contact button');
+      check(await page.locator('html').getAttribute('dir')==='rtl'&&
+        await hostButton.evaluate(node=>getComputedStyle(node).direction)==='rtl',
+        name+' simulated Hebrew WordPress host retains its own RTL direction');
+      check(await root.locator('#searchButton').evaluate(node=>
+        getComputedStyle(node).direction==='ltr'&&
+        getComputedStyle(node).backgroundColor==='rgb(18, 87, 137)'),
+        name+' English booking widget retains LTR direction and original button styling despite hostile host CSS');
+      check(await hostButton.evaluate(node=>getComputedStyle(node).backgroundColor)==='rgb(255, 0, 0)',
+        name+' affiliate widget does not override sibling WordPress form styling');
     }
     if(duplicateEmbed){
       check(await page.locator('script[data-voy-affiliate-widget]').count()===2,
@@ -399,6 +412,8 @@ try{
   await run('mobile-booking-success-without-status',{mobile:true,malformedBookingReply:'missing-status'});
   await run('desktop-hold-already-expired',{badHold:'past-expiry'});
   await run('mobile-hold-with-missing-id',{mobile:true,badHold:'missing-id'});
+  await run('desktop-wordpress-rtl-embed',{wpRtl:true});
+  await run('mobile-wordpress-rtl-staff-request',{mobile:true,staffRequest:true,wpRtl:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
