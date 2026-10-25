@@ -479,7 +479,9 @@
           !Number.isFinite(expiresAt)||expiresAt<=Date.now())
           throw new Error('The booking hold could not be verified. Please choose another departure.');
         if(held.requires_staff_confirmation)throw new Error('This departure requires staff confirmation.');
-        const rawOffers=await api('/ancillary/offers',{method:'POST',body:{slot_id:held.departure_id||slot.id}}).catch(()=>[]);
+        // Empty offer list means "none available". A failed request is
+        // different: surface a warning instead of silently hiding upsells.
+        const rawOffers=await api('/ancillary/offers',{method:'POST',body:{slot_id:held.departure_id||slot.id}}).catch(()=>null);
         if(version!==generation)return;
         const verifiedOffers=verifyAvailableOffers(rawOffers,quote.currency);
         offers=verifiedOffers.items;
