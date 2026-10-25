@@ -23,6 +23,19 @@ const paths=[
   "site/hu/budapest/tours/citadella-advanced-ezraider-tour/index.html",
   "site/hu/budapest/private-tours/index.html"
 ];
+const snapshot=JSON.parse(fs.readFileSync('site/assets/budapest-reputation.json','utf8'));
+const providerOrder=[['google','Google'],['tripadvisor','Tripadvisor'],['getyourguide','GetYourGuide']];
+for(const [key] of providerOrder)assert(Number.isSafeInteger(snapshot[key]?.review_count),key+': missing audited count');
+// Read the number from a rendered trust-sub value, whether plain text or a
+// nested data-review-count span, so older tour pages cannot silently drift.
+const readVisibleCount=(card,path,key)=>{
+ const attr=card.indexOf('class="trust-sub"');
+ assert(attr>=0,path+': '+key+' review count container missing');
+ const raw=card.slice(attr).replace(/^[^>]*>/,'').replace(/<[^>]*>/g,' ');
+ const found=raw.match(/\d[\d ,]*/);
+ assert(found,path+': '+key+' visible review count missing');
+ return Number(found[0].replace(/[ ,]/g,''));
+};
 const style=fs.readFileSync('site/assets/budapest-tour-rhythm.css','utf8');
 assert(style.includes('.tour-detail-page .trust-grid{grid-template-columns:repeat(3,minmax(0,1fr))}'));
 assert(style.includes('.tour-detail-page .section:not(.booking):not(.tour-review-compact){padding-block:23px}'));
@@ -35,6 +48,28 @@ for(const p of paths){
  assert(/<body[^>]*class="[^"]*tour-detail-page/.test(html),p+': localized style scope missing');
  assert((html.match(/<section class="trust">/g)||[]).length===1,p+': exactly one top trust strip');
  assert((html.match(/class="review-source-grid"/g)||[]).length===1,p+': only one closing source strip');
+ // Verify the exact same, audited count is visible in the top compact
+ // trust grid and in the closing original-source cards for all 18 pages.
+ // A static old tour count must not survive when the main location changes.
+ const topHtml=html.slice(trust,html.indexOf('</section>',trust));
+ const lowerHtml=html.slice(lower,ticker);
+ const topCards=[...topHtml.matchAll(/<div class="trust-item">([\\s\\S]*?)<\\/div><\\/div>/g)].map(m=>m[1]);
+ const lowerCards=[...lowerHtml.matchAll(/<a class="review-source-card" data-review-source="([^"]+)"[^>]*>([\\s\\S]*?)<\\/a>/g)]
+   .map(m=>({source:m[1],body:m[2]}));
+ assert.equal(topCards.length,3,p+': expected exactly three top trust cards');
+ assert.equal(lowerCards.length,3,p+': expected exactly three linked review-source cards');
+ for(let i=0;i<providerOrder.length;i++){
+   const [key,label]=providerOrder[i],expected=snapshot[key].review_count;
+   assert(topCards[i].includes('class="trust-source">'+label+'</div>'),p+': top trust order differs at '+key);
+   assert.equal(readVisibleCount(topCards[i],p,key),expected,p+': stale opening trust count '+key);
+   assert.equal(lowerCards[i].source,key==='google'?'google_maps':key,p+': wrong closing source/order '+key);
+   assert.equal(readVisibleCount(lowerCards[i].body,p,key),expected,p+': stale closing review count '+key);
+ }
+ const endOfMain=html.indexOf('</main>',ticker);
+ assert(endOfMain>ticker,p+': ticker must finish inside main');
+ assert.equal((html.slice(lower,endOfMain).match(/<section\\b/g)||[]).length,2,
+   p+': compact source strip and testimonial ticker must be the final two main sections');
+
  assert((html.match(/data-review-source="/g)||[]).length===3,p+': 3 source links');
  assert((html.match(/data-vp-reviews-root hidden/g)||[]).length===1,p+': only one ticker root');
  assert((html.match(/<script src="\/assets\/budapest-review-ticker.js/g)||[]).length===1,p+': only one verified review renderer');
