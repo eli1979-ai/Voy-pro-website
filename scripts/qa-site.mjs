@@ -19,6 +19,12 @@ const warn=(file,msg)=>warnings.push(file+': '+msg);
 
 const release=JSON.parse(read(path.join(site,'release.json')));
 const sitemap=read(path.join(site,'sitemap.xml'));
+// XML Sitemap schema permits only <url> elements and whitespace inside <urlset>.
+// Reject literal backslash escapes or stray text that a lenient URL regex misses.
+const sitemapEnvelope=sitemap.match(/^\s*<\?xml[^>]*\?>\s*<urlset\b[^>]*>([\s\S]*?)<\/urlset>\s*$/);
+if(!sitemapEnvelope) errors.push('sitemap.xml: invalid XML sitemap envelope');
+else if(sitemapEnvelope[1].replace(/<url>[\s\S]*?<\/url>/g,'').trim())
+  errors.push('sitemap.xml: non-whitespace content outside <url> elements');
 const sitemapUrls=[...sitemap.matchAll(/<loc>(https:\/\/voy-pro\.com\/[^<]*)<\/loc>/g)].map(m=>m[1]);
 if(sitemapUrls.length!==release.sitemap_urls) errors.push('sitemap.xml: expected '+release.sitemap_urls+' URLs, found '+sitemapUrls.length);
 
