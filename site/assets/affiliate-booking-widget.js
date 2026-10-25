@@ -683,6 +683,7 @@
       // The first request may have been accepted. Keep the possibly converted
       // hold untouched and do not create a new idempotency key or booking.
       hold=null;quote=null;chosenSlot=null;
+      $('#confirmButton').disabled=true;
       $('#search').classList.add('hidden');$('#results').classList.add('hidden');
       $('#checkout').classList.add('hidden');
       const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
