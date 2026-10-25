@@ -45,8 +45,11 @@ const paths=[
   ['hu','/hu/budapest/tours/buda-castle-ezraider-tour/']
 ];
 const wait=ms=>new Promise(done=>setTimeout(done,ms));
-async function scenario(lang,path,{catalogDown=false}={}){
+async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}){
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  // The tab is opened at 23:59 Budapest local time after the DST change.
+  // Move only its simulated clock forward; FBM routes remain mocked.
+  if(overnightRollover)await page.clock.install({time:new Date('2026-10-25T22:59:30.000Z')});
   const calls=[],pageErrors=[];
   let phase='empty';
   page.on('pageerror',err=>pageErrors.push(err.message));
@@ -152,6 +155,33 @@ async function scenario(lang,path,{catalogDown=false}={}){
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:9000});
     check(await guide.inputValue()==='',lang+' guide language is never silently chosen');
+    if(overnightRollover){
+      const date=form.locator('input[name="date"]');
+      await date.fill('2026-10-25');
+      await guide.selectOption('en');
+      check(await date.evaluate(el=>el.min==='2026-10-25'),
+        lang+' date starts at Budapest October 25, not the browser timezone');
+      await page.clock.setFixedTime(new Date('2026-10-25T23:01:30.000Z'));
+      await form.locator('button[type="submit"]').click();
+      const actual=await date.evaluate(el=>({min:el.min,max:el.max,value:el.value}));
+      check(actual.min==='2026-10-26'&&actual.max==='2026-11-16'&&
+        actual.value==='2026-10-25',
+        lang+' overnight recalculates 21-day FBM booking window without changing guest date');
+      check((await page.locator('#availability-status').innerText()).includes(
+        lang==='he'?'כבר חלף':lang==='hu'?'már elmúlt':'now in the past'),
+        lang+' invalid previous-day date is explained in the page language');
+      check(!calls.some(c=>c.path.includes('/availability?')),
+        lang+' overnight stale date does not reach availability API');
+      await date.fill('2026-10-26');
+      await form.locator('button[type="submit"]').click();
+      for(let i=0;i<50&&!calls.some(c=>c.path.includes('/availability?'));i++)await wait(30);
+      check(calls.some(c=>c.path.includes('/availability?')&&c.path.includes('date=2026-10-26')),
+        lang+' corrected Budapest date searches canonical mocked availability');
+      check(!calls.some(c=>/\/(?:holds|quotes|bookings|payments)\b/.test(c.path)),
+        lang+' midnight test never attempts hold, booking or payment');
+      check(pageErrors.length===0,lang+' overnight validation creates no JS exceptions');
+      return;
+    }
     // Changing products must not silently reinterpret a previously chosen
     // guiding language as consent to another one. Availability remains server-
     // owned; these are UI-only transitions with the mocked public catalog.
@@ -264,6 +294,9 @@ async function scenario(lang,path,{catalogDown=false}={}){
 }
 try{
   await scenario('en',paths[0][1]);
+  await scenario('en',paths[0][1],{overnightRollover:true});
+  await scenario('he',paths[1][1],{overnightRollover:true});
+  await scenario('hu',paths[2][1],{overnightRollover:true});
   await scenario('he',paths[1][1]);
   await scenario('hu',paths[2][1]);
   await scenario('en',paths[0][1],{catalogDown:true});
