@@ -33,7 +33,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,wpRtl=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,wpRtl=false,mutatedRetryAfter503=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -342,6 +342,17 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         name+' rejected final POST restores tour, language, date and booking controls');
       check(await root.locator('#checkout:not(.hidden)').count()===1,
         name+' failed request keeps original checkout details visible for retry');
+      if(mutatedRetryAfter503){
+        const customerEmail=root.locator('#customer [name="email"]');
+        const originalEmail=await customerEmail.inputValue();
+        await customerEmail.fill('changed-after-submit@example.invalid');
+        await root.locator('#confirmButton').click();
+        check(await root.locator('#status.error').innerText().then(s=>s.includes('Booking details changed after the previous submission.')),
+          name+' modified customer details are explicitly rejected with the original idempotency key');
+        check(calls.filter(c=>c.path===endpoint).length===1,
+          name+' modified retry sends NO second POST after ambiguous gateway failure');
+        await customerEmail.fill(originalEmail);
+      }
       await root.locator('#confirmButton').click();
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const attempts=calls.filter(c=>c.path===endpoint);
@@ -400,6 +411,8 @@ try{
   await run('mobile-slow-staff-request',{mobile:true,staffRequest:true,slowFinalSubmission:true});
   await run('desktop-booking-retry-after-503',{firstPostFails:true});
   await run('mobile-staff-request-retry-after-503',{mobile:true,staffRequest:true,firstPostFails:true});
+  await run('desktop-mutated-booking-retry-after-503',{firstPostFails:true,mutatedRetryAfter503:true});
+  await run('mobile-mutated-staff-request-retry-after-503',{mobile:true,staffRequest:true,firstPostFails:true,mutatedRetryAfter503:true});
   await run('desktop-head-embed-booking',{headEmbed:true});
   await run('mobile-head-embed-staff-request',{mobile:true,staffRequest:true,headEmbed:true});
   await run('desktop-duplicate-head-scripts',{duplicateEmbed:true});
