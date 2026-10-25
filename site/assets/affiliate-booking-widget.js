@@ -299,6 +299,12 @@
       expiryTimer=setInterval(()=>{
         if(!hold)return;
         const seconds=Math.max(0,Math.floor((new Date(hold.expires_at).getTime()-Date.now())/1000));
+        if(seconds===0&&submissionLock){
+          // Do not discard a server response already in flight: it may contain
+          // a confirmed booking even after the local hold deadline passes.
+          $('#holdExpiry').textContent='Hold time reached; awaiting your booking confirmation.';
+          return;
+        }
         $('#holdExpiry').textContent=seconds?'Your booking is held for '+Math.ceil(seconds/60)+' more minute(s).':'Your hold has expired; please choose a time again.';
         if(seconds===0){
           ++generation;
@@ -504,6 +510,19 @@
         if(version===generation){
           if(!completed)unlockFinalSubmission();
           setBusy(false);
+          // A failed/ambiguous server response after the hold deadline must
+          // not offer the now-invalid hold as an ordinary retry. The customer
+          // may have been booked server-side, so explicitly request staff help
+          // instead of silently issuing a new booking or releasing the hold.
+          const expires=hold?new Date(hold.expires_at).getTime():NaN;
+          if(!completed&&hold&&(!Number.isFinite(expires)||expires<=Date.now())){
+            ++generation;
+            if(expiryTimer)clearInterval(expiryTimer);
+            expiryTimer=null;hold=null;quote=null;chosenSlot=null;
+            $('#checkout').classList.add('hidden');
+            $('#confirmButton').disabled=true;
+            setStatus('The hold expired while confirmation was pending. The booking outcome may be uncertain. Please contact VOY PRO before trying again.','error');
+          }
         }
       }
     }

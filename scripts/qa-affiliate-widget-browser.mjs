@@ -32,7 +32,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false,finalAttempts=0;
@@ -61,6 +61,13 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       if(finalAttempts===1)return route.fulfill({
         status:503,headers:{...h,'content-type':'application/json'},
         body:JSON.stringify({error:'Simulated temporary upstream failure'})
+      });
+    }
+    if(holdExpiresDuringPost&&path==='/api/v1/bookings'){
+      await new Promise(done=>setTimeout(done,1850));
+      if(holdExpiresDuringPost==='error')return route.fulfill({
+        status:503,headers:{...h,'content-type':'application/json'},
+        body:JSON.stringify({error:'Simulated booking gateway uncertainty'})
       });
     }
     if(staleLanguageRace&&delayNextAvailability&&path.includes('/availability?')){
@@ -238,6 +245,32 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     await root.locator('#customer [name="phone"]').fill('+15551234567');
     await root.locator('#customer [name="terms"]').check();
     await root.locator('#confirmButton').click();
+    if(holdExpiresDuringPost){
+      for(let i=0;i<50&&!calls.some(c=>c.path==='/api/v1/bookings');i++)
+        await new Promise(done=>setTimeout(done,20));
+      check(calls.filter(c=>c.path==='/api/v1/bookings').length===1,
+        name+' booking POST started once before hold time elapsed');
+      await page.evaluate(()=>{
+        const originalNow=Date.now;
+        Date.now=()=>originalNow()+11*60*1000;
+      });
+      await root.locator('#holdExpiry').getByText('Hold time reached',{exact:false}).waitFor({timeout:3000});
+      check(await root.locator('#checkout:not(.hidden)').count()===1,
+        name+' expiry during pending POST does not prematurely hide checkout or lose response');
+      if(holdExpiresDuringPost==='error'){
+        await root.locator('#status.error').waitFor({timeout:10000});
+        const message=await root.locator('#status').innerText();
+        check(message.includes('booking outcome may be uncertain')&&
+          await root.locator('#checkout:not(.hidden)').count()===0&&
+          await root.locator('#confirmButton').isDisabled(),
+          name+' failed expired-hold POST offers staff recovery not a risky new booking retry');
+        check(calls.filter(c=>c.path==='/api/v1/bookings').length===1,
+          name+' ambiguous expired booking outcome causes no duplicate booking');
+        check(errors.length===0,name+' no JavaScript errors in expired-hold failure recovery');
+        await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+        return;
+      }
+    }
     if(firstPostFails){
       await root.locator('#status.error').waitFor({timeout:10000});
       const endpoint=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
@@ -311,6 +344,8 @@ try{
   await run('mobile-head-embed-staff-request',{mobile:true,staffRequest:true,headEmbed:true});
   await run('desktop-duplicate-head-scripts',{duplicateEmbed:true});
   await run('mobile-duplicate-head-scripts',{mobile:true,staffRequest:true,duplicateEmbed:true});
+  await run('desktop-booking-success-after-local-expiry',{holdExpiresDuringPost:'success'});
+  await run('mobile-booking-error-after-local-expiry',{mobile:true,holdExpiresDuringPost:'error'});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
