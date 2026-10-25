@@ -54,7 +54,9 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       await new Promise(done=>setTimeout(done,650));
     }
     let data;
-    if(path==='/api/v1/experiences?destination=budapest')
+    if(path==='/api/v1/destinations/budapest')
+      data={booking_horizon_days:21,timezone:'Europe/Budapest'};
+    else if(path==='/api/v1/experiences?destination=budapest')
       data=[{id:tourId,title:'Buda Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
         guideLanguages:['en','he'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12},
         {id:alternateTourId,title:'Margaret Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
@@ -88,6 +90,19 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     const root=page.locator('#affiliate-target');
     const experience=root.locator('select[name="experience"]');
     await experience.locator('option[value="'+tourId+'"]').waitFor({state:'attached',timeout:10000});
+    const dateField=root.locator('input[name="date"]');
+    await dateField.evaluate(el=>new Promise((ok,fail)=>{
+      let attempts=0;
+      const tick=()=>el.max?ok():attempts++<50?setTimeout(tick,30):fail(Error('Missing FBM booking horizon'));
+      tick();
+    }));
+    const dateLimit=await dateField.evaluate(el=>({min:el.min,max:el.max,value:el.value}));
+    const dateSpan=Math.round((Date.parse(dateLimit.max+'T12:00:00Z')-
+      Date.parse(dateLimit.min+'T12:00:00Z'))/86400000);
+    check(dateSpan===21&&dateLimit.value===dateLimit.min,
+      name+' partner date picker uses 21-day FBM horizon from destination configuration');
+    check(await dateField.evaluate(el=>el.validity.rangeOverflow===false),
+      name+' initially selected Budapest local date remains inside verified booking horizon');
     check(await root.locator('h2').innerText()==='Book your Budapest EZRaider tour',
       name+' actual embedded widget renders');
     const language=root.locator('select[name="language"]');
