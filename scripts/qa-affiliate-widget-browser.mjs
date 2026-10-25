@@ -306,6 +306,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     if(withExtras){
       const qty=root.locator('#extras input[data-product-id="extra-camera"]');
       await qty.fill('1');
+      // Native number inputs commit their change on blur in actual Chrome.
+      await qty.press('Tab');
       for(let i=0;i<50&&!calls.some(c=>c.path==='/api/v1/quotes'&&
         c.payload?.extras?.some(x=>x.quantity===1));i++)
         await new Promise(done=>setTimeout(done,20));
