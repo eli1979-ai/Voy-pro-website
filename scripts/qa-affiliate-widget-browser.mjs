@@ -26,7 +26,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   let delayNextAvailability=false;
@@ -62,7 +62,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         {id:alternateTourId,title:'Margaret Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
           guideLanguages:['en','hu'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
     else if(path==='/api/v1/payments/capabilities')data={online_card:false};
-    else if(path.includes('/availability?'))data={slots:[{
+    else if(path.includes('/availability?'))data={slots:expiredSlots?[
+      {id:'11111111-1111-4111-8111-111111111111',time:'09:00',
+        starts_at:new Date(Date.now()-60000).toISOString(),sellable:true,requestable:false},
+      {id:slotId,time:'10:00',starts_at:new Date(Date.now()+60000).toISOString(),
+        sellable:!staffRequest,requestable:staffRequest}
+    ]:[{
       id:slotId,time:'10:00',sellable:!staffRequest,requestable:staffRequest
     }]};
     else if(path==='/api/v1/promotions/validate')
@@ -128,6 +133,28 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(await language.inputValue()===''&&await language.locator('option[value="hu"]').count()===0,
       name+' returning to original affiliate tour clears unsupported Hungarian');
     await language.selectOption('he');
+    if(expiredSlots){
+      await root.locator('#searchButton').click();
+      const departures=root.locator('#slots button');
+      await departures.first().waitFor({timeout:10000});
+      check(await departures.count()===1&&await departures.first().innerText()==='10:00',
+        name+' past departure filtered, only a future slot remains selectable');
+      // The visible slot becomes old while the guest decides. Move only the
+      // browser clock forward after rendering; no server data is changed.
+      await page.evaluate(()=>{const now=Date.now;Date.now=()=>now()+120000;});
+      await departures.first().click();
+      check(await departures.count()===0,
+        name+' previously visible departure expires at click time');
+      check(await root.locator('#results').evaluate(el=>el.classList.contains('hidden')),
+        name+' expired option invalidates the whole availability selection');
+      check((await root.locator('#status').innerText()).includes('no longer available'),
+        name+' expired selection tells customer to recheck availability');
+      check(!calls.some(c=>/^\/api\/v1\/(?:promotions\/validate|quotes|holds|bookings|booking-capacity-requests)/.test(c.path)),
+        name+' expired slot cannot reach price, hold, booking or staff request');
+      check(errors.length===0,name+' no JS errors with time-expired departures');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(staleLanguageRace){
       delayNextAvailability=true;
       await root.locator('#searchButton').click();
@@ -207,6 +234,8 @@ try{
   await run('mobile-pending-request',{mobile:true,staffRequest:true});
   await run('desktop-late-language-response',{staleLanguageRace:true});
   await run('mobile-late-language-response',{mobile:true,staleLanguageRace:true});
+  await run('desktop-expired-departure',{expiredSlots:true});
+  await run('mobile-expired-departure',{mobile:true,expiredSlots:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
