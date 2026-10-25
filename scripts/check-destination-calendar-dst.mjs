@@ -16,7 +16,7 @@ function loadClockedDate(name,instant){
     static now(){return ms;}
   }
   const ctx=vm.createContext({Date:FixedDate,Intl});
-  return vm.runInContext(found[0]+'\\n'+name,ctx,{timeout:1000});
+  return vm.runInContext(found[0]+'\n'+name,ctx,{timeout:1000});
 }
 const cases=[
   // EU DST falls back on October 25, 2026. 21 calendar days is NOT 21
