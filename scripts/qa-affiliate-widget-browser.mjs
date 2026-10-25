@@ -13,10 +13,20 @@ const pageHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta
 const headEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Head Embed</title>'+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
 const duplicateEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Double Partner Embed</title>'+partnerScript+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
 const wpLikeHTML='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isolated RTL WordPress-style partner fixture</title><style>.entry-content button,.entry-content input,.entry-content select{background:#f00!important;color:#000!important}body{font-family:serif}</style></head><body><article class="entry-content"><h1>דף שותף לדוגמה</h1><form id="wp-contact"><label>טופס עצמאי <input type="text" value="guest"></label><button type="button">Host form</button></form><div id="affiliate-target"></div>'+partnerScript+'</article></body></html>';
+// Rehearse the real WordPress distribution shape: the partner HTML and
+// the VOY PRO widget script are on DIFFERENT HTTPS origins. The cross-origin
+// asset is fulfilled from local bytes; no public network requests are made.
+const crossOriginPartnerHTML=wpLikeHTML.replace(partnerScript,
+  partnerScript.replace('src="/assets/affiliate-booking-widget.js"',
+    'src="https://voy-pro.com/assets/affiliate-booking-widget.js" defer'));
+const partnerCsp="default-src 'none'; script-src https://voy-pro.com; "+
+  "connect-src "+originAPI+"; style-src 'unsafe-inline'; form-action 'self'";
 const server=createServer((req,res)=>{
-  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'||req.url==='/?wp-rtl'){
-    res.writeHead(200,{'content-type':'text/html'});
-    res.end(req.url==='/?wp-rtl'?wpLikeHTML:req.url==='/?duplicate-embed'?duplicateEmbedHTML:req.url==='/?head-embed'?headEmbedHTML:pageHTML);
+  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'||req.url==='/?wp-rtl'||req.url==='/?wp-cross-origin'){
+    res.writeHead(200,{'content-type':'text/html',
+      ...(req.url==='/?wp-cross-origin'?{'content-security-policy':partnerCsp}:{})});
+    res.end(req.url==='/?wp-cross-origin'?crossOriginPartnerHTML:
+      req.url==='/?wp-rtl'?wpLikeHTML:req.url==='/?duplicate-embed'?duplicateEmbedHTML:req.url==='/?head-embed'?headEmbedHTML:pageHTML);
   }
   else if(req.url==='/assets/affiliate-booking-widget.js'){
     res.writeHead(200,{'content-type':'text/javascript'});res.end(widget);
@@ -33,14 +43,14 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
   // Simulate a WordPress tab left open across that boundary, without
   // changing the real system clock or sending live booking requests.
   if(midnightRollover)await page.clock.install({time:new Date('2026-10-25T22:59:30.000Z')});
-  let delayNextAvailability=false,finalAttempts=0;
+  let delayNextAvailability=false,finalAttempts=0,externalAssetServed=false;
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{
     const shadow=Element.prototype.attachShadow;
@@ -50,7 +60,18 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
   });
   await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
-    if(url.origin===host)return route.continue();
+    if(wpCrossOrigin&&url.origin==='https://voy-pro.com'&&
+      url.pathname==='/assets/affiliate-booking-widget.js'&&!url.search){
+      externalAssetServed=true;
+      return route.fulfill({status:200,body:widget,contentType:'application/javascript'});
+    }
+    if(url.origin===host){
+      // Never let the cross-origin fixture accidentally use a same-origin
+      // script, even if the partner HTML is later accidentally rewritten.
+      if(wpCrossOrigin&&url.pathname==='/assets/affiliate-booking-widget.js')
+        return route.abort();
+      return route.continue();
+    }
     if(url.origin!==originAPI||!url.pathname.startsWith('/api/v1/'))return route.abort();
     const method=req.method(),path=url.pathname+url.search;
     const h={'access-control-allow-origin':host,
@@ -166,8 +187,16 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       body:JSON.stringify(data)});
   });
   try{
-    const response=await page.goto(host+(wpRtl?'/?wp-rtl':duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
+    const response=await page.goto(host+(wpCrossOrigin?'/?wp-cross-origin':wpRtl?'/?wp-rtl':duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
     check(response?.status()===200,name+' local partner host loads');
+    if(wpCrossOrigin){
+      check(externalAssetServed&&
+        await page.locator('script[data-voy-affiliate-widget]').getAttribute('src')===
+          'https://voy-pro.com/assets/affiliate-booking-widget.js',
+        name+' script is loaded from a separate approved first-party HTTPS origin');
+      check(response?.headers()['content-security-policy']===partnerCsp,
+        name+' WordPress-like CSP permits only the reviewed widget host and API');
+    }
     const root=page.locator('#affiliate-target');
     const experience=root.locator('select[name="experience"]');
     await experience.locator('option[value="'+tourId+'"]').waitFor({state:'attached',timeout:10000});
@@ -177,7 +206,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       check(await root.locator('section[aria-label="VOY PRO partner booking"]').count()===1,
         name+' head-included embed attaches exactly one accessible widget');
     }
-    if(wpRtl){
+    if(wpRtl||wpCrossOrigin){
       const hostButton=page.locator('#wp-contact button');
       check(await page.locator('html').getAttribute('dir')==='rtl'&&
         await hostButton.evaluate(node=>getComputedStyle(node).direction)==='rtl',
@@ -768,6 +797,8 @@ try{
   await run('desktop-legitimate-reallocated-hold',{allocatedHold:true});
   await run('desktop-wordpress-rtl-embed',{wpRtl:true});
   await run('mobile-wordpress-rtl-staff-request',{mobile:true,staffRequest:true,wpRtl:true});
+  await run('desktop-wordpress-cross-origin-csp-booking',{wpCrossOrigin:true});
+  await run('mobile-wordpress-cross-origin-csp-staff-request',{mobile:true,staffRequest:true,wpCrossOrigin:true});
   await run('desktop-quote-with-missing-total',{badQuote:'missing-total'});
   await run('mobile-quote-with-invalid-currency',{mobile:true,badQuote:'invalid-currency'});
   await run('desktop-quote-with-missing-expiry',{badQuote:'missing-expiry'});
