@@ -117,11 +117,18 @@ try{
             const heroCard=heroGrid?.querySelector(':scope > aside.hero-card');
             if(heroGrid&&heroCard){
               const a=heroGrid.getBoundingClientRect(),b=heroCard.getBoundingClientRect();
+              const style=getComputedStyle(heroGrid);
+              const paddingLeft=parseFloat(style.paddingLeft)||0;
+              const paddingRight=parseFloat(style.paddingRight)||0;
               result.mobileHero={
-                flexDirection:getComputedStyle(heroGrid).flexDirection,
-                alignItems:getComputedStyle(heroGrid).alignItems,
+                flexDirection:style.flexDirection,
+                alignItems:style.alignItems,
                 leftOffsetPx:Math.round((b.left-a.left)*100)/100,
-                widthDifferencePx:Math.round((b.width-a.width)*100)/100
+                widthDifferencePx:Math.round((b.width-a.width)*100)/100,
+                // The hero grid has a legitimate 18px inline content inset;
+                // full-width means filling its content box, not border box.
+                expectedLeftOffsetPx:paddingLeft,
+                expectedWidthDifferencePx:-(paddingLeft+paddingRight)
               };
             }
             const navigation=performance.getEntriesByType('navigation')[0];
@@ -159,7 +166,8 @@ try{
           const hero=data.mobileHero;
           const unstableHero=destinationMobileHero&&(
             !hero||hero.flexDirection!=='column'||hero.alignItems!=='stretch'||
-            Math.abs(hero.leftOffsetPx)>2||Math.abs(hero.widthDifferencePx)>2
+            Math.abs(hero.leftOffsetPx-hero.expectedLeftOffsetPx)>2||
+            Math.abs(hero.widthDifferencePx-hero.expectedWidthDifferencePx)>2
           );
           if(response?.status()!==200)problem='Page HTTP '+response?.status();
           else if(missingImages.length)problem='Missing above-fold images: '+missingImages.map(x=>x.src).join(', ');
