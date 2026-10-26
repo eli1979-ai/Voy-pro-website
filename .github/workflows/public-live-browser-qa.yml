@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/qa-public-live-browser.mjs'
       - 'scripts/qa-public-live-interactions.mjs'
+      - 'scripts/qa-public-live-booking-fixtures.mjs'
       - 'site/assets/budapest-review-ticker.js'
       - 'site/assets/budapest-review-ticker.css'
       - 'site/assets/budapest-approved-reviews.json'
@@ -45,6 +46,10 @@ jobs:
         run: node --check scripts/qa-public-live-interactions.mjs
       - name: Exercise deployed mobile menu, approved review ticker, maps and read-only booking UI
         run: node scripts/qa-public-live-interactions.mjs
+      - name: Validate safe deployed-booking fixture QA
+        run: node --check scripts/qa-public-live-booking-fixtures.mjs
+      - name: Test public booking forms in Chrome with isolated FBM fixture
+        run: node scripts/qa-public-live-booking-fixtures.mjs
       - name: Upload browser evidence even after failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -53,5 +58,6 @@ jobs:
           path: |
             visual-qa-output/public-live/
             visual-qa-output/public-live-interactions/
+            visual-qa-output/public-live-booking-fixture/
           if-no-files-found: warn
           retention-days: 7
