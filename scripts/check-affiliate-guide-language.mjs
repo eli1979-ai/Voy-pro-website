@@ -19,8 +19,12 @@ assert.equal((widget.match(/guide_language:selectedGuideLanguage\(\)/g)||[]).len
   'Availability, hold and capacity-request paths must send a catalog-valid language');
 assert.ok(!widget.includes('guide_language:languageSelect.value||null'),
   'The partner widget must not silently send a null guide language');
-assert.ok(!widget.includes('english_alternative_accepted'),
-  'English alternative is not active for the partner widget before FBM release gate');
+required('const ENGLISH_ALT_PILOT_ENABLED=false;',
+  'The public affiliate English-alternative pilot must remain disabled');
+required("english_alternative_accepted:englishAlternativeAccepted()",
+  'Pilot tri-state payload must be explicit when isolated tests enable it');
+assert.ok(!widget.includes('script.dataset.englishAlt'),
+  'Partner-controlled HTML cannot enable the English-alternative pilot');
 
 // Exercise the production selection helper, not a duplicate implementation.
 const start=widget.indexOf('    function selectedGuideLanguage(){');
