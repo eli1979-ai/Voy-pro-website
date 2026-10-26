@@ -261,10 +261,16 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}
       await wait(30);
     check(calls.some(c=>c.path.includes('/availability')&&c.path.includes('riders_16_plus=3')),
       lang+' delayed availability request actually started before selection change');
+    check(await page.locator('#slotlist').getAttribute('aria-busy')==='true',
+      lang+' pending backend availability has visible accessible progress state');
     await form.locator('[name="children"]').selectOption('2');
+    check(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      lang+' changing the group clears the now-obsolete progress indicator');
     await wait(800);
     check(await page.locator('#slotlist button').count()===0,
       lang+' delayed response cannot restore stale availability after a change');
+    check(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      lang+' late server success cannot restore obsolete loading state');
 
     // Also challenge the in-flight guide-language boundary, not just changes
     // in rider/passenger counts. An old-language response must never restore
@@ -279,10 +285,16 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}
     check(calls.filter(c=>c.path.includes('/availability')).length>previousRequestCount&&
       languageRequest?.path.includes('guide_language='+slowGuideLanguage),
       lang+' delayed availability started with explicitly selected guide language');
+    check(await page.locator('#slotlist').getAttribute('aria-busy')==='true',
+      lang+' new guide-language search has its own accessible progress state');
     await guide.selectOption(lang);
+    check(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      lang+' guide language change clears previous loading state');
     await wait(800);
     check(await page.locator('#slotlist button').count()===0,
       lang+' old-language delayed availability cannot restore sellable or requestable slots');
+    check(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      lang+' old-language response cannot change current progress state');
     check((await page.locator('#availability-status').innerText()).length>10,
       lang+' language switch retains a visible recheck explanation after delayed response');
     check(!await page.locator('#live-checkout-shell').isVisible().catch(()=>false),
