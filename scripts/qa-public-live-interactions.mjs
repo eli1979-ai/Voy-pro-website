@@ -139,6 +139,17 @@ for(const [locale,path,closeLabel] of [
         'reopening preferences offers a neutral Close choice');
       ok((await close.innerText()).trim()===closeLabel,
         'close label matches the page language');
+      const selected=bar.locator('[data-consent-essential]');
+      const unselected=bar.locator('[data-consent-analytics]');
+      ok(await selected.getAttribute('aria-pressed')==='true'&&
+        await unselected.getAttribute('aria-pressed')==='false',
+        'reopened privacy dialog identifies essential as the saved choice');
+      ok(await selected.evaluate(el=>getComputedStyle(el).boxShadow!=='none'),
+        'selected preference has a visible distinction as well as aria-pressed');
+      await bar.screenshot({
+        path:join(OUT,'privacy-current-choice-'+locale.toLowerCase()+'.png'),
+        animations:'disabled'
+      });
       await close.click();
       ok(await bar.isHidden()&&
         await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
@@ -147,6 +158,9 @@ for(const [locale,path,closeLabel] of [
         'focus returns to the preferences opener after Close');
       await open.click();
       await essential.waitFor({state:'visible',timeout:4500});
+      ok(await bar.locator('[data-consent-essential]').getAttribute('aria-pressed')==='true'&&
+        await bar.locator('[data-consent-analytics]').getAttribute('aria-pressed')==='false',
+        'previously saved choice is still shown when settings reopen');
       await page.keyboard.press('Escape');
       ok(await bar.isHidden()&&
         await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
