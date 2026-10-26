@@ -2212,6 +2212,10 @@
     const availabilitySelectionNames=new Set(['experience','date','adults','children','babies','guide_language']);
     const invalidateAvailabilityResults=({announce=false}={})=>{
       availabilitySearchGeneration++;
+      // A stale pending request no longer owns the visible results region.
+      // Keep the form editable so the guest can choose another language or
+      // group size while the server is still checking availability.
+      slots.removeAttribute('aria-busy');
       invalidateCheckoutPreparation();
       releaseHold();
       document.querySelector('#live-checkout-shell')?.setAttribute('hidden','');
@@ -2298,6 +2302,8 @@
       const party=composition.riders_16_plus+composition.child_passengers_3_15+composition.baby_passengers_1_2;
       saveSelectionRecovery(experience,String(data.get('date')),composition,isPrivate,guideLanguage);
       status.textContent=t('Checking availability…','בודקים זמינות…');
+      slots.setAttribute('aria-busy','true');
+      try{
       await createSession('availability_search',{experience_id:experience.id,selected_date:data.get('date'),party_size:party,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage,page});
       if(searchGeneration!==availabilitySearchGeneration)return;
       trackBookingStarted({date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});track('availability_search',{date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});
@@ -2310,6 +2316,10 @@
         setBookingStep(2);status.textContent=t('Choose a departure:','בחרו שעה:');
         list.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='slot';b.setAttribute('aria-pressed','false');b.disabled=!s.sellable&&!s.requestable;const suffix=s.requestable?t(' · confirmation',' · נדרש אישור'):s.status==='low'?t(' · limited',' · זמינות מוגבלת'):'';b.textContent=s.time+suffix;b.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false')});b.classList.add('on');b.setAttribute('aria-pressed','true');track('slot_selected',{date:data.get('date'),time:s.time,party_size:party,status:s.status,is_private:isPrivate,guide_language:guideLanguage});patchSession({stage:'slot_selected',selected_date:data.get('date'),selected_time:s.time,slot_id:s.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});if(s.requestable&&isPrivate){status.innerHTML=`${t('This private group needs a quick confirmation. Send the requested date and time and we’ll check the available setup.','לקבוצה הפרטית הזו נדרש אישור קצר. שלחו את התאריך והשעה המבוקשים ונבדוק את האפשרויות הזמינות.')}<div class="status-actions"><a class="btn secondary" href="${whatsAppUrl('private_flexible',{experience_title:experience.title,date:String(data.get('date')),requested_time:s.time,riders:composition.riders_16_plus,children:composition.child_passengers_3_15,babies:composition.baby_passengers_1_2,is_private:true,guide_language:guideLanguage})}">WhatsApp</a></div>`;}else if(s.requestable)capacityRequestForm(s,composition,String(data.get('date')),experience,false,guideLanguage);else prepareStandardCheckout(s,composition,String(data.get('date')),experience,isPrivate,guideLanguage);};slots.appendChild(b)});
       }catch(err){if(searchGeneration!==availabilitySearchGeneration)return;patchSession({stage:'availability_error',error_code:err?.code||String(err?.status||'availability_error')});status.innerHTML=rescueMarkup(t('Current availability could not be loaded. Please try again or contact us on WhatsApp.','לא הצלחנו לטעון כרגע את הזמינות. נסו שוב או פנו אלינו ב‑WhatsApp.'));bindInlineWhatsApp(status);}
+      }finally{
+        // An older search cannot clear the new search's progress state.
+        if(searchGeneration===availabilitySearchGeneration)slots.removeAttribute('aria-busy');
+      }
     });
   }else{hydrateCatalog();}
 
