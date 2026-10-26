@@ -4,14 +4,62 @@
 This file describes the next operational steps; it does **not** authorize a
 production migration or a payment-mode change.
 
+## 26 October 2026 — fresh independent provider verification (read-only)
+
+**Decision: still NO-GO.** This update supersedes stale impressions that
+Production infrastructure has not yet been provisioned; it does **not** mean
+Production applications, bookings or payments are ready.
+
+| Component | Direct observation, 2026-10-26 | Operational conclusion |
+| --- | --- | --- |
+| Website Staging Vercel project | `voy-pro-staging`, ID `prj_mllzA4eTnK6ITda3AI7BpHbmVe7j`, has `voy-pro.com` and `www.voy-pro.com` aliases; latest `main` deployment is `READY` | Public hostname still points to **Staging** |
+| Website Production Vercel project | `voy-pro-production`, ID `prj_BH99wHz2Loh0gU8UF7zjpgzXT12y`, exists; `live=false`, `latestDeployment=null`; Vercel Authentication applies to all deployments; only default project hostname attached | **Protected empty project shell**, no Production website release |
+| FBM Production Vercel project | `ezraider-os-production`, ID `prj_fNkNsAOtZVqGlFsBAieFmehkDPeg`, exists; `live=false`, `latestDeployment=null`; Vercel Authentication applies to all deployments; only default project hostname attached | **Protected empty project shell**, no Production API release |
+| FBM Staging Supabase | `EZRaider OS Staging`, ref `ieuuobbfginqkngkzbfa`, `ACTIVE_HEALTHY` (current provider listing) | Independent Staging database still operational |
+| FBM Production Supabase | `EZRaider OS Production`, ref `slfwrgssovjqcqdigzqo`, `ACTIVE_HEALTHY`, `eu-central-1` | Separate project is provisioned; **not** an application-ready database |
+| Production schema | A read-only `information_schema.tables` count returned **0 public base tables**; the Production migration-history listing returned **0 applied migrations** | Schema and policies have **not** been deployed |
+| Website source release | `site/release.json` has `target=staging`, `seo_indexable=false`; `site/robots.txt` disallows all crawling | Public Production index/SEO launch remains disabled |
+| Production attestation | `launch/production-environment.json`: `status=unverified`, `owner_cutover_approved=false`, `public_api_base_url=null` | No Production cutover authorization |
+
+**Do not confuse Vercel's deployment target `production` _inside_ the
+`voy-pro-staging` project with a separate Production project.** The actual
+`voy-pro-production` and `ezraider-os-production` shells still have no
+deployed applications.
+
+### Remaining work, in order
+
+1. **FBM owner / separate development chat:** reconcile the migration baseline
+   before touching the empty Production database. The 515 source migrations /
+   564 Staging records / 48 extra distinct Staging names below were observed on
+   **2026-10-22**, not reaudited in today's provider-status check. Document and
+   test canonical migration replay in isolation; never blindly copy Staging
+   data, keys or migration history.
+2. **Infrastructure:** prepare protected, independent website and FBM build
+   artifacts and environment-scoped public/private credentials. Keep Staging
+   deployments unchanged and keep Production shells inaccessible to customers.
+3. **Validation:** prove migration/schema/RLS parity, required Supabase
+   security-advisor results, isolated backups/restoration, Production API and
+   client-key origin/CORS policy, and the whole live availability → hold →
+   booking → refund/cancellation contract without actual customer transactions.
+4. **Payments and controlled cutover:** verify provider mode, permissions,
+   failure handling and rollback. Require explicit owner approval before
+   creating real-money transactions, changing domains, enabling indexation or
+   connecting the public website to Production.
+
+**This is an evidence-only checkpoint.** No migrations, Production
+deployments, payments, aliases, DNS, robots, secrets or customer data were
+changed while checking these facts.
+
+---
+
 ## Verified state from connected providers
 
 - Vercel website project: `voy-pro-staging` (`prj_mllzA4eTnK6ITda3AI7BpHbmVe7j`).
   Both `voy-pro.com` and `www.voy-pro.com` currently belong to it.
 - Vercel FBM backend project: `ezraider-os-staging`
   (`prj_h5j84vU4HLucTxiWtQQUue9zcn1V`).
-- The only accessible Supabase project is `EZRaider OS Staging`
-  (`ieuuobbfginqkngkzbfa`).
+- The operational Staging Supabase project is `EZRaider OS Staging`
+  (`ieuuobbfginqkngkzbfa`); a separate empty Production project is described below.
 - Source `site/assets/runtime-config.js` still requests the staging FBM API.
 - `site/release.json` still has `target=staging` and `seo_indexable=false`.
   `site/robots.txt` still contains `Disallow: /`.
