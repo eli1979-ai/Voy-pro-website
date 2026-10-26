@@ -116,6 +116,7 @@ for(const [locale,path] of [
     ok(await button.isVisible(),'menu opener visible');
     await button.click();
     ok(await modal.isVisible(),'mobile menu opens');
+    await modal.screenshot({path:join(OUT,'mobile-menu-'+locale.toLowerCase()+'.png'),animations:'disabled'});
     ok(await button.getAttribute('aria-expanded')==='true','accessible expanded state');
     ok(await page.evaluate(()=>document.activeElement?.classList.contains('mobile-nav-close')),
       'initial focus in modal');
@@ -144,6 +145,7 @@ for(const [locale,path] of [
     await page.waitForFunction(()=>document.querySelectorAll('[data-vp-reviews-root] .vp-review-card').length===60,
       null,{timeout:6500});
     ok(await root.isVisible(),'approved ticker visible');
+    await root.screenshot({path:join(OUT,'approved-reviews-'+locale.toLowerCase()+'.png'),animations:'disabled'});
     const cards=page.locator('[data-vp-reviews-root] .vp-review-card');
     ok(await cards.count()===60,'exactly 20 reviews, three seamless copies');
     const links=await root.locator('.vp-review-card a[href]').evaluateAll(nodes=>
@@ -185,6 +187,7 @@ await scenario('Budapest exact business map rendered using API fixture',
     ok(await page.locator('[data-branch-meeting-point] .meeting-map-label').innerText()
       .then(x=>x.includes('EZRaider Budapest by Voy PRO')),
       'correct business label on displayed map');
+    await page.locator('[data-branch-meeting-point] .meeting-point-copy').screenshot({path:join(OUT,'budapest-meeting-details.png'),animations:'disabled'});
     result.notes.push('FBM destination GET was fulfilled from a local fixture; no live FBM integration asserted.');
   });
 await scenario('Marvao public meeting map markup',
@@ -218,6 +221,7 @@ await scenario('Budapest booking composition preflight',
     await preview.waitFor({timeout:4000,state:'visible'});
     ok((await preview.innerText()).includes('3'),'group summary updates after quantity change');
     ok(await page.locator('#slotlist').innerText()==='','no hold or times manufactured without backend');
+    await form.screenshot({path:join(OUT,'booking-group-preflight.png'),animations:'disabled'});
     result.notes.push('No form submission, no live price, no Stripe action, no customer record.');
   });
 await browser.close();
@@ -243,6 +247,7 @@ await writeFile(join(OUT,'report.md'),[
   '## Limitations',
   'External map imagery, partner sites, real availability, card payments and a complete paid booking are deliberately outside this test.',
   'Map markup is checked with a FBM destination fixture; it is not evidence that the actual backend currently responds.',
+  'Eight safe local-browser screenshots capture menu, approved reviews, the map business label and booking composition without PII.',
   'This test does not authorize public Production separation, indexing or any DNS/alias changes.',
   ''
 ].join('\n'));
