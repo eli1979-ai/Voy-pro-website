@@ -41,8 +41,13 @@ class Element {
   }
   set innerHTML(value){this.html=value;}
   get innerHTML(){return this.html||'';}
-  addEventListener(name,fn){this.listeners[name]=fn;}
-  async trigger(name){return this.listeners[name]?.({preventDefault(){}});}
+  // Real DOM dispatches all listeners in registration order, including
+  // the new language-reset handler followed by the generic invalidation.
+  addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}
+  async trigger(name){
+    for(const listener of this.listeners[name]||[])
+      await listener({preventDefault(){}});
+  }
   setAttribute(name,value){this.attributes[name]=value;}
   append(...els){this.children.push(...els);}
   appendChild(el){this.children.push(el);return el;}
