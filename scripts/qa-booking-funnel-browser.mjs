@@ -112,6 +112,11 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}
     await page.waitForFunction(()=>!document.body.classList.contains('consent-open'),
       null,{timeout:5000});
     const form=page.locator('#availability-form');
+    const message=page.locator('#availability-status');
+    check(await message.getAttribute('role')==='status'&&
+      await message.getAttribute('aria-live')==='polite'&&
+      await message.getAttribute('aria-atomic')==='true',
+      lang+' availability search messages use a polite, atomic screen-reader status');
     const experience=form.locator('[name="experience"]');
     if(catalogDown){
       await page.locator('.mobilebook.is-price-unavailable [data-runtime-price]').waitFor({state:'visible',timeout:9000});
