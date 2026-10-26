@@ -580,8 +580,19 @@ try{
         const oldUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
         await page.evaluate(()=>{
           const form=document.querySelector('#availability-form');
-          form.querySelector('[name="experience"]').value='exp_bud_margaret';
-          form.querySelector('[name="adults"]').value='4';
+          const experience=form.querySelector('[name="experience"]');
+          const riders=form.querySelector('[name="adults"]');
+          // The blocked external catalog can leave controls disabled or without
+          // their remote options. Simulate an enabled, confirmed local selector,
+          // without dispatching events or contacting the provider.
+          if(![...experience.options].some(opt=>opt.value==='exp_bud_margaret'))
+            experience.add(new Option('Margaret Island by EZRaider','exp_bud_margaret'));
+          if(![...riders.options].some(opt=>opt.value==='4'))
+            riders.add(new Option('4','4'));
+          experience.disabled=false;
+          riders.disabled=false;
+          experience.value='exp_bud_margaret';
+          riders.value='4';
         });
         await page.locator('.nav-menu-toggle').click();
         const freshUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
@@ -589,7 +600,7 @@ try{
         check(freshUrl!==oldUrl&&freshUrl?.startsWith('https://wa.me/36300993099?text='),
           name+' WhatsApp menu URL refreshes after local tour/party change');
         check(message.includes('Margaret')&&message.includes('Independent riders: 4'),
-          name+' WhatsApp message includes current selected tour and four riders');
+          name+' WhatsApp message includes current selected tour and four riders (actual: '+message.slice(0,230)+')');
         await page.keyboard.press('Escape');
       }
       // Previously decided guests may leave the reopened privacy drawer
