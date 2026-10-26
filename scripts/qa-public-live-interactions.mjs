@@ -410,7 +410,8 @@ for(const [locale,path,routeName,dateLabel] of [
         msg.includes('4')&&msg.includes(path),
         'prepared WhatsApp text includes selected tour, party, name, notes and source locale');
       ok(msg.includes(dateLabel+':')&&
-        (locale==='EN'?msg.includes(future):Boolean(msg.match(/\d{1,2}[./-]\d{1,2}[./-]\d{4}/))),
+        (locale==='EN'?msg.includes(future):msg.includes(future.slice(0,4))&&
+          msg.includes(String(Number(future.slice(8,10))))),
         'correct localized date label and requested future date are preserved');
       ok(!outbounds.some(x=>x.method!=='GET'),
         'no real booking, backend session write or payment request was made');
