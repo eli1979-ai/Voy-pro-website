@@ -64,6 +64,10 @@
         {
           "file": "site/assets/site.js",
           "marker": "api('/booking-capacity-requests'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/booking-capacity-requests'"
         }
       ],
       "request_cases": [
@@ -159,6 +163,10 @@
         {
           "file": "site/manage/index.html",
           "marker": "api('/destinations/budapest')"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/destinations/budapest'"
         }
       ],
       "response_cases": [
@@ -214,6 +222,10 @@
         {
           "file": "site/assets/site.js",
           "marker": "api('/experiences'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/experiences?destination=budapest'"
         }
       ],
       "response_cases": [
@@ -265,6 +277,10 @@
         {
           "file": "site/assets/site.js",
           "marker": "/availability?"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/experiences/'+encodeURIComponent(exp.id)+'/availability?'"
         }
       ],
       "response_cases": [
@@ -314,7 +330,14 @@
             "slots.0.starts_at",
             "slots.0.status",
             "slots.0.sellable",
-            "slots.0.price"
+            "slots.0.price",
+            "experience_id",
+            "date",
+            "is_private",
+            "group_composition",
+            "party_size",
+            "slots.0.is_private",
+            "slots.0.requestable"
           ]
         }
       ]
@@ -328,6 +351,10 @@
       "consumer_refs": [
         {
           "file": "site/assets/site.js",
+          "marker": "api('/quotes'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
           "marker": "api('/quotes'"
         }
       ],
@@ -416,6 +443,10 @@
         {
           "file": "site/assets/site.js",
           "marker": "api('/holds',{method:'POST'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/holds'"
         }
       ],
       "request_cases": [
@@ -460,7 +491,11 @@
             "id",
             "expires_at",
             "slot_id",
-            "status"
+            "status",
+            "requested_slot_id",
+            "departure_id",
+            "guide_language",
+            "is_private"
           ]
         }
       ]
@@ -475,6 +510,10 @@
         {
           "file": "site/assets/site.js",
           "marker": "api('/holds/'+encodeURIComponent(id),{method:'DELETE'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/holds/'+encodeURIComponent(current.id)"
         }
       ]
     },
@@ -487,6 +526,10 @@
       "consumer_refs": [
         {
           "file": "site/assets/site.js",
+          "marker": "api('/bookings'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
           "marker": "api('/bookings'"
         }
       ],
@@ -565,7 +608,14 @@
             "selected_date",
             "slot_time",
             "payment_status",
-            "currency"
+            "currency",
+            "experience_id",
+            "group_composition",
+            "is_private",
+            "guide_language",
+            "promo_code_applied",
+            "total",
+            "discount"
           ]
         }
       ]
@@ -579,6 +629,10 @@
       "consumer_refs": [
         {
           "file": "site/assets/site.js",
+          "marker": "api('/payments/capabilities'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
           "marker": "api('/payments/capabilities'"
         }
       ],
@@ -595,7 +649,11 @@
             }
           },
           "required_fields": [
-            "online_card"
+            "online_card",
+            "provider",
+            "mode",
+            "readiness.status",
+            "readiness.reason"
           ]
         }
       ]
@@ -609,6 +667,10 @@
       "consumer_refs": [
         {
           "file": "site/assets/site.js",
+          "marker": "api('/payments/intents'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
           "marker": "api('/payments/intents'"
         }
       ],
@@ -668,7 +730,13 @@
             "booking_reference",
             "status",
             "ui_mode",
-            "expires_at"
+            "expires_at",
+            "id",
+            "payment_type",
+            "payment_method",
+            "amount",
+            "currency",
+            "payment_link_request_id"
           ]
         }
       ]
@@ -682,6 +750,10 @@
       "consumer_refs": [
         {
           "file": "site/assets/site.js",
+          "marker": "api('/ancillary/offers'"
+        },
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
           "marker": "api('/ancillary/offers'"
         }
       ],
@@ -1221,6 +1293,82 @@
         {
           "file": "site/manage/index.html",
           "marker": "api('/manage/'+encodeURIComponent(token)+'/cancel',{method:'POST'"
+        }
+      ]
+    },
+    {
+      "id": "promotion.validate",
+      "path": "/api/v1/promotions/validate",
+      "methods": [
+        "POST"
+      ],
+      "consumer_refs": [
+        {
+          "file": "site/assets/affiliate-booking-widget.js",
+          "marker": "api('/promotions/validate'"
+        }
+      ],
+      "request_cases": [
+        {
+          "name": "partner widget validates dedicated affiliate coupon for selected departure",
+          "sample": {
+            "code": "TESTPARTNER",
+            "slot_id": "22222222-2222-4222-8222-222222222222"
+          },
+          "required_fields": [
+            "code",
+            "slot_id"
+          ]
+        }
+      ],
+      "response_cases": [
+        {
+          "name": "affiliate discount valid for selected departure",
+          "sample": {
+            "valid": true,
+            "code": "TESTPARTNER",
+            "type": "fixed",
+            "value": 10,
+            "value_minor": 1000,
+            "currency": "EUR",
+            "attribution_only": false,
+            "stacking_mode": "exclusive",
+            "requires_departure": true,
+            "reason": null,
+            "message": "Promotion applied."
+          },
+          "required_fields": [
+            "valid",
+            "code",
+            "type",
+            "value",
+            "value_minor",
+            "currency",
+            "attribution_only",
+            "reason"
+          ]
+        },
+        {
+          "name": "affiliate coupon not valid for departure",
+          "sample": {
+            "valid": false,
+            "code": "TESTPARTNER",
+            "type": null,
+            "value": null,
+            "value_minor": null,
+            "currency": null,
+            "attribution_only": false,
+            "stacking_mode": null,
+            "requires_departure": false,
+            "reason": "not_found",
+            "message": "Code not recognized."
+          },
+          "required_fields": [
+            "valid",
+            "code",
+            "reason",
+            "message"
+          ]
         }
       ]
     }

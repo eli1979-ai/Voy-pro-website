@@ -61,15 +61,17 @@ function validCatalog(value){
       item.guideLanguages.every(lang=>/^[a-z]{2}$/.test(lang)));
 }
 function validPayment(value){
-  return fields(value,['online_card','provider','mode','readiness'])&&
-    typeof value.online_card==='boolean'&&
-    ['test','live'].includes(value.mode)&&
-    fields(value.readiness,['status'])&&
-    ['ready','unavailable'].includes(value.readiness.status)&&
-    (value.online_card?
-      value.provider==='stripe'&&value.readiness.status==='ready':
-      value.readiness.status==='unavailable')&&
-    value.mode!=='live'; // Staging must never present itself as live-payment mode.
+  // Match the full canonical FBM PublicPaymentCapabilitiesSchema and the
+  // affiliate widget's fail-closed readiness gate. A 200 advertising online
+  // card without actual provider, reason or mode consistency is not ready.
+  if(!fields(value,['online_card','provider','mode','readiness'])||
+     typeof value.online_card!=='boolean'||value.mode!=='test'||
+     !fields(value.readiness,['status','reason']))return false;
+  const {status,reason}=value.readiness;
+  if(value.online_card)return value.provider==='stripe'&&
+    status==='ready'&&reason===null;
+  return value.provider===null&&status==='unavailable'&&
+    ['provider_disabled','provider_secret_missing','webhook_secret_missing'].includes(reason);
 }
 const validators={
   budapest_config:validDestination,
@@ -267,7 +269,30 @@ async function test(){
   }];
   mocks.payment_capability={online_card:true,provider:'stripe',mode:'live',readiness:{status:'ready'}};
   assert.equal((await audit(respond,configs)).failed,1,'Staging live payment mode must be flagged');
-  mocks.payment_capability={online_card:false,provider:null,mode:'test',readiness:{status:'unavailable'}};
+  mocks.payment_capability={online_card:false,provider:null,mode:'test',
+    readiness:{status:'unavailable',reason:'provider_disabled'}};
+  const validOff=await audit(respond,configs);
+  assert.equal(validOff.failed,0,'Explicitly disabled Stripe is valid FBM Staging readiness');
+  for(const invalid of [
+    {online_card:true,provider:'stripe',mode:'test',
+      readiness:{status:'ready',reason:'provider_disabled'}},
+    {online_card:true,provider:'stripe',mode:'test',
+      readiness:{status:'unavailable',reason:'webhook_secret_missing'}},
+    {online_card:false,provider:'stripe',mode:'test',
+      readiness:{status:'unavailable',reason:'provider_disabled'}},
+    {online_card:false,provider:null,mode:'test',
+      readiness:{status:'unavailable',reason:null}},
+    {online_card:false,provider:null,mode:'test',
+      readiness:{status:'unavailable'}},
+  ]){
+    mocks.payment_capability=invalid;
+    const result=await audit(respond,configs);
+    assert.equal(result.failed,1,
+      'Contradictory Stripe readiness must fail the real Staging contract smoke');
+    assert.equal(result.rows.find(x=>x.id==='payment_capability').ok,false);
+  }
+  mocks.payment_capability={online_card:false,provider:null,mode:'test',
+    readiness:{status:'unavailable',reason:'provider_disabled'}};
   const denyCors=async(uri,init)=>new Response(JSON.stringify(
     mocks[PROBES.find(p=>new URL(STAGING+p.route).href===uri).id]),
     {status:200,headers:{'content-type':'application/json'}});
