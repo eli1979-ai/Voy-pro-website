@@ -57,7 +57,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null,onlinePayment=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null,onlinePayment=null,badAvailability=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -123,7 +123,25 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         {id:alternateTourId,title:'Margaret Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
           guideLanguages:['en','hu'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
     else if(path==='/api/v1/payments/capabilities')data={online_card:Boolean(onlinePayment),provider:onlinePayment?'stripe':null};
-    else if(path.includes('/availability?'))data={slots:expiredSlots?[
+    else if(path.includes('/availability?')){
+      const params=url.searchParams;
+      const selectedPrivate=params.get('is_private')==='true';
+      const composition={
+        riders_16_plus:Number(params.get('riders_16_plus')),
+        child_passengers_3_15:Number(params.get('child_passengers_3_15')),
+        baby_passengers_1_2:Number(params.get('baby_passengers_1_2')),
+        request_15yo_independent_assessment:false,
+      };
+      data={
+        experience_id:badAvailability==='wrong-experience'?alternateTourId:tourId,
+        date:badAvailability==='wrong-date'?'2030-01-01':params.get('date'),
+        is_private:badAvailability==='wrong-private'?!selectedPrivate:selectedPrivate,
+        group_composition:{...composition,...(badAvailability==='wrong-group'
+          ?{riders_16_plus:composition.riders_16_plus+1}:{})},
+        party_size:composition.riders_16_plus+
+          composition.child_passengers_3_15+composition.baby_passengers_1_2+
+          (badAvailability==='wrong-party-size'?1:0),
+        slots:expiredSlots?[
       {id:'11111111-1111-4111-8111-111111111111',time:'09:00',
         starts_at:new Date(Date.now()-60000).toISOString(),sellable:true,requestable:false},
       {id:slotId,time:'10:00',starts_at:new Date(Date.now()+60000).toISOString(),
@@ -133,7 +151,15 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         ...(departureStartsBeforeSubmit?{starts_at:new Date(Date.now()+60000).toISOString()}: {})},
       ...(switchSlotAfterExtras||slowHoldReleaseSwitch?[{id:'44444444-4444-4444-8444-444444444444',
         time:'11:00',sellable:true,requestable:false}]:[])
-    ]};
+        ]
+      };
+      if(Array.isArray(data.slots))data.slots=data.slots.map(slot=>({
+        ...slot,is_private:badAvailability==='wrong-slot-private'?!selectedPrivate:selectedPrivate
+      }));
+      if(badAvailability==='duplicate-slot')data.slots.push({...data.slots[0]});
+      if(badAvailability==='missing-slots')delete data.slots;
+      if(badAvailability==='missing-slot-id')delete data.slots[0].id;
+    }
     else if(path==='/api/v1/promotions/validate')
       data={valid:payload?.code==='TESTPARTNER',code:'TESTPARTNER'};
     else if(path==='/api/v1/quotes'){
@@ -364,6 +390,25 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       check(!await root.locator('#englishAltRow').isVisible()&&
         await englishAlt.isDisabled(),
         name+' public source gate keeps English alternative hidden and disabled');
+    }
+    if(badAvailability){
+      await root.locator('#searchButton').click();
+      await root.locator('#status.error').waitFor({timeout:10000});
+      check((await root.locator('#status').innerText()).includes(
+        'availability details could not be verified'),
+        name+' mismatched FBM availability displays a clear error');
+      check(await root.locator('#results:not(.hidden)').count()===0&&
+        await root.locator('#slots button').count()===0,
+        name+' mismatched availability cannot render selectable departure slots');
+      check(!calls.some(c=>[
+        '/api/v1/promotions/validate','/api/v1/quotes','/api/v1/holds',
+        '/api/v1/bookings','/api/v1/booking-capacity-requests',
+        '/api/v1/payments/intents'
+      ].some(prefix=>c.path===prefix||c.path.startsWith(prefix+'?'))),
+        name+' malformed availability never triggers commercial operations');
+      check(errors.length===0,name+' no Chrome exception on invalid availability');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
     }
     if(midnightRollover){
       const oldDate=await dateField.inputValue();
@@ -993,6 +1038,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 }
 try{
   await run('desktop-booking');
+  await run('desktop-availability-other-experience',{badAvailability:'wrong-experience'});
+  await run('mobile-availability-wrong-date',{mobile:true,badAvailability:'wrong-date'});
+  await run('desktop-availability-wrong-group',{badAvailability:'wrong-group'});
+  await run('mobile-availability-wrong-private',{mobile:true,badAvailability:'wrong-private'});
+  await run('desktop-availability-duplicate-slot',{badAvailability:'duplicate-slot'});
+  await run('mobile-availability-without-slots',{mobile:true,badAvailability:'missing-slots'});
   await run('desktop-online-payment-completed',{onlinePayment:'completed'});
   await run('mobile-online-payment-wrong-total',{mobile:true,onlinePayment:'wrong-total'});
   await run('desktop-online-payment-wrong-currency',{onlinePayment:'wrong-currency'});
