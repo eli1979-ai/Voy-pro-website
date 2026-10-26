@@ -170,11 +170,13 @@ for(const [locale,path,closeLabel] of [
       result.notes.push('No analytics opt-in or network writes performed.');
     });
 }
+// Budapest has the authenticated public booking client. The network-wide
+// home page intentionally disables FBM telemetry, so this must test a branch.
 // Privacy/telemetry race regression after source change #562: grant analytics
 // in an anonymous browser, intercept its *first* POST in memory, revoke while
 // the fake backend is slow, then deliver its late ACK. No real backend request
 // is permitted. A second explicit grant must generate NEW event IDs only.
-await scenario('analytics revocation with late telemetry response','/',{width:390},
+await scenario('analytics revocation with late telemetry response','/budapest/',{width:390},
   async(page,ok,result,outbounds)=>{
     const telemetry=[];
     let releaseFirst=null;
