@@ -166,7 +166,11 @@ for(const [locale,path] of [
       const originalHref=await original.locator('.vp-review-bottom a[href]').getAttribute('href');
       const expand=original.locator('.vp-review-expand');
       ok(await expand.count()===1,'explicit full-review reading control exists');
-      await expand.click();
+      const pauseBeforeRead=root.locator('[data-vp-reviews-pause]');
+      if(await pauseBeforeRead.getAttribute('aria-pressed')!=='true')await pauseBeforeRead.click();
+      ok(await pauseBeforeRead.getAttribute('aria-pressed')==='true','reader can pause the moving reviews before selecting one');
+      await expand.scrollIntoViewIfNeeded({timeout:4000});
+      await expand.click({timeout:5500});
       const dialog=page.locator('dialog.vp-review-dialog');
       await dialog.waitFor({state:'visible',timeout:3500});
       ok((await dialog.locator('.vp-review-dialog-text').innerText()).trim()===full.trim(),
