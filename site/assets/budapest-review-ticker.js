@@ -13,9 +13,9 @@
   const sourceLabels={google:'Google Maps',tripadvisor:'Tripadvisor',getyourguide:'GetYourGuide'};
   const locale=(document.documentElement.lang||'en').split('-')[0];
   const texts={
-    en:{pause:'Pause reviews',play:'Resume reviews',source:'View original review on ',listing:'Browse reviews on ',translated:'Translated from the original',read:'Full review by ',stars:'out of 5 stars'},
-    he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית ב־',listing:'לכל הביקורות באתר ',translated:'תורגם מהמקור',read:'ביקורת מלאה מאת ',stars:'מתוך 5 כוכבים'},
-    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',read:'Teljes értékelés: ',stars:'az 5 csillagból'}
+    en:{pause:'Pause reviews',play:'Resume reviews',source:'View original review on ',listing:'Browse reviews on ',translated:'Translated from the original',read:'Full review by ',stars:'out of 5 stars',expand:'Read full review',close:'Close review'},
+    he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית ב־',listing:'לכל הביקורות באתר ',translated:'תורגם מהמקור',read:'ביקורת מלאה מאת ',stars:'מתוך 5 כוכבים',expand:'קריאת הביקורת המלאה',close:'סגירת הביקורת'},
+    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',read:'Teljes értékelés: ',stars:'az 5 csillagból',expand:'Teljes értékelés',close:'Értékelés bezárása'}
   };
   const t=texts[locale]||texts.en;
   const validUrl=(value,source)=>{
@@ -51,6 +51,59 @@
     pause.setAttribute('aria-pressed','true');
     pause.textContent=t.play;
   };
+  // A reader can open the entire approved text without having to discover
+  // the small card's independent vertical scroller. Native <dialog> provides
+  // modal focus behavior, Escape support and a scrollable long-form view.
+  // The original card and its authentic source link remain unchanged.
+  let fullReviewDialog=null;
+  let returnFocus=null;
+  function openFullReview(item,opener){
+    if(!fullReviewDialog){
+      const dialog=document.createElement('dialog');
+      dialog.className='vp-review-dialog';
+      dialog.setAttribute('aria-labelledby','vp-review-dialog-heading');
+      dialog.addEventListener('close',()=>{
+        returnFocus?.focus?.();
+        returnFocus=null;
+      });
+      dialog.addEventListener('click',event=>{
+        if(event.target===dialog)dialog.close();
+      });
+      document.body.appendChild(dialog);
+      fullReviewDialog=dialog;
+    }
+    if(typeof fullReviewDialog.showModal!=='function'){
+      opener?.closest?.('.vp-review-card')?.querySelector?.('.vp-review-text')?.focus?.();
+      return;
+    }
+    const title=make('h2','vp-review-dialog-heading',t.read+item.author);
+    title.id='vp-review-dialog-heading';
+    const closeButton=make('button','vp-review-dialog-close',t.close);
+    closeButton.type='button';
+    closeButton.addEventListener('click',()=>fullReviewDialog.close());
+    const header=make('div','vp-review-dialog-header');
+    header.append(title,closeButton);
+    const info=make('p','vp-review-dialog-source',
+      '★'.repeat(item.rating)+' · '+sourceLabels[item.source]+' · '+item.author);
+    const quote=make('blockquote','vp-review-dialog-text',item.translations[locale]);
+    quote.dir=locale==='he'?'rtl':'ltr';
+    if(item.language!==locale){
+      const original=make('span','vp-review-dialog-translation',t.translated);
+      info.append(original);
+    }
+    const link=make('a','vp-review-dialog-link',
+      (item.link_kind==='listing'?t.listing:t.source)+sourceLabels[item.source]);
+    link.href=item.review_url;
+    link.target='_blank';
+    link.rel='noopener noreferrer';
+    fullReviewDialog.lang=locale;
+    fullReviewDialog.dir=locale==='he'?'rtl':'ltr';
+    fullReviewDialog.replaceChildren(header,info,quote,link);
+    returnFocus=opener;
+    fullReviewDialog.showModal();
+    closeButton.focus();
+    pauseForReading();
+  }
   const reviewCard=(item,duplicate)=>{
     const card=make('article','vp-review-card');
     card.lang=locale;
@@ -81,6 +134,13 @@
       byline.append(date);
     }
     if(locale!==item.language)byline.append(make('span','vp-review-translated',t.translated));
+    const expand=make('button','vp-review-expand',t.expand);
+    expand.type='button';
+    expand.tabIndex=duplicate?-1:0;
+    expand.setAttribute('aria-haspopup','dialog');
+    expand.setAttribute('aria-label',t.expand+' — '+item.author);
+    expand.addEventListener('click',()=>openFullReview(item,expand));
+    byline.append(expand);
     bottom.append(byline);
     // The seamless second set is visible after the first set scrolls away.
     // Keep its links clickable by pointer, without adding duplicate tab stops
