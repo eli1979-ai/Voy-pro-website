@@ -15,11 +15,11 @@ Place the mount and script on the affiliate page. Replace all capitalized placeh
   data-affiliate="YOUR_PARTNER_COUPON"
   data-api-root="https://YOUR_APPROVED_FBM_API_HOST"
   data-client-key="YOUR_PUBLIC_BROWSER_CLIENT_KEY"
-  src="https://voy-pro.com/assets/affiliate-booking-widget.js"
+  src="https://voy-pro.com/assets/affiliate-booking-widget.REVIEWED_SHA256_PREFIX.js"
 ></script>
 ```
 
-The recommended installation uses `defer`, with the target element in the
+**Pin the reviewed widget build.** The build emits `dist/assets/affiliate-booking-widget-manifest.json` and a matching content-addressed `dist/assets/affiliate-booking-widget.<24 SHA-256 hex chars>.js`. Replace `REVIEWED_SHA256_PREFIX` with the exact prefix from the manifest's `public_path` **after** verifying that precise asset is deployed and approved. The mutable `/assets/affiliate-booking-widget.js` is for first-party development and must not be used by new WordPress pilot integrations: it could change on the next website deploy without the partner updating its snippet. The manifest and SHA-256 are inspection tools, not installation authorization or browser-enforced SRI; cross-origin SRI requires a separate CORS review. Never dynamically choose the newest manifest in a customer browser.\n\nThe recommended installation uses `defer`, with the target element in the
 same page. The script also handles synchronous loading from `<head>` before
 the target is parsed: it waits until `DOMContentLoaded` and then mounts.
 The target **must exist by that event**; arbitrary late insertion by a
@@ -82,6 +82,6 @@ or any WordPress installation until these gates are explicitly approved.
 ## QA / release gates
 
 - `npm run build`, `npm run verify:launch` and `npm run qa:site` must pass.
-- The site-wide QA executes `scripts/check-affiliate-booking-widget.mjs` with mock FBM endpoints. It verifies the embedded private booking, coupon lock, hold-aware re-pricing, ancillary selection and confirmed pay-on-arrival flow **plus a pending nonprivate staff request with no hold, booking or payment**. Chrome QA additionally verifies synchronous head loading and duplicate embed scripts on desktop/mobile. These tests make no live bookings or charges.
+- The build publishes a content-addressed partner asset and tests exact digest/bytes/path/approval guard via `scripts/check-affiliate-distribution.mjs`. The WordPress cross-origin Chrome/CSP fixture loads the pinned path and fails if its bytes differ from the primary reviewed source. This does **not** enable WordPress installation or an affiliate in FBM.\n- The site-wide QA executes `scripts/check-affiliate-booking-widget.mjs` with mock FBM endpoints. It verifies the embedded private booking, coupon lock, hold-aware re-pricing, ancillary selection and confirmed pay-on-arrival flow **plus a pending nonprivate staff request with no hold, booking or payment**. Chrome QA additionally verifies synchronous head loading and duplicate embed scripts on desktop/mobile. These tests make no live bookings or charges.
 - Pilot one whitelisted domain, one real affiliate coupon, and isolated Staging checkout before approving activation on a production partner domain. Never install this widget from a Draft PR or unreviewed Staging build.
 - Remaining release gates: the FBM affiliate-manager installer (#792) remains draft; provisioning of partner-dedicated public clients and approval of exact website origins still needs authorized configuration, optional multilingual UI is not implemented, and private-group staff approval is handled directly. The FBM origin/coupon binding (#795) is implemented for partner-bound clients, but browser-public keys and Origin headers cannot prove website identity to non-browser callers. Use partner-site contracts and the regular security review before real deployment.
