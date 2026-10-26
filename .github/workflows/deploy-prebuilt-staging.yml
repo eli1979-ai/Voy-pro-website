@@ -80,6 +80,9 @@ jobs:
           console.log('Official prebuilt artifact source/version/languages: OK');
           NODE
 
+      - name: Fail closed on canonical redirects, headers, assets and robots parity
+        run: node scripts/check-prebuilt-output.mjs
+
       # Never publish unless the owner explicitly selects publish_preview.
       # This creates an isolated preview URL, not a Production deployment/alias.
       - name: Publish isolated Preview (explicit manual opt-in)

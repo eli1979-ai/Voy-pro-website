@@ -38,4 +38,5 @@ assert.doesNotMatch(workflow, /vercel@latest|--token(?:=|\s)|vercel (?:promote|a
 assert.doesNotMatch(workflow, /cat\s*>\s*\.vercel\/output\/config\.json|rm -rf \.vercel|1\.33\.0/, 'No hand-authored routing or obsolete release versions');
 assert.match(workflow, /npm run verify:launch/);
 assert.match(workflow, /npm run qa:site/);
+assert.match(workflow, /node scripts\/check-prebuilt-output\.mjs/, 'Do not deploy before built-artifact route/header parity check');
 console.log('Prebuilt pilot source/workflow safety contract: OK (no Vercel calls)');
