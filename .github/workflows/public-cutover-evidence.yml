@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/report-public-cutover.mjs'
+      - 'docs/PRODUCTION-CUTOVER-PLAN-2026-10-22.md'
       - 'scripts/test-public-cutover-report.mjs'
       - '.github/workflows/public-cutover-evidence.yml'
       - 'launch/production-environment.json'
