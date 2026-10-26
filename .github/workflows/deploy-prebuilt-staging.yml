@@ -27,7 +27,7 @@ jobs:
       VERCEL_ORG_ID: team_AA8zTEaOrKIoyiAbn42L4CoU
       VERCEL_PROJECT_ID: prj_mllzA4eTnK6ITda3AI7BpHbmVe7j
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9ad8a # v4.2.2
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
