@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 
 const BASES=['https://voy-pro.com','https://www.voy-pro.com'];
-const NAME=/^affiliate-booking-widget\\.([a-f0-9]{24})\\.js$/;
+const NAME=/^affiliate-booking-widget\.([a-f0-9]{24})\.js$/;
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 export function archived(){
   const names=fs.readdirSync('site/assets').filter(x=>NAME.test(x)).sort();
@@ -52,7 +52,7 @@ async function read(absolute,expectedPath,request,maxBytes=160000){
     if(!(expectedPath.endsWith('.json')?/json/i:/javascript/i).test(mime))
       throw Error('Unexpected archived asset content type');
     const robots=response.headers.get('x-robots-tag')||'';
-    if(!/\\bnoindex\\b/i.test(robots)||!/\\bnofollow\\b/i.test(robots))
+    if(!/\bnoindex\b/i.test(robots)||!/\bnofollow\b/i.test(robots))
       throw Error('Staging archive crawler boundary missing');
     const bytes=Buffer.from(await response.arrayBuffer());
     if(bytes.length>maxBytes)throw Error('Unexpectedly large archived asset body');
@@ -72,7 +72,7 @@ export async function audit(request=fetch,versions=archived()){
         manifest.schema_version!==1||
         !['PERSISTED_ACROSS_DEPLOYS','BUILD_ONLY_NOT_RETAINED'].includes(manifest.archive_status)||
         manifest.release_status!=='NOT_APPROVED_FOR_WORDPRESS_INSTALLATION'||
-        !/^\\/assets\\/affiliate-booking-widget\\.[a-f0-9]{24}\\.js$/.test(manifest.public_path)||
+        !/^\/assets\/affiliate-booking-widget\.[a-f0-9]{24}\.js$/.test(manifest.public_path)||
         !/^[a-f0-9]{64}$/.test(manifest.sha256))
         throw Error('Manifest unexpectedly changed its review/approval contract');
       if(manifest.archive_status==='PERSISTED_ACROSS_DEPLOYS'&&
@@ -108,7 +108,7 @@ export function report(result){
     ...result.rows.map(r=>'| '+r.label+' | '+(r.ok?'PASS':'FAIL')+' | '+r.reason+' |'),
     '',
     'All probes use bounded anonymous GET only; no visitor data, secrets, FBM calls or writes.',
-    'A pass confirms currently served bytes, not WordPress installation approval, partner origin CORS or Production readiness.',''].join('\\n');
+    'A pass confirms currently served bytes, not WordPress installation approval, partner origin CORS or Production readiness.',''].join('\n');
 }
 async function test(){
   const versions=archived();
