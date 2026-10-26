@@ -697,6 +697,18 @@
             completed=true;
             return;
           }
+          // A 2xx 'pending' response must describe a real unpaid, nonprivate
+          // capacity request, not a paid booking or a different mode. Its
+          // canonical token/IDs are required for subsequent staff recovery.
+          // Preserve the reference on mismatch and never submit again.
+          if(request.payment_status!=='not_started'||request.is_private!==false||
+             typeof request.id!=='string'||!request.id.trim()||
+             typeof request.request_token!=='string'||!request.request_token.trim()||
+             typeof request.departure_id!=='string'||!request.departure_id.trim()){
+            showStaffRequestSafetyReviewResponse(request);
+            completed=true;
+            return;
+          }
           // FBM might persist a staff request with a different or missing
           // guiding language; keep the reference for human reconciliation.
           if(String(request.guide_language||'').trim().toLowerCase()!==selectedGuideLanguage()){
@@ -948,6 +960,18 @@
       box.append(textNode('p','Requested guiding language: '+guideLabel()));
       box.append(textNode('p','Your request may already be with our team, but FBM did not confirm this partner offer was applied. No price or reservation is confirmed. Please contact VOY PRO with the reference before sending another request.'));
       setStatus('Partner discount attribution needs staff review. Do not submit again.','error');
+    }
+    function showStaffRequestSafetyReviewResponse(request){
+      // A saved CRM request may already exist. Keep its real reference and
+      // lock the session; do not create a booking, payment or second request.
+      chosenSlot=null;quote=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Staff request details need verification'));
+      box.append(textNode('p','Request reference: '+request.reference));
+      box.append(textNode('p','FBM did not verify that this is an unpaid, nonprivate staff request with recoverable records. A request may already exist. Please contact VOY PRO with this reference before submitting again.'));
+      setStatus('Staff request outcome requires staff verification. Do not submit again.','error');
     }
     function showUnverifiedStaffRequestResponse(){
       // Staff requests reserve no vehicles and collect no payment, but a
