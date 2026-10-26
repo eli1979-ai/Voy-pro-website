@@ -301,6 +301,78 @@ for(const [lang,prefix] of [['en',''],['he','/he'],['hu','/hu']]){
       });
   }
 }
+// Verify the *deployed* request-only pages after RTB tri-state release.
+// Fill exclusively synthetic QA input. An unanswered English alternative must
+// create no request UUID/POST and must offer guest-controlled manual contact.
+// This is not proof that the separately disabled relay/FBM intake works.
+for(const [language,prefix] of [['en',''],['he','/he'],['hu','/hu']]){
+  for(const routeName of [
+    'heroes-square-city-ezraider-tour',
+    'citadella-advanced-ezraider-tour',
+    'buda-margaret-extended-tour'
+  ]){
+    const path=prefix+'/budapest/tours/'+routeName+'/';
+    await scenario('RTB English tri-state '+language+' '+routeName,
+      path,{width:390},async(page,ok,result)=>{
+        const form=page.locator('main form.voy-rtb-enquiry');
+        await form.waitFor({state:'visible',timeout:8500});
+        const languageField=form.locator('[name="requested_guide_language"]');
+        const yes=form.locator('[name="english_alternative_accepted"]');
+        const no=form.locator('[data-rtb-english-decline]');
+        const yesRow=form.locator('.voy-rtb-checkbox');
+        ok(await languageField.count()===1&&await yes.count()===1&&await no.count()===1,
+          'guide preference plus three-state alternative controls present');
+        ok(!(await yesRow.isVisible())&&!(await no.isVisible()),
+          'an unset requested language never infers English consent');
+        await languageField.selectOption('he');
+        ok(await yesRow.isVisible()&&await no.isVisible()&&
+          !(await yes.isChecked())&&await no.getAttribute('aria-pressed')==='false',
+          'Hebrew request starts with unknown English alternative');
+        if(routeName==='heroes-square-city-ezraider-tour'){
+          await no.screenshot({path:join(OUT,'rtb-english-decline-'+language+'.png'),
+            animations:'disabled'});
+        }
+        await no.click();
+        ok(await no.getAttribute('aria-pressed')==='true'&&!(await yes.isChecked()),
+          'original-language-only is explicitly selected');
+        await yes.check();
+        ok(await yes.isChecked()&&await no.getAttribute('aria-pressed')==='false',
+          'English approval clears explicit refusal');
+        await languageField.selectOption('hu');
+        ok(!(await yes.isChecked())&&await no.getAttribute('aria-pressed')==='false',
+          'a language switch invalidates previous permission');
+        await no.click();
+        await no.click();
+        ok(!(await yes.isChecked())&&await no.getAttribute('aria-pressed')==='false',
+          'decline can be reversed to unknown');
+        // Use real native validation and safe synthetic strings. If this
+        // accidentally sends a POST the network guard fails the scenario.
+        const date=form.locator('[name="requested_date"]');
+        const min=await date.getAttribute('min');
+        ok(/^\d{4}-\d{2}-\d{2}$/.test(min||''),'Budapest local min date is set');
+        const future=await date.evaluate(el=>{
+          const base=Date.parse(el.min+'T12:00:00Z');
+          return new Date(base+7*86400000).toISOString().slice(0,10);
+        });
+        await date.fill(future);
+        await form.locator('[name="requested_time"]').fill('13:00');
+        await form.locator('[name="contact_name"]').fill('Synthetic QA Guest');
+        await form.locator('[name="contact_email"]').fill('qa@example.invalid');
+        const submit=form.locator('button[type="submit"]');
+        await submit.click({timeout:3500});
+        const link=form.locator('[data-rtb-manual]');
+        await link.waitFor({state:'attached',timeout:3000});
+        ok((await link.getAttribute('href')).startsWith('https://wa.me/'),
+          'unknown guest receives manual guest-clicked WhatsApp link');
+        const message=new URL(await link.getAttribute('href')).searchParams.get('text')||'';
+        const unknownMarker=language==='he'?'לא נענתה השאלה'
+          :language==='hu'?'Nincs válasz':'Not answered';
+        ok(message.includes(unknownMarker),
+          'manual handoff labels unknown without inventing refusal');
+        result.notes.push('No real contact submitted, and the WhatsApp link was not opened.');
+      });
+  }
+}
 await browser.close();
 const summary={
   time:new Date().toISOString(),
