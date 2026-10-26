@@ -92,6 +92,10 @@ try {
     'regular build must explain the Production-specific failure');
   assert.ok(deniedBuild.stderr.includes('explicit owner approval'));
   writeBuildRelease({target:'staging',seo_indexable:false});
+  const stagingRuntime="window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'https://ezraider-os-staging.vercel.app/api/v1',clientKey:'voy_bud_stg_fixture_public'};";
+  const setBuildRuntime=code=>fs.writeFileSync(
+    path.join(fixtureSite,'assets/runtime-config.js'),code);
+  setBuildRuntime(stagingRuntime);
   fs.writeFileSync(path.join(fixtureSite,'robots.txt'),'User-agent: *\\nDisallow: /\\n'.replaceAll('\\n','\n'));
   const unprotectedStaging=runBuildGate();
   assert.notEqual(unprotectedStaging.status,0,
@@ -123,6 +127,20 @@ try {
     'User-agent: *\\nDisallow: /\\n'.replaceAll('\\n','\n'));
   assert.equal(runBuildGate().status,0,
     'All three Staging index controls must pass only when consistent');
+  setBuildRuntime("window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'https://fbm-public.example.test/api/v1',clientKey:'voy_bud_stg_fixture_public'};");
+  const accidentalProductionAPI=runBuildGate();
+  assert.notEqual(accidentalProductionAPI.status,0,
+    'Staging must reject even a plausible Production API URL');
+  assert.ok(accidentalProductionAPI.stderr.includes('approved Staging FBM API endpoint'));
+  setBuildRuntime("window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'https://ezraider-os-staging.vercel.app/api/v1',clientKey:'voy_bud_public_production'};");
+  const accidentalProductionClientKey=runBuildGate();
+  assert.notEqual(accidentalProductionClientKey.status,0,
+    'Staging must reject an unscoped or Production-looking browser client key');
+  assert.ok(accidentalProductionClientKey.stderr.includes('Staging-scoped public client key'));
+  setBuildRuntime(stagingRuntime);
+  assert.equal(runBuildGate().status,0,
+    'Safe source-scoped Staging API and public key pass together');
+
 
   const deniedCases = [
     [{status:'unverified'},'attestation must be verified'],

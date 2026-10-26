@@ -19,6 +19,12 @@ const failures=[];
 
 const sitemapCount=(sitemap.match(/<loc>/g)||[]).length;
 const runtimeBooking=(runtime.match(/\bbookingEnabled\s*:\s*(true|false)\b/)||[])[1];
+const runtimeApiRoot=(runtime.match(/\bapiRoot\s*:\s*['"]([^'"]+)['"]/i)||[])[1]||'';
+const runtimeClientKey=(runtime.match(/\bclientKey\s*:\s*['"]([^'"]+)['"]/i)||[])[1]||'';
+// This hostname is the explicitly approved FBM Staging API. Any proposed
+// replacement needs a reviewed code change, not an automatic redirect to
+// Production. This is source guardrail, not proof of API identity at runtime.
+const APPROVED_STAGING_API='https://ezraider-os-staging.vercel.app/api/v1';
 
 if(pkg.name!==release.app)failures.push('release.app must match package name: '+release.app+' != '+pkg.name);
 if(pkg.version!==release.version)failures.push('release.version must match package version: '+release.version+' != '+pkg.version);
@@ -49,6 +55,11 @@ if(release.target==='staging'){
     failures.push('Staging robots.txt must have User-agent: * and Disallow: /');
   if(lines.some(line=>/^Allow:\s*\/?$/i.test(line)))
     failures.push('Staging robots.txt must not contain an unrestricted Allow: /');
+  if(runtimeApiRoot!==APPROVED_STAGING_API)
+    failures.push('Staging runtime must use the approved Staging FBM API endpoint, never Production');
+  if(!/^voy_bud_stg_[A-Za-z0-9_-]+$/.test(runtimeClientKey))
+    failures.push('Staging runtime must use a Staging-scoped public client key');
+
 }
 // A source bundle that claims Production must pass the separate owner's
 // cutover audit; VERCEL_ENV=production is only a deployment target, not proof
