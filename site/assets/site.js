@@ -118,6 +118,8 @@
   const ANALYTICS_STORAGE_KEYS=['voy_visitor_id','voy_first_attribution','voy_last_attribution','voy_segment','voy_experiments','voy_event_queue_v1'];
   const ANALYTICS_SESSION_KEYS=['voy_booking_started_v1'];
   function clearAnalyticsState(){
+    // Cancel all queued/ongoing optional telemetry before deleting its data.
+    cancelEventFlush();
     ANALYTICS_STORAGE_KEYS.forEach(k=>{
       memoryStore.delete(k);
       try{localStorage.removeItem(k)}catch(e){}
@@ -699,14 +701,35 @@
   }
   let eventFlushTimer=null;
   let eventFlushInFlight=false;
+  let eventFlushFailures=0;
+  let eventFlushGeneration=0;
+  let eventFlushController=null;
+  const ANALYTICS_RETRY_BASE_MS=5000;
+  const ANALYTICS_RETRY_MAX_MS=120000;
+  function analyticsRetryDelay(){
+    return Math.min(ANALYTICS_RETRY_MAX_MS,
+      ANALYTICS_RETRY_BASE_MS*2**Math.min(Math.max(0,eventFlushFailures-1),5));
+  }
+  function cancelEventFlush(){
+    // A response from before consent was revoked may never repopulate the
+    // emptied analytics queue, even if the guest later grants consent again.
+    eventFlushGeneration++;
+    eventFlushFailures=0;
+    if(eventFlushTimer!==null)clearTimeout(eventFlushTimer);
+    eventFlushTimer=null;
+    eventFlushController?.abort();
+  }
   async function flushEventQueue({keepalive=false}={}){
-    if(!analyticsAllowed()||!bookingEnabled||eventFlushInFlight) return;
+    if(!analyticsAllowed()||!bookingEnabled||eventFlushInFlight)return;
     const queued=safeJSON(getStore(EVENT_KEY),[])||[];
-    if(!queued.length) return;
+    if(!queued.length)return;
     const batch=queued.slice(0,25);
+    const generation=eventFlushGeneration;
     eventFlushInFlight=true;
     const controller=new AbortController();
+    eventFlushController=controller;
     const timer=setTimeout(()=>controller.abort(),5000);
+    let delivered=false;
     try{
       const response=await fetch(apiRoot+'/marketing/events',{
         method:'POST',
@@ -716,24 +739,40 @@
         signal:controller.signal,
         cache:'no-store',
       });
-      if(!response.ok) return;
+      if(!response.ok)return;
+      if(generation!==eventFlushGeneration||!analyticsAllowed())return;
       const sentIds=new Set(batch.map(item=>item?.event_id));
       const current=safeJSON(getStore(EVENT_KEY),[])||[];
       const remaining=current.filter(item=>!sentIds.has(item?.event_id)).slice(-25);
       setStore(EVENT_KEY,JSON.stringify(remaining));
+      delivered=true;
+      eventFlushFailures=0;
     }catch(e){
-      // Analytics delivery must never interrupt booking.
+      // Optional analytics must never interrupt the tour booking.
     }finally{
       clearTimeout(timer);
+      if(eventFlushController===controller)eventFlushController=null;
       eventFlushInFlight=false;
+      if(generation!==eventFlushGeneration){
+        // The old request was cancelled on revocation. A new, explicitly
+        // consented queue (if any) can start after the cancelled request ends.
+        const next=analyticsAllowed()?(safeJSON(getStore(EVENT_KEY),[])||[]):[];
+        if(next.length&&!keepalive)scheduleEventFlush(false);
+        return;
+      }
+      if(!analyticsAllowed())return;
+      if(!delivered)eventFlushFailures=Math.min(8,eventFlushFailures+1);
       const remaining=safeJSON(getStore(EVENT_KEY),[])||[];
-      if(remaining.length&&!keepalive) scheduleEventFlush(false);
+      if(remaining.length&&!keepalive)scheduleEventFlush(false);
     }
   }
   function scheduleEventFlush(immediate=false){
-    if(!analyticsAllowed()||!bookingEnabled) return;
-    if(eventFlushTimer) clearTimeout(eventFlushTimer);
-    eventFlushTimer=setTimeout(()=>{eventFlushTimer=null;flushEventQueue();},immediate?50:1400);
+    if(!analyticsAllowed()||!bookingEnabled)return;
+    if(eventFlushTimer!==null)clearTimeout(eventFlushTimer);
+    const delay=eventFlushFailures
+      ?Math.max(immediate?50:1400,analyticsRetryDelay())
+      :(immediate?50:1400);
+    eventFlushTimer=setTimeout(()=>{eventFlushTimer=null;void flushEventQueue();},delay);
   }
   function track(event,metadata={}){
     if(!analyticsAllowed()||!bookingEnabled) return;
