@@ -787,6 +787,14 @@
     bar.innerHTML=`<div><b>${copy.title}</b><p>${copy.body}</p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${copy.essential}</button><button type="button" class="btn" data-consent-analytics>${copy.analytics}</button>${mayDismiss?`<button type="button" class="btn secondary consent-dismiss" data-consent-dismiss>${copy.close}</button>`:''}</div>`;
     document.body.appendChild(bar);
     document.body.classList.add('consent-open');
+    // A returning visitor should be able to SEE and HEAR which setting is
+    // already saved. No option is marked for a first-time undecided visitor.
+    // aria-pressed is only presentation; closing preferences never writes it.
+    if(mayDismiss){
+      const selectedAnalytics=analyticsAllowed();
+      bar.querySelector('[data-consent-essential]').setAttribute('aria-pressed',String(!selectedAnalytics));
+      bar.querySelector('[data-consent-analytics]').setAttribute('aria-pressed',String(selectedAnalytics));
+    }
     if(force) bar.querySelector('[data-consent-essential]').focus();
     const closePreferences=()=>{
       document.body.classList.remove('consent-open');
