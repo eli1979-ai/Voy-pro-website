@@ -51,6 +51,8 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
   // Move only its simulated clock forward; FBM routes remain mocked.
   if(overnightRollover)await page.clock.install({time:new Date('2026-10-25T22:59:30.000Z')});
   if(recovery)await page.addInitScript(({mode})=>{
+    if(sessionStorage.getItem('__voy_qa_recovery_seeded')==='1')return;
+    sessionStorage.setItem('__voy_qa_recovery_seeded','1');
     const now=new Date();
     const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
       timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'
@@ -181,16 +183,41 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
       await banner.waitFor({state:'visible',timeout:9000});
       check(await form.locator('select[name="adults"]').inputValue()==='1',
         lang+' saved group has not been applied before guest chooses restore');
-      await banner.locator('[data-resume-cta]').click();
-      await page.waitForFunction(()=>
-        document.querySelector('[data-resume-booking]')?.hidden===true,
-        null,{timeout:6000});
+      const discard=banner.locator('[data-resume-dismiss]');
+      check(await discard.count()===1&&await discard.isVisible(),
+        lang+' saved selection offers a visible guest-controlled discard action');
+      if(recovery==='discard'){
+        const oldExperience=await experience.inputValue();
+        await discard.click();
+        check(await banner.isHidden(),
+          lang+' discard hides the non-booking resume notice');
+        check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
+          lang+' discard removes only the essential saved selection');
+        check(await experience.inputValue()===oldExperience&&
+          await form.locator('select[name="adults"]').inputValue()==='1',
+          lang+' discard does not alter the current guest form');
+        check(await page.locator('#availability-status').innerText()
+          .then(text=>text.includes(lang==='he'?'לא בוצעה הזמנה'
+            :lang==='hu'?'Nem történt foglalás':'No booking was made')),
+          lang+' discard explains that no booking was created');
+        check(await page.evaluate(()=>
+          document.activeElement?.id==='availability-status'),
+          lang+' focus moves to the visible confirmation after discard');
+        await page.reload({waitUntil:'domcontentloaded'});
+        check(await page.locator('[data-resume-booking]').isHidden(),
+          lang+' dismissed selection does not reappear after reload');
+      }else{
+        await banner.locator('[data-resume-cta]').click();
+        await page.waitForFunction(()=>
+          document.querySelector('[data-resume-booking]')?.hidden===true,
+          null,{timeout:6000});
+      }
       if(recovery==='expired'){
         check(await form.locator('select[name="adults"]').inputValue()==='1',
           lang+' expired saved group is never applied');
         check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
           lang+' expired selection is discarded from essential-only storage');
-      }else{
+      }else if(recovery==='private'){
         check(await form.locator('select[name="adults"]').inputValue()==='2'&&
           await form.locator('select[name="children"]').inputValue()==='1'&&
           await form.locator('select[name="babies"]').inputValue()==='0',
@@ -383,6 +410,9 @@ try{
   await scenario('he',paths[1][1],{recovery:'private'});
   await scenario('hu',paths[2][1],{recovery:'private'});
   await scenario('en',paths[0][1],{recovery:'expired'});
+  await scenario('en',paths[0][1],{recovery:'discard'});
+  await scenario('he',paths[1][1],{recovery:'discard'});
+  await scenario('hu',paths[2][1],{recovery:'discard'});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
