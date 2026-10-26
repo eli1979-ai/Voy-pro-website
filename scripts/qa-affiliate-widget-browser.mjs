@@ -58,7 +58,7 @@ const check=(value,label)=>{
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
 async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null,onlinePayment=null,badAvailability=null,
-  badCapabilities=null}={}){
+  badCapabilities=null,badStaffSafety=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -276,6 +276,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         :malformedStaffReply==='wrong-status'
           ?{type:'booking_capacity_request',status:'approved',reference:'VP-CAP-FAKE'}
           :{type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE',
+            id:badStaffSafety==='missing-id'?null:'55555555-5555-4555-8555-555555555555',
+            request_token:badStaffSafety==='missing-token'?'':'staff-token-fixture',
+            departure_id:badStaffSafety==='missing-departure'?null:payload?.slot_id,
+            payment_status:badStaffSafety==='paid'?'paid':'not_started',
+            is_private:badStaffSafety==='private'?true:false,
             guide_language:badFinalGuideLanguage==='missing'?null:(badFinalGuideLanguage||'he'),
             english_alternative_accepted:englishPilot==='staff-mismatch'?false:
               (payload?.english_alternative_accepted??null),
@@ -802,6 +807,26 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
       return;
     }
+    if(badStaffSafety){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const receipt=await root.locator('#success').innerText();
+      check(receipt.includes('Staff request details need verification')&&
+        receipt.includes('Request reference: VP-CAP-FAKE')&&
+        !receipt.includes('Your confirmation request was received'),
+        name+' inconsistent pending staff outcome preserves real reference for review');
+      check((await root.locator('#status.error').innerText()).includes('Do not submit again')&&
+        await root.locator('#checkout:not(.hidden)').count()===0,
+        name+' uncertain staff outcome locks checkout');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path==='/api/v1/booking-capacity-requests').length===1&&
+        !calls.some(c=>c.path==='/api/v1/bookings'||c.path==='/api/v1/holds'||
+          c.path==='/api/v1/payments/intents'),
+        name+' bad staff record cannot trigger duplicate request or a booking/payment');
+      check(errors.length===0,name+' no Chrome errors on invalid staff outcome');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(badFinalGuideLanguage){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const receipt=await root.locator('#success').innerText();
@@ -1094,6 +1119,10 @@ try{
   await run('desktop-overnight-budapest-date-rollover',{midnightRollover:true});
   await run('mobile-overnight-budapest-date-rollover',{mobile:true,midnightRollover:true});
   await run('mobile-pending-request',{mobile:true,staffRequest:true});
+  await run('desktop-staff-request-paid-status',{staffRequest:true,badStaffSafety:'paid'});
+  await run('mobile-staff-request-private-mode',{mobile:true,staffRequest:true,badStaffSafety:'private'});
+  await run('desktop-staff-request-missing-token',{staffRequest:true,badStaffSafety:'missing-token'});
+  await run('mobile-staff-request-missing-departure',{mobile:true,staffRequest:true,badStaffSafety:'missing-departure'});
   await run('desktop-late-language-response',{staleLanguageRace:true});
   await run('mobile-late-language-response',{mobile:true,staleLanguageRace:true});
   await run('desktop-expired-departure',{expiredSlots:true});
