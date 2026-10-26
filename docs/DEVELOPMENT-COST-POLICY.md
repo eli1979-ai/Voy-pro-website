@@ -33,6 +33,19 @@ Repository: **public** `eli1979-ai/Voy-pro-website`; do not place secrets, custo
 - Only benchmark Vercel build machine tiers where builds still run on Vercel. Compare billable dollars and latency, not headline minute price.
 - Keep Production domains and automatic production deployment active until an approved replacement has passed a rollback test. Current custom domain mapping takes priority over misleading project labels.
 
+## Optional GitHub Copilot Free assistance
+
+GitHub Copilot Free is an **optional helper**, not a substitute for the website's CI, automated validation or review/approval process.
+
+1. Verify authenticated Copilot access **in the current agent/IDE/CLI environment** before attempting to use it. Access to the GitHub repository does not mean this chat or its tools can invoke Copilot; report accurately when no direct access exists.
+2. Within the **confirmed remaining free-tier allowance**, use Copilot selectively for high-impact debugging, explaining failing checks, reviewing focused diffs, or proposing improvements that may avoid redundant builds. Do not invoke it on every commit or create any mandatory Copilot gate.
+3. Require explicit owner approval before installing/integrating Copilot CLI in automation, changing credentials, enabling a paid feature, accepting usage beyond the free allowance, or modifying GitHub Actions/production deployments. Check account privacy and data-use settings before enabling any access.
+4. Never send secrets, customer or booking data, payment details, private FBM interfaces/code, private production traces or unpublished business materials to Copilot. Even though this website repository is public, minimize prompts and sanitize identifiers. Respect third-party source/license conditions.
+5. Treat Copilot suggestions as **untrusted** and validate them through existing build, localization, SEO, accessibility, security, booking/checkout and browser QA gates. Maintain human approval for merges and all deployment changes.
+6. Record what Copilot actually did, any useful result, usage/quota constraints and when access was unavailable. Do not assert that Copilot tested or reviewed a PR unless it demonstrably did so.
+
+The presence of this section does not install, connect or authorize Copilot in any chat or CI runner.
+
 ## Measurement and change control
 
 Measure per week and per billing cycle: GitHub workflow minutes (standard vs any charged runners), Vercel build CPU cost, preview/deploy count, median and p95 test and deploy duration, cache hit rate, failed builds, remaining free/paid quota, and booking/SEO regression rate. Working objective: reduce unnecessary Vercel Build CPU by approximately 80% while preserving all required site checks and no-cost standard public repository Actions where applicable. Targets are not guarantees.
