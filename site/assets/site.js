@@ -1088,13 +1088,28 @@
       const languageField=form.querySelector('select[name="guide_language"]');
       const englishChoice=form.querySelector('input[name="english_ok"]');
       const englishRow=englishChoice?.closest('.b2b-english-check');
+      const englishDecline=form.querySelector('[data-b2b-english-decline]');
+      // Three distinct states for a manual enquiry: not answered, accepted,
+      // or explicitly declined. Unchecked is NEVER interpreted as "no".
+      const clearEnglishDecline=()=>englishDecline?.setAttribute('aria-pressed','false');
       const updateEnglishChoice=()=>{
         if(!languageField||!englishChoice)return;
         englishChoice.checked=false;
+        clearEnglishDecline();
         const show=Boolean(languageField.value&&languageField.value!=='en');
         englishChoice.disabled=!show;
         if(englishRow)englishRow.hidden=!show;
+        if(englishDecline){englishDecline.hidden=!show;englishDecline.disabled=!show;}
       };
+      englishChoice?.addEventListener('change',()=>{
+        if(englishChoice.checked)clearEnglishDecline();
+      });
+      englishDecline?.addEventListener('click',()=>{
+        if(englishDecline.disabled||englishRow?.hidden)return;
+        const declined=englishDecline.getAttribute('aria-pressed')!=='true';
+        englishDecline.setAttribute('aria-pressed',String(declined));
+        if(declined)englishChoice.checked=false;
+      });
       languageField?.addEventListener('change',updateEnglishChoice);
       updateEnglishChoice();
       const btn=form.querySelector('[data-b2b-open]');
@@ -1121,9 +1136,9 @@
         const dateValue=field('requested_date',10);
         if(dateValue&&dateValue<budapestDate(0)){if(date){date.setCustomValidity(dateErrorLabel);date.reportValidity();}return;}
         const labels={
-          en:{intro:'Hi VOY PRO Budapest, I would like help planning a',group:'group EZRaider experience.',corporate:'corporate/team-building event.',date:'Preferred date',size:'Participants',window:'Preferred time window',language:'Preferred guiding language',english:'English also possible',private:'Private group preferred',company:'Company',name:'Organizer',notes:'Notes',source:'Enquiry page'},
-          he:{intro:'שלום VOY PRO בודפשט, אשמח לתכנן',group:'סיור EZRaider לקבוצה.',corporate:'פעילות גיבוש או אירוע חברה.',date:'תאריך מועדף',size:'משתתפים',window:'חלון שעות',language:'שפת הדרכה מועדפת',english:'גם אנגלית מתאימה',private:'מעדיפים קבוצה פרטית',company:'חברה',name:'איש קשר',notes:'פרטים נוספים',source:'עמוד הפנייה'},
-          hu:{intro:'Szia VOY PRO Budapest, szeretnék egyeztetni egy',group:'csoportos EZRaider túrát.',corporate:'céges/csapatépítő programot.',date:'Dátum',size:'Résztvevők',window:'Előnyben részesített időszak',language:'Kért idegenvezetési nyelv',english:'Angol is megfelelő',private:'Privát csoportot szeretnénk',company:'Cég',name:'Kapcsolattartó',notes:'Megjegyzések',source:'Érdeklődés oldala'}
+          en:{intro:'Hi VOY PRO Budapest, I would like help planning a',group:'group EZRaider experience.',corporate:'corporate/team-building event.',date:'Preferred date',size:'Participants',window:'Preferred time window',language:'Preferred guiding language',english:'English also possible',englishDeclined:'English not accepted as an alternative; requested guiding language only',private:'Private group preferred',company:'Company',name:'Organizer',notes:'Notes',source:'Enquiry page'},
+          he:{intro:'שלום VOY PRO בודפשט, אשמח לתכנן',group:'סיור EZRaider לקבוצה.',corporate:'פעילות גיבוש או אירוע חברה.',date:'תאריך מועדף',size:'משתתפים',window:'חלון שעות',language:'שפת הדרכה מועדפת',english:'גם אנגלית מתאימה',englishDeclined:'אנגלית אינה חלופה מתאימה; רק שפת ההדרכה המבוקשת',private:'מעדיפים קבוצה פרטית',company:'חברה',name:'איש קשר',notes:'פרטים נוספים',source:'עמוד הפנייה'},
+          hu:{intro:'Szia VOY PRO Budapest, szeretnék egyeztetni egy',group:'csoportos EZRaider túrát.',corporate:'céges/csapatépítő programot.',date:'Dátum',size:'Résztvevők',window:'Előnyben részesített időszak',language:'Kért idegenvezetési nyelv',english:'Angol is megfelelő',englishDeclined:'Az angol nem megfelelő alternatíva; csak a kért idegenvezetési nyelv',private:'Privát csoportot szeretnénk',company:'Cég',name:'Kapcsolattartó',notes:'Megjegyzések',source:'Érdeklődés oldala'}
         };
         const l=labels[locale]||labels.en;
         // Share localized *display names* with staff in the manually sent
@@ -1146,6 +1161,8 @@
         lines.push(l.language+': '+display.languages[language]);
         if(language!=='en'&&englishChoice&&!englishChoice.disabled&&
           englishChoice.checked&&fd.get('english_ok')==='yes')lines.push(l.english+': yes');
+        else if(language!=='en'&&englishDecline&&!englishDecline.disabled&&
+          englishDecline.getAttribute('aria-pressed')==='true')lines.push(l.englishDeclined);
         if(field('private_preference',12)==='private')lines.push(l.private+': yes');
         for(const [key,label,max] of [['company',l.company,90],['organizer',l.name,70],['notes',l.notes,500]]){
           const value=field(key,max);
