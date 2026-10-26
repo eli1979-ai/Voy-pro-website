@@ -54,6 +54,31 @@ install the script once.
 7. Collect customer contact information and require explicit acknowledgement of the published VOY PRO Terms and Privacy Policy.
 8. For immediately sellable departures, submit **one fixed affiliate coupon** and the verified quote's current hold to `/api/v1/bookings` with an idempotency key for pay on arrival; show booking confirmation on the partner page. If enabled, `/api/v1/payments/intents` starts an HTTPS Stripe checkout, and Stripe returns customers to the VOY PRO secure management page. For nonprivate departures requiring staff approval, submit the same fixed partner coupon to `/api/v1/booking-capacity-requests`, with **no hold, payment or ancillary sale**. Display a *request reference* rather than a confirmed booking, with explicit human-review messaging. All commission reporting uses FBM's central attributed booking/receipts data.
 
+## English alternative — preparation only (currently OFF)
+
+The embedded partner widget contains a dormant optional answer for whether
+English would be comfortable if the **explicitly requested** guide language
+cannot be provided. The distributed code has
+`ENGLISH_ALT_PILOT_ENABLED=false` hardcoded. The question is hidden,
+the input is disabled, and **no English-alternative preference is sent**.
+Partner embed attributes, client key, URL parameters and WordPress cannot
+enable this source-locked feature.
+
+Only the isolated QA VM substitutes a test-only enabled copy of the script:
+Yes maps to `true`, No to `false`, unanswered to `null`. The requested
+language remains unchanged. Synthetic flows preserve the choice through
+FBM hold/booking or pending staff request, verify the server echo, and show
+the precise answer in the receipt. A change of requested language clears
+the optional preference and invalidates previous availability.
+
+This is **not a live affiliate feature or approval to use English instead
+of the guest's preferred language**. Before an owner-approved switch of the
+source flag, require authenticated Staging end-to-end tests of holds, bookings,
+staff requests and exact-key retries, plus manager-verified guide skills,
+7+ riders escort coverage, consent provenance, language changes,
+multilingual copy and operational review. Do not activate in Production
+or any WordPress installation until these gates are explicitly approved.
+
 ## QA / release gates
 
 - `npm run build`, `npm run verify:launch` and `npm run qa:site` must pass.
