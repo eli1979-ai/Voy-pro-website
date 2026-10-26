@@ -174,19 +174,33 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       if(badOffers==='duplicate-product')data.push({...data[0]});
     }
     else if(path==='/api/v1/payments/intents'){
-      const completed=onlinePayment==='completed'||onlinePayment==='completed-no-reference';
+      const completed=Boolean(onlinePayment?.startsWith('completed'));
       data={
         status:completed?'completed':'requires_action',
         ui_mode:completed?'none':'redirect',
+        id:'pi_mock_123',payment_type:'online',payment_method:'pay_now_card',
         booking_id:'44444444-4444-4444-8444-444444444444',
         booking_reference:'VOY-PAY-MOCK',
         amount:completed?0:120,
         currency:'EUR',
-        checkout_url:'https://checkout.stripe.com/c/pay/cs_test_mock_no_network'
+        checkout_url:'https://checkout.stripe.com/c/pay/cs_test_mock_no_network',
+        payment_link_request_id:'link-request-123',
+        expires_at:new Date(Date.now()+10*60*1000).toISOString()
       };
       if(onlinePayment==='wrong-total')data.amount=125;
       if(onlinePayment==='wrong-currency')data.currency='USD';
       if(onlinePayment==='untrusted-host')data.checkout_url='https://not-stripe.invalid/checkout';
+      if(onlinePayment==='credential-url')
+        data.checkout_url='https://customer:secret@checkout.stripe.com/c/pay/cs_mock';
+      if(onlinePayment==='custom-port')
+        data.checkout_url='https://checkout.stripe.com:8443/c/pay/cs_mock';
+      if(onlinePayment==='expired-checkout')
+        data.expires_at=new Date(Date.now()-1000).toISOString();
+      if(onlinePayment==='missing-link-id')delete data.payment_link_request_id;
+      if(onlinePayment==='wrong-method'||onlinePayment==='completed-wrong-method')
+        data.payment_method='pay_arrival_card';
+      if(onlinePayment==='completed-wrong-amount')data.amount=15;
+      if(onlinePayment==='completed-wrong-currency')data.currency='USD';
       if(onlinePayment==='missing-reference'||onlinePayment==='completed-no-reference')
         delete data.booking_reference;
     }
@@ -985,6 +999,14 @@ try{
   await run('mobile-online-payment-untrusted-host',{mobile:true,onlinePayment:'untrusted-host'});
   await run('desktop-online-payment-missing-reference',{onlinePayment:'missing-reference'});
   await run('mobile-online-payment-completed-missing-reference',{mobile:true,onlinePayment:'completed-no-reference'});
+  await run('desktop-online-payment-completed-wrong-amount',{onlinePayment:'completed-wrong-amount'});
+  await run('mobile-online-payment-completed-wrong-currency',{mobile:true,onlinePayment:'completed-wrong-currency'});
+  await run('desktop-online-payment-completed-wrong-method',{onlinePayment:'completed-wrong-method'});
+  await run('desktop-online-payment-expired-checkout',{onlinePayment:'expired-checkout'});
+  await run('mobile-online-payment-credentialed-checkout',{mobile:true,onlinePayment:'credential-url'});
+  await run('desktop-online-payment-unexpected-port',{onlinePayment:'custom-port'});
+  await run('mobile-online-payment-missing-link-id',{mobile:true,onlinePayment:'missing-link-id'});
+  await run('desktop-online-payment-wrong-method',{onlinePayment:'wrong-method'});
   await run('desktop-pilot-english-yes-booking',{englishPilot:'yes'});
   await run('mobile-pilot-english-no-staff-request',{mobile:true,staffRequest:true,englishPilot:'no'});
   await run('desktop-pilot-english-unanswered-booking',{englishPilot:'unanswered'});
