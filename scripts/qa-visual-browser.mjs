@@ -557,6 +557,42 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Previously decided guests may leave the reopened privacy drawer
+      // without converting "close" into analytics acceptance or refusal.
+      // Check all supported destinations/locales with real keyboard behavior.
+      const consentCopies={
+        'home-mobile':'Close without changes',
+        'marvao-pt-mobile':'Fechar sem alterações',
+        'marvao-he-mobile':'סגירה ללא שינוי',
+        'budapest-hu-narrow':'Bezárás módosítás nélkül'
+      };
+      if(consentCopies[name]){
+        const essential=page.locator('[data-consent-essential]');
+        if(await essential.isVisible())await essential.click();
+        const opener=page.locator('footer [data-cookie-settings]').first();
+        await opener.click();
+        const bar=page.locator('.consent-banner');
+        const close=bar.locator('[data-consent-dismiss]');
+        check(await bar.isVisible()&&await close.isVisible()&&
+          (await close.innerText()).trim()===consentCopies[name],
+          name+' reopened cookie choices offer localized close without changes');
+        const saved=await page.evaluate(()=>localStorage.getItem('voy_consent_v1'));
+        check(Boolean(saved),name+' original explicit essential consent is recorded');
+        await close.click();
+        check(await bar.isHidden(),name+' close button hides reopened preferences');
+        check(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
+          name+' closing does not change original analytics consent');
+        check(await opener.evaluate(el=>document.activeElement===el),
+          name+' close restores keyboard focus to preferences opener');
+        await opener.click();
+        check(await bar.isVisible(),name+' footer reopens preferences after close');
+        await page.keyboard.press('Escape');
+        check(await bar.isHidden(),name+' Escape closes reopened preferences');
+        check(await opener.evaluate(el=>document.activeElement===el),
+          name+' Escape restores focus to preferences opener');
+        check(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
+          name+' Escape preserves existing consent without analytics writes');
+      }
       if(name==='guide-pt-mobile'){
         const expected='/pt/portugal/';
         check(await page.locator('.ez-context-toolbar [data-ez-context="back"]').getAttribute('href')===expected,'PT Marvão guide back returns to PT branch');
