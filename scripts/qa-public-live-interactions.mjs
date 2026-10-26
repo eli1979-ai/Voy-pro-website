@@ -170,6 +170,89 @@ for(const [locale,path,closeLabel] of [
       result.notes.push('No analytics opt-in or network writes performed.');
     });
 }
+// Budapest has the authenticated public booking client. The network-wide
+// home page intentionally disables FBM telemetry, so this must test a branch.
+// Privacy/telemetry race regression after source change #562: grant analytics
+// in an anonymous browser, intercept its *first* POST in memory, revoke while
+// the fake backend is slow, then deliver its late ACK. No real backend request
+// is permitted. A second explicit grant must generate NEW event IDs only.
+await scenario('analytics revocation with late telemetry response','/budapest/',{width:390},
+  async(page,ok,result,outbounds)=>{
+    const telemetry=[];
+    let releaseFirst=null;
+    await page.route('**/api/v1/marketing/events',async route=>{
+      const body=JSON.parse(route.request().postData()||'{}');
+      telemetry.push(body);
+      if(telemetry.length===1){
+        await new Promise(resolve=>{
+          releaseFirst=()=>{
+            void route.fulfill({
+              status:200,contentType:'application/json',
+              headers:{'access-control-allow-origin':ORIGIN},
+              body:'{"ok":true}'
+            }).catch(()=>{}).finally(resolve);
+          };
+        });
+      }else{
+        await route.fulfill({
+          status:200,contentType:'application/json',
+          headers:{'access-control-allow-origin':ORIGIN},
+          body:'{"ok":true}'
+        }).catch(()=>{});
+      }
+    });
+    const open=page.locator('footer [data-cookie-settings]').first();
+    // This essential-only field is kept across the optional-consent reset.
+    await page.evaluate(()=>localStorage.setItem('voy_experience_id','qa-essential-fixture'));
+    try{
+      await open.click();
+      await page.locator('.consent-banner [data-consent-analytics]').click();
+      const deadline=Date.now()+7000;
+      while(telemetry.length===0&&Date.now()<deadline){
+        await new Promise(done=>setTimeout(done,35));
+      }
+      ok(telemetry.length===1&&typeof releaseFirst==='function',
+        'explicit opt-in starts exactly one held synthetic analytics POST');
+      const oldIds=(telemetry[0].events||[]).map(ev=>ev.event_id);
+      ok(oldIds.length>0&&oldIds.every(Boolean),
+        'pending batch contains event identifiers for stale-ACK comparison');
+      await open.click();
+      await page.locator('.consent-banner [data-consent-essential]').click();
+      ok(await page.evaluate(()=>localStorage.getItem('voy_event_queue_v1'))===null,
+        'revocation deletes optional event queue while POST is in flight');
+      ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('voy_consent_v1')).analytics)===false,
+        'revocation stores a declined analytics preference');
+      ok(await page.evaluate(()=>localStorage.getItem('voy_experience_id'))==='qa-essential-fixture',
+        'essential tour state survives optional analytics revocation');
+      releaseFirst();
+      await new Promise(done=>setTimeout(done,250));
+      ok(await page.evaluate(()=>localStorage.getItem('voy_event_queue_v1'))===null,
+        'late success cannot resurrect revoked optional events');
+      ok(telemetry.length===1,
+        'no more analytics POSTs are started after revocation');
+      await open.click();
+      await page.locator('.consent-banner [data-consent-analytics]').click();
+      const freshDeadline=Date.now()+6500;
+      while(telemetry.length<2&&Date.now()<freshDeadline){
+        await new Promise(done=>setTimeout(done,35));
+      }
+      ok(telemetry.length>=2,
+        'new explicit opt-in can restart only freshly authorized events');
+      const newIds=(telemetry[1].events||[]).map(ev=>ev.event_id);
+      ok(newIds.length>0&&newIds.every(id=>id&&!oldIds.includes(id)),
+        'new consent never reuses event IDs from the previously revoked queue');
+      await open.click();
+      await page.locator('.consent-banner [data-consent-essential]').click();
+      ok(await page.evaluate(()=>localStorage.getItem('voy_event_queue_v1'))===null,
+        'final revocation clears newly authorized analytics queue');
+      ok(!outbounds.some(x=>x.method!=='GET'),
+        'all synthetic telemetry bypasses the real-network guard');
+      result.notes.push('The analytics endpoint was fully mocked in Chrome; no real events were sent.');
+    }finally{
+      if(releaseFirst)releaseFirst();
+      await page.unroute('**/api/v1/marketing/events');
+    }
+  });
 // Live mobile nav: real pointer and keyboard behavior in 3 locales.
 // Existing offline QA covers more pages; this catches deployed runtime regressions.
 for(const [locale,path] of [
