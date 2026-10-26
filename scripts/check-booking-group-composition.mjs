@@ -30,7 +30,18 @@ for(const locale of ['en','he','hu']){
 }
 assert.ok(src.includes('ensureGroupCompositionPreview(form);'),'form preview initialization missing');
 assert.ok(src.includes('const compositionCheck=validateGroupComposition(form,composition);'),'pre-search validation missing');
-assert.ok(src.indexOf('const compositionCheck=validateGroupComposition(form,composition);')<src.indexOf("await createSession('availability_search'"),'validation must occur before tracking and availability');
+const availabilityStart=src.indexOf("const form=document.querySelector('#availability-form');");
+const availabilityEnd=src.indexOf('function verifiedBookingConfirmation(',availabilityStart);
+assert.ok(availabilityStart>=0&&availabilityEnd>availabilityStart,'availability submit handler not found');
+const availabilityFlow=src.slice(availabilityStart,availabilityEnd);
+const validationAt=availabilityFlow.indexOf('const compositionCheck=validateGroupComposition(form,composition);');
+const guideAt=availabilityFlow.indexOf('const allowedGuideLanguages=guideLanguagesForProduct(experience);');
+const sessionAt=availabilityFlow.indexOf("void createSession('availability_search'");
+const getAt=availabilityFlow.indexOf("const out=await api('/experiences/'");
+assert.ok(validationAt>=0&&guideAt>validationAt&&sessionAt>guideAt&&getAt>sessionAt,
+  'group composition and explicit guide language must be checked before CRM tracking and availability GET');
+assert.ok(!availabilityFlow.includes("await createSession('availability_search'"),
+  'best-effort session latency must not gate read-only departure lookup');
 assert.ok(src.includes("passenger seat availability and final price")||src.includes('Passenger seat availability and final price'),'live seat availability explanation missing');
 assert.ok(!block.includes('child_passengers_3_15>riders_16_plus'),'cannot invent seat limit locally');
 console.log('PASS: group composition selection/preview and EN/HE/HU guards; live FBM remains authoritative for seats and prices.');

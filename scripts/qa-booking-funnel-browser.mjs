@@ -45,7 +45,7 @@ const paths=[
   ['hu','/hu/budapest/tours/buda-castle-ezraider-tour/']
 ];
 const wait=ms=>new Promise(done=>setTimeout(done,ms));
-async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null}={}){
+async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null,sessionStalled=false}={}){
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
   // The tab is opened at 23:59 Budapest local time after the DST change.
   // Move only its simulated clock forward; FBM routes remain mocked.
@@ -70,6 +70,7 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
   },{mode:recovery});
   const calls=[],pageErrors=[];
   let phase='empty';
+  const delayedSessionReplies=[];
   page.on('pageerror',err=>pageErrors.push(err.message));
   await page.route('**/*',async route=>{
     const req=route.request();
@@ -100,7 +101,11 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     else if(routePath==='/experiences'){
       if(catalogDown){status=503;data={error:'fixture catalog offline',code:'CATALOG_OFFLINE'};}
       else data=products;
-    }else if(routePath==='/sessions')data={id:'browser-fixture-session'};
+    }else if(routePath==='/sessions'){
+      if(sessionStalled&&req.method()==='POST')
+        await new Promise(resolve=>delayedSessionReplies.push(resolve));
+      data={id:'browser-fixture-session'};
+    }
     else if(routePath.startsWith('/sessions/'))data={ok:true};
     else if(/\/experiences\/[^/]+\/availability$/.test(routePath)){
       if(phase==='slow')await wait(600);
@@ -183,6 +188,47 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:9000});
     check(await guide.inputValue()==='',lang+' guide language is never silently chosen');
+    if(sessionStalled){
+      // A hung session POST represents a slow CRM/attribution service;
+      // availability is a read-only GET and must stay usable without it.
+      const date=form.locator('input[name="date"]');
+      await date.evaluate(el=>{
+        el.value=el.min;
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      await guide.selectOption(lang);
+      await form.locator('select[name="adults"]').selectOption('2');
+      const submit=form.locator('button[type="submit"]');
+      await submit.click();
+      await page.waitForFunction(()=>
+        /No departures|לא נמצאו|nincs elérhető/i.test(
+          document.querySelector('#availability-status')?.textContent||''
+        ),null,{timeout:2500});
+      check(calls.filter(c=>c.method==='POST'&&c.path==='/sessions').length===1,
+        lang+' one session create attempt despite unresolved CRM response');
+      check(calls.some(c=>c.method==='GET'&&c.path.includes('/availability?')&&
+        c.path.includes('riders_16_plus=2')),
+        lang+' GET availability completes before session POST resolves');
+      await form.locator('select[name="adults"]').selectOption('3');
+      await submit.click();
+      for(let i=0;i<70&&calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length<2;i++)
+        await wait(25);
+      check(calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length>=2,
+        lang+' repeated search remains independent from the pending session');
+      check(calls.filter(c=>c.method==='POST'&&c.path==='/sessions').length===1,
+        lang+' repeated search does not create duplicate CRM sessions');
+      delayedSessionReplies.splice(0).forEach(release=>release());
+      await page.waitForFunction(()=>
+        localStorage.getItem('voy_session_id')==='browser-fixture-session',
+        null,{timeout:4500});
+      check(calls.filter(c=>c.method==='POST'&&c.path==='/sessions').length===1,
+        lang+' late session completion leaves a single stored session');
+      check(!calls.some(c=>/\/(holds|quotes|bookings)(?:\/|\?|$)|\/payments\/intents/.test(c.path)),
+        lang+' no holds, quotes, bookings or payment on availability-only search');
+      check(pageErrors.length===0,lang+' no uncaught exceptions during late session completion');
+      return;
+    }
     if(recovery){
       const banner=page.locator('[data-resume-booking]');
       await banner.waitFor({state:'visible',timeout:9000});
@@ -399,10 +445,14 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
   }catch(e){
     failures.push(lang+' flow failed: '+String(e).slice(0,450));
     await page.screenshot({path:join(out,'booking-'+lang+'-failed.png')}).catch(()=>{});
-  }finally{await page.close();}
+  }finally{
+    delayedSessionReplies.splice(0).forEach(release=>release());
+    await page.close();
+  }
 }
 try{
   await scenario('en',paths[0][1]);
+  for(const [lang,path] of paths)await scenario(lang,path,{sessionStalled:true});
   await scenario('en',paths[0][1],{overnightRollover:true});
   await scenario('he',paths[1][1],{overnightRollover:true});
   await scenario('hu',paths[2][1],{overnightRollover:true});

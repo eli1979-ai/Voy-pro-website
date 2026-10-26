@@ -970,11 +970,22 @@
     scheduleEventFlush(true);
   }
 
+  let pendingSessionCreation=null;
   async function createSession(stage, extra={}){
     if(!bookingEnabled) return null;
     try{
       const existing=getStore('voy_session_id');
       if(existing){await patchSession({stage,...extra});return {id:existing};}
+      // The first concurrent availability search must not spawn a second
+      // CRM session while the initial POST is pending. Other callers may
+      // await the same creation promise when they require a session.
+      if(pendingSessionCreation){
+        const prior=await pendingSessionCreation;
+        const sid=getStore('voy_session_id');
+        if(sid){await patchSession({stage,...extra});return {id:sid};}
+        return prior;
+      }
+      const pending=(async()=>{
       const storedFirst=analyticsAllowed()?(safeJSON(getStore('voy_first_attribution'))||attr):null;
       const exp=extra.experience_id||getStore('voy_experience_id')||null;
       const analyticsPayload=analyticsAllowed()?{
@@ -993,6 +1004,10 @@
         }
       }
       return data;
+      })();
+      pendingSessionCreation=pending;
+      try{return await pending;}
+      finally{if(pendingSessionCreation===pending)pendingSessionCreation=null;}
     }catch(e){return null;}
   }
   async function patchSession(extra={}){
@@ -2414,7 +2429,11 @@
       status.textContent=t('Checking availability…','בודקים זמינות…');
       slots.setAttribute('aria-busy','true');
       try{
-      await createSession('availability_search',{experience_id:experience.id,selected_date:data.get('date'),party_size:party,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage,page});
+      // Read-only departure searches must not wait for the best-effort CRM
+      // session API or optional attribution sync. The public booking contract
+      // explicitly accepts a nullable session_id during finalization.
+      // createSession still records the stage and coalesces parallel POSTs.
+      void createSession('availability_search',{experience_id:experience.id,selected_date:data.get('date'),party_size:party,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage,page});
       if(searchGeneration!==availabilitySearchGeneration)return;
       trackBookingStarted({date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});track('availability_search',{date:data.get('date'),party_size:party,experience_id:experience.id,is_private:isPrivate,guide_language:guideLanguage});
       const q=new URLSearchParams({date:String(data.get('date')),riders_16_plus:String(composition.riders_16_plus),child_passengers_3_15:String(composition.child_passengers_3_15),baby_passengers_1_2:String(composition.baby_passengers_1_2),is_private:String(isPrivate),guide_language:guideLanguage});
