@@ -413,6 +413,13 @@ for(const [locale,path,routeName,dateLabel] of [
         (locale==='EN'?msg.includes(future):msg.includes(future.slice(0,4))&&
           msg.includes(String(Number(future.slice(8,10))))),
         'correct localized date label and requested future date are preserved');
+      // Playwright emits Request before the async context.route callback
+      // finishes writing its abort audit record. Wait for that record rather
+      // than weakening the required external-block invariant.
+      for(let attempt=0;attempt<50;attempt++){
+        if(outbounds.some(x=>x.host==='wa.me'&&x.path==='/351935695004'))break;
+        await new Promise(resolve=>setTimeout(resolve,25));
+      }
       ok(!outbounds.some(x=>x.method!=='GET'),
         'no real booking, backend session write or payment request was made');
       ok(outbounds.some(x=>x.host==='wa.me'&&x.path==='/351935695004'),
