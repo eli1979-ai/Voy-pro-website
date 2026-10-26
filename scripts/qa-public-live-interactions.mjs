@@ -38,9 +38,12 @@ const mapFixture={
 function check(value,message){assert.ok(value,message);}
 function failText(error){return String(error?.message||error).replace(/[\r\n]/g,' ').slice(0,330);}
 function firstPartyAsset(req,u){
-  return req.method()==='GET'&&
-    /^(image|font|script|stylesheet|other)$/.test(req.resourceType())&&
-    u.pathname.startsWith('/assets/')&&!u.username&&!u.password&&!u.port;
+  return req.method()==='GET'&&!u.username&&!u.password&&!u.port&&(
+    (/^(image|font|script|stylesheet|other)$/.test(req.resourceType())&&
+      u.pathname.startsWith('/assets/'))||
+    (req.resourceType()==='fetch'&&
+      u.pathname==='/assets/budapest-approved-reviews.json')
+  );
 }
 async function launch(path,{width=390,fixture=false,reducedMotion='reduce'}={}){
   check(allowedDocuments.has(path),'Test attempted unapproved public route: '+path);
