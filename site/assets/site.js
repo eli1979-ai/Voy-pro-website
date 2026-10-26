@@ -2209,6 +2209,13 @@
   const form=document.querySelector('#availability-form');
   if(form){
     const status=document.querySelector('#availability-status'), slots=document.querySelector('#slotlist');
+    // The visual progress marker sits in the results, while status changes
+    // must also be announced to keyboard and screen-reader users.
+    if(status){
+      status.setAttribute('role','status');
+      status.setAttribute('aria-live','polite');
+      status.setAttribute('aria-atomic','true');
+    }
     const availabilitySelectionNames=new Set(['experience','date','adults','children','babies','guide_language']);
     const invalidateAvailabilityResults=({announce=false}={})=>{
       availabilitySearchGeneration++;
