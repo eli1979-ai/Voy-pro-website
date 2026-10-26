@@ -20,12 +20,13 @@ permissions:
 
 concurrency:
   group: voy-pro-public-live-chrome
-  cancel-in-progress: false
+  # Cancel outdated runs from superseded PR commits to preserve CI quota.
+  cancel-in-progress: true
 
 jobs:
   live-browser-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -39,12 +40,13 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.56.1
           google-chrome --version
-      - name: Inspect public staging aliases using anonymous GET only
-        run: node scripts/qa-public-live-browser.mjs
       - name: Validate live interaction QA script
         run: node --check scripts/qa-public-live-interactions.mjs
       - name: Exercise deployed mobile menu, approved review ticker, maps and read-only booking UI
         run: node scripts/qa-public-live-interactions.mjs
+      # Fail fast on UI regressions; screenshot sweep follows interaction checks.
+      - name: Inspect public staging aliases using anonymous GET only
+        run: node scripts/qa-public-live-browser.mjs
       - name: Upload browser evidence even after failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
