@@ -90,7 +90,8 @@ async function scenario(locale,path){
       data={online_card:false};
     else if(endpoint==='/sessions'&&request.method()==='POST')
       data={id:'browser-fixture-session'};
-    else if(endpoint.startsWith('/sessions/')&&request.method()==='POST')
+    else if(endpoint==='/sessions/browser-fixture-session'&&
+      ['POST','PATCH'].includes(request.method()))
       data={ok:true};
     else if(/^\/experiences\/[^/]+\/availability$/.test(endpoint)&&request.method()==='GET'){
       if(phase==='error'){status=503;data={error:'fixture unavailable',code:'AVAILABILITY_UNAVAILABLE'};}
