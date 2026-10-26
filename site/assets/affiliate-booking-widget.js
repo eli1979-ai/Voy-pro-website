@@ -571,6 +571,34 @@
         });
         const avail=await api('/experiences/'+encodeURIComponent(exp.id)+'/availability?'+query.toString());
         if(version!==generation)return;
+        // A 200 response may still be stale, routed to a different product,
+        // or carry a different group/private composition. Check the exact
+        // canonical FBM availability response BEFORE presenting any slot.
+        const returnedGroup=avail?.group_composition;
+        const matchingGroup=returnedGroup&&typeof returnedGroup==='object'&&
+          ['riders_16_plus','child_passengers_3_15','baby_passengers_1_2'].every(
+            k=>Number.isSafeInteger(returnedGroup[k])&&returnedGroup[k]===c[k])&&
+          returnedGroup.request_15yo_independent_assessment===false;
+        const expectedPrivate=isPrivate();
+        const validSlots=Array.isArray(avail?.slots)&&(()=>{
+          const seen=new Set();
+          return avail.slots.every(slot=>{
+            if(!slot||typeof slot!=='object'||
+               typeof slot.id!=='string'||!slot.id.trim()||seen.has(slot.id)||
+               typeof slot.time!=='string'||!slot.time.trim()||
+               typeof slot.sellable!=='boolean'||typeof slot.requestable!=='boolean'||
+               slot.is_private!==expectedPrivate)return false;
+            seen.add(slot.id);
+            return true;
+          });
+        })();
+        if(avail?.experience_id!==exp.id||avail?.date!==dateField.value||
+           typeof avail?.is_private!=='boolean'||avail.is_private!==expectedPrivate||
+           !matchingGroup||!Number.isSafeInteger(avail.party_size)||
+           avail.party_size!==c.riders_16_plus+
+             c.child_passengers_3_15+c.baby_passengers_1_2||!validSlots){
+          throw new Error('The booking availability details could not be verified. Please check the selected tour, date and group again.');
+        }
         $('#results').classList.remove('hidden');
         const panel=$('#slots');panel.replaceChildren();
         let sellable=0;
