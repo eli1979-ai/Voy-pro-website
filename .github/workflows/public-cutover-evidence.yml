@@ -7,6 +7,9 @@ on:
       - 'scripts/report-public-cutover.mjs'
       - 'docs/PRODUCTION-CUTOVER-PLAN-2026-10-22.md'
       - 'scripts/test-public-cutover-report.mjs'
+      - 'scripts/check-release-consistency.mjs'
+      - 'scripts/check-public-release-readiness.mjs'
+      - 'scripts/test-public-release-guard.mjs'
       - '.github/workflows/public-cutover-evidence.yml'
       - 'launch/production-environment.json'
       - 'site/release.json'
@@ -32,6 +35,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify source release guard cannot authorize Staging as Production
+        run: |
+          node scripts/test-public-release-guard.mjs
+          node scripts/check-release-consistency.mjs
       - name: Verify report is fail-closed
         run: node scripts/test-public-cutover-report.mjs
       - name: Generate source-only status (informational, never approval)
