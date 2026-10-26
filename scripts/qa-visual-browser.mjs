@@ -573,6 +573,21 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Page-specific commercial enquiry briefs must survive JavaScript startup.
+      const authoredB2B={
+        'budapest-en-groups-mobile':'group EZRaider experience',
+        'budapest-en-corporate-desktop':'corporate/team event',
+        'budapest-en-private-mobile':'question about a private EZRaider tour'
+      };
+      if(authoredB2B[name]){
+        const href=await page.locator('a[data-wa]').first().getAttribute('href');
+        const url=new URL(href);
+        const msg=url.searchParams.get('text')||'';
+        check(url.hostname==='wa.me'&&url.pathname==='/36300993099'&&
+          msg.includes(authoredB2B[name]),name+' page-authored B2B WhatsApp brief survives JS');
+        check(!msg.includes('I’d like to check a Budapest tour'),
+          name+' does not degrade its detailed enquiry to a generic greeting');
+      }
       // Previously decided guests may leave the reopened privacy drawer
       // without converting "close" into analytics acceptance or refusal.
       // Check all supported destinations/locales with real keyboard behavior.
