@@ -7,6 +7,9 @@
   'use strict';
   const scripts=[...document.querySelectorAll('script[data-voy-affiliate-widget]')];
   const VALID_CODE=/^[A-Z0-9][A-Z0-9_-]{1,39}$/;
+  // Preparation only: impossible to enable through partner HTML/runtime.
+  // Activation must be a later reviewed source change with owner approval.
+  const ENGLISH_ALT_PILOT_ENABLED=false;
   const money=(amount,currency='EUR')=>new Intl.NumberFormat('en',{style:'currency',currency}).format(Number(amount)||0);
   const todayBudapest=()=>{
     const parts=new Intl.DateTimeFormat('en-GB',{
@@ -93,6 +96,14 @@
             <label>Baby passengers (1–2) <input name="babies" type="number" min="0" max="12" value="0" required></label>
             <label>Requested guiding language <select name="language" required aria-required="true" aria-describedby="voy-partner-guide-language-help" disabled><option value="">Choose guiding language</option></select><small class="hint" id="voy-partner-guide-language-help">Choose the language you would like for your tour. No language is selected automatically. Our team will verify that an assigned guide can provide it; it is not confirmed simply by selecting it.</small></label>
           </div>
+          <label id="englishAltRow" class="hidden">If guiding in <span id="englishAltPreferred">your chosen language</span> is unavailable, would English also be comfortable for your entire group?
+            <select name="englishAlternative" aria-describedby="englishAltHelp" disabled>
+              <option value="">No answer (optional)</option>
+              <option value="yes">Yes, English is also fine</option>
+              <option value="no">No, requested language only</option>
+            </select>
+            <small id="englishAltHelp" class="hint">Your requested guiding language remains unchanged. VOY PRO must verify any possible alternative.</small>
+          </label>
           <label class="check"><input name="private" type="checkbox"> Private tour (additional charge)</label>
           <div class="actions"><button type="submit" id="searchButton">Check availability</button></div>
         </form>
@@ -131,6 +142,7 @@
     const experienceSelect=form.elements.experience;
     const dateField=form.elements.date;
     const languageSelect=form.elements.language;
+    const englishAltSelect=form.elements.englishAlternative;
     const languageNames={en:'English',he:'Hebrew',hu:'Hungarian',es:'Spanish',pt:'Portuguese'};
     const guideLabel=()=>languageNames[selectedGuideLanguage()]||
       String(selectedGuideLanguage()||'').toUpperCase();
@@ -141,6 +153,22 @@
       const product=experiences.find(x=>x.id===experienceSelect.value);
       const offered=Array.isArray(product?.guideLanguages)?product.guideLanguages:[];
       return code&&offered.some(value=>String(value).toLowerCase()===code)?code:null;
+    }
+    function englishAlternativeAccepted(){
+      if(!ENGLISH_ALT_PILOT_ENABLED||!selectedGuideLanguage()||
+        selectedGuideLanguage()==='en')return null;
+      return englishAltSelect.value==='yes'?true:
+        englishAltSelect.value==='no'?false:null;
+    }
+    const englishAltFields=()=>ENGLISH_ALT_PILOT_ENABLED&&selectedGuideLanguage()!=='en'
+      ?{english_alternative_accepted:englishAlternativeAccepted()}:{};
+    function refreshEnglishAlternative(){
+      const lang=selectedGuideLanguage();
+      const shown=ENGLISH_ALT_PILOT_ENABLED&&Boolean(lang)&&lang!=='en';
+      $('#englishAltRow').classList[shown?'remove':'add']('hidden');
+      englishAltSelect.disabled=!shown;
+      $('#englishAltPreferred').textContent=languageNames[lang]||'your chosen language';
+      if(!shown)englishAltSelect.value='';
     }
     function requireSelectedGuideLanguage(){
       if(selectedGuideLanguage())return true;
@@ -467,6 +495,7 @@
         const held=await api('/holds',{method:'POST',body:{
           slot_id:slot.id,group_composition:composition(),is_private:isPrivate(),
           guide_language:selectedGuideLanguage(),
+          ...englishAltFields(),
         }});
         if(version!==generation){await api('/holds/'+encodeURIComponent(held.id),{method:'DELETE'}).catch(()=>{});return;}
         hold=held;
@@ -479,6 +508,8 @@
           typeof held?.requested_slot_id!=='string'||held.requested_slot_id!==slot.id||
           typeof held?.departure_id!=='string'||!held.departure_id.trim()||
           String(held?.guide_language||'').trim().toLowerCase()!==selectedGuideLanguage()||
+          (ENGLISH_ALT_PILOT_ENABLED&&
+            held?.english_alternative_accepted!==englishAlternativeAccepted())||
           !Number.isFinite(expiresAt)||expiresAt<=Date.now())
           throw new Error('The booking hold could not be verified. Please choose another departure.');
         if(held.requires_staff_confirmation)throw new Error('This departure requires staff confirmation.');
@@ -616,6 +647,7 @@
         const requestBody={
           slot_id:chosenSlot.id,group_composition:composition(),
           is_private:false,guide_language:selectedGuideLanguage(),
+          ...englishAltFields(),
           promo_code:affiliate,
           customer:{full_name:name,email,phone,preferred_language:'en'},
         };
@@ -641,6 +673,12 @@
           // guiding language; keep the reference for human reconciliation.
           if(String(request.guide_language||'').trim().toLowerCase()!==selectedGuideLanguage()){
             showGuideLanguageReviewResponse(request);
+            completed=true;
+            return;
+          }
+          if(ENGLISH_ALT_PILOT_ENABLED&&
+             request.english_alternative_accepted!==englishAlternativeAccepted()){
+            showEnglishAlternativeReviewResponse(request);
             completed=true;
             return;
           }
@@ -767,6 +805,12 @@
           completed=true;
           return;
         }
+        if(ENGLISH_ALT_PILOT_ENABLED&&
+           booking.english_alternative_accepted!==englishAlternativeAccepted()){
+          showEnglishAlternativeReviewResponse(booking);
+          completed=true;
+          return;
+        }
         // The hold is server-authoritative and may be reallocated to another
         // physical departure. However the sold EXPERIENCE, selected DATE,
         // passenger composition and private mode must match the customer's
@@ -809,6 +853,19 @@
           }
         }
       }
+    }
+    function showEnglishAlternativeReviewResponse(record){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // The server might already have committed a booking/staff request.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','English alternative needs verification'));
+      box.append(textNode('p','Reference: '+record.reference));
+      box.append(textNode('p','Requested guiding language: '+guideLabel()));
+      box.append(textNode('p','Your English-alternative answer could not be verified in FBM. A booking or staff request may already exist. Contact VOY PRO with this reference before submitting again.'));
+      setStatus('English-alternative preference needs staff verification. Do not submit again.','error');
     }
     function showBookedSelectionReviewResponse(booking){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
@@ -869,6 +926,10 @@
       box.append(textNode('h3','Your confirmation request was received'));
       box.append(textNode('p','Request reference: '+reference));
       box.append(textNode('p','Requested guiding language: '+guideLabel()));
+      if(ENGLISH_ALT_PILOT_ENABLED){
+        const alt=englishAlternativeAccepted();
+        box.append(textNode('p','English alternative: '+(alt===true?'Accepted':alt===false?'Declined':'Not answered')));
+      }
       box.append(textNode('p','This is not a confirmed booking. VOY PRO staff will review your requested time and contact you before any payment or reservation is confirmed.'));
       setStatus('Request sent for human review.','success');
     }
@@ -950,6 +1011,10 @@
       box.append(textNode('p','Reference: '+(reference||'Your confirmation')));
       box.append(textNode('p','Status: '+(result||'confirmed')));
       box.append(textNode('p','Requested guiding language: '+guideLabel()));
+      if(ENGLISH_ALT_PILOT_ENABLED){
+        const alt=englishAlternativeAccepted();
+        box.append(textNode('p','English alternative: '+(alt===true?'Accepted':alt===false?'Declined':'Not answered')));
+      }
       box.append(textNode('p','Language coverage will be confirmed with the assigned guide and staff; this request is not a guarantee of a particular guide.'));
       if(token){
         const a=document.createElement('a');a.href='https://voy-pro.com/manage/#token='+encodeURIComponent(token);
@@ -957,6 +1022,13 @@
       }
       setStatus('Booking received by VOY PRO.','success');
     }
+    refreshEnglishAlternative();
+    englishAltSelect.addEventListener('change',()=>{
+      invalidate();setStatus('English-alternative answer changed. Check availability again.');
+    });
+    languageSelect.addEventListener('change',()=>{
+      englishAltSelect.value='';refreshEnglishAlternative();
+    });
     form.addEventListener('submit',loadAvailability);
     customer.addEventListener('submit',confirm);
     $('#changeButton').addEventListener('click',()=>{invalidate();setStatus('Choose another date or departure.');});
@@ -981,6 +1053,7 @@
       }
       languageSelect.value='';
       languageSelect.disabled=!offered.length;
+      englishAltSelect.value='';refreshEnglishAlternative();
     });
     if(!valid){setStatus('Partner booking is not configured. Ask VOY PRO for your approved embed code.','error');
       $('#searchButton').disabled=true;return;}
