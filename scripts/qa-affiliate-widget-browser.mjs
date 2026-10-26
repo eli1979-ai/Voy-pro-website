@@ -307,11 +307,13 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       check(await root.locator('#englishAltRow').isVisible()&&
         !await englishAlt.isDisabled(),
         name+' isolated test clone shows the optional English fallback');
-      const answer=englishPilot==='no'?'no':englishPilot==='unanswered'?'':'yes';
-      await englishAlt.selectOption(answer);
-      check(await language.inputValue()==='he',
-        name+' optional English answer never replaces requested Hebrew');
+      // The shared Chrome suite intentionally switches Hebrew → English →
+      // Hebrew below. It must erase a previous answer. For normal consent
+      // tests, choose Yes/No/blank only AFTER that regression step.
       if(englishPilot==='reset'){
+        await englishAlt.selectOption('yes');
+        check(await language.inputValue()==='he',
+          name+' optional English answer never replaces requested Hebrew');
         await language.selectOption('en');
         check(!await root.locator('#englishAltRow').isVisible()&&
           await englishAlt.inputValue()===''&&await englishAlt.isDisabled(),
@@ -419,6 +421,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(await departure.count()===0,
       name+' affiliate language change invalidates previously displayed departure');
     await language.selectOption('he');
+    if(englishPilot){
+      const answer=englishPilot==='no'?'no':englishPilot==='unanswered'?'':'yes';
+      await englishAlt.selectOption(answer);
+      check(await englishAlt.inputValue()===answer&&await language.inputValue()==='he',
+        name+' refreshed Hebrew selection retains its explicit optional answer');
+    }
     await root.locator('#searchButton').click();
     await departure.waitFor({timeout:10000});
     check(await departure.count()===1,
