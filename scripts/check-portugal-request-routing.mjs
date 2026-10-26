@@ -11,6 +11,17 @@ assert.ok(!handler.includes('wa.me/36300993099'),'Portuguese request handler mus
 assert.ok(handler.includes("https://wa.me/351935695004?text="),'Portuguese number missing');
 
 for(const locale of ['en','pt','he']){
+  const staticPage=locale==='en'?'site/portugal/index.html':'site/'+locale+'/portugal/index.html';
+  const html=fs.readFileSync(staticPage,'utf8');
+  const labels={
+    en:{cta:'Continue to WhatsApp',send:'Tap Send in WhatsApp',confirmation:'not booked until our team confirms'},
+    pt:{cta:'Continuar no WhatsApp',send:'Toque em Enviar no WhatsApp',confirmation:'só fica reservado após a nossa confirmação'},
+    he:{cta:'המשך ל־WhatsApp',send:'יש ללחוץ על שליחה ב־WhatsApp',confirmation:'הסיור יוזמן רק לאחר אישור מאיתנו'}
+  }[locale];
+  assert.ok(html.includes('<button class="btn" type="submit">'+labels.cta+'</button>'),
+    locale+': request CTA must describe opening WhatsApp, not a completed submission');
+  assert.ok(html.includes(labels.send)&&html.includes(labels.confirmation),
+    locale+': clearly require the guest to press Send and wait for human confirmation');
   const pathname=(locale==='en'?'/portugal/':`/${locale}/portugal/`);
   const location={pathname,href:''};
   const values={route:'express',date:'2026-10-18',people:'4',guide_language:'en',full_name:'Test Customer',notes:'Test group'};
