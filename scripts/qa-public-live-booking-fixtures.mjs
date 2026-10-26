@@ -36,7 +36,7 @@ const policy={
 };
 const results=[];
 const pause=ms=>new Promise(ok=>setTimeout(ok,ms));
-async function scenario(locale,path,{recovery=null}={}){
+async function scenario(locale,path,{recovery=null,sessionStalled=false}={}){
   const row={locale,path,passed:false,checks:[],backendCalls:[],blocked:0};
   const context=await browser.newContext({
     viewport:{width:390,height:844},reducedMotion:'reduce',
@@ -45,6 +45,7 @@ async function scenario(locale,path,{recovery=null}={}){
   let phase='empty';
   let unauthorizedCalls=0;
   const pendingAvailabilityReplies=[];
+  const pendingSessionReplies=[];
   const waitForDelayedAvailability=async()=>{
     const deadline=Date.now()+5000;
     while(!pendingAvailabilityReplies.length&&Date.now()<deadline)await pause(25);
@@ -114,8 +115,11 @@ async function scenario(locale,path,{recovery=null}={}){
       data=productList;
     else if(endpoint==='/payments/capabilities'&&request.method()==='GET')
       data={online_card:false};
-    else if(endpoint==='/sessions'&&request.method()==='POST')
+    else if(endpoint==='/sessions'&&request.method()==='POST'){
+      if(sessionStalled)
+        await new Promise(resolve=>pendingSessionReplies.push(resolve));
       data={id:'browser-fixture-session'};
+    }
     else if(endpoint==='/sessions/browser-fixture-session'&&
       ['POST','PATCH'].includes(request.method()))
       data={ok:true};
@@ -160,6 +164,45 @@ async function scenario(locale,path,{recovery=null}={}){
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:8000});
     ok(await guide.inputValue()==='','guiding language never inferred from site locale');
+    if(sessionStalled){
+      const submit=form.locator('button[type="submit"]');
+      const date=form.locator('input[name="date"]');
+      await date.evaluate(el=>{
+        el.value=el.min;
+        el.dispatchEvent(new Event('input',{bubbles:true}));
+        el.dispatchEvent(new Event('change',{bubbles:true}));
+      });
+      await guide.selectOption(locale);
+      await submit.click();
+      await page.waitForFunction(()=>
+        /No departures|לא נמצאו|nincs elérhető/i.test(
+          document.querySelector('#availability-status')?.textContent||''
+        ),null,{timeout:3500});
+      ok(row.backendCalls.filter(c=>c.method==='POST'&&c.endpoint==='/sessions').length===1,
+        'public site started exactly one best-effort session POST');
+      ok(row.backendCalls.some(c=>c.method==='GET'&&c.endpoint.endsWith('/availability')),
+        'public availability GET finished before stalled session POST');
+      await form.locator('select[name="adults"]').selectOption('2');
+      await submit.click();
+      for(let i=0;i<90&&row.backendCalls.filter(c=>c.endpoint.endsWith('/availability')).length<2;i++)
+        await pause(25);
+      ok(row.backendCalls.filter(c=>c.endpoint.endsWith('/availability')).length>=2,
+        'updated group search works with session POST still pending');
+      ok(row.backendCalls.filter(c=>c.method==='POST'&&c.endpoint==='/sessions').length===1,
+        'concurrent availability requests never start a duplicate session');
+      pendingSessionReplies.splice(0).forEach(release=>release());
+      await page.waitForFunction(()=>
+        localStorage.getItem('voy_session_id')==='browser-fixture-session',
+        null,{timeout:4500});
+      ok(row.backendCalls.filter(c=>c.method==='POST'&&c.endpoint==='/sessions').length===1,
+        'late session completion stores only one session ID');
+      ok(!row.backendCalls.some(c=>/^(\/holds|\/quotes|\/bookings|\/payments\/intents)/.test(c.endpoint)),
+        'safe public test does not initiate holds, quotes, bookings or card payments');
+      ok(unauthorizedCalls===0,'no forbidden backend operations attempted');
+      ok(errors.length===0,'no browser errors during session delay');
+      row.passed=true;
+      return;
+    }
     if(recovery){
       const banner=page.locator('[data-resume-booking]');
       await banner.waitFor({state:'visible',timeout:8000});
@@ -326,6 +369,7 @@ async function scenario(locale,path,{recovery=null}={}){
     // If a scenario fails before its fake upstream is released, unblock every
     // pending in-browser response so Playwright closes cleanly (no live API).
     pendingAvailabilityReplies.splice(0).forEach(release=>release());
+    pendingSessionReplies.splice(0).forEach(release=>release());
     await context.close();
     results.push(row);
     if(row.passed)console.log('PASS public deployed booking with fixture '+locale+' ('+row.checks.length+' checks)');
@@ -333,6 +377,7 @@ async function scenario(locale,path,{recovery=null}={}){
 }
 try{
   for(const [locale,path] of paths)await scenario(locale,path);
+  for(const [locale,path] of paths)await scenario(locale,path,{sessionStalled:true});
   for(const [locale,path] of paths)await scenario(locale,path,{recovery:'private'});
   await scenario(paths[0][0],paths[0][1],{recovery:'expired'});
   for(const [locale,path] of paths)await scenario(locale,path,{recovery:'discard'});
