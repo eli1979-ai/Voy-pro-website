@@ -10,6 +10,9 @@ on:
       - 'scripts/check-fbm-staging-public-api.mjs'
       - '.github/workflows/fbm-staging-public-smoke.yml'
       - 'contracts/fbm-consumer-contract.json'
+      - 'site/assets/affiliate-booking-widget.js'
+      - 'scripts/check-affiliate-booking-widget.mjs'
+      - 'scripts/qa-affiliate-widget-browser.mjs'
       - 'site/assets/runtime-config.js'
 
 permissions:
