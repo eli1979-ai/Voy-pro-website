@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/qa-public-live-browser.mjs'
+      - 'scripts/qa-public-live-interactions.mjs'
       - '.github/workflows/public-live-browser-qa.yml'
       - 'site/sitemap.xml'
   workflow_dispatch:
@@ -37,6 +38,10 @@ jobs:
           google-chrome --version
       - name: Inspect public staging aliases using anonymous GET only
         run: node scripts/qa-public-live-browser.mjs
+      - name: Validate live interaction QA script
+        run: node --check scripts/qa-public-live-interactions.mjs
+      - name: Exercise deployed mobile menu, approved review ticker, maps and read-only booking UI
+        run: node scripts/qa-public-live-interactions.mjs
       - name: Upload browser evidence even after failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
