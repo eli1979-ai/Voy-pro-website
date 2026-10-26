@@ -105,6 +105,57 @@ async function scenario(name,path,opts,verify){
     await session?.context.close().catch(()=>{});
   }
 }
+// Check the *deployed* consent UI after a visitor has explicitly chosen
+// essential-only storage. Closing reopened settings must not change consent
+// or leak events to analytics; outbound writes remain blocked by launch().
+for(const [locale,path,closeLabel] of [
+  ['EN','/','Close without changes'],
+  ['HE','/he/budapest/','סגירה ללא שינוי'],
+  ['HU','/hu/budapest/','Bezárás módosítás nélkül'],
+  ['PT','/pt/portugal/','Fechar sem alterações']
+]){
+  await scenario('public privacy close '+locale,path,{width:390},
+    async(page,ok,result)=>{
+      await page.waitForFunction(()=>
+        document.querySelector('footer [data-cookie-settings]')&&
+        document.documentElement.dataset.analyticsConsent,
+        null,{timeout:6500});
+      const essential=page.locator('[data-consent-essential]');
+      let saved=await page.evaluate(()=>localStorage.getItem('voy_consent_v1'));
+      if(!saved){
+        await essential.waitFor({state:'visible',timeout:4500});
+        ok(await page.locator('[data-consent-dismiss]').count()===0,
+          'first-time consent UI cannot be dismissed without a choice');
+        await essential.click();
+        saved=await page.evaluate(()=>localStorage.getItem('voy_consent_v1'));
+      }
+      ok(Boolean(saved)&&JSON.parse(saved).analytics===false,
+        'guest explicitly chose essential-only storage');
+      const open=page.locator('footer [data-cookie-settings]').first();
+      await open.click();
+      const bar=page.locator('.consent-banner');
+      const close=bar.locator('[data-consent-dismiss]');
+      ok(await bar.isVisible()&&await close.isVisible(),
+        'reopening preferences offers a neutral Close choice');
+      ok((await close.innerText()).trim()===closeLabel,
+        'close label matches the page language');
+      await close.click();
+      ok(await bar.isHidden()&&
+        await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
+        'clicking Close preserves analytics and marketing consent');
+      ok(await open.evaluate(el=>document.activeElement===el),
+        'focus returns to the preferences opener after Close');
+      await open.click();
+      await essential.waitFor({state:'visible',timeout:4500});
+      await page.keyboard.press('Escape');
+      ok(await bar.isHidden()&&
+        await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
+        'Escape dismisses reopened preferences without changing consent');
+      ok(await open.evaluate(el=>document.activeElement===el),
+        'keyboard Escape restores focus to the footer opener');
+      result.notes.push('No analytics opt-in or network writes performed.');
+    });
+}
 // Live mobile nav: real pointer and keyboard behavior in 3 locales.
 // Existing offline QA covers more pages; this catches deployed runtime regressions.
 for(const [locale,path] of [
