@@ -580,6 +580,10 @@ try{
         'budapest-en-private-mobile':'question about a private EZRaider tour'
       };
       if(authoredB2B[name]){
+        // Earlier route-guide checks may have navigated away from the tour.
+        // Inspect the original enquiry page rather than the guide's DOM.
+        if(new URL(page.url()).pathname!==new URL(path,base).pathname)
+          await page.goto(base+path,{waitUntil:'domcontentloaded'});
         const href=await page.locator('a[data-wa]').first().getAttribute('href');
         const url=new URL(href);
         const msg=url.searchParams.get('text')||'';
