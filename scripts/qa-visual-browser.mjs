@@ -115,6 +115,33 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await carousel.isVisible(),name+' verified full-text review ticker renders from approved manifest');
       check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
         name+' approved 20-review data powers three continuous carousel copies');
+      // New UI is still on this PR branch; test it against the actual locally
+      // built HTML/JS in Chrome. The public alias keeps serving main until merge.
+      if(viewport.width===390&&path.includes('buda-castle-ezraider-tour/')){
+        const original=carousel.locator('.vp-review-group').nth(1).locator('.vp-review-card').first();
+        const opener=original.locator('.vp-review-expand');
+        check(await opener.count()===1,name+' can open the complete approved review');
+        if(await opener.count()){
+          const complete=(await original.locator('.vp-review-text').innerText()).trim();
+          const realHref=await original.locator('.vp-review-bottom a[href]').getAttribute('href');
+          await opener.click();
+          const modal=page.locator('dialog.vp-review-dialog');
+          try{await modal.waitFor({state:'visible',timeout:4000});}catch{}
+          check(await modal.isVisible(),name+' full-review modal opens');
+          if(await modal.isVisible()){
+            check((await modal.locator('.vp-review-dialog-text').innerText()).trim()===complete,
+              name+' modal shows the complete unchanged translated review');
+            check(await modal.locator('.vp-review-dialog-link').getAttribute('href')===realHref,
+              name+' full reader preserves authentic original-review link');
+            await page.keyboard.press('Escape');
+            check(!(await modal.isVisible()),name+' Escape closes full review');
+            await page.waitForFunction(()=>document.activeElement?.classList.contains('vp-review-expand'),
+              null,{timeout:2000}).catch(()=>{});
+            check(await opener.evaluate(el=>document.activeElement===el),
+              name+' closing review returns focus to opener');
+          }
+        }
+      }
     }
     if(path==='/'){
       const proof=await page.evaluate(()=>{
