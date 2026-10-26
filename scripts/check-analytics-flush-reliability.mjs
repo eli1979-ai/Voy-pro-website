@@ -13,7 +13,7 @@ requireText("eventFlushFailures=Math.min(8,eventFlushFailures+1)",'analytics ret
 requireText("ANALYTICS_RETRY_MAX_MS=120000",'analytics retry backoff maximum must be defined');
 requireText("if(generation!==eventFlushGeneration||!analyticsAllowed())return;",'stale in-flight responses cannot restore revoked consent data');
 requireText("cancelEventFlush();",'consent revocation must cancel optional in-flight telemetry');
-requireText("if(remaining.length&&!keepalive) scheduleEventFlush(false);",'failed analytics events must remain retryable');
+requireText("if(remaining.length&&!keepalive)scheduleEventFlush(false);",'failed analytics events must remain retryable');
 
 if(failures.length){
   console.error('Analytics flush reliability guard failed.');
