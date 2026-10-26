@@ -43,7 +43,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -161,11 +161,24 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
       const expectedTotal=withExtras&&payload?.extras?.some(x=>x.quantity>0)?130:120;
+      const availabilityCall=calls.filter(c=>c.path.includes('/availability?')).at(-1);
+      const requestDetails=new URL(availabilityCall?.path||'/',originAPI).searchParams;
+      const expectedGroup={
+        riders_16_plus:Number(requestDetails.get('riders_16_plus')),
+        child_passengers_3_15:Number(requestDetails.get('child_passengers_3_15')),
+        baby_passengers_1_2:Number(requestDetails.get('baby_passengers_1_2'))
+      };
       data=malformedBookingReply==='missing-reference'
         ?{status:'confirmed',manage_token:null}
         :malformedBookingReply==='missing-status'
           ?{reference:'VOY-FAKE-CONFIRMED',manage_token:null}
           :{reference:'VOY-FAKE-CONFIRMED',status:'confirmed',manage_token:null,
+            experience_id:bookingSelectionMismatch==='experience'?'other-tour':tourId,
+            selected_date:bookingSelectionMismatch==='date'?'2030-01-02':requestDetails.get('date'),
+            group_composition:{...expectedGroup,...(bookingSelectionMismatch==='group'
+              ?{child_passengers_3_15:expectedGroup.child_passengers_3_15+1}:{})},
+            is_private:bookingSelectionMismatch==='private'
+              ?requestDetails.get('is_private')!=='true':requestDetails.get('is_private')==='true',
             guide_language:badFinalGuideLanguage==='missing'?null:(badFinalGuideLanguage||'he'),
             total:bookingPriceMismatch==='different-total'?expectedTotal+25:expectedTotal,
             discount:20,currency:'EUR',
@@ -497,6 +510,25 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       });
     }
     await root.locator('#confirmButton').click();
+    if(bookingSelectionMismatch){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const receipt=await root.locator('#success').innerText();
+      check(receipt.includes('Booking selection needs verification')&&
+        receipt.includes('Booking reference: VOY-FAKE-CONFIRMED')&&
+        !receipt.includes('Your booking has been received'),
+        name+' different tour/date/group cannot be shown as completed booking');
+      check(await root.locator('#checkout:not(.hidden)').count()===0&&
+        (await root.locator('#status.error').innerText()).includes('Do not submit again'),
+        name+' inconsistent booking response locks customer checkout');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path==='/api/v1/bookings').length===1&&
+        !calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+        name+' mismatched booking never triggers a duplicate post or unsafe hold release');
+      check(errors.length===0,name+' no Chrome exceptions with unexpected booking selection');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(bookingPriceMismatch){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const receipt=await root.locator('#success').innerText();
@@ -858,6 +890,10 @@ try{
   await run('mobile-departure-starts-before-staff-request',{mobile:true,staffRequest:true,departureStartsBeforeSubmit:true});
   await run('desktop-final-booking-price-mismatch',{bookingPriceMismatch:'different-total'});
   await run('mobile-final-booking-missing-affiliate-discount',{mobile:true,bookingPriceMismatch:'missing-partner-code'});
+  await run('desktop-wrong-booked-experience',{bookingSelectionMismatch:'experience'});
+  await run('mobile-wrong-booked-date',{mobile:true,bookingSelectionMismatch:'date'});
+  await run('desktop-wrong-booked-group',{bookingSelectionMismatch:'group'});
+  await run('mobile-wrong-booked-private-mode',{mobile:true,bookingSelectionMismatch:'private'});
   await run('desktop-extra-quantity-locked-during-booking',{slowFinalSubmission:true,withExtras:true});
   await run('desktop-switch-departure-clears-extras',{withExtras:true,switchSlotAfterExtras:true});
   await run('mobile-switch-departure-clears-extras',{mobile:true,withExtras:true,switchSlotAfterExtras:true});
