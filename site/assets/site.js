@@ -1423,7 +1423,7 @@
     const cta=shell.querySelector('[data-resume-cta]');if(!cta)return;
     cta.textContent=t('Restore selection','שחזור בחירה');shell.hidden=false;
     // Essential-only browser storage belongs to the guest, not a booking.
-    // Offer a one-click choice to discard it without contacting FBM or
+    // Offer a one-click choice to discard it without network requests or
     // touching any selections already entered in the current form.
     const actions=shell.querySelector('.resume-actions');
     if(actions&&!actions.querySelector('[data-resume-dismiss]')){
