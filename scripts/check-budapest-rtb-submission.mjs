@@ -559,14 +559,28 @@ for(const [pageSlug,apiSlug] of routeMatrix){
     const unanswered=localePrefix==='he/'?'לא נענתה השאלה (לא ניתנה הסכמה)'
       :localePrefix==='hu/'?'Nincs válasz (nincs rögzített beleegyezés)'
       :'Not answered (no acceptance recorded)';
+    const declined=localePrefix==='he/'?'לא אושרה; רק שפת ההדרכה המבוקשת'
+      :localePrefix==='hu/'?'Nem elfogadott; kizárólag a kért nyelv'
+      :'Not accepted; requested language only';
     const affirmed=localePrefix==='he/'?'אושרה במפורש עבור כל חברי הקבוצה'
       :localePrefix==='hu/'?'Kifejezetten elfogadva az egész csoport számára'
       :'Explicitly accepted for everyone in the group';
     assert.ok(message.includes(requestSpanish),pagePath+' manual message must show a localized guiding-language name, not "es"');
-    assert.ok(message.includes(englishFallback+': '+unanswered),
-      pagePath+' unchecked question must remain unanswered, not be presented as an explicit refusal');
-    assert.ok(!message.includes(englishFallback+': no'),
-      pagePath+' must not conflate unknown consent with an explicit No');
+    assert.ok(message.includes(englishFallback+': '+declined),
+      pagePath+' explicitly declined English must be conveyed as No, not unknown');
+    const unknown=browser(async()=>({status:404}),pagePath,Date,{explicitNo:false});
+    unknown.set('requested_guide_language','es');
+    await unknown.submit();
+    assert.equal(unknown.requests.length,0,
+      pagePath+' an unanswered alternative must never be submitted as a false consent to the Boolean-only relay');
+    assert.equal(unknown.uuidCount,0,
+      pagePath+' unknown alternative must not allocate a CRM idempotency key');
+    assert.equal(unknown.locations.length,0,
+      pagePath+' unknown alternative leaves WhatsApp sending under explicit guest control');
+    assert.ok(unknown.statuses.manual?.href.startsWith('https://wa.me/'),
+      pagePath+' unknown alternative offers a guest-clicked manual link');
+    assert.ok(new URL(unknown.statuses.manual.href).searchParams.get('text').includes(englishFallback+': '+unanswered),
+      pagePath+' unknown alternative must be labeled unanswered, never No');
     const accepted=browser(async()=>({status:404}),pagePath);
     accepted.set('requested_guide_language','es');
     accepted.set('english_alternative_accepted','yes');
