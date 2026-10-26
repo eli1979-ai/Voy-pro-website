@@ -151,6 +151,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         ...(departureStartsBeforeSubmit?{starts_at:new Date(Date.now()+60000).toISOString()}: {})},
       ...(switchSlotAfterExtras||slowHoldReleaseSwitch?[{id:'44444444-4444-4444-8444-444444444444',
         time:'11:00',sellable:true,requestable:false}]:[])
+        ]
       };
       if(Array.isArray(data.slots))data.slots=data.slots.map(slot=>({
         ...slot,is_private:badAvailability==='wrong-slot-private'?!selectedPrivate:selectedPrivate
@@ -399,7 +400,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       check(await root.locator('#results:not(.hidden)').count()===0&&
         await root.locator('#slots button').count()===0,
         name+' mismatched availability cannot render selectable departure slots');
-      check(!calls.some(c=>/^\\/api\\/v1\\/(?:promotions\\/validate|quotes|holds|bookings|booking-capacity-requests|payments\\/intents)/.test(c.path)),
+      check(!calls.some(c=>[
+        '/api/v1/promotions/validate','/api/v1/quotes','/api/v1/holds',
+        '/api/v1/bookings','/api/v1/booking-capacity-requests',
+        '/api/v1/payments/intents'
+      ].some(prefix=>c.path===prefix||c.path.startsWith(prefix+'?'))),
         name+' malformed availability never triggers commercial operations');
       check(errors.length===0,name+' no Chrome exception on invalid availability');
       await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
