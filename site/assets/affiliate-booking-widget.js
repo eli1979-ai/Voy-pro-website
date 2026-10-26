@@ -728,10 +728,18 @@
             Boolean(pay.booking_reference.trim());
           const bookingIdOk=typeof pay?.booking_id==='string'&&
             Boolean(pay.booking_id.trim());
+          // Both FBM payment-intent branches have a canonical online-card
+          // identity. Never confuse a stale/mixed payment method with an
+          // authenticated online checkout or a completed charge.
+          const paymentContractOk=typeof pay?.id==='string'&&
+            Boolean(pay.id.trim())&&pay.payment_type==='online'&&
+            pay.payment_method==='pay_now_card';
           if(pay?.status==='completed'){
             // A replay may represent a real charge. Never invent a receipt or
             // submit again if its booking identity cannot be verified.
-            if(!referenceOk||!bookingIdOk||pay.ui_mode!=='none'){
+            if(!referenceOk||!bookingIdOk||!paymentContractOk||
+               pay.ui_mode!=='none'||pay.amount!==0||
+               pay.currency!==quote.currency){
               showUnverifiedOnlinePaymentResponse(pay);
               completed=true;
               return;
@@ -746,9 +754,15 @@
             pay.currency===quote.currency;
           let address;
           try{address=new URL(pay?.checkout_url||'',location.href);}catch{}
+          const redirectExpiry=new Date(pay?.expires_at).getTime();
+          const checkoutRecordOk=typeof pay?.payment_link_request_id==='string'&&
+            Boolean(pay.payment_link_request_id.trim())&&
+            Number.isFinite(redirectExpiry)&&redirectExpiry>Date.now();
           if(pay?.status!=='requires_action'||pay?.ui_mode!=='redirect'||
-             !referenceOk||!bookingIdOk||!quoteMatches||
-             address?.protocol!=='https:'||address?.hostname!=='checkout.stripe.com'){
+             !referenceOk||!bookingIdOk||!paymentContractOk||
+             !quoteMatches||!checkoutRecordOk||
+             address?.protocol!=='https:'||address?.hostname!=='checkout.stripe.com'||
+             address.username!==''||address.password!==''||address.port!==''){
             // FBM may have prepared a booking/session even though the
             // redirect is unsafe. Keep the original result for staff review;
             // do not release the hold or start another payment attempt.
