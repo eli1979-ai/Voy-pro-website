@@ -57,7 +57,8 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null,onlinePayment=null,badAvailability=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null,onlinePayment=null,badAvailability=null,
+  badCapabilities=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -122,7 +123,18 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         guideLanguages:['en','he'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12},
         {id:alternateTourId,title:'Margaret Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
           guideLanguages:['en','hu'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
-    else if(path==='/api/v1/payments/capabilities')data={online_card:Boolean(onlinePayment),provider:onlinePayment?'stripe':null};
+    else if(path==='/api/v1/payments/capabilities'){
+      const advertise=Boolean(onlinePayment||badCapabilities);
+      data={online_card:advertise,provider:advertise?'stripe':null,mode:'test',
+        readiness:{status:advertise?'ready':'unavailable',
+          reason:advertise?null:'provider_disabled'}};
+      if(badCapabilities==='missing-readiness')delete data.readiness;
+      if(badCapabilities==='unavailable')data.readiness={
+        status:'unavailable',reason:'webhook_secret_missing'};
+      if(badCapabilities==='wrong-provider')data.provider=null;
+      if(badCapabilities==='wrong-mode')data.mode='unknown';
+      if(badCapabilities==='unexpected-reason')data.readiness.reason='provider_disabled';
+    }
     else if(path.includes('/availability?')){
       const params=url.searchParams;
       const selectedPrivate=params.get('is_private')==='true';
@@ -339,6 +351,10 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     const language=root.locator('select[name="language"]');
     check(await language.isDisabled(),name+' guide choice is disabled before tour');
     await experience.selectOption(tourId);
+    if(badCapabilities){
+      check(await root.locator('#customer [name="payment"] option[value="pay_now_card"]').count()===0,
+        name+' incomplete FBM Stripe readiness cannot show online payment');
+    }
     check(await language.locator('option[value="he"]').innerText()==='Hebrew',
       name+' catalog language label is readable');
     check(await language.inputValue()==='',name+' no language default');
@@ -1038,6 +1054,11 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 }
 try{
   await run('desktop-booking');
+  await run('desktop-stripe-missing-readiness',{badCapabilities:'missing-readiness'});
+  await run('mobile-stripe-unavailable-readiness',{mobile:true,badCapabilities:'unavailable'});
+  await run('desktop-stripe-wrong-provider',{badCapabilities:'wrong-provider'});
+  await run('mobile-stripe-wrong-mode',{mobile:true,badCapabilities:'wrong-mode'});
+  await run('desktop-stripe-unexpected-reason',{badCapabilities:'unexpected-reason'});
   await run('desktop-availability-other-experience',{badAvailability:'wrong-experience'});
   await run('mobile-availability-wrong-date',{mobile:true,badAvailability:'wrong-date'});
   await run('desktop-availability-wrong-group',{badAvailability:'wrong-group'});
