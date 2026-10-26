@@ -252,6 +252,55 @@ await scenario('Budapest booking composition preflight',
     await form.screenshot({path:join(OUT,'booking-group-preflight.png'),animations:'disabled'});
     result.notes.push('No form submission, no live price, no Stripe action, no customer record.');
   });
+// Read-only, deployed manual WhatsApp planners: verify all three
+// English-alternative states without clicking the WhatsApp send action.
+// This tests public HTML/JS, not the unapproved canonical FBM v2 consent flow.
+for(const [lang,prefix] of [['en',''],['he','/he'],['hu','/hu']]){
+  for(const type of ['group-tours','corporate-events']){
+    const path=prefix+'/budapest/'+type+'/';
+    await scenario('B2B English preference '+lang+' '+type,
+      path,{width:390},async(page,ok)=>{
+        const planner=page.locator('form[data-b2b-planner]');
+        ok(await planner.count()===1,'single manual enquiry planner');
+        const guide=planner.locator('select[name="guide_language"]');
+        const yes=planner.locator('input[name="english_ok"]');
+        const no=planner.locator('[data-b2b-english-decline]');
+        const yesRow=planner.locator('.b2b-english-check');
+        ok(await guide.count()===1&&await yes.count()===1&&await no.count()===1,
+          'requested guide language and separate yes/no choices');
+        ok(!(await yes.isChecked())&&await yes.isDisabled()&&
+           !(await yesRow.isVisible())&&!(await no.isVisible()),
+          'English primary hides alternatives with unanswered initial state');
+        await guide.selectOption('he');
+        ok(await yesRow.isVisible()&&await no.isVisible()&&
+           !(await yes.isChecked())&&await no.getAttribute('aria-pressed')==='false',
+          'non-English choice exposes separate unanswered options');
+        await no.click();
+        ok(await no.getAttribute('aria-pressed')==='true'&&!(await yes.isChecked()),
+          'explicit rejection is distinct from unknown');
+        await yes.check();
+        ok(await no.getAttribute('aria-pressed')==='false'&&await yes.isChecked(),
+          'accepting English clears previous rejection');
+        await guide.selectOption('hu');
+        ok(!(await yes.isChecked())&&await no.getAttribute('aria-pressed')==='false',
+          'changing primary language revokes previous English consent');
+        await no.click();
+        await guide.selectOption('en');
+        ok(await yes.isDisabled()&&!(await no.isVisible())&&
+           await no.getAttribute('aria-pressed')==='false',
+          'returning to English revokes prior rejection');
+        // Revisit after the language switches to capture truthful clean UI
+        // rather than leaving the control with a hidden selected value.
+        await guide.selectOption('he');
+        await planner.locator('.b2b-english-decline').screenshot({
+          path:join(OUT,'b2b-language-choice-'+lang+'-'+type+'.png'),
+          animations:'disabled'
+        });
+        ok(await planner.locator('[data-b2b-open]').count()===1,
+          'WhatsApp handoff button exists but is never clicked in live CI');
+      });
+  }
+}
 await browser.close();
 const summary={
   time:new Date().toISOString(),
@@ -275,7 +324,7 @@ await writeFile(join(OUT,'report.md'),[
   '## Limitations',
   'External map imagery, partner sites, real availability, card payments and a complete paid booking are deliberately outside this test.',
   'Map markup is checked with a FBM destination fixture; it is not evidence that the actual backend currently responds.',
-  'Eight safe local-browser screenshots capture menu, approved reviews, the map business label and booking composition without PII.',
+  'The artifact includes B2B explicit guiding-language preference screenshots without PII, plus menu, approved reviews, map label and booking preflight.',
   'This test does not authorize public Production separation, indexing or any DNS/alias changes.',
   ''
 ].join('\n'));
