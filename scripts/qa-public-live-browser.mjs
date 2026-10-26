@@ -86,6 +86,53 @@ async function context(width,height){
   }
   return contexts.get(id);
 }
+// A full-page screenshot does not guarantee lazy off-screen media has loaded.
+// Traverse only screenshot targets with the browser viewport, then inspect the
+// first-party images before capturing; all remote APIs remain blocked.
+async function prepareScreenshot(page){
+  const dimensions=await page.evaluate(()=>({
+    height:Math.max(document.documentElement.scrollHeight,document.body.scrollHeight),
+    view:innerHeight
+  }));
+  const step=Math.max(450,Math.round(dimensions.view*0.85));
+  const stops=Math.min(65,Math.ceil(dimensions.height/step));
+  for(let i=0;i<stops;i++){
+    await page.evaluate(y=>scrollTo(0,y),Math.min(i*step,dimensions.height));
+    await page.waitForTimeout(35);
+  }
+  await page.evaluate(()=>scrollTo(0,0));
+  // Sources may be slow: a bounded delay + decode attempt records truthful
+  // failures instead of treating not-yet-loaded lazy media as fine.
+  await Promise.race([
+    page.evaluate(async()=>{
+      const own=[...document.images].filter(img=>{
+        try{
+          const url=new URL(img.currentSrc||img.src,location.href);
+          return (url.hostname==='voy-pro.com'||url.hostname==='www.voy-pro.com')&&
+            url.pathname.startsWith('/assets/');
+        }catch{return false;}
+      });
+      await Promise.all(own.map(img=>img.decode().catch(()=>{})));
+    }),
+    page.waitForTimeout(5000)
+  ]);
+  return page.evaluate(()=>{
+    const imgs=[...document.images].filter(img=>{
+      try{
+        const url=new URL(img.currentSrc||img.src,location.href);
+        return (url.hostname==='voy-pro.com'||url.hostname==='www.voy-pro.com')&&
+          url.pathname.startsWith('/assets/');
+      }catch{return false;}
+    });
+    return {
+      firstPartyImages:imgs.length,
+      loaded:imgs.filter(img=>img.complete&&img.naturalWidth>0).length,
+      failed:imgs.filter(img=>img.complete&&img.naturalWidth===0).
+        map(img=>new URL(img.currentSrc||img.src,location.href).pathname).slice(0,8),
+      pending:imgs.filter(img=>!img.complete).length
+    };
+  });
+}
 async function inspect(target){
   const url=(target.alias?'https://www.voy-pro.com':ORIGIN)+target.path;
   const name=target.path+' @ '+target.width+(target.alias?' www':'');
@@ -166,8 +213,12 @@ async function inspect(target){
     if(row.pageErrors.length)row.advisories.push('Browser JS errors: '+row.pageErrors.join(' / '));
     const isHighlight=highlights.includes(target.path)||target.alias;
     if(isHighlight){
+      const media=await prepareScreenshot(page);
+      row.screenshotMedia=media;
+      if(media.failed.length)row.issues.push('Failed first-party images: '+media.failed.join(', '));
+      if(media.pending)row.advisories.push('First-party images still loading: '+media.pending);
       const namePart=slug(target.path)+'-'+target.width+(target.alias?'-www':'')+'.png';
-      await page.screenshot({path:join(OUTPUT,namePart),fullPage:true,animations:'disabled',timeout:12000});
+      await page.screenshot({path:join(OUTPUT,namePart),fullPage:true,animations:'disabled',timeout:15000});
       row.screenshot=namePart;
     }
     // Test one genuine on-site click. No checkout, form submission or external link.
