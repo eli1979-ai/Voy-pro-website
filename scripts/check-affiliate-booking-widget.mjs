@@ -56,7 +56,7 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null,
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null,badAvailability=null,
   englishPilot=false,recordedEnglishAlternative='match'}={}){
   const calls=[];
   const timers=[];
@@ -104,7 +104,33 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
   let expires=new Date(Date.now()+15*60*1000).toISOString();
   const responseFor=(key,payload)=>{
     if(key.includes('/availability?')){
-      return {slots:[{id:'22222222-2222-4222-8222-222222222222',time:'10:00',sellable:!staffConfirmation,requestable:staffConfirmation}]};
+      const q=new URL('https://fbm-fixture.invalid'+key).searchParams;
+      const requestedPrivate=q.get('is_private')==='true';
+      const group={
+        riders_16_plus:Number(q.get('riders_16_plus')),
+        child_passengers_3_15:Number(q.get('child_passengers_3_15')),
+        baby_passengers_1_2:Number(q.get('baby_passengers_1_2')),
+        request_15yo_independent_assessment:false,
+      };
+      const slots=[{id:'22222222-2222-4222-8222-222222222222',
+        time:'10:00',sellable:!staffConfirmation,requestable:staffConfirmation,
+        is_private:requestedPrivate}];
+      const result={
+        experience_id:'exp_bud_buda',date:q.get('date'),is_private:requestedPrivate,
+        group_composition:group,party_size:group.riders_16_plus+
+          group.child_passengers_3_15+group.baby_passengers_1_2,slots,
+      };
+      if(badAvailability==='wrong-experience')result.experience_id='exp_bud_margaret';
+      if(badAvailability==='wrong-date')result.date='2030-01-01';
+      if(badAvailability==='wrong-group')result.group_composition.riders_16_plus++;
+      if(badAvailability==='wrong-party-size')result.party_size++;
+      if(badAvailability==='wrong-private')result.is_private=!requestedPrivate;
+      if(badAvailability==='wrong-slot-private')result.slots[0].is_private=!requestedPrivate;
+      if(badAvailability==='duplicate-slot')result.slots.push({...result.slots[0]});
+      if(badAvailability==='missing-slots')delete result.slots;
+      if(badAvailability==='missing-slot-id')delete result.slots[0].id;
+      if(badAvailability==='unknown-sellable')result.slots[0].sellable='true';
+      return result;
     }
     if(key==='/api/v1/promotions/validate')return {
       valid:!rejectCoupon&&payload.code===affiliate,code:affiliate,type:'fixed',value:10,
@@ -433,6 +459,28 @@ async function flush(){
   assert.match(app.elements['#status'].textContent,/not attributed/i);
 }
 
+// Availability must describe exactly the requested experience/date/group,
+ // rather than merely returning HTTP 200 and superficially bookable slots.
+for(const badAvailability of [
+  'wrong-experience','wrong-date','wrong-group','wrong-party-size',
+  'wrong-private','wrong-slot-private','duplicate-slot','missing-slots',
+  'missing-slot-id','unknown-sellable'
+]){
+  const app=mount({badAvailability});
+  await flush();
+  app.search.elements.experience.value='exp_bud_buda';
+  await app.search.elements.experience.trigger('change');
+  app.search.elements.language.value='he';
+  app.search.elements.date.value=budapestToday();
+  await app.search.trigger('submit');
+  assert.match(app.elements['#status'].textContent,/availability details could not be verified/,
+    'Reject inconsistent FBM availability: '+badAvailability);
+  assert(app.elements['#results'].classList.contains('hidden'),
+    'Unverifiable availability may not display departures');
+  assert(!app.calls.some(c=>['/api/v1/promotions/validate','/api/v1/quotes','/api/v1/holds',
+    '/api/v1/bookings','/api/v1/booking-capacity-requests','/api/v1/payments/intents'].includes(c.key)),
+    'Inconsistent availability never triggers commercial API: '+badAvailability);
+}
 // The distributed widget has the English-alternative flag hard disabled.
 // Only this isolated VM fixture clones the source with a synthetic true flag.
 {
