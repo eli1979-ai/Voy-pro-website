@@ -41,8 +41,13 @@ class Element {
   }
   set innerHTML(value){this.html=value;}
   get innerHTML(){return this.html||'';}
-  addEventListener(name,fn){this.listeners[name]=fn;}
-  async trigger(name){return this.listeners[name]?.({preventDefault(){}});}
+  // Real DOM dispatches all listeners in registration order, including
+  // the new language-reset handler followed by the generic invalidation.
+  addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}
+  async trigger(name){
+    for(const listener of this.listeners[name]||[])
+      await listener({preventDefault(){}});
+  }
   setAttribute(name,value){this.attributes[name]=value;}
   append(...els){this.children.push(...els);}
   appendChild(el){this.children.push(el);return el;}
@@ -51,7 +56,8 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null,
+  englishPilot=false,recordedEnglishAlternative='match'}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -59,13 +65,15 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
   const mountEl=new Element('div');
   const elements={};
   for(const selector of ['#search','#customer','#searchButton','#confirmButton','#results',
-    '#checkout','#success','#status','#slots','#extras','#price','#holdExpiry','#changeButton'])
+    '#checkout','#success','#status','#slots','#extras','#price','#holdExpiry','#changeButton',
+    '#englishAltRow','#englishAltPreferred'])
     elements[selector]=new Element(selector);
   const search=elements['#search'],customer=elements['#customer'];
   search.elements={
     experience:new Element('select'),date:new Element('input'),
     riders:new Element('input'),children:new Element('input'),babies:new Element('input'),
-    language:new Element('select'),private:new Element('input'),
+    language:new Element('select'),englishAlternative:new Element('select'),
+    private:new Element('input'),
   };
   search.elements.riders.value='2';
   search.elements.children.value='0';
@@ -91,6 +99,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
   };
   let held=false;
   let heldPrivate=false;
+  let heldEnglishAlternative=null;
   let acceptedQuote=null;
   let expires=new Date(Date.now()+15*60*1000).toISOString();
   const responseFor=(key,payload)=>{
@@ -115,6 +124,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       id:'33333333-3333-4333-8333-333333333333',departure_id:payload.slot_id,
       requested_slot_id:payload.slot_id,guide_language:payload.guide_language,
       expires_at:expires,is_private:payload.is_private,requires_staff_confirmation:false,
+      english_alternative_accepted:payload.english_alternative_accepted??null,
     };
     if(key==='/api/v1/ancillary/offers')return [{
       product_id:'44444444-4444-4444-8444-444444444444',name:'Fleece hat',
@@ -143,6 +153,8 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       experience_id:'exp_bud_buda',selected_date:budapestToday(),
       group_composition:{riders_16_plus:2,child_passengers_3_15:0,baby_passengers_1_2:0},
       is_private:heldPrivate,
+      english_alternative_accepted:recordedEnglishAlternative==='match'
+        ?heldEnglishAlternative:!heldEnglishAlternative,
       ...(bookingSelectionOverride||{}),
       guide_language:bookingGuideLanguage,
       total:acceptedQuote?.total,discount:acceptedQuote?.discount,
@@ -151,6 +163,8 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     if(key==='/api/v1/booking-capacity-requests')return {
       type:'booking_capacity_request',status:'pending',reference:'VP-CAP-TEST',
       guide_language:staffGuideLanguage,pricing:{promo_code_applied:staffPromoCode},
+      english_alternative_accepted:recordedEnglishAlternative==='match'
+        ?(payload.english_alternative_accepted??null):!(payload.english_alternative_accepted??null),
     };
     throw new Error('Unexpected mocked route: '+key);
   };
@@ -161,7 +175,10 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     calls.push({key,payload,options});
     if(options?.method==='DELETE'){held=false;return {ok:true,status:204,json:async()=>null};}
     const result=requests[key]||responseFor(key,payload);
-    if(key==='/api/v1/holds'&&payload){held=true;heldPrivate=payload.is_private;}
+    if(key==='/api/v1/holds'&&payload){
+      held=true;heldPrivate=payload.is_private;
+      heldEnglishAlternative=payload.english_alternative_accepted??null;
+    }
     return {ok:true,status:payload?201:200,json:async()=>result};
   };
   const document={
@@ -176,7 +193,10 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     setInterval:cb=>{timers.push(cb);return timers.length;},
     clearInterval:()=>{},console,
   };
-  vm.runInNewContext(code,context,{timeout:1500,filename:'affiliate-booking-widget.js'});
+  const fixtureCode=englishPilot
+    ?code.replace('const ENGLISH_ALT_PILOT_ENABLED=false;',
+      'const ENGLISH_ALT_PILOT_ENABLED=true;'):code;
+  vm.runInNewContext(fixtureCode,context,{timeout:1500,filename:'affiliate-booking-widget.js'});
   return {script,elements,calls,search,customer,root,timers,redirect:()=>redirect};
 }
 function budapestToday(){
@@ -186,11 +206,16 @@ function budapestToday(){
   const d=Object.fromEntries(parts.map(p=>[p.type,p.value]));
   return [d.year,d.month,d.day].join('-');
 }
-async function chooseFirstDeparture(app){
+async function chooseFirstDeparture(app,{englishAlternative=null}={}){
   await flush();
   app.search.elements.experience.value='exp_bud_buda';
   await app.search.elements.experience.trigger('change');
   app.search.elements.language.value='he';
+  if(englishAlternative!==null){
+    await app.search.elements.language.trigger('change');
+    app.search.elements.englishAlternative.value=englishAlternative;
+    await app.search.elements.englishAlternative.trigger('change');
+  }
   app.search.elements.date.value=budapestToday();
   await app.search.trigger('submit');
   const button=app.elements['#slots'].children[0];
@@ -396,6 +421,63 @@ async function flush(){
   assert.match(app.elements['#status'].textContent,/not attributed/i);
 }
 
+// The distributed widget has the English-alternative flag hard disabled.
+// Only this isolated VM fixture clones the source with a synthetic true flag.
+{
+  const app=mount();
+  await chooseFirstDeparture(app);
+  assert(app.elements['#englishAltRow'].classList.contains('hidden'),
+    'Public source must not display optional English alternative');
+  assert(app.search.elements.englishAlternative.disabled,
+    'Public English alternative input must remain disabled');
+  assert(!app.calls.some(c=>c.payload&&Object.hasOwn(c.payload,'english_alternative_accepted')),
+    'Unapproved public pilot never sends an English-alternative field');
+}
+for(const [answer,expected] of [['yes',true],['no',false],['',null]]){
+  for(const staffConfirmation of [false,true]){
+    const app=mount({englishPilot:true,staffConfirmation});
+    await chooseFirstDeparture(app,{englishAlternative:answer});
+    assert(!app.elements['#englishAltRow'].classList.contains('hidden'),
+      'Test-only enabled pilot shows optional language choice for Hebrew');
+    assert(!app.search.elements.englishAlternative.disabled);
+    if(!staffConfirmation){
+      const hold=app.calls.find(c=>c.key==='/api/v1/holds');
+      assert.strictEqual(hold?.payload.english_alternative_accepted,expected,
+        'Hold records explicit Yes/No/unknown without replacing Hebrew');
+    }
+    app.customer.elements.name.value='Example Person';
+    app.customer.elements.email.value='guest@example.invalid';
+    app.customer.elements.phone.value='+1555000000';
+    app.customer.elements.terms.checked=true;
+    await app.customer.trigger('submit');
+    if(staffConfirmation){
+      const request=app.calls.find(c=>c.key==='/api/v1/booking-capacity-requests');
+      assert.strictEqual(request?.payload.english_alternative_accepted,expected,
+        'Pending staff request records explicit Yes/No/unknown');
+    }
+    const receipt=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+    assert.match(receipt,/Requested guiding language: Hebrew/,
+      'Original guiding language must never silently change to English');
+    assert.match(receipt,new RegExp('English alternative: '+
+      (expected===true?'Accepted':expected===false?'Declined':'Not answered')),
+      'Receipt accurately preserves distinct Yes/No/unanswered statuses');
+  }
+}
+{
+  const app=mount({englishPilot:true,staffConfirmation:true,
+    recordedEnglishAlternative:'mismatch'});
+  await chooseFirstDeparture(app,{englishAlternative:'yes'});
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  assert.match(app.elements['#success'].children.map(x=>x.textContent).join(' '),
+    /English alternative needs verification/,
+    'Mismatched server-recorded English consent requires staff verification');
+  assert.equal(app.calls.filter(c=>c.key==='/api/v1/booking-capacity-requests').length,1,
+    'No duplicate staff request after ambiguous opt-in');
+}
 // A superficially valid booking response must reflect the product/date/group
 // the customer selected, not a different FBM record with a matching total.
 const changedSelections=[
