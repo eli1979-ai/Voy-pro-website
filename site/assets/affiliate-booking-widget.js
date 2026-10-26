@@ -1118,7 +1118,14 @@
           option.textContent=exp.title+' · from '+money(exp.priceFrom,exp.currency);
           experienceSelect.append(option);
         }
-        readyForOnline=Boolean(capabilities?.online_card&&capabilities?.provider==='stripe');
+        // FBM may report a capability advertisement before Stripe secrets,
+        // webhooks or mode are fully configured. Offer online card only on a
+        // complete ready contract, never on a partial/stale 200 response.
+        readyForOnline=Boolean(capabilities?.online_card===true&&
+          capabilities?.provider==='stripe'&&
+          (capabilities?.mode==='test'||capabilities?.mode==='live')&&
+          capabilities?.readiness?.status==='ready'&&
+          capabilities.readiness.reason===null);
         if(readyForOnline){
           const choice=document.createElement('option');choice.value='pay_now_card';
           choice.textContent='Pay now securely by card';customer.elements.payment.append(choice);

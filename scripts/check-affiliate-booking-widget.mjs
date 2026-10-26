@@ -57,7 +57,7 @@ class Element {
   scrollIntoView(){}
 }
 function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null,badAvailability=null,
-  englishPilot=false,recordedEnglishAlternative='match'}={}){
+  englishPilot=false,recordedEnglishAlternative='match',badCapabilities=null}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -95,7 +95,21 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
         bookingEnabled:true,privateAllowed:true,privateMinRiders:2,
         guideLanguages:['en','he'],maxIndependentRiders:12},
     ],
-    '/api/v1/payments/capabilities':{online_card:onlinePayment,provider:onlinePayment?'stripe':null},
+    '/api/v1/payments/capabilities':(()=>{
+      const advertisesOnline=Boolean(onlinePayment||badCapabilities);
+      const reply={
+        online_card:advertisesOnline,provider:advertisesOnline?'stripe':null,
+        mode:'test',readiness:{status:advertisesOnline?'ready':'unavailable',
+          reason:advertisesOnline?null:'provider_disabled'},
+      };
+      if(badCapabilities==='missing-readiness')delete reply.readiness;
+      if(badCapabilities==='unavailable')reply.readiness={
+        status:'unavailable',reason:'webhook_secret_missing'};
+      if(badCapabilities==='wrong-provider')reply.provider=null;
+      if(badCapabilities==='wrong-mode')reply.mode='unknown';
+      if(badCapabilities==='unexpected-reason')reply.readiness.reason='provider_disabled';
+      return reply;
+    })(),
   };
   let held=false;
   let heldPrivate=false;
@@ -572,6 +586,21 @@ for(const bookingSelectionOverride of changedSelections){
     'No duplicate booking request');
   assert(!app.calls.some(c=>c.options.method==='DELETE'),
     'Do not release a hold that may already have been converted');
+}
+// An incomplete or contradictory FBM capabilities response must never
+// unlock online card payment merely because online_card was advertised.
+for(const badCapabilities of ['missing-readiness','unavailable',
+  'wrong-provider','wrong-mode','unexpected-reason']){
+  const app=mount({badCapabilities});
+  await flush();
+  assert(!app.customer.elements.payment.children.some(x=>x.value==='pay_now_card'),
+    'Do not advertise Stripe if FBM readiness is inconsistent: '+badCapabilities);
+}
+{
+  const app=mount({onlinePayment:true});
+  await flush();
+  assert(app.customer.elements.payment.children.some(x=>x.value==='pay_now_card'),
+    'A fully ready FBM test-mode Stripe capability may offer secure online card');
 }
 // Online Stripe redirects must carry the exact quoted amount/currency
 // and a verifiable booking identity. The simulated URLs are never opened.
