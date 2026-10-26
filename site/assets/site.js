@@ -1422,6 +1422,32 @@
     const sub=shell.querySelector('[data-resume-sub]');if(sub)sub.textContent=t('We will recheck availability and price before anything is confirmed.','נבדוק מחדש זמינות ומחיר חיים לפני אישור כלשהו.');
     const cta=shell.querySelector('[data-resume-cta]');if(!cta)return;
     cta.textContent=t('Restore selection','שחזור בחירה');shell.hidden=false;
+    // Essential-only browser storage belongs to the guest, not a booking.
+    // Offer a one-click choice to discard it without network requests or
+    // touching any selections already entered in the current form.
+    const actions=shell.querySelector('.resume-actions');
+    if(actions&&!actions.querySelector('[data-resume-dismiss]')){
+      const discard=document.createElement('button');
+      discard.type='button';
+      discard.className='resume-dismiss';
+      discard.dataset.resumeDismiss='';
+      discard.textContent=locale==='he'?'מחיקת הבחירה השמורה'
+        :locale==='hu'?'Mentett választás törlése':'Discard saved selection';
+      discard.setAttribute('aria-label',discard.textContent);
+      discard.addEventListener('click',()=>{
+        delStore('voy_recovery_state');
+        shell.hidden=true;
+        const status=document.querySelector('#availability-status');
+        if(status){
+          status.textContent=locale==='he'?'הבחירה השמורה נמחקה. לא בוצעה הזמנה.'
+            :locale==='hu'?'A mentett választás törölve. Nem történt foglalás.'
+            :'Saved selection discarded. No booking was made.';
+          status.setAttribute('tabindex','-1');
+          status.focus({preventScroll:true});
+        }
+      });
+      actions.appendChild(discard);
+    }
     cta.onclick=async e=>{
       e.preventDefault();
       const form=document.querySelector('#availability-form');if(!form)return;
