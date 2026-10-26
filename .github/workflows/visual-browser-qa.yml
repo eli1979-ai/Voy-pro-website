@@ -42,26 +42,30 @@ jobs:
           node-version: '22'
       - name: Build static website and run standard regression checks
         run: npm run build
-      - name: Use hosted-runner Chrome (no browser download or production dependency)
-        run: |
-          npm install --no-save --no-package-lock playwright@1.56.1
-          google-chrome --version
-      - name: Real browser desktop, mobile, RTL and branch navigation checks
-        run: node scripts/qa-visual-browser.mjs
-      - name: Audit all 50 multilingual sitemap pages at 320px and 390px
-        run: node scripts/qa-mobile-sitemap.mjs
+      # Cheap deterministic checks go first; no browser installation is needed
+      # if link integrity, canonical/hreflang or asset budgets have regressed.
       - name: Check every internal link and local image asset
         run: node scripts/qa-public-link-assets.mjs
       - name: Validate canonical and reciprocal hreflang references offline
         run: node scripts/qa-seo-canonical-hreflang.mjs
       - name: Enforce first-party static asset size budgets
         run: node scripts/qa-static-asset-budgets.mjs
-      - name: Record offline page load, visible images and layout shift diagnostics
-        run: node scripts/qa-lab-performance-browser.mjs
+      - name: Use hosted-runner Chrome (no browser download or production dependency)
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          google-chrome --version
+      # Fail fast on core booking/affiliate regressions before taking many
+      # screenshots. All checks remain mandatory; this changes order only.
       - name: Test booking dates, composition, empty slots and stale responses with mocked API
         run: node scripts/qa-booking-funnel-browser.mjs
       - name: Verify embedded affiliate widget in actual Chrome with mocked APIs
         run: node scripts/qa-affiliate-widget-browser.mjs
+      - name: Real browser desktop, mobile, RTL and branch navigation checks
+        run: node scripts/qa-visual-browser.mjs
+      - name: Audit all 50 multilingual sitemap pages at 320px and 390px
+        run: node scripts/qa-mobile-sitemap.mjs
+      - name: Record offline page load, visible images and layout shift diagnostics
+        run: node scripts/qa-lab-performance-browser.mjs
       - name: Upload screenshots and results even after a failed assertion
         if: always()
         uses: actions/upload-artifact@v4
