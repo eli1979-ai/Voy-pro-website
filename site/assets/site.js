@@ -770,8 +770,8 @@
     });
   }
   function consentCopy(){
-    if(locale==='pt') return {aria:'Preferências de cookies',title:'As suas escolhas de privacidade',body:'O armazenamento essencial mantém as funções de reserva. A análise opcional ajuda-nos a perceber que páginas e campanhas levam a reservas.',essential:'Apenas essencial',analytics:'Permitir análise'};
-    return {aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),body:t('Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.','אחסון חיוני מפעיל את תהליך ההזמנה. אנליטיקה אופציונלית עוזרת לנו להבין אילו עמודים וקמפיינים מובילים להזמנות.'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה')};
+    if(locale==='pt') return {aria:'Preferências de cookies',title:'As suas escolhas de privacidade',body:'O armazenamento essencial mantém as funções de reserva. A análise opcional ajuda-nos a perceber que páginas e campanhas levam a reservas.',essential:'Apenas essencial',analytics:'Permitir análise',close:'Fechar sem alterações'};
+    return {aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),body:t('Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.','אחסון חיוני מפעיל את תהליך ההזמנה. אנליטיקה אופציונלית עוזרת לנו להבין אילו עמודים וקמפיינים מובילים להזמנות.'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:locale==='hu'?'Bezárás módosítás nélkül':t('Close without changes','סגירה ללא שינוי')};
   }
   function showConsentPreferences(force=false,returnFocusTo=null){
     document.documentElement.dataset.analyticsConsent=analyticsAllowed()?'granted':'denied';
@@ -781,12 +781,26 @@
     bar.className='consent-banner';
     bar.setAttribute('role','dialog');
     bar.setAttribute('aria-label',copy.aria);
-    bar.innerHTML=`<div><b>${copy.title}</b><p>${copy.body}</p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${copy.essential}</button><button type="button" class="btn" data-consent-analytics>${copy.analytics}</button></div>`;
+    // Only a returning guest with a saved decision can close preferences
+    // without changing anything. First-time visitors still choose explicitly.
+    const mayDismiss=Boolean(force&&consent.decided);
+    bar.innerHTML=`<div><b>${copy.title}</b><p>${copy.body}</p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${copy.essential}</button><button type="button" class="btn" data-consent-analytics>${copy.analytics}</button>${mayDismiss?`<button type="button" class="btn secondary consent-dismiss" data-consent-dismiss>${copy.close}</button>`:''}</div>`;
     document.body.appendChild(bar);
     document.body.classList.add('consent-open');
     if(force) bar.querySelector('[data-consent-essential]').focus();
-    bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});document.body.classList.remove('consent-open');bar.remove();returnFocusTo?.focus();});
-    bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{const wasAnalytics=analyticsAllowed();setConsent({analytics:true,marketing:false});document.body.classList.remove('consent-open');bar.remove();returnFocusTo?.focus();if(!wasAnalytics)resumeAnalyticsAfterConsent();});
+    const closePreferences=()=>{
+      document.body.classList.remove('consent-open');
+      bar.remove();
+      returnFocusTo?.focus();
+    };
+    bar.querySelector('[data-consent-essential]').addEventListener('click',()=>{setConsent({analytics:false,marketing:false});closePreferences();});
+    bar.querySelector('[data-consent-analytics]').addEventListener('click',()=>{const wasAnalytics=analyticsAllowed();setConsent({analytics:true,marketing:false});closePreferences();if(!wasAnalytics)resumeAnalyticsAfterConsent();});
+    if(mayDismiss){
+      bar.querySelector('[data-consent-dismiss]').addEventListener('click',closePreferences);
+      bar.addEventListener('keydown',event=>{
+        if(event.key==='Escape'){event.preventDefault();closePreferences();}
+      });
+    }
   }
   function initConsent(){
     showConsentPreferences(false);
