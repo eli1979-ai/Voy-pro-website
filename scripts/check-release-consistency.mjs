@@ -4,6 +4,7 @@ import { assessPublicRelease } from './check-public-release-readiness.mjs';
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 const release=JSON.parse(fs.readFileSync('site/release.json','utf8'));
 const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
+const robots=fs.readFileSync('site/robots.txt','utf8');
 const runtime=fs.readFileSync('site/assets/runtime-config.js','utf8');
 const deployment=JSON.parse(fs.readFileSync('vercel.json','utf8'));
 const globalHeaders=(deployment.headers||[])
@@ -35,8 +36,19 @@ else if((runtimeBooking==='true')!==release.booking_enabled)failures.push('relea
 // robots.txt Disallow alone does NOT guarantee URLs cannot be indexed from
 // third-party links. Fail closed if a developer accidentally removes the
 // global X-Robots-Tag while this project still targets Staging.
-if(release.target==='staging'&&!stagingNoindex){
-  failures.push('Staging requires a global Vercel X-Robots-Tag: noindex, nofollow');
+if(release.target==='staging'){
+  if(!stagingNoindex)
+    failures.push('Staging requires a global Vercel X-Robots-Tag: noindex, nofollow');
+  // Staging aliases currently serve voy-pro.com, so the source release
+  // metadata and robots.txt must fail closed together with the HTTP header.
+  // Never let a partial SEO change silently pass the normal build gate.
+  if(release.seo_indexable!==false)
+    failures.push('Staging release must explicitly set seo_indexable=false');
+  const lines=robots.split(/\r?\n/).map(line=>line.replace(/#.*$/,'').trim());
+  if(!/^User-agent:\s*\*$/im.test(robots)||!lines.some(line=>/^Disallow:\s*\/$/i.test(line)))
+    failures.push('Staging robots.txt must have User-agent: * and Disallow: /');
+  if(lines.some(line=>/^Allow:\s*\/?$/i.test(line)))
+    failures.push('Staging robots.txt must not contain an unrestricted Allow: /');
 }
 // A source bundle that claims Production must pass the separate owner's
 // cutover audit; VERCEL_ENV=production is only a deployment target, not proof

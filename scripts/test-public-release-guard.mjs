@@ -92,6 +92,7 @@ try {
     'regular build must explain the Production-specific failure');
   assert.ok(deniedBuild.stderr.includes('explicit owner approval'));
   writeBuildRelease({target:'staging',seo_indexable:false});
+  fs.writeFileSync(path.join(fixtureSite,'robots.txt'),'User-agent: *\\nDisallow: /\\n'.replaceAll('\\n','\n'));
   const unprotectedStaging=runBuildGate();
   assert.notEqual(unprotectedStaging.status,0,
     'Staging must reject removed global HTTP noindex even if robots.txt blocks crawl');
@@ -100,6 +101,28 @@ try {
   const stagingBuild=runBuildGate();
   assert.equal(stagingBuild.status,0,
     'staging consistency must not require a Production attestation: '+stagingBuild.stderr);
+  writeBuildRelease({target:'staging',seo_indexable:true});
+  const accidentallyIndexed=runBuildGate();
+  assert.notEqual(accidentallyIndexed.status,0,
+    'Staging must reject enabling SEO flags even if a global HTTP noindex remains');
+  assert.ok(accidentallyIndexed.stderr.includes('seo_indexable=false'));
+  writeBuildRelease({target:'staging',seo_indexable:false});
+  fs.writeFileSync(path.join(fixtureSite,'robots.txt'),
+    'User-agent: *\\nAllow: /\\n'.replaceAll('\\n','\n'));
+  const accidentallyCrawlable=runBuildGate();
+  assert.notEqual(accidentallyCrawlable.status,0,
+    'Staging must reject permissive robots even if release flags and HTTP headers are protected');
+  assert.ok(accidentallyCrawlable.stderr.includes('Staging robots.txt'));
+  fs.writeFileSync(path.join(fixtureSite,'robots.txt'),
+    'User-agent: *\\nDisallow: /\\nAllow: /\\n'.replaceAll('\\n','\n'));
+  const conflictingRobots=runBuildGate();
+  assert.notEqual(conflictingRobots.status,0,
+    'Conflicting Disallow and Allow root directives must not pass the staging guard');
+  assert.ok(conflictingRobots.stderr.includes('unrestricted Allow'));
+  fs.writeFileSync(path.join(fixtureSite,'robots.txt'),
+    'User-agent: *\\nDisallow: /\\n'.replaceAll('\\n','\n'));
+  assert.equal(runBuildGate().status,0,
+    'All three Staging index controls must pass only when consistent');
 
   const deniedCases = [
     [{status:'unverified'},'attestation must be verified'],
