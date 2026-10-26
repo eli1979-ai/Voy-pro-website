@@ -1,5 +1,8 @@
 # VOY PRO Website Agent Rules
 
+## CI/CD cost discipline
+Read `docs/DEVELOPMENT-COST-POLICY.md` before modifying CI, build or Vercel deployment behavior. Favor local/standard GitHub Actions validation; use Vercel preview builds for reviewed release candidates rather than every small change. Never disable required QA or production deployment based solely on the project name `voy-pro-staging`: it currently serves public domains. The policy itself does **not** authorize protected workflow, config, domain or Production changes, nor PR merges.
+
 This repository is the source of truth for the VOY PRO customer-facing website.
 
 ## Operating model
