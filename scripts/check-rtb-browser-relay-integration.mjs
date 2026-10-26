@@ -46,12 +46,15 @@ function browser(){
   };
   const build=tag=>{
     const v={tag,dataset:{},hidden:false,disabled:false,textContent:'',checked:false,
-      listeners:{},children:[],value:'',
+      listeners:{},children:[],value:'',attrs:{},
       classList:{add(){},remove(){}},
       appendChild(child){this.children.push(child);},
       insertAdjacentElement(){},
       addEventListener(type,fn){(this.listeners[type]||=[]).push(fn);},
-      setAttribute(){},remove(){},reportValidity(){return true;},
+      setAttribute(k,value){this.attrs[k]=String(value);},
+      getAttribute(k){return this.attrs[k]??null;},
+      dispatchEvent(event){(this.listeners[event.type]||[]).forEach(fn=>fn(event));},
+      remove(){},reportValidity(){return true;},
       closest(){return fields.get('row')},
       querySelectorAll(sel){
         if(tag!=='form'||sel!=='input,select,textarea')return [];
@@ -68,7 +71,7 @@ function browser(){
       const v=build(tag);
       if(tag==='form'){
         for(const field of ['[name="requested_guide_language"]',
-          '[name="english_alternative_accepted"]','[name="requested_date"]',
+          '[name="english_alternative_accepted"]','[data-rtb-english-decline"]','[name="requested_date"]',
           '.voy-rtb-feedback','button[type="submit"]'])
           fields.set(field,build('field'));
         fields.set('row',build('row'));
@@ -82,7 +85,7 @@ function browser(){
       assign(url){nav.push(url);}},
     document:doc,FormData:class{get(key){return formValues[key]??null;}},
     crypto:{randomUUID(){return '99999999-9999-4999-8999-'+String(++issued).padStart(12,'0')}},
-    fetch:postRelay,Intl,Date,URL,AbortSignal,console
+    fetch:postRelay,Intl,Date,URL,AbortSignal,console,Event:class{constructor(type){this.type=type;}}
   };
   world.globalThis=world;
   vm.runInNewContext(browserSource,world,{filename:'site/assets/rtb-request.js'});
@@ -93,6 +96,10 @@ function browser(){
     if(key==='requested_guide_language'){
       fields.get('[name="requested_guide_language"]').value=value;
       fields.get('[name="requested_guide_language"]').listeners.change?.forEach(fn=>fn());
+      // Existing relay fixtures represent a guest explicitly declining
+      // English when not checked (Boolean-only deployed relay contract).
+      // Production form never makes this selection automatically.
+      if(value!=='en')fields.get('[data-rtb-english-decline"]').setAttribute('aria-pressed','true');
     }
     form.listeners.input?.forEach(fn=>fn());
     form.listeners.change?.forEach(fn=>fn());
