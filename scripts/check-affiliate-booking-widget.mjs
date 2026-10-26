@@ -132,20 +132,32 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     }];
     if(key==='/api/v1/payments/intents'){
       const result={
-        status:badPaymentReply==='completed-missing-reference'||badPaymentReply==='completed'?'completed':'requires_action',
-        ui_mode:badPaymentReply==='completed-missing-reference'||badPaymentReply==='completed'?'none':'redirect',
+        status:badPaymentReply?.startsWith('completed')?'completed':'requires_action',
+        ui_mode:badPaymentReply?.startsWith('completed')?'none':'redirect',
+        id:'pi_mock_123',payment_type:'online',payment_method:'pay_now_card',
         booking_id:'44444444-4444-4444-8444-444444444444',
         booking_reference:'VP-PAY-MOCK',
         amount:acceptedQuote?.total??120,currency:acceptedQuote?.currency??'EUR',
-        checkout_url:'https://checkout.stripe.com/c/pay/cs_test_mock_only'
+        checkout_url:'https://checkout.stripe.com/c/pay/cs_test_mock_only',
+        payment_link_request_id:'link-request-123',
+        expires_at:new Date(Date.now()+10*60*1000).toISOString()
       };
       if(badPaymentReply==='wrong-total')result.amount+=15;
       if(badPaymentReply==='wrong-currency')result.currency='USD';
       if(badPaymentReply==='untrusted-host')result.checkout_url='https://untrusted.example.invalid/checkout';
+      if(badPaymentReply==='credential-url')result.checkout_url='https://visitor:secret@checkout.stripe.com/c/pay/cs_mock';
+      if(badPaymentReply==='custom-port')result.checkout_url='https://checkout.stripe.com:8443/c/pay/cs_mock';
+      if(badPaymentReply==='expired-checkout')result.expires_at=new Date(Date.now()-1000).toISOString();
+      if(badPaymentReply==='missing-link-id')delete result.payment_link_request_id;
+      if(badPaymentReply==='wrong-method'||badPaymentReply==='completed-wrong-method')
+        result.payment_method='pay_arrival_card';
+      if(badPaymentReply==='completed-wrong-amount')result.amount=15;
+      if(badPaymentReply==='completed-wrong-currency')result.currency='USD';
+      if(badPaymentReply==='missing-intent-id')delete result.id;
       if(badPaymentReply==='missing-reference'||badPaymentReply==='completed-missing-reference')
         delete result.booking_reference;
-      if(badPaymentReply==='completed'||badPaymentReply==='completed-missing-reference')
-        result.amount=0;
+      if(badPaymentReply?.startsWith('completed')&&
+         badPaymentReply!=='completed-wrong-amount')result.amount=0;
       return result;
     }
     if(key==='/api/v1/bookings')return {
@@ -515,8 +527,13 @@ for(const bookingSelectionOverride of changedSelections){
 }
 // Online Stripe redirects must carry the exact quoted amount/currency
 // and a verifiable booking identity. The simulated URLs are never opened.
-for(const badPaymentReply of ['wrong-total','wrong-currency','untrusted-host',
-  'missing-reference','completed-missing-reference']){
+for(const badPaymentReply of [
+  'wrong-total','wrong-currency','untrusted-host','missing-reference',
+  'credential-url','custom-port','expired-checkout','missing-link-id',
+  'wrong-method','missing-intent-id',
+  'completed-missing-reference','completed-wrong-amount',
+  'completed-wrong-currency','completed-wrong-method'
+]){
   const app=mount({onlinePayment:true,badPaymentReply});
   await chooseFirstDeparture(app);
   app.customer.elements.name.value='Example Person';
