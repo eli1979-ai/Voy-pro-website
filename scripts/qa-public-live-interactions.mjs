@@ -156,8 +156,29 @@ for(const [locale,path] of [
     }),'all 60 review source links use trusted platforms');
     const quotes=await cards.locator('.vp-review-text').allTextContents();
     ok(quotes.slice(0,20).every(q=>q.trim().length>=35),'full-length review text');
+    // The entire approved review must be readable without scrolling a
+    // tiny inner text pane. No external original-review URL is opened.
+    const original=root.locator('.vp-review-group').nth(1).
+      locator('.vp-review-card').first();
+    const full=await original.locator('.vp-review-text').innerText();
+    const originalHref=await original.locator('.vp-review-bottom a[href]').getAttribute('href');
+    const expand=original.locator('.vp-review-expand');
+    ok(await expand.count()===1,'explicit full-review reading control exists');
+    await expand.click();
+    const dialog=page.locator('dialog.vp-review-dialog');
+    await dialog.waitFor({state:'visible',timeout:3500});
+    ok((await dialog.locator('.vp-review-dialog-text').innerText()).trim()===full.trim(),
+      'modal displays full approved review without truncation');
+    ok(await dialog.locator('.vp-review-dialog-link').getAttribute('href')===originalHref,
+      'modal retains authentic source URL');
+    await dialog.screenshot({path:join(OUT,'full-review-dialog-'+locale.toLowerCase()+'.png'),
+      animations:'disabled'});
+    await page.keyboard.press('Escape');
+    ok(!(await dialog.isVisible()),'Escape closes complete-review dialog');
+    ok(await expand.evaluate(el=>document.activeElement===el),'modal restores opener focus');
     const pause=root.locator('[data-vp-reviews-pause]');
     ok(await pause.isVisible(),'pause control accessible');
+    if(await pause.getAttribute('aria-pressed')==='true')await pause.click();
     await pause.click();
     ok(await pause.getAttribute('aria-pressed')==='true','pause updates aria state');
     const before=await root.locator('[data-vp-reviews-viewport]').evaluate(el=>el.scrollLeft);
