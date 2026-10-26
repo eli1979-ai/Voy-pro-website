@@ -409,7 +409,7 @@
       const route=String(a.dataset.portugalTour||'');
       if(routeSelect&&routeNames[route])routeSelect.value=route;
     }));
-    form.addEventListener('submit',async e=>{
+    form.addEventListener('submit',e=>{
       e.preventDefault();
       const today=syncPortugalRequestDateMin();
       const f=new FormData(form);
@@ -445,8 +445,12 @@
       if(notes)lines.push(labels.notes+': '+notes);
       lines.push((locale==='pt'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname);
       const requestAnalytics={page,context:'portugal_availability_request',route,date,people:people||null,guide_language:guide};
-      await createSession('whatsapp_clicked',requestAnalytics);
+      // A guest's WhatsApp action must not wait for a best-effort session
+      // write: mobile navigation would otherwise stall when the API is slow.
+      // This does not create a booking, and event tracking remains subject
+      // to optional analytics consent. No customer name/notes enter telemetry.
       track('whatsapp_clicked',requestAnalytics);
+      void createSession('whatsapp_clicked',requestAnalytics).catch(()=>{});
       location.href='https://wa.me/351935695004?text='+encodeURIComponent(lines.join('\n'));
     });
   }
