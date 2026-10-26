@@ -36,7 +36,7 @@ const policy={
 };
 const results=[];
 const pause=ms=>new Promise(ok=>setTimeout(ok,ms));
-async function scenario(locale,path){
+async function scenario(locale,path,{recovery=null}={}){
   const row={locale,path,passed:false,checks:[],backendCalls:[],blocked:0};
   const context=await browser.newContext({
     viewport:{width:390,height:844},reducedMotion:'reduce',
@@ -52,6 +52,20 @@ async function scenario(locale,path){
     return pendingAvailabilityReplies.shift();
   };
   const page=await context.newPage();
+  if(recovery)await page.addInitScript(({mode})=>{
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+      timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'
+    }).formatToParts(new Date()).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+    const date=new Date(Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day)+
+      (mode==='expired'?-1:3),12)).toISOString().slice(0,10);
+    localStorage.setItem('voy_recovery_state',JSON.stringify({
+      version:1,saved_at:Date.now(),experience_id:'exp_bud_buda',
+      experience_slug:'buda-highlights',experience_title:'Buda Highlights',
+      date,is_private:mode==='private',guide_language:'he',
+      composition:{riders_16_plus:2,child_passengers_3_15:1,
+        baby_passengers_1_2:0,request_15yo_independent_assessment:false}
+    }));
+  },{mode:recovery});
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   // Route ALL outgoing requests. There must be no fallback network path.
@@ -141,6 +155,45 @@ async function scenario(locale,path){
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:8000});
     ok(await guide.inputValue()==='','guiding language never inferred from site locale');
+    if(recovery){
+      const banner=page.locator('[data-resume-booking]');
+      await banner.waitFor({state:'visible',timeout:8000});
+      ok(await form.locator('select[name="adults"]').inputValue()==='1',
+        'saved party is not applied before guest explicitly resumes');
+      await banner.locator('[data-resume-cta]').click();
+      await page.waitForFunction(()=>
+        document.querySelector('[data-resume-booking]')?.hidden===true,
+        null,{timeout:5500});
+      if(recovery==='expired'){
+        ok(await form.locator('select[name="adults"]').inputValue()==='1',
+          'expired saved party is not applied on the public build');
+        ok(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
+          'invalid persisted date is removed from essential-only storage');
+      }else{
+        ok(await form.locator('select[name="adults"]').inputValue()==='2'&&
+          await form.locator('select[name="children"]').inputValue()==='1'&&
+          await form.locator('select[name="babies"]').inputValue()==='0',
+          'private saved party restored exactly, including child passenger');
+        const summary=await page.locator('[data-group-composition-preview]').innerText();
+        ok(summary.includes('3')&&summary.includes('2')&&summary.includes('1'),
+          'public group summary recalculates all passenger numbers');
+        ok(await guide.inputValue()==='he',
+          'original selected guide language is retained without English substitution');
+        const privateMode=page.locator('[data-private-upgrade]');
+        ok(await privateMode.locator('input[name="is_private"]').inputValue()==='true'&&
+          await privateMode.locator('[data-booking-mode="private"]').getAttribute('aria-pressed')==='true',
+          'private booking mode survives public tour refresh');
+      }
+      ok(!row.backendCalls.some(c=>['/holds','/quotes','/bookings','/payments/intents'].some(
+        endpoint=>c.endpoint.startsWith(endpoint))),
+        'public recovery causes no quote, hold, booking or payment request');
+      ok(errors.length===0,'public recovery has no uncaught JavaScript errors');
+      await form.screenshot({
+        path:join(OUT,'public-recovery-'+locale+'-'+recovery+'.png'),animations:'disabled'
+      });
+      row.passed=true;
+      return;
+    }
     const submit=form.locator('button[type="submit"]');
     const date=form.locator('input[name="date"]');
     await date.evaluate(el=>{el.value=el.min;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));});
@@ -249,6 +302,8 @@ async function scenario(locale,path){
 }
 try{
   for(const [locale,path] of paths)await scenario(locale,path);
+  for(const [locale,path] of paths)await scenario(locale,path,{recovery:'private'});
+  await scenario(paths[0][0],paths[0][1],{recovery:'expired'});
 }finally{
   await browser.close();
 }
