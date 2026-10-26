@@ -10,6 +10,8 @@ on:
       - 'scripts/check-live-staging-noindex.mjs'
       - 'scripts/check-live-rtb-disabled.mjs'
       - 'scripts/check-live-staging-runtime-boundary.mjs'
+      - 'scripts/check-live-affiliate-archive.mjs'
+      - 'site/assets/affiliate-booking-widget.c4089651abc285352da3efad.js'
       - '.github/workflows/live-staging-http-noindex.yml'
 
 permissions:
@@ -43,11 +45,15 @@ jobs:
         run: node scripts/check-live-staging-runtime-boundary.mjs --test
       - name: Audit public runtime environment boundary (read-only)
         run: node scripts/check-live-staging-runtime-boundary.mjs
+      - name: Offline tests for immutable affiliate asset hashes and redirects
+        run: node scripts/check-live-affiliate-archive.mjs --test
+      - name: Verify both aliases still serve archived partner scripts unchanged
+        run: node scripts/check-live-affiliate-archive.mjs
       - name: Include the observed report in this run
         if: always()
         shell: bash
         run: |
-          for report in staging-http-audit/report.md staging-http-audit/rtb-disabled.md staging-http-audit/runtime-boundary.md; do
+          for report in staging-http-audit/report.md staging-http-audit/rtb-disabled.md staging-http-audit/runtime-boundary.md staging-http-audit/affiliate-archive.md; do
             if [ -f "$report" ]; then
               cat "$report" >> "$GITHUB_STEP_SUMMARY"
               echo >> "$GITHUB_STEP_SUMMARY"
@@ -86,6 +92,7 @@ jobs:
           AUDIT_REPORT: staging-http-audit/report.md
           RTB_REPORT: staging-http-audit/rtb-disabled.md
           RUNTIME_REPORT: staging-http-audit/runtime-boundary.md
+          ARCHIVE_REPORT: staging-http-audit/affiliate-archive.md
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -100,6 +107,9 @@ jobs:
             const runtimeReport=fs.existsSync(process.env.RUNTIME_REPORT)
               ?fs.readFileSync(process.env.RUNTIME_REPORT,'utf8')
               :'The GitHub runner could not produce the runtime boundary audit.';
+            const archiveReport=fs.existsSync(process.env.ARCHIVE_REPORT)
+              ?fs.readFileSync(process.env.ARCHIVE_REPORT,'utf8')
+              :'The GitHub runner could not produce its archived affiliate asset integrity audit.';
             const body=[
               marker,
               '# Public Staging HTTP safety gates require verification',
@@ -111,6 +121,8 @@ jobs:
               rtbReport,
               '',
               runtimeReport,
+              '',
+              archiveReport,
               '',
               '**Actions:** compare Vercel aliases, deployment headers and Staging release metadata; rerun the manual watch to rule out transient network errors. Keep Production cutover/SEO activation blocked until the distinction is verified.',
               '',
