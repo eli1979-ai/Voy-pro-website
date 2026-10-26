@@ -747,6 +747,10 @@
       setStore(EVENT_KEY,JSON.stringify(remaining));
       delivered=true;
       eventFlushFailures=0;
+      // A visibility/page event may complete delivery while an old retry
+      // is still queued. Cancel that obsolete timer after a successful ACK.
+      if(eventFlushTimer!==null)clearTimeout(eventFlushTimer);
+      eventFlushTimer=null;
     }catch(e){
       // Optional analytics must never interrupt the tour booking.
     }finally{
