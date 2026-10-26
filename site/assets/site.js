@@ -307,6 +307,24 @@
     if(additions!=null&&additions!==0) fallback.push({label:t('Additions','תוספות'),amount:Math.abs(additions),type:'surcharge',currency});
     return fallback;
   }
+  // A successful HTTP status is not evidence that inventory is reserved.
+  // Never unlock checkout without a concrete hold token and an expiry in the
+  // future. The server remains authoritative for price and availability.
+  function checkoutHoldIsValid(hold,atMs=Date.now()){
+    const id=typeof hold?.id==='string'?hold.id.trim():'';
+    const expiry=typeof hold?.expires_at==='string'?Date.parse(hold.expires_at):NaN;
+    return Boolean(id)&&Number.isFinite(expiry)&&expiry>atMs;
+  }
+  function abandonInvalidHold(hold){
+    const id=typeof hold?.id==='string'?hold.id.trim():'';
+    // If the backend returned a usable token but broken expiry, release the
+    // tentative hold best-effort; never claim its places are confirmed.
+    if(id&&bookingEnabled)api('/holds/'+encodeURIComponent(id),{method:'DELETE'}).catch(()=>{});
+    const err=new Error('Temporary hold could not be verified.');
+    err.code='HOLD_INVALID';
+    throw err;
+  }
+
   function assertCheckoutQuote(quote){
     const total=finiteNumber(quote?.total);
     const currency=String(quote?.currency||'').trim();
@@ -2320,9 +2338,11 @@
       assertCheckoutQuote(quote);
       const hold=await api('/holds',{method:'POST',body:JSON.stringify({slot_id:slot.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage})});
       if(preparationGeneration!==checkoutPreparationGeneration){
-        api('/holds/'+encodeURIComponent(hold.id),{method:'DELETE'}).catch(()=>{});
+        const oldHoldId=typeof hold?.id==='string'?hold.id.trim():'';
+        if(oldHoldId)api('/holds/'+encodeURIComponent(oldHoldId),{method:'DELETE'}).catch(()=>{});
         return;
       }
+      if(!checkoutHoldIsValid(hold))abandonInvalidHold(hold);
       bookingState={slot,composition,quote,hold,experience,date,isPrivate,guideLanguage,promoCode:initialPromoCode,idempotencyKey:'voy_'+uuid(),extras:[],ancillaryOffers:[]};
       const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;setBookingStep(3);
       renderStandardCheckoutSummary();ensureSingleCouponControl();
@@ -2342,7 +2362,7 @@
     }catch(e){
       if(preparationGeneration!==checkoutPreparationGeneration)return;
       const privateConflict=['PRIVATE_DEPARTURE_NOT_EMPTY','PRIVATE_HOLD_MISMATCH','PRIVATE_DEPARTURE_RESERVED'].includes(e.code);
-      const msg=e.code==='QUOTE_INVALID'?t('The live price could not be verified. Please search again or contact the local team.','לא ניתן לאמת את המחיר החי. נסו לחפש שוב או פנו לצוות המקומי.'):e.code==='ANCILLARY_NOT_CONFIGURED'?t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.'):privateConflict?t('This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.','כבר לא ניתן להפוך את היציאה הזו לפרטית. בחרו שעה אחרת או בקשו מהצוות שעה גמישה לסיור פרטי.'):t('Could not hold this departure. Please choose another time.','לא ניתן לשמור את היציאה. בחרו שעה אחרת.');
+      const msg=e.code==='QUOTE_INVALID'?t('The live price could not be verified. Please search again or contact the local team.','לא ניתן לאמת את המחיר החי. נסו לחפש שוב או פנו לצוות המקומי.'):e.code==='HOLD_INVALID'?t('Temporary reservation could not be verified. Please choose a departure again.','לא ניתן לאמת את שמירת המקום הזמנית. בחרו מחדש שעת יציאה.'):e.code==='ANCILLARY_NOT_CONFIGURED'?t('This booking needs a quick confirmation.','ההזמנה הזו דורשת אישור קצר.'):privateConflict?t('This departure can no longer be made private. Choose another departure or ask the team for a flexible private time.','כבר לא ניתן להפוך את היציאה הזו לפרטית. בחרו שעה אחרת או בקשו מהצוות שעה גמישה לסיור פרטי.'):t('Could not hold this departure. Please choose another time.','לא ניתן לשמור את היציאה. בחרו שעה אחרת.');
       status.innerHTML=rescueMarkup(msg);bindInlineWhatsApp(status);
     }finally{
       if(checkoutPreparationActiveGeneration===preparationGeneration){
