@@ -1,0 +1,49 @@
+name: VOY PRO deployed booking fixture QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/public-booking-fixture-qa.yml'
+      - 'scripts/qa-public-live-booking-fixtures.mjs'
+      - 'site/sitemap.xml'
+      - 'site/assets/site.js'
+      - 'site/assets/runtime-config.js'
+  workflow_dispatch:
+  schedule:
+    - cron: '41 7 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voy-pro-deployed-booking-fixture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-deployed-booking:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+      - name: Validate fixture script syntax
+        run: node --check scripts/qa-public-live-booking-fixtures.mjs
+      - name: Install pinned browser driver; reuse hosted Chrome
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          google-chrome --version
+      - name: Read public HTML in Chrome, fulfilling FBM entirely inside the browser
+        run: node scripts/qa-public-live-booking-fixtures.mjs
+      - name: Retain fixture report and screenshots, even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: voy-pro-deployed-booking-fixture
+          path: visual-qa-output/public-live-booking-fixture/
+          retention-days: 7
+          if-no-files-found: warn
