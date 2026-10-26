@@ -16,6 +16,7 @@ for(const locale of ['en','pt','he']){
   const values={route:'express',date:'2026-10-18',people:'4',guide_language:'en',full_name:'Test Customer',notes:'Test group'};
   const submitListeners=[];
   const trackEvents=[];
+  const sessionCalls=[];
   const status={textContent:''};
   const routeSelect={value:''};
   const dateInput={min:'',focus(){}};
@@ -38,13 +39,15 @@ for(const locale of ['en','pt','he']){
     portugalDate:()=> '2026-10-09',
     confirmationDateLabel:x=>x,
     guideLanguageLabel:x=>x,
-    createSession:async()=>({id:'test'}),
+    // Simulate an analytics server that never answers. The manual guest
+    // WhatsApp request must still navigate within the SAME submit turn.
+    createSession:(stage,metadata)=>{sessionCalls.push({stage,metadata});return new Promise(()=>{});},
     track:(event,payload)=>trackEvents.push({event,payload}),
   };
   vm.runInNewContext(handler+';bindPortugalRequestFlow();',sandbox,{timeout:1000});
   assert.equal(submitListeners.length,1,locale+': missing submit listener');
   let prevented=false;
-  await submitListeners[0]({preventDefault(){prevented=true}});
+  submitListeners[0]({preventDefault(){prevented=true}});
   assert.equal(prevented,true,locale+': form should prevent direct browser submit');
   assert.ok(location.href.startsWith('https://wa.me/351935695004?text='),locale+': wrong destination number');
   const parsed=new URL(location.href);
@@ -52,5 +55,11 @@ for(const locale of ['en','pt','he']){
   assert.ok(message.includes('2026-10-18')&&message.includes('Test Customer'),locale+': form details missing');
   assert.ok(message.includes(pathname),locale+': originating page missing');
   assert.ok(trackEvents.some(x=>x.event==='whatsapp_clicked'),locale+': attribution event missing');
+  assert.equal(sessionCalls.length,1,locale+': best-effort request session was not attempted');
+  assert.ok(sessionCalls[0].metadata.route==='express'&&sessionCalls[0].metadata.guide_language==='en',
+    locale+': booking inquiry analytics lost safe route/language context');
+  assert.ok(!Object.hasOwn(sessionCalls[0].metadata,'full_name')&&
+    !Object.hasOwn(sessionCalls[0].metadata,'notes'),
+    locale+': guest name/notes must not enter analytics metadata');
 }
-console.log('PASS: Marvão availability form opens Portuguese WhatsApp (+351935695004) in EN, PT and HE with request details.');
+console.log('PASS: Marvão EN/PT/HE request navigates to +351 WhatsApp immediately, even with a permanently stalled analytics session.');
