@@ -119,6 +119,13 @@ async function inspect(target){
     if(!robots.split(',').some(value=>value.trim()==='noindex'))
       row.issues.push('Missing staging noindex HTTP header');
     await page.waitForTimeout(250);
+    // Clear the public consent overlay for meaningful screenshots. This is
+    // essential-only local browser consent, never analytics consent.
+    const consent=page.locator('[data-consent-essential]');
+    if(await consent.isVisible().catch(()=>false)){
+      await consent.click({timeout:2500});
+      await page.waitForTimeout(120);
+    }
     const metrics=await page.evaluate(()=>{
       const root=document.documentElement,body=document.body;
       const heading=document.querySelector('h1');
