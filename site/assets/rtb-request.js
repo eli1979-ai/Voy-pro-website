@@ -16,7 +16,7 @@
   const strings={
     en:{title:'Request this tour',intro:'Tell our Budapest team when you would like to go. This is an enquiry, not a reservation.',
       date:'Preferred date',time:'Preferred start time',riders:'Independent riders',language:'Preferred guiding language',
-      name:'Contact name',email:'Email',phone:'Phone or WhatsApp',english:'If the requested guiding language is unavailable, English would also work for everyone in our group.',whatsappEnglish:'English as an alternative',yes:'Explicitly accepted for everyone in the group',unanswered:'Not answered (no acceptance recorded)',
+      name:'Contact name',email:'Email',phone:'Phone or WhatsApp',english:'If the requested guiding language is unavailable, English would also work for everyone in our group.',whatsappEnglish:'English as an alternative',yes:'Explicitly accepted for everyone in the group',unanswered:'Not answered (no acceptance recorded)',decline:'No — the requested language only',declined:'Not accepted; requested language only',unknownManual:'English alternative not answered. The request has not been sent to the booking system. Please contact us on WhatsApp; you must send the message yourself.',
       contact:'Enter an email address or phone number.',advance:'Please choose a Budapest departure at least one hour from now.',dst:'This local time does not exist or occurs twice during a Budapest clock change. Choose a different time.',
       horizon:'Please choose a date and time within the next 180 days (Budapest time).',
       submit:'Request availability',note:'We will try to send your enquiry securely. If request intake is unavailable, WhatsApp opens with a prefilled message that you must send yourself. Only a reference shown here means the enquiry was received; it is never a reservation.',
@@ -30,7 +30,7 @@
       type:'Tour',none:'Select a language',invalid:'Please check the form before continuing.'},
     he:{title:'בקשת סיור',intro:'ספרו לצוות בודפשט מתי תרצו לצאת. זו פנייה בלבד, לא הזמנה מאושרת.',
       date:'תאריך מועדף',time:'שעת יציאה מועדפת',riders:'רוכבים עצמאיים',language:'שפת הדרכה מבוקשת',
-      name:'שם איש קשר',email:'אימייל',phone:'טלפון או WhatsApp',english:'אם שפת ההדרכה המבוקשת אינה זמינה, אנגלית מתאימה גם לכל חברי הקבוצה.',whatsappEnglish:'אנגלית כשפה חלופית',yes:'אושרה במפורש עבור כל חברי הקבוצה',unanswered:'לא נענתה השאלה (לא ניתנה הסכמה)',
+      name:'שם איש קשר',email:'אימייל',phone:'טלפון או WhatsApp',english:'אם שפת ההדרכה המבוקשת אינה זמינה, אנגלית מתאימה גם לכל חברי הקבוצה.',whatsappEnglish:'אנגלית כשפה חלופית',yes:'אושרה במפורש עבור כל חברי הקבוצה',unanswered:'לא נענתה השאלה (לא ניתנה הסכמה)',decline:'לא — רק שפת ההדרכה המבוקשת',declined:'לא אושרה; רק שפת ההדרכה המבוקשת',unknownManual:'לא נבחרה תשובה לגבי אנגלית כחלופה. הפנייה לא נשלחה למערכת ההזמנות. אפשר לפנות ב־WhatsApp ולשלוח את ההודעה בעצמכם.',
       contact:'יש להזין אימייל או מספר טלפון.',advance:'יש לבחור מועד יציאה לפי שעון בודפשט, לפחות שעה מהעכשיו.',dst:'השעה המקומית שבחרתם אינה קיימת או מופיעה פעמיים בשל מעבר שעון בבודפשט. בחרו שעה אחרת.',
       horizon:'יש לבחור תאריך ושעה בטווח של 180 הימים הקרובים, לפי שעון בודפשט.',
       submit:'בקשת זמינות',note:'ננסה לשלוח את הפנייה באופן מאובטח. אם קליטת הפניות אינה פעילה, ייפתח WhatsApp עם הודעה מוכנה שתצטרכו לשלוח בעצמכם. רק מספר פנייה שיוצג כאן מעיד על קליטה, ואינו הזמנה.',
@@ -44,7 +44,7 @@
       type:'סיור',none:'בחרו שפה',invalid:'יש לבדוק את פרטי הטופס לפני ההמשך.'},
     hu:{title:'Túraigénylés',intro:'Írd meg a budapesti csapatnak, mikor szeretnél indulni. Ez érdeklődés, nem visszaigazolt foglalás.',
       date:'Kívánt dátum',time:'Kívánt indulási idő',riders:'Önálló vezetők',language:'Kért idegenvezetési nyelv',
-      name:'Kapcsolattartó neve',email:'E-mail',phone:'Telefon vagy WhatsApp',english:'Ha a kért idegenvezetési nyelv nem érhető el, az angol az egész csoportunknak megfelelő.',whatsappEnglish:'Angol mint alternatíva',yes:'Kifejezetten elfogadva az egész csoport számára',unanswered:'Nincs válasz (nincs rögzített beleegyezés)',
+      name:'Kapcsolattartó neve',email:'E-mail',phone:'Telefon vagy WhatsApp',english:'Ha a kért idegenvezetési nyelv nem érhető el, az angol az egész csoportunknak megfelelő.',whatsappEnglish:'Angol mint alternatíva',yes:'Kifejezetten elfogadva az egész csoport számára',unanswered:'Nincs válasz (nincs rögzített beleegyezés)',decline:'Nem — csak a kért idegenvezetési nyelv',declined:'Nem elfogadott; kizárólag a kért nyelv',unknownManual:'Az angol alternatívára nem érkezett válasz. A kérést nem küldtük el a foglalási rendszerbe. Írj nekünk WhatsAppon, és küldd el magad az üzenetet.',
       contact:'Adj meg e-mail-címet vagy telefonszámot.',advance:'Válassz legalább egy órával későbbi indulási időpontot budapesti idő szerint.',dst:'A kiválasztott helyi időpont nem létezik, vagy kétszer fordul elő az óraátállításkor Budapesten. Válassz másik időpontot.',
       horizon:'Válassz indulási dátumot és időpontot a következő 180 napon belül, budapesti idő szerint.',
       submit:'Elérhetőség kérése',note:'Megpróbáljuk biztonságosan elküldeni a kérést. Ha a fogadása nem aktív, a WhatsApp nyílik meg előre kitöltött üzenettel, amelyet neked kell elküldened. Csak az itt megjelenő hivatkozási szám jelzi a fogadást, ez nem foglalás.',
@@ -98,7 +98,8 @@
     '<label>'+labels.name+'<input name="contact_name" type="text" required maxlength="200" autocomplete="name"></label>'+
     '<label>'+labels.email+'<input name="contact_email" type="email" maxlength="254" autocomplete="email"></label>'+
     '<label>'+labels.phone+'<input name="contact_phone" type="tel" maxlength="40" autocomplete="tel"></label>'+
-    '</div><label class="voy-rtb-checkbox"><input type="checkbox" name="english_alternative_accepted" value="yes"><span>'+labels.english+'</span></label>'+
+    '</div><label class="voy-rtb-checkbox"><input type="checkbox" name="english_alternative_accepted" value="yes"><span>'+labels.english+'</span></label>'+ 
+    '<button class="voy-rtb-decline" type="button" data-rtb-english-decline aria-pressed="false" disabled hidden>'+labels.decline+'</button>'+
     '<p class="voy-rtb-feedback" role="status" aria-live="polite"></p>'+
     '<button class="btn alt" type="submit">'+labels.submit+'</button>'+
     '<p class="voy-rtb-explanation">'+labels.note+'</p>';
@@ -110,8 +111,9 @@
     requestedGuideLanguage:String(data.get('requested_guide_language')||'').trim().toLowerCase(),
     // English is already the primary request in this case; it cannot be a
     // second, explicitly consented alternative to itself.
-    englishAlternativeAccepted:data.get('requested_guide_language')!=='en'&&
-      data.get('english_alternative_accepted')==='yes',
+    englishAlternativeAccepted:data.get('requested_guide_language')==='en'?false:
+      data.get('english_alternative_accepted')==='yes'?true:
+        englishDecline.getAttribute('aria-pressed')==='true'?false:null,
     partySize:Number(data.get('party_size')||0),
     contactName:String(data.get('contact_name')||'').trim(),
     email:String(data.get('contact_email')||'').trim(),
@@ -153,12 +155,28 @@
   const languageField=form.querySelector('[name="requested_guide_language"]');
   const englishChoice=form.querySelector('[name="english_alternative_accepted"]');
   const englishChoiceRow=englishChoice.closest('.voy-rtb-checkbox');
+  const englishDecline=form.querySelector('[data-rtb-english-decline]');
   const updateEnglishAlternative=()=>{
-    // A previously accepted English fallback must never carry across a
-    // changed primary guiding-language choice without renewed guest consent.
+    // A previously accepted/declined alternative is scoped to the *selected*
+    // primary guiding language and cannot survive any change of that request.
     englishChoice.checked=false;
-    englishChoiceRow.hidden=!languageField.value||languageField.value==='en';
+    englishDecline.setAttribute('aria-pressed','false');
+    const show=Boolean(languageField.value&&languageField.value!=='en');
+    englishChoiceRow.hidden=!show;
+    englishChoice.disabled=!show;
+    englishDecline.hidden=!show;
+    englishDecline.disabled=!show;
   };
+  englishChoice.addEventListener('change',()=>{
+    if(englishChoice.checked)englishDecline.setAttribute('aria-pressed','false');
+  });
+  englishDecline.addEventListener('click',()=>{
+    if(englishDecline.disabled)return;
+    const next=englishDecline.getAttribute('aria-pressed')!=='true';
+    englishDecline.setAttribute('aria-pressed',String(next));
+    if(next)englishChoice.checked=false;
+    form.dispatchEvent(new Event('change',{bubbles:true}));
+  });
   languageField.addEventListener('change',updateEnglishAlternative);
   updateEnglishAlternative();
   const dateField=form.querySelector('[name="requested_date"]');
@@ -242,7 +260,9 @@
       labels.riders+': '+draft.partySize,
       labels.language+': '+(guideNames[locale]?.[draft.requestedGuideLanguage]||draft.requestedGuideLanguage),
       ...(draft.requestedGuideLanguage!=='en'
-        ?[labels.whatsappEnglish+': '+(draft.englishAlternativeAccepted?labels.yes:labels.unanswered)]
+        ?[labels.whatsappEnglish+': '+
+          (draft.englishAlternativeAccepted===true?labels.yes:
+            draft.englishAlternativeAccepted===false?labels.declined:labels.unanswered)]
         :[]),
       labels.name+': '+draft.contactName
     ];
@@ -259,6 +279,14 @@
       link.className='btn secondary';
       feedback.insertAdjacentElement('afterend',link);
     };
+    // The deployed relay/FBM contract requires an explicit Boolean. Unknown
+    // is NOT an implicit "no"; offer a manual WhatsApp handoff without POST,
+    // UUID, or an invented CRM/booking receipt until tri-state API is agreed.
+    if(draft.requestedGuideLanguage!=='en'&&draft.englishAlternativeAccepted===null){
+      feedback.textContent=labels.unknownManual;
+      manualLink();
+      return;
+    }
     // One immutable request key per exact submission. A 503, timeout or
     // lost acknowledgement retains both key AND payload on retry.
     const fingerprint=JSON.stringify(draft);

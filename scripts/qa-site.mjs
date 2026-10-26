@@ -132,7 +132,7 @@ if(!/Disallow:\s*\//i.test(robots)) errors.push('robots.txt: staging crawl block
 
 const js=read(path.join(site,'assets','site.js'));
 const rtb=read(path.join(site,'assets','rtb-request.js'));
-if(!js.includes("loader.src='/assets/rtb-request.js?v=20261023r10'"))
+if(!js.includes("loader.src='/assets/rtb-request.js?v=20261026r11'"))
   fail('assets/site.js','special-tour request module must load the reviewed RTB asset version (cache-safe)');
 for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour','buda-margaret-extended-tour']){
   if(!rtb.includes(slug))fail('assets/rtb-request.js','missing request route '+slug);
@@ -142,13 +142,18 @@ for(const marker of ['requestedGuideLanguage','englishAlternativeAccepted','Euro
 }
 for(const marker of ["languageField.addEventListener('change',updateEnglishAlternative)",
   "englishChoice.checked=false",
-  "englishChoiceRow.hidden=!languageField.value||languageField.value==='en'",
-  "data.get('requested_guide_language')!=='en'"]){
+  "englishChoiceRow.hidden=!show",
+  "englishDecline.setAttribute('aria-pressed','false')",
+  "data.get('requested_guide_language')==='en'?false:",
+  "draft.englishAlternativeAccepted===null",
+  "manualLink();"]){
   if(!rtb.includes(marker))fail('assets/rtb-request.js',
     'English fallback opt-in must be reset when requested guiding language changes: '+marker);
 }
 if(!read(path.join(site,'assets','site.css')).includes('.voy-rtb-checkbox[hidden]{display:none!important}'))
   fail('assets/site.css','hidden English alternative must remain invisible despite flex layout');
+if(!rtb.includes('[data-rtb-english-decline]')||!rtb.includes("englishAlternativeAccepted:data.get('requested_guide_language')==='en'?false:"))
+  fail('assets/rtb-request.js','Unknown English consent must never serialize as false through Boolean-only relay');
 if(/x-fbm-intake-secret|FBM_REQUEST_TO_BOOK_INTAKE_SECRET|ezraider-os-staging\.vercel\.app|https:\/\/.*\/api\/request-to-book/.test(rtb))
   fail('assets/rtb-request.js','client must never expose private FBM credentials or call an upstream host');
 if(/fetch\((?!['"]\/api\/request-to-book['"])/.test(rtb))

@@ -350,21 +350,31 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       const language=enquiry.locator('select[name="requested_guide_language"]');
       const fallback=enquiry.locator('input[name="english_alternative_accepted"]');
       const row=enquiry.locator('.voy-rtb-checkbox');
-      check(await language.count()===1&&await fallback.count()===1,
-        name+' has a requested guiding language and optional English question');
+      const decline=enquiry.locator('[data-rtb-english-decline]');
+      check(await language.count()===1&&await fallback.count()===1&&await decline.count()===1,
+        name+' has requested guiding language plus yes/no/unknown English alternative');
       check(!(await fallback.isChecked())&&!(await row.isVisible()),
         name+' English fallback is initially unanswered and hidden');
       await language.selectOption('he');
-      check(await row.isVisible(),name+' non-English primary reveals optional English');
+      check(await row.isVisible()&&await decline.isVisible()&&
+        await decline.getAttribute('aria-pressed')==='false',
+        name+' non-English primary reveals unknown, explicit yes and no');
+      await decline.click();
+      check(await decline.getAttribute('aria-pressed')==='true'&&!(await fallback.isChecked()),
+        name+' customer can explicitly decline English');
       await fallback.check();
-      check(await fallback.isChecked(),name+' affirmative fallback can be explicitly chosen');
+      check(await fallback.isChecked()&&await decline.getAttribute('aria-pressed')==='false',
+        name+' accepting English clears explicit refusal');
       await language.selectOption('hu');
-      check(!(await fallback.isChecked())&&await row.isVisible(),
-        name+' changing to Hungarian clears old Hebrew fallback consent');
-      await fallback.check();
+      check(!(await fallback.isChecked())&&await decline.getAttribute('aria-pressed')==='false'&&
+        await row.isVisible(),name+' primary-language change clears consent');
+      await decline.click();
+      await decline.click();
+      check(await decline.getAttribute('aria-pressed')==='false'&&!(await fallback.isChecked()),
+        name+' guest can return to unknown without falsely declining');
       await language.selectOption('en');
-      check(!(await fallback.isChecked())&&!(await row.isVisible()),
-        name+' choosing English as primary clears and hides redundant fallback');
+      check(!(await fallback.isChecked())&&!(await row.isVisible())&&
+        !(await decline.isVisible()),name+' English primary hides alternative choices');
       const required=await enquiry.locator('[name="requested_date"],[name="requested_time"],[name="party_size"],[name="contact_name"]').count();
       check(required===4,name+' includes mandatory date/time/riders/contact details');
     }

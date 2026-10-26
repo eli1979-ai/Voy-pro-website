@@ -5,7 +5,7 @@ import vm from 'node:vm';
 const source=readFileSync('site/assets/rtb-request.js','utf8');
 const defaultPath='/he/budapest/tours/heroes-square-city-ezraider-tour/';
 
-function browser(fetcher,pagePath=defaultPath,clock=Date){
+function browser(fetcher,pagePath=defaultPath,clock=Date,{explicitNo=true}={}){
   const nodes=[];
   const locations=[];
   const requests=[];
@@ -15,7 +15,7 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
   const make=(tag)=>{
     const node={
       tag,children:[],dataset:{},textContent:'',hidden:false,disabled:false,
-      value:'',checked:false,classes:new Set(),listeners:{},
+      value:'',checked:false,attrs:{},classes:new Set(),listeners:{},
       classList:{
         add(name){node.classes.add(name);},
         remove(name){node.classes.delete(name);}
@@ -25,7 +25,9 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
         assert.equal(where,'afterend');
         if(other.dataset.rtbManual!==undefined)statuses.manual=other;
       },
-      setAttribute(){},
+      setAttribute(name,value){node.attrs[name]=String(value);},
+      getAttribute(name){return node.attrs[name]??null;},
+      dispatchEvent(event){node.listeners[event.type]?.forEach(fn=>fn(event));},
       addEventListener(type,handler){(node.listeners[type]??=[]).push(handler);},
       reportValidity(){return true;},
       closest(selector){return selector==='.voy-rtb-checkbox'?created.get('row'):null;},
@@ -62,6 +64,7 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
         const register=(selector,ele)=>{created.set(selector,ele);return ele;};
         register('[name="requested_guide_language"]',make('select'));
         register('[name="english_alternative_accepted"]',make('checkbox'));
+        register('[data-rtb-english-decline]',make('button'));
         register('[name="requested_date"]',make('input'));
         for(const name of ['requested_time','party_size','contact_name','contact_email','contact_phone'])
           register('[name="'+name+'"]',make('input'));
@@ -85,24 +88,36 @@ function browser(fetcher,pagePath=defaultPath,clock=Date){
     }},
     crypto:{randomUUID(){uuidCount++;return '11111111-1111-4111-8111-'+String(uuidCount).padStart(12,'0');}},
     fetch:async(url,init)=>{requests.push({url,init});return fetcher(url,init);},
-    Intl,Date:clock,URL,AbortSignal,console
+    Intl,Date:clock,URL,AbortSignal,console,Event:class{constructor(type){this.type=type;}}
   };
   ctx.globalThis=ctx;
   vm.runInNewContext(source,ctx,{filename:'site/assets/rtb-request.js'});
   const form=nodes.find(x=>x.tag==='form');
   assert.ok(form,'the Budapest request form must be attached');
+  const declined=created.get('[data-rtb-english-decline]');
+  function markExplicitNo(){
+    if(declined.disabled||declined.getAttribute('aria-pressed')==='true')return;
+    declined.listeners.click?.forEach(fn=>fn({}));
+  }
   const set=(key,value)=>{formData[key]=value;
     if(key==='requested_guide_language'){
       created.get('[name="requested_guide_language"]').value=value;
       created.get('[name="requested_guide_language"]').listeners.change?.forEach(fn=>fn({}));
+      // Most historical fixture scenarios represent a guest who explicitly
+      // refuses English, not an unanswered question. The separate no-answer
+      // test below opts out; production never auto-chooses No.
+      if(value!=='en'&&explicitNo)markExplicitNo();
     }else if(key==='english_alternative_accepted'){
-      created.get('[name="english_alternative_accepted"]').checked=value==='yes';
+      const yes=created.get('[name="english_alternative_accepted"]');
+      yes.checked=value==='yes';
+      yes.listeners.change?.forEach(fn=>fn({}));
     }
     form.listeners.input?.forEach(fn=>fn({}));
     form.listeners.change?.forEach(fn=>fn({}));
   };
+  set('requested_guide_language','he');
   const submit=()=>form.listeners.submit[0]({preventDefault(){}});
-  return {form,submit,requests,locations,created,set,formData,statuses,get uuidCount(){return uuidCount}};
+  return {form,submit,requests,locations,created,set,declined,formData,statuses,get uuidCount(){return uuidCount}};
 }
 const payloadOf=b=>JSON.parse(b.requests.at(-1).init.body);
 const statusOf=b=>b.created.get('.voy-rtb-feedback').textContent;
@@ -544,14 +559,28 @@ for(const [pageSlug,apiSlug] of routeMatrix){
     const unanswered=localePrefix==='he/'?'לא נענתה השאלה (לא ניתנה הסכמה)'
       :localePrefix==='hu/'?'Nincs válasz (nincs rögzített beleegyezés)'
       :'Not answered (no acceptance recorded)';
+    const declined=localePrefix==='he/'?'לא אושרה; רק שפת ההדרכה המבוקשת'
+      :localePrefix==='hu/'?'Nem elfogadott; kizárólag a kért nyelv'
+      :'Not accepted; requested language only';
     const affirmed=localePrefix==='he/'?'אושרה במפורש עבור כל חברי הקבוצה'
       :localePrefix==='hu/'?'Kifejezetten elfogadva az egész csoport számára'
       :'Explicitly accepted for everyone in the group';
     assert.ok(message.includes(requestSpanish),pagePath+' manual message must show a localized guiding-language name, not "es"');
-    assert.ok(message.includes(englishFallback+': '+unanswered),
-      pagePath+' unchecked question must remain unanswered, not be presented as an explicit refusal');
-    assert.ok(!message.includes(englishFallback+': no'),
-      pagePath+' must not conflate unknown consent with an explicit No');
+    assert.ok(message.includes(englishFallback+': '+declined),
+      pagePath+' explicitly declined English must be conveyed as No, not unknown');
+    const unknown=browser(async()=>({status:404}),pagePath,Date,{explicitNo:false});
+    unknown.set('requested_guide_language','es');
+    await unknown.submit();
+    assert.equal(unknown.requests.length,0,
+      pagePath+' an unanswered alternative must never be submitted as a false consent to the Boolean-only relay');
+    assert.equal(unknown.uuidCount,0,
+      pagePath+' unknown alternative must not allocate a CRM idempotency key');
+    assert.equal(unknown.locations.length,0,
+      pagePath+' unknown alternative leaves WhatsApp sending under explicit guest control');
+    assert.ok(unknown.statuses.manual?.href.startsWith('https://wa.me/'),
+      pagePath+' unknown alternative offers a guest-clicked manual link');
+    assert.ok(new URL(unknown.statuses.manual.href).searchParams.get('text').includes(englishFallback+': '+unanswered),
+      pagePath+' unknown alternative must be labeled unanswered, never No');
     const accepted=browser(async()=>({status:404}),pagePath);
     accepted.set('requested_guide_language','es');
     accepted.set('english_alternative_accepted','yes');
