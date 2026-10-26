@@ -5,6 +5,9 @@ on:
     paths:
       - 'scripts/qa-public-live-browser.mjs'
       - 'scripts/qa-public-live-interactions.mjs'
+      - 'site/assets/budapest-review-ticker.js'
+      - 'site/assets/budapest-review-ticker.css'
+      - 'site/assets/budapest-approved-reviews.json'
       - '.github/workflows/public-live-browser-qa.yml'
       - 'site/sitemap.xml'
   workflow_dispatch:
