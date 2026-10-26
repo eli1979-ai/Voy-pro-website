@@ -1455,9 +1455,11 @@
       const valid=experience&&experience.bookingEnabled!==false&&
         select&&hasOption(select,experience.id)&&date&&language&&
         guideLanguagesForProduct(experience).includes(code)&&
-        validDate&&choices.every(([field,value])=>Number.isSafeInteger(value)&&
+        validDate&&counts.riders_16_plus>=1&&
+        choices.every(([field,value])=>Number.isSafeInteger(value)&&
           value>=0&&hasOption(field,value))&&
-        validateGroupComposition(form,counts).valid&&
+        // validateGroupComposition checks the FORM's current selected values.
+        // It is only meaningful after restore, not against the pre-restore UI.
         (!state.is_private||Boolean(experience.privateAllowed)&&
           counts.riders_16_plus>=Number(experience.privateMinRiders));
       if(!valid){delStore('voy_recovery_state');shell.hidden=true;return;}
