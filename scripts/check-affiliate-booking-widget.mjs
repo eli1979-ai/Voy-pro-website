@@ -51,7 +51,7 @@ class Element {
   focus(){this.focused=true;}
   scrollIntoView(){}
 }
-function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER'}={}){
+function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -90,6 +90,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     '/api/v1/payments/capabilities':{online_card:onlinePayment,provider:onlinePayment?'stripe':null},
   };
   let held=false;
+  let heldPrivate=false;
   let acceptedQuote=null;
   let expires=new Date(Date.now()+15*60*1000).toISOString();
   const responseFor=(key,payload)=>{
@@ -139,6 +140,10 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     }
     if(key==='/api/v1/bookings')return {
       reference:'VOY-MOCK-BOOKING',status:bookingStatus,manage_token:'not-a-real-token',
+      experience_id:'exp_bud_buda',selected_date:budapestToday(),
+      group_composition:{riders_16_plus:2,child_passengers_3_15:0,baby_passengers_1_2:0},
+      is_private:heldPrivate,
+      ...(bookingSelectionOverride||{}),
       guide_language:bookingGuideLanguage,
       total:acceptedQuote?.total,discount:acceptedQuote?.discount,
       currency:acceptedQuote?.currency,promo_code_applied:payload.promo_code,
@@ -156,7 +161,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
     calls.push({key,payload,options});
     if(options?.method==='DELETE'){held=false;return {ok:true,status:204,json:async()=>null};}
     const result=requests[key]||responseFor(key,payload);
-    if(key==='/api/v1/holds'&&payload)held=true;
+    if(key==='/api/v1/holds'&&payload){held=true;heldPrivate=payload.is_private;}
     return {ok:true,status:payload?201:200,json:async()=>result};
   };
   const document={
@@ -391,6 +396,41 @@ async function flush(){
   assert.match(app.elements['#status'].textContent,/not attributed/i);
 }
 
+// A superficially valid booking response must reflect the product/date/group
+// the customer selected, not a different FBM record with a matching total.
+const changedSelections=[
+  {experience_id:'exp_bud_margaret'},
+  {selected_date:'2026-11-30'},
+  {group_composition:{riders_16_plus:1,child_passengers_3_15:0,baby_passengers_1_2:0}},
+  {group_composition:{riders_16_plus:2,child_passengers_3_15:1,baby_passengers_1_2:0}},
+  {group_composition:null},
+  {is_private:true},
+  {is_private:null},
+];
+for(const bookingSelectionOverride of changedSelections){
+  const app=mount({bookingSelectionOverride});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  const receipt=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+  assert.match(receipt,/Booking selection needs verification/,
+    'Unexpected booking identity must be held for staff review');
+  assert.match(receipt,/Booking reference: VOY-MOCK-BOOKING/,
+    'Preserve the original FBM reference');
+  assert.doesNotMatch(receipt,/Your booking has been received/,
+    'Do not claim wrong tour, date or group was successfully booked');
+  assert.match(app.elements['#status'].textContent,/Do not submit again/,
+    'No new commercial request after an unexpected server identity');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Do not leave a second booking form open');
+  assert.equal(app.calls.filter(c=>c.key==='/api/v1/bookings').length,1,
+    'No duplicate booking request');
+  assert(!app.calls.some(c=>c.options.method==='DELETE'),
+    'Do not release a hold that may already have been converted');
+}
 // Online Stripe redirects must carry the exact quoted amount/currency
 // and a verifiable booking identity. The simulated URLs are never opened.
 for(const badPaymentReply of ['wrong-total','wrong-currency','untrusted-host',
