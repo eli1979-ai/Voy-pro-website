@@ -130,6 +130,11 @@ async function scenario(locale,path){
     const essential=page.locator('[data-consent-essential]');
     if(await essential.isVisible().catch(()=>false))await essential.click();
     const form=page.locator('#availability-form');
+    const message=page.locator('#availability-status');
+    ok(await message.getAttribute('role')==='status'&&
+      await message.getAttribute('aria-live')==='polite'&&
+      await message.getAttribute('aria-atomic')==='true',
+      'deployed availability messages are announced by assistive technologies');
     const experience=form.locator('[name="experience"]');
     await experience.locator('option[value="exp_bud_buda"]').waitFor({state:'attached',timeout:9500});
     ok(await experience.inputValue()==='exp_bud_buda','public build hydrates mocked authorized Buda catalog');
@@ -187,13 +192,19 @@ async function scenario(locale,path){
     phase='delayed-slots';
     await submit.click();
     const finishOldSuccess=await waitForDelayedAvailability();
+    ok(await page.locator('#slotlist').getAttribute('aria-busy')==='true',
+      'deployed UI shows a busy results region while availability is pending');
     await guide.selectOption(locale==='en'?'hu':'en');
+    ok(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      'changing guide language clears stale search progress immediately');
     ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
       'changing guide language announces invalidation while previous response is pending');
     finishOldSuccess();
     await pause(220);
     ok(await page.locator('#slotlist button').count()===0,
       'late sellable availability cannot restore slots for an obsolete language');
+    ok(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      'late availability success cannot reactivate stale progress indicator');
     ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
       'late success cannot overwrite the current-language selection notice');
 
@@ -203,13 +214,19 @@ async function scenario(locale,path){
     phase='delayed-error';
     await submit.click();
     const finishOldError=await waitForDelayedAvailability();
+    ok(await page.locator('#slotlist').getAttribute('aria-busy')==='true',
+      'second availability request has independent live progress state');
     await form.locator('select[name="adults"]').selectOption('3');
+    ok(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      'changing group size clears prior pending search indicator');
     ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
       'changing group size invalidates an in-flight departure search');
     finishOldError();
     await pause(220);
     ok(await page.locator('#slotlist button').count()===0,
       'late availability error cannot reveal stale bookable slots');
+    ok(await page.locator('#slotlist').getAttribute('aria-busy')===null,
+      'late availability error cannot restore the obsolete search indicator');
     ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
       'late backend error cannot replace the current group-selection notice');
 
