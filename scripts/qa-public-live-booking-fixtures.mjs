@@ -44,6 +44,13 @@ async function scenario(locale,path){
   });
   let phase='empty';
   let unauthorizedCalls=0;
+  const pendingAvailabilityReplies=[];
+  const waitForDelayedAvailability=async()=>{
+    const deadline=Date.now()+5000;
+    while(!pendingAvailabilityReplies.length&&Date.now()<deadline)await pause(25);
+    assert.ok(pendingAvailabilityReplies.length,'Browser did not initiate delayed availability request');
+    return pendingAvailabilityReplies.shift();
+  };
   const page=await context.newPage();
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
@@ -94,8 +101,16 @@ async function scenario(locale,path){
       ['POST','PATCH'].includes(request.method()))
       data={ok:true};
     else if(/^\/experiences\/[^/]+\/availability$/.test(endpoint)&&request.method()==='GET'){
-      if(phase==='error'){status=503;data={error:'fixture unavailable',code:'AVAILABILITY_UNAVAILABLE'};}
-      else if(phase==='slots')data={slots:[
+      // Capture the reply mode before waiting. The guest may change a choice
+      // while this exact HTTP response is pending, but the response must
+      // retain the *old* request's outcome to simulate a real late server.
+      const requestedPhase=phase;
+      if(requestedPhase==='delayed-slots'||requestedPhase==='delayed-error'){
+        await new Promise(resolve=>{pendingAvailabilityReplies.push(resolve);});
+      }
+      if(requestedPhase==='error'||requestedPhase==='delayed-error'){
+        status=503;data={error:'fixture unavailable',code:'AVAILABILITY_UNAVAILABLE'};
+      }else if(requestedPhase==='slots'||requestedPhase==='delayed-slots')data={slots:[
         {id:'11111111-1111-4111-8111-111111111111',time:'10:00',sellable:false,requestable:false},
         {id:'22222222-2222-4222-8222-222222222222',time:'10:30',sellable:true,requestable:false}
       ]};
@@ -163,6 +178,41 @@ async function scenario(locale,path){
     await guide.selectOption(locale==='en'?'he':'en');
     ok(await page.locator('#slotlist button').count()===0,
       'changing requested language invalidates displayed slots');
+
+    // Regression guard: a slow SUCCESS for an earlier requested guide
+    // language must never restore bookable buttons after the guest changes it.
+    const changedLabel=locale==='he'?'הבחירה השתנתה'
+      :locale==='hu'?'A kiválasztás megváltozott':'Selection changed';
+    await guide.selectOption(locale);
+    phase='delayed-slots';
+    await submit.click();
+    const finishOldSuccess=await waitForDelayedAvailability();
+    await guide.selectOption(locale==='en'?'hu':'en');
+    ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
+      'changing guide language announces invalidation while previous response is pending');
+    finishOldSuccess();
+    await pause(220);
+    ok(await page.locator('#slotlist button').count()===0,
+      'late sellable availability cannot restore slots for an obsolete language');
+    ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
+      'late success cannot overwrite the current-language selection notice');
+
+    // Same race with an upstream ERROR: a failed, outdated search must not
+    // replace the new selection's notice with a misleading server failure.
+    await guide.selectOption(locale);
+    phase='delayed-error';
+    await submit.click();
+    const finishOldError=await waitForDelayedAvailability();
+    await form.locator('select[name="adults"]').selectOption('3');
+    ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
+      'changing group size invalidates an in-flight departure search');
+    finishOldError();
+    await pause(220);
+    ok(await page.locator('#slotlist button').count()===0,
+      'late availability error cannot reveal stale bookable slots');
+    ok((await page.locator('#availability-status').innerText()).includes(changedLabel),
+      'late backend error cannot replace the current group-selection notice');
+
     ok(unauthorizedCalls===0,'no unexpected backend operations attempted');
     ok(errors.length===0,'no uncaught public browser JS errors');
     await form.screenshot({path:join(OUT,'public-booking-'+locale+'.png'),animations:'disabled'});
@@ -172,6 +222,9 @@ async function scenario(locale,path){
     console.error('FAIL '+locale+' '+row.error);
     await page.screenshot({path:join(OUT,'failed-'+locale+'.png'),timeout:6000}).catch(()=>{});
   }finally{
+    // If a scenario fails before its fake upstream is released, unblock every
+    // pending in-browser response so Playwright closes cleanly (no live API).
+    pendingAvailabilityReplies.splice(0).forEach(release=>release());
     await context.close();
     results.push(row);
     if(row.passed)console.log('PASS public deployed booking with fixture '+locale+' ('+row.checks.length+' checks)');
