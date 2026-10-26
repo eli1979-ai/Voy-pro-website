@@ -140,7 +140,7 @@ for(const [locale,path] of [
 for(const [locale,path] of [
   ['EN','/budapest/'],['HE','/he/budapest/'],['HU','/hu/budapest/']
 ]){
-  await scenario('reviews '+locale,path,{width:390,reducedMotion:'no-preference'},async(page,ok)=>{
+  await scenario('reviews '+locale,path,{width:390,reducedMotion:'no-preference'},async(page,ok,result)=>{
     const root=page.locator('[data-vp-reviews-root]');
     await page.waitForFunction(()=>document.querySelectorAll('[data-vp-reviews-root] .vp-review-card').length===60,
       null,{timeout:6500});
