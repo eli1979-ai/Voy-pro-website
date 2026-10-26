@@ -972,7 +972,7 @@
 
   let pendingSessionCreation=null;
   async function createSession(stage, extra={}){
-    if(!bookingEnabled)return null;
+    if(!bookingEnabled) return null;
     try{
       const existing=getStore('voy_session_id');
       if(existing){await patchSession({stage,...extra});return {id:existing};}
