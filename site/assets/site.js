@@ -1052,8 +1052,12 @@
   }));
 
   const productCache={bySlug:{},byId:{}};
+  // The Request-to-Book enhancer is the ONLY authoritative request form for
+  // these nine tours. Do not render the deprecated WhatsApp builder even
+  // momentarily while the deferred RTB script is loading (or if it fails).
+  const requestOnlyTourRoute=/^\/(?:he\/|hu\/)?budapest\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/?$/.test(location.pathname);
   function ensureSpecialRequestBuilder(){
-    if(document.body.dataset.intent!=='extended'||document.querySelector('[data-special-request-builder]')) return;
+    if(requestOnlyTourRoute||document.body.dataset.intent!=='extended'||document.querySelector('[data-special-request-builder]')) return;
     const panel=document.querySelector('.special-request-panel');if(!panel)return;
     panel.classList.add('has-builder');
     const form=document.createElement('form');form.className='special-request-builder';form.dataset.specialRequestBuilder='';
@@ -1084,7 +1088,7 @@
   ensureSpecialRequestBuilder();
   // Budapest request-only pilot: language preference and explicit English
   // alternative consent are collected without exposing a private server key.
-  if(/^\/(?:he\/|hu\/)?budapest\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/?$/.test(location.pathname)){
+  if(requestOnlyTourRoute){
     const loader=document.createElement('script');
     loader.src='/assets/rtb-request.js?v=20261026r11';
     loader.defer=true;

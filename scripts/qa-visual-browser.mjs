@@ -66,6 +66,19 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
     }catch{}
     return route.abort();
   });
+  if(rtb)await page.addInitScript(()=>{
+    // Detect even a transient legacy form: an assertion after page load alone
+    // would miss it because the deferred RTB enhancer later removes it.
+    window.__legacyRtbFormInsertions=0;
+    new MutationObserver(records=>{
+      for(const record of records)for(const node of record.addedNodes){
+        if(node.nodeType!==1)continue;
+        if(node.matches?.('[data-special-request-builder]')||
+          node.querySelector?.('[data-special-request-builder]'))
+          window.__legacyRtbFormInsertions++;
+      }
+    }).observe(document,{childList:true,subtree:true});
+  });
   try{
     const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
     check(response?.status()===200,name+' HTTP 200');
@@ -347,6 +360,9 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       const enquiry=page.locator('main form.voy-rtb-enquiry');
       await enquiry.waitFor({state:'visible',timeout:8000});
       check(await enquiry.count()===1,name+' has exactly one enhanced Request-to-Book enquiry');
+      check(await page.evaluate(()=>window.__legacyRtbFormInsertions===0)&&
+        await page.locator('[data-special-request-builder]').count()===0,
+        name+' never renders even a transient deprecated WhatsApp form');
       const language=enquiry.locator('select[name="requested_guide_language"]');
       const fallback=enquiry.locator('input[name="english_alternative_accepted"]');
       const row=enquiry.locator('.voy-rtb-checkbox');
