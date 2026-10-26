@@ -359,6 +359,66 @@ for(const [locale,path,copy] of [
       result.notes.push('No real WhatsApp contact, booking or payment attempted.');
     });
 }
+// Test a valid Marvão enquiry all the way to its *attempted* WhatsApp
+// navigation, with browser fetches intercepted in-memory. The global route
+// guard aborts wa.me before any external network request is sent, and this
+// scenario never opens or sends an actual WhatsApp chat/message.
+for(const [locale,path,routeName,dateLabel] of [
+  ['EN','/portugal/','Vila de Marvão Express Tour','Preferred date'],
+  ['PT','/pt/portugal/','Vila de Marvão Express Tour','Data preferida'],
+  ['HE','/he/portugal/','Vila de Marvão Express Tour','תאריך מועדף']
+]){
+  await scenario('Marvao valid WhatsApp handoff '+locale,path,{width:390},
+    async(page,ok,result,outbounds)=>{
+      const form=page.locator('#request [data-portugal-request-form]');
+      await form.waitFor({state:'visible',timeout:6000});
+      // A best-effort session write may normally be attempted, but must not
+      // gate a customer's chat. Stall every in-page fetch before entering any
+      // fake information: no fetch can touch a backend in this scenario.
+      await page.evaluate(()=>{
+        window.fetch=()=>new Promise(()=>{});
+      });
+      const dateField=form.locator('[name="date"]');
+      const min=await dateField.getAttribute('min');
+      ok(/^\d{4}-\d{2}-\d{2}$/.test(min||''),
+        'actual deployed page exposes Portugal-local request date minimum');
+      const future=new Date(Date.parse(min+'T12:00:00Z')+3*86400000)
+        .toISOString().slice(0,10);
+      await form.locator('[name="route"]').selectOption('express');
+      await dateField.fill(future);
+      await form.locator('[name="people"]').selectOption('4');
+      await form.locator('[name="guide_language"]').selectOption('en');
+      await form.locator('[name="full_name"]').fill('Synthetic QA Guest');
+      await form.locator('[name="notes"]').fill('QA synthetic group, do not send');
+      const request=page.waitForRequest(req=>
+        req.url().startsWith('https://wa.me/351935695004?text='),
+        {timeout:6500});
+      // Dispatch in a future browser task so the test has already returned
+      // before its JS context is destroyed by the attempted external nav.
+      await form.evaluate(el=>{
+        setTimeout(()=>el.dispatchEvent(
+          new Event('submit',{bubbles:true,cancelable:true})),0);
+      });
+      const outbound=await request;
+      const target=new URL(outbound.url());
+      ok(target.protocol==='https:'&&target.hostname==='wa.me'&&
+        target.pathname==='/351935695004',
+        'only the verified Marvao WhatsApp number is the external handoff');
+      const msg=target.searchParams.get('text')||'';
+      ok(msg.includes(routeName)&&msg.includes('Synthetic QA Guest')&&
+        msg.includes('QA synthetic group, do not send')&&
+        msg.includes('4')&&msg.includes(path),
+        'prepared WhatsApp text includes selected tour, party, name, notes and source locale');
+      ok(msg.includes(dateLabel+':')&&
+        (locale==='EN'?msg.includes(future):Boolean(msg.match(/\d{1,2}[./-]\d{1,2}[./-]\d{4}/))),
+        'correct localized date label and requested future date are preserved');
+      ok(!outbounds.some(x=>x.method!=='GET'),
+        'no real booking, backend session write or payment request was made');
+      ok(outbounds.some(x=>x.host==='wa.me'&&x.path==='/351935695004'),
+        'WhatsApp navigation was intercepted and explicitly blocked before network');
+      result.notes.push('Synthetic data only. Stalled in-page fetch; WhatsApp navigation aborted by global browser network guard. No message sent.');
+    });
+}
 // Booking preflight only: change group composition, never submit or create a hold.
 // All remote API requests remain blocked. Full mocked booking flow has its own CI suite.
 await scenario('Budapest booking composition preflight',
