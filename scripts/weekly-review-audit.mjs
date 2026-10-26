@@ -13,6 +13,7 @@ const platforms=[
 ];
 const datePattern=/^\d{4}-\d{2}-\d{2}$/;
 const day=24*60*60*1000;
+const FRESHNESS_DAYS=7; // A weekly check is due after seven full UTC days.
 const asDay=value=>{
   if(!datePattern.test(String(value||'')))throw Error('Missing source verification date');
   const parsed=Date.parse(value+'T00:00:00Z');
@@ -32,8 +33,10 @@ function render(reference=new Date()){
       key==='tripadvisor'?/(^|\.)tripadvisor\.(com|co\.uk|co\.il|ie)$/.test(host):
       host==='getyourguide.com'||host==='www.getyourguide.com';
     if(url.protocol!=='https:'||!trusted||url.username||url.password)throw Error('Invalid '+label+' source URL');
-    const days=Math.max(0,Math.floor((now-asDay(verified))/day));
-    rows.push({label,count,verified,days,sourceUrl});
+    const verifiedDay=asDay(verified);
+    if(verifiedDay>now)throw Error(label+': future verification date cannot be treated as fresh');
+    const days=Math.floor((now-verifiedDay)/day);
+    rows.push({label,count,verified,days,sourceUrl,due:days>=FRESHNESS_DAYS});
   }
   return [
     '<!-- voy-pro-budapest-weekly-reputation -->',
@@ -41,9 +44,13 @@ function render(reference=new Date()){
     '',
     '**Evidence checklist generated:** '+utcDate+' (UTC). This is a read-only task, not a freshly verified count.',
     '',
-    '| Platform | Last published count | Last verified | Age | Official verification link |',
-    '| --- | ---: | --- | ---: | --- |',
-    ...rows.map(r=>`| ${r.label} | ${r.count.toLocaleString('en-US')} | ${r.verified} | ${r.days} days | [Open listing](${r.sourceUrl}) |`),
+    '| Platform | Last published count | Last verified | Age | Verification needed | Official verification link |',
+    '| --- | ---: | --- | ---: | --- | --- |',
+    ...rows.map(r=>`| ${r.label} | ${r.count.toLocaleString('en-US')} | ${r.verified} | ${r.days} days | ${r.due?'DUE — source check required':'Within 7-day interval — not a live reading'} | [Open listing](${r.sourceUrl}) |`),
+    '',
+    '**Action:** '+(rows.some(r=>r.due)
+      ?rows.filter(r=>r.due).map(r=>r.label).join(', ')+' require fresh official-page verification; do not auto-update published counts.'
+      :'No source has reached the 7-day age threshold. This report still does **not** verify present review counts.'),
     '',
     '## Verification steps',
     '',
@@ -64,6 +71,13 @@ if(process.argv.includes('--test')){
   assert.ok(result.includes('dry-run')&&result.includes('unverified'));
   assert.ok(result.includes('voy-pro-budapest-weekly-reputation'));
   assert.equal((result.match(/\[Open listing\]/g)||[]).length,3);
+  assert.ok(result.includes('Within 7-day interval — not a live reading'),
+    'Recent stored counts are still not live counts');
+  const stale=render(new Date('2026-11-10T12:00:00Z'));
+  for(const {label} of platforms)assert.ok(stale.includes('| '+label+' |')&&stale.includes('DUE — source check required'));
+  assert.ok(stale.includes('require fresh official-page verification'));
+  assert.throws(()=>render(new Date('2026-10-20T12:00:00Z')),/future verification date/,
+    'The checklist must reject future-dated verification rather than report 0-day freshness');
   console.log('Budapest weekly review evidence report QA passed: three canonical sources, explicit provenance, safe no-update guardrails.');
 }else if(process.argv.length>2||process.argv.length===3)throw Error('Usage: weekly-review-audit.mjs [--test]');
 else process.stdout.write(render());
