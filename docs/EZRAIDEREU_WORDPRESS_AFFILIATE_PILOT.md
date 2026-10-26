@@ -10,7 +10,7 @@ This pilot uses the existing user-owned **EZRaidereu.com** WordPress website as 
 1. Website source ready: `site/assets/affiliate-booking-widget.js`; first-party documented API parameters in `docs/AFFILIATE_NATIVE_WIDGET.md`. The current widget is **English UI only**, Budapest products only, and selects requested guide language from the live FBM catalog. No implied acceptance of English as an alternative.
 2. Use a dedicated **test affiliate account, coupon and browser-public client** issued by FBM for the *test environment*. Validate that the specific coupon is affiliated to the intended test partner, not to an unrelated public campaign. Never hardcode any Supabase/Stripe/service-role token in WordPress.
 3. Determine the exact origin that the pilot browser actually sends — `https://EZRaidereu.com` and `https://www.EZRaidereu.com` are distinct allowed origins. FBM must authorize the exact test origin and bind browser client to its approved partner policy. Origin headers and public client keys alone are not proof of partner identity.
-4. Confirm the website script's intended distribution URL and immutable/reviewed code version. **Do not assume** the Vercel target label `production` inside the `voy-pro-staging` project means the separate Production environment is ready. Choose a verified Staging asset and FBM Staging endpoint, both owned/approved, before inserting any snippet.
+4. After `npm run build`, inspect the **generated** `dist/assets/affiliate-booking-widget-manifest.json`. It records the exact `public_path`, full SHA-256 and byte length of a content-addressed copy of the reviewed script. Confirm the same file is actually served by the intended approved Vercel deployment; **pin that precise path in WordPress**, not the mutable `/assets/affiliate-booking-widget.js` alias or a manifest fetched dynamically by browsers. The manifest is a build fingerprint, **not** approval to install, Stripe readiness, CORS acceptance, or an SRI header. **Do not assume** the Vercel target label `production` inside the `voy-pro-staging` project means the separate Production environment is ready. Choose a verified Staging asset and FBM Staging endpoint, both owned/approved, before inserting any snippet.
 5. Read-only WordPress reconnaissance when the pilot is authorized: identify theme/plugin script minification, cache/CDN, Content Security Policy, HTTPS redirects, whether the editor strips `<script>` tags, existing booking widgets and staging/preview capabilities. Do not change any of these in the preparation phase.
 
 ## Pilot installation — do **not** execute until the user approves
@@ -26,13 +26,13 @@ Create a **private, non-indexed WordPress test page**, with a single custom HTML
   data-affiliate="TEST_PARTNER_COUPON"
   data-api-root="https://APPROVED_FBM_STAGING_HOST"
   data-client-key="APPROVED_PUBLIC_STAGING_BROWSER_KEY"
-  src="https://APPROVED_REVIEWED_VOY_SCRIPT_HOST/assets/affiliate-booking-widget.js"
+  src="https://APPROVED_REVIEWED_VOY_SCRIPT_HOST/assets/affiliate-booking-widget.REVIEWED_SHA256_PREFIX.js"
 ></script>
 ```
 
 A WordPress editor may strip the script from an HTML block based on role/security policy; if so, use a separately reviewed theme-level injection on **that test page only**, without introducing an unapproved plugin. Do not expose a private client configuration in WordPress source; only the intentionally public-scoped test key may be embedded. Set `script-src` for the approved script origin and `connect-src` for the exact FBM API origin only if an existing CSP requires this and the policy owner approves it.
 
-WordPress caching, deferred-JS rewriting and cookie-consent optimization must not reorder/remove the target; review the *actual rendered HTML and Network requests* rather than trusting the editor view. One script per mount; duplicate scripts are handled defensively but are not recommended.
+The final script filename must be copied verbatim from the reviewed build manifest; do not hand-type the hash. An asset with a different hash is a different release requiring separate review. **Do not add a `script integrity=` attribute** without first verifying the script response's cross-origin CORS policy: browser SRI on cross-origin scripts has separate requirements. The SHA-256 manifest is an out-of-band review fingerprint, not browser-enforced Subresource Integrity. The script itself still accepts only an intentionally public partner-scoped browser key.\n\nWordPress caching, deferred-JS rewriting and cookie-consent optimization must not reorder/remove the target; review the *actual rendered HTML and Network requests* rather than trusting the editor view. One script per mount; duplicate scripts are handled defensively but are not recommended.
 
 ## Acceptance matrix (future owner-approved pilot)
 
