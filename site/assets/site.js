@@ -1426,17 +1426,64 @@
       e.preventDefault();
       const form=document.querySelector('#availability-form');if(!form)return;
       if(!productCache.byId[state.experience_id])await hydrateCatalog();
-      const experience=productCache.byId[state.experience_id];if(!experience){delStore('voy_recovery_state');shell.hidden=true;return;}
-      const select=form.querySelector('[name="experience"]');if(select){select.value=experience.id;select.dispatchEvent(new Event('change',{bubbles:true}));}
-      const date=form.querySelector('[name="date"]');if(date)date.value=state.date;
-      const adults=form.querySelector('[name="adults"]');if(adults)adults.value=String(state.composition.riders_16_plus||1);
-      const children=form.querySelector('[name="children"]');if(children)children.value=String(state.composition.child_passengers_3_15||0);
-      const babies=form.querySelector('[name="babies"]');if(babies)babies.value=String(state.composition.baby_passengers_1_2||0);
-      const language=form.querySelector('[name="guide_language"]');if(language&&state.guide_language)language.value=state.guide_language;
-      const mode=document.querySelector('[data-private-upgrade]');if(mode&&typeof mode._setBookingMode==='function')mode._setBookingMode(state.is_private?'private':'standard',{silent:true});
-      setSelectedTourHint(experience);updatePrivateUpgrade(experience);
-      const status=document.querySelector('#availability-status');if(status)status.textContent=t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.');
-      track('selection_recovery_restored',{experience_id:experience.id,date:state.date,is_private:Boolean(state.is_private),guide_language:state.guide_language||null});patchSession({stage:'selection_recovery_restored',experience_id:experience.id,selected_date:state.date,is_private:Boolean(state.is_private),guide_language:state.guide_language||null});
+      const experience=productCache.byId[state.experience_id];
+      const select=form.querySelector('[name="experience"]');
+      const date=form.querySelector('[name="date"]');
+      const adults=form.querySelector('select[name="adults"]');
+      const children=form.querySelector('select[name="children"]');
+      const babies=form.querySelector('select[name="babies"]');
+      const language=form.querySelector('select[name="guide_language"]');
+      const code=String(state.guide_language||'').trim().toLowerCase();
+      const choices=[
+        [adults,state.composition?.riders_16_plus],
+        [children,state.composition?.child_passengers_3_15],
+        [babies,state.composition?.baby_passengers_1_2]
+      ];
+      const hasOption=(field,value)=>Boolean(field&&[...field.options].some(o=>o.value===String(value)));
+      const iso=String(state.date||'');
+      const parsed=/^\d{4}-\d{2}-\d{2}$/.test(iso)?Date.parse(iso+'T12:00:00Z'):NaN;
+      const validDate=Number.isFinite(parsed)&&new Date(parsed).toISOString().slice(0,10)===iso&&
+        iso>=budapestDate(0)&&(!date?.max||iso<=date.max);
+      const counts={
+        riders_16_plus:Number(state.composition?.riders_16_plus),
+        child_passengers_3_15:Number(state.composition?.child_passengers_3_15),
+        baby_passengers_1_2:Number(state.composition?.baby_passengers_1_2),
+        request_15yo_independent_assessment:Boolean(state.composition?.request_15yo_independent_assessment)
+      };
+      // Local browser storage is not a trusted booking. Reject stale, malformed,
+      // unsupported, or now-unavailable choices BEFORE mutating the live form.
+      const valid=experience&&experience.bookingEnabled!==false&&
+        select&&hasOption(select,experience.id)&&date&&language&&
+        guideLanguagesForProduct(experience).includes(code)&&
+        validDate&&counts.riders_16_plus>=1&&
+        choices.every(([field,value])=>Number.isSafeInteger(value)&&
+          value>=0&&hasOption(field,value))&&
+        // validateGroupComposition checks the FORM's current selected values.
+        // It is only meaningful after restore, not against the pre-restore UI.
+        (!state.is_private||Boolean(experience.privateAllowed)&&
+          counts.riders_16_plus>=Number(experience.privateMinRiders));
+      if(!valid){delStore('voy_recovery_state');shell.hidden=true;return;}
+
+      select.value=experience.id;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+      // The tour-change handler can reset the private selector. Apply the
+      // saved mode only AFTER the product and its private rules are hydrated.
+      updatePrivateUpgrade(experience);
+      date.value=iso;
+      for(const [field,value] of choices)field.value=String(value);
+      language.value=code;
+      const mode=document.querySelector('[data-private-upgrade]');
+      if(mode&&typeof mode._setBookingMode==='function')
+        mode._setBookingMode(state.is_private?'private':'standard',{silent:true});
+      // Programmatic select.value does not trigger the composition-preview
+      // listener. One native change event recalculates the entire summary and
+      // invalidates any stale departure result without creating a hold.
+      adults.dispatchEvent(new Event('change',{bubbles:true}));
+      setSelectedTourHint(experience);
+      const status=document.querySelector('#availability-status');
+      if(status)status.textContent=t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.');
+      track('selection_recovery_restored',{experience_id:experience.id,date:iso,is_private:Boolean(state.is_private),guide_language:code});
+      patchSession({stage:'selection_recovery_restored',experience_id:experience.id,selected_date:iso,is_private:Boolean(state.is_private),guide_language:code});
       shell.hidden=true;form.scrollIntoView({behavior:'smooth',block:'center'});
     };
   }

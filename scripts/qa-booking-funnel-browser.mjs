@@ -45,11 +45,27 @@ const paths=[
   ['hu','/hu/budapest/tours/buda-castle-ezraider-tour/']
 ];
 const wait=ms=>new Promise(done=>setTimeout(done,ms));
-async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}){
+async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null}={}){
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
   // The tab is opened at 23:59 Budapest local time after the DST change.
   // Move only its simulated clock forward; FBM routes remain mocked.
   if(overnightRollover)await page.clock.install({time:new Date('2026-10-25T22:59:30.000Z')});
+  if(recovery)await page.addInitScript(({mode})=>{
+    const now=new Date();
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
+      timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'
+    }).formatToParts(now).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
+    const day=new Date(Date.UTC(Number(parts.year),Number(parts.month)-1,Number(parts.day)+
+      (mode==='expired'?-1:3),12,0,0));
+    const selectedDate=day.toISOString().slice(0,10);
+    localStorage.setItem('voy_recovery_state',JSON.stringify({
+      version:1,saved_at:Date.now(),experience_id:'exp_bud_buda',
+      experience_slug:'buda-highlights',experience_title:'Buda Highlights',
+      date:selectedDate,is_private:mode==='private',guide_language:'he',
+      composition:{riders_16_plus:2,child_passengers_3_15:1,
+        baby_passengers_1_2:0,request_15yo_independent_assessment:false}
+    }));
+  },{mode:recovery});
   const calls=[],pageErrors=[];
   let phase='empty';
   page.on('pageerror',err=>pageErrors.push(err.message));
@@ -160,6 +176,48 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false}={}
     const guide=form.locator('[name="guide_language"]');
     await guide.locator('option[value="en"]').waitFor({state:'attached',timeout:9000});
     check(await guide.inputValue()==='',lang+' guide language is never silently chosen');
+    if(recovery){
+      const banner=page.locator('[data-resume-booking]');
+      await banner.waitFor({state:'visible',timeout:9000});
+      check(await form.locator('select[name="adults"]').inputValue()==='1',
+        lang+' saved group has not been applied before guest chooses restore');
+      await banner.locator('[data-resume-cta]').click();
+      await page.waitForFunction(()=>
+        document.querySelector('[data-resume-booking]')?.hidden===true,
+        null,{timeout:6000});
+      if(recovery==='expired'){
+        check(await form.locator('select[name="adults"]').inputValue()==='1',
+          lang+' expired saved group is never applied');
+        check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
+          lang+' expired selection is discarded from essential-only storage');
+      }else{
+        check(await form.locator('select[name="adults"]').inputValue()==='2'&&
+          await form.locator('select[name="children"]').inputValue()==='1'&&
+          await form.locator('select[name="babies"]').inputValue()==='0',
+          lang+' restored group composition matches stored independent riders and child');
+        const preview=await page.locator('[data-group-composition-preview]').innerText();
+        check(preview.includes('3')&&preview.includes('2')&&preview.includes('1'),
+          lang+' composition summary is recalculated after programmatic restore');
+        check(await guide.inputValue()==='he',
+          lang+' original explicitly selected guide language is restored');
+        const mode=page.locator('[data-private-upgrade]');
+        check(await mode.locator('input[name="is_private"]').inputValue()==='true'&&
+          await mode.locator('[data-booking-mode="private"]').getAttribute('aria-pressed')==='true',
+          lang+' restored private mode survives tour price and private-rule refresh');
+        check((await page.locator('#availability-status').innerText()).includes(
+          lang==='he'?'שחזרה':lang==='hu'?'visszaállítás':'Search again')||
+          (await page.locator('#availability-status').innerText()).length>20,
+          lang+' asks to recheck live availability after recovery');
+      }
+      check(calls.every(c=>!/(\/holds|\/quotes|\/bookings|\/availability\?)/.test(c.path)),
+        lang+' restoring selection never creates holds, quotes or bookings');
+      check(!(await page.locator('#live-checkout-shell').isVisible()),
+        lang+' recovery never exposes checkout without a fresh server quote');
+      check(pageErrors.length===0,
+        lang+' recovery has no uncaught browser errors');
+      await page.screenshot({path:join(out,'recovery-'+lang+'-'+recovery+'.png'),fullPage:false});
+      return;
+    }
     if(overnightRollover){
       const date=form.locator('input[name="date"]');
       await date.fill('2026-10-25');
@@ -321,6 +379,10 @@ try{
   await scenario('en',paths[0][1],{catalogDown:true});
   await scenario('he',paths[1][1],{catalogDown:true});
   await scenario('hu',paths[2][1],{catalogDown:true});
+  await scenario('en',paths[0][1],{recovery:'private'});
+  await scenario('he',paths[1][1],{recovery:'private'});
+  await scenario('hu',paths[2][1],{recovery:'private'});
+  await scenario('en',paths[0][1],{recovery:'expired'});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
