@@ -3,6 +3,8 @@
 ## CI/CD cost discipline
 Read `docs/DEVELOPMENT-COST-POLICY.md` before modifying CI, build or Vercel deployment behavior. Favor local/standard GitHub Actions validation; use Vercel preview builds for reviewed release candidates rather than every small change. Never disable required QA or production deployment based solely on the project name `voy-pro-staging`: it currently serves public domains. The policy itself does **not** authorize protected workflow, config, domain or Production changes, nor PR merges.
 
+- Copilot Free is an optional assistant only: follow its section in `docs/DEVELOPMENT-COST-POLICY.md`, verify actual authenticated/free-tier access, never claim reviews that were not performed, protect customer/private data and do not add paid or automated integrations without approval.
+
 This repository is the source of truth for the VOY PRO customer-facing website.
 
 ## Operating model
