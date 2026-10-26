@@ -53,6 +53,11 @@ async function scenario(locale,path,{recovery=null}={}){
   };
   const page=await context.newPage();
   if(recovery)await page.addInitScript(({mode})=>{
+    // Prevent the QA-only seed from silently reappearing after guest discard.
+    if(mode==='discard'){
+      if(sessionStorage.getItem('__voy_qa_seeded')==='1')return;
+      sessionStorage.setItem('__voy_qa_seeded','1');
+    }
     const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{
       timeZone:'Europe/Budapest',year:'numeric',month:'2-digit',day:'2-digit'
     }).formatToParts(new Date()).filter(p=>p.type!=='literal').map(p=>[p.type,p.value]));
@@ -160,16 +165,42 @@ async function scenario(locale,path,{recovery=null}={}){
       await banner.waitFor({state:'visible',timeout:8000});
       ok(await form.locator('select[name="adults"]').inputValue()==='1',
         'saved party is not applied before guest explicitly resumes');
-      await banner.locator('[data-resume-cta]').click();
-      await page.waitForFunction(()=>
-        document.querySelector('[data-resume-booking]')?.hidden===true,
-        null,{timeout:5500});
+      const discard=banner.locator('[data-resume-dismiss]');
+      ok(await discard.count()===1&&await discard.isVisible(),
+        'public resume banner provides explicit discard in selected language');
+      if(recovery==='discard'){
+        const previous=await form.locator('select[name="adults"]').inputValue();
+        await discard.click();
+        ok(await banner.isHidden(),
+          'discard immediately hides the public restore suggestion');
+        ok(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
+          'local saved selection is deleted without backend activity');
+        ok(await form.locator('select[name="adults"]').inputValue()===previous,
+          'discard does not alter the in-progress guest form');
+        const statusText=await page.locator('#availability-status').innerText();
+        ok(statusText.includes(locale==='he'?'לא בוצעה הזמנה'
+          :locale==='hu'?'Nem történt foglalás':'No booking was made'),
+          'localized discard confirmation explicitly says no booking occurred');
+        ok(await page.evaluate(()=>
+          document.activeElement?.id==='availability-status'),
+          'keyboard focus moves to visible discard confirmation');
+        await page.reload({waitUntil:'domcontentloaded'});
+        await page.locator('#availability-form select[name="experience"] option[value="exp_bud_buda"]')
+          .waitFor({state:'attached',timeout:9000});
+        ok(await page.locator('[data-resume-booking]').isHidden(),
+          'dismissed tour selection stays gone after public page reload');
+      }else{
+        await banner.locator('[data-resume-cta]').click();
+        await page.waitForFunction(()=>
+          document.querySelector('[data-resume-booking]')?.hidden===true,
+          null,{timeout:5500});
+      }
       if(recovery==='expired'){
         ok(await form.locator('select[name="adults"]').inputValue()==='1',
           'expired saved party is not applied on the public build');
         ok(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
           'invalid persisted date is removed from essential-only storage');
-      }else{
+      }else if(recovery==='private'){
         ok(await form.locator('select[name="adults"]').inputValue()==='2'&&
           await form.locator('select[name="children"]').inputValue()==='1'&&
           await form.locator('select[name="babies"]').inputValue()==='0',
@@ -304,6 +335,7 @@ try{
   for(const [locale,path] of paths)await scenario(locale,path);
   for(const [locale,path] of paths)await scenario(locale,path,{recovery:'private'});
   await scenario(paths[0][0],paths[0][1],{recovery:'expired'});
+  for(const [locale,path] of paths)await scenario(locale,path,{recovery:'discard'});
 }finally{
   await browser.close();
 }
