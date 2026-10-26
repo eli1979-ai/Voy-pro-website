@@ -767,6 +767,25 @@
           completed=true;
           return;
         }
+        // The hold is server-authoritative and may be reallocated to another
+        // physical departure. However the sold EXPERIENCE, selected DATE,
+        // passenger composition and private mode must match the customer's
+        // original contract; never accept a different product/group merely
+        // because price and affiliate code match.
+        const expectedGroup=composition();
+        const bookedGroup=booking.group_composition;
+        const sameGroup=bookedGroup&&typeof bookedGroup==='object'&&
+          ['riders_16_plus','child_passengers_3_15','baby_passengers_1_2'].every(
+            key=>Number.isSafeInteger(bookedGroup[key])&&
+              bookedGroup[key]===expectedGroup[key]);
+        if(booking.experience_id!==experienceSelect.value||
+          booking.selected_date!==dateField.value||
+          !sameGroup||typeof booking.is_private!=='boolean'||
+          booking.is_private!==isPrivate()){
+          showBookedSelectionReviewResponse(booking);
+          completed=true;
+          return;
+        }
         showSuccess(booking.reference,booking.status,booking.manage_token||booking.secure_token||null);
         completed=true;
       }catch(error){if(version===generation)setStatus(error.message||'Booking could not be confirmed. Please retry.','error');}
@@ -790,6 +809,19 @@
           }
         }
       }
+    }
+    function showBookedSelectionReviewResponse(booking){
+      if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
+      // The server may have already committed the booking. Preserve the
+      // reference, never release a possibly converted hold or retry a POST.
+      hold=null;quote=null;chosenSlot=null;
+      $('#search').classList.add('hidden');$('#results').classList.add('hidden');
+      $('#checkout').classList.add('hidden');
+      const box=$('#success');box.replaceChildren();box.classList.remove('hidden');
+      box.append(textNode('h3','Booking selection needs verification'));
+      box.append(textNode('p','Booking reference: '+booking.reference));
+      box.append(textNode('p','The tour, date or group recorded by FBM does not match your selected booking. A booking may already exist. Contact VOY PRO with this reference before trying again.'));
+      setStatus('Booking details require staff verification. Do not submit again.','error');
     }
     function showGuideLanguageReviewResponse(record){
       if(expiryTimer)clearInterval(expiryTimer);expiryTimer=null;
