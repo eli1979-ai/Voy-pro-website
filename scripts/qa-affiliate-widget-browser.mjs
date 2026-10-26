@@ -7,6 +7,10 @@ import {chromium} from 'playwright';
 
 const out=resolve('visual-qa-output');
 const widget=await readFile('dist/assets/affiliate-booking-widget.js');
+const pinnedManifest=JSON.parse(await readFile('dist/assets/affiliate-booking-widget-manifest.json','utf8'));
+const pinnedWidget=await readFile('dist'+pinnedManifest.public_path);
+if(!widget.equals(pinnedWidget))throw Error('WordPress pilot asset does not match reviewed widget bytes');
+const pinnedURL='https://voy-pro.com'+pinnedManifest.public_path;
 // Source gate is part of the public safety boundary. A test-only clone,
 // served solely by the local fixture, is the ONLY enabled browser version.
 const source=widget.toString('utf8');
@@ -29,7 +33,7 @@ const wpLikeHTML='<!doctype html><html lang="he" dir="rtl"><head><meta charset="
 // asset is fulfilled from local bytes; no public network requests are made.
 const crossOriginPartnerHTML=wpLikeHTML.replace(partnerScript,
   partnerScript.replace('src="/assets/affiliate-booking-widget.js"',
-    'src="https://voy-pro.com/assets/affiliate-booking-widget.js" defer'));
+    'src="'+pinnedURL+'" defer'));
 const partnerCsp="default-src 'none'; script-src https://voy-pro.com; "+
   "connect-src "+originAPI+"; style-src 'unsafe-inline'; form-action 'self'";
 const server=createServer((req,res)=>{
@@ -76,9 +80,9 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
   await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
     if(wpCrossOrigin&&url.origin==='https://voy-pro.com'&&
-      url.pathname==='/assets/affiliate-booking-widget.js'&&!url.search){
+      url.pathname===pinnedManifest.public_path&&!url.search){
       externalAssetServed=true;
-      return route.fulfill({status:200,body:widget,contentType:'application/javascript'});
+      return route.fulfill({status:200,body:pinnedWidget,contentType:'application/javascript'});
     }
     if(url.origin===host){
       // Never let the cross-origin fixture accidentally use a same-origin
@@ -302,8 +306,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     if(wpCrossOrigin){
       check(externalAssetServed&&
         await page.locator('script[data-voy-affiliate-widget]').getAttribute('src')===
-          'https://voy-pro.com/assets/affiliate-booking-widget.js',
-        name+' script is loaded from a separate approved first-party HTTPS origin');
+          pinnedURL,
+        name+' WordPress loads the exact reviewed SHA-pinned first-party HTTPS asset');
       check(response?.headers()['content-security-policy']===partnerCsp,
         name+' WordPress-like CSP permits only the reviewed widget host and API');
     }
