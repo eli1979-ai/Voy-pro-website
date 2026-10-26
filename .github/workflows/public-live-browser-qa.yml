@@ -19,8 +19,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: voy-pro-public-live-chrome
-  # Cancel outdated runs from superseded PR commits to preserve CI quota.
+  group: voy-pro-public-live-chrome-${{ github.ref }}
+  # Scope to each branch/PR: never cancel work from another development chat.
+  # Cancel outdated runs from superseded commits on the same PR only.
   cancel-in-progress: true
 
 jobs:
