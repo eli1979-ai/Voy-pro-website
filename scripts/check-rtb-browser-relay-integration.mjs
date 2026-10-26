@@ -71,7 +71,7 @@ function browser(){
       const v=build(tag);
       if(tag==='form'){
         for(const field of ['[name="requested_guide_language"]',
-          '[name="english_alternative_accepted"]','[data-rtb-english-decline"]','[name="requested_date"]',
+          '[name="english_alternative_accepted"]','[data-rtb-english-decline]','[name="requested_date"]',
           '.voy-rtb-feedback','button[type="submit"]'])
           fields.set(field,build('field'));
         fields.set('row',build('row'));
@@ -99,7 +99,7 @@ function browser(){
       // Existing relay fixtures represent a guest explicitly declining
       // English when not checked (Boolean-only deployed relay contract).
       // Production form never makes this selection automatically.
-      if(value!=='en')fields.get('[data-rtb-english-decline"]').setAttribute('aria-pressed','true');
+      if(value!=='en')fields.get('[data-rtb-english-decline]').setAttribute('aria-pressed','true');
     }
     form.listeners.input?.forEach(fn=>fn());
     form.listeners.change?.forEach(fn=>fn());
