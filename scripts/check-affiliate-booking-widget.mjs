@@ -57,7 +57,8 @@ class Element {
   scrollIntoView(){}
 }
 function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='https://fbm-staging.example.invalid',rejectCoupon=false,wrongPartnerQuote=false,staffConfirmation=false,bookingStatus='confirmed',onlinePayment=false,badPaymentReply=null,bookingGuideLanguage='he',staffGuideLanguage='he',staffPromoCode='TESTPARTNER',bookingSelectionOverride=null,badAvailability=null,
-  englishPilot=false,recordedEnglishAlternative='match',badCapabilities=null}={}){
+  englishPilot=false,recordedEnglishAlternative='match',badCapabilities=null,
+  staffRecordOverride=null}={}){
   const calls=[];
   const timers=[];
   const script=new Element('script');
@@ -213,7 +214,10 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       currency:acceptedQuote?.currency,promo_code_applied:payload.promo_code,
     };
     if(key==='/api/v1/booking-capacity-requests')return {
+      id:'55555555-5555-4555-8555-555555555555',request_token:'staff-token-fixture',
+      departure_id:payload.slot_id,payment_status:'not_started',is_private:false,
       type:'booking_capacity_request',status:'pending',reference:'VP-CAP-TEST',
+      ...(staffRecordOverride||{}),
       guide_language:staffGuideLanguage,pricing:{promo_code_applied:staffPromoCode},
       english_alternative_accepted:recordedEnglishAlternative==='match'
         ?(payload.english_alternative_accepted??null):!(payload.english_alternative_accepted??null),
@@ -646,6 +650,37 @@ for(const badPaymentReply of [null,'completed']){
     assert.match(app.elements['#success'].children.map(x=>x.textContent).join(' '),
       /VP-PAY-MOCK.*Payment confirmed/s,
       'Idempotent completed payment with verified booking identity shows a receipt');
+}
+// A pending staff request must be truly unpaid, nonprivate and recoverable,
+ // even if the server returns a 2xx pending reference and affiliate code.
+for(const staffRecordOverride of [
+  {payment_status:'paid'}, {payment_status:null},
+  {is_private:true}, {is_private:null},
+  {id:null}, {request_token:''}, {departure_id:null}
+]){
+  const app=mount({staffConfirmation:true,staffRecordOverride});
+  await chooseFirstDeparture(app);
+  app.customer.elements.name.value='Example Person';
+  app.customer.elements.email.value='guest@example.invalid';
+  app.customer.elements.phone.value='+1555000000';
+  app.customer.elements.terms.checked=true;
+  await app.customer.trigger('submit');
+  const receipt=app.elements['#success'].children.map(x=>x.textContent).join(' ');
+  assert.match(receipt,/Staff request details need verification/,
+    'Unsafe/missing staff result must not be claimed successful');
+  assert.match(receipt,/Request reference: VP-CAP-TEST/,
+    'Retain the actual request reference for manual reconciliation');
+  assert.doesNotMatch(receipt,/Your confirmation request was received|Your booking has been received/,
+    'Do not invent confirmed pending status for inconsistent FBM records');
+  assert.equal(app.calls.filter(c=>c.key==='/api/v1/booking-capacity-requests').length,1,
+    'Unsafe staff response must not submit a second request');
+  assert.match(app.elements['#status'].textContent,/Do not submit again/,
+    'Staff must reconcile before a new request');
+  assert(app.elements['#checkout'].classList.contains('hidden'),
+    'Close customer form after uncertain staff outcome');
+  assert(!app.calls.some(c=>c.key==='/api/v1/bookings'||
+    c.key==='/api/v1/payments/intents'||c.key==='/api/v1/holds'),
+    'Staff response must never attempt booking, payment or hold');
 }
 // Staff-review requests are not bookings, but the returned FBM pricing
 // must still attribute the request to the originating affiliate offer.
