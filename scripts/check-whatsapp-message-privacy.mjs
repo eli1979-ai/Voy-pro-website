@@ -53,14 +53,16 @@ for(const token of [
   if(portugal.includes(token))failures.push('Portugal customer WhatsApp copy still exposes attribution token: '+token);
 }
 for(const token of [
-  "form.addEventListener('submit',async e=>",
+  "form.addEventListener('submit',e=>",
   "context:'portugal_availability_request'",
-  "await createSession('whatsapp_clicked',requestAnalytics)",
+  "void createSession('whatsapp_clicked',requestAnalytics).catch(()=>{})",
   "track('whatsapp_clicked',requestAnalytics)"
 ]){
   if(!portugal.includes(token))failures.push('Portugal attribution must stay internal via session/event: '+token);
 }
 
+if(!portugal.includes("location.href='https://wa.me/351935695004?text='"))failures.push('Portugal customer enquiry cannot navigate to Marvão WhatsApp');
+if(portugal.includes("await createSession('whatsapp_clicked'"))failures.push('Portugal WhatsApp redirect is blocked by an analytics network await');
 if(failures.length){
   console.error('WhatsApp customer-copy privacy guard failed.');
   for(const failure of failures)console.error('- '+failure);
