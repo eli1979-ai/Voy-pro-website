@@ -125,10 +125,15 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
   try{
     const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
     check(response?.status()===200,lang+' local tour route works');
+    // domcontentloaded may precede the site script's privacy initialization.
+    // Observe that initialization first, otherwise an initially hidden banner
+    // can appear between isVisible() and our dismissal wait on slow CI hosts.
+    await page.waitForFunction(()=>['granted','denied'].includes(
+      document.documentElement.dataset.analyticsConsent),null,{timeout:8500});
     const consent=page.locator('[data-consent-essential]');
-    if(await consent.isVisible().catch(()=>false))await consent.click({timeout:3000});
+    if(await consent.isVisible().catch(()=>false))await consent.click({timeout:4500});
     await page.waitForFunction(()=>!document.body.classList.contains('consent-open'),
-      null,{timeout:5000});
+      null,{timeout:8500});
     const form=page.locator('#availability-form');
     const message=page.locator('#availability-status');
     check(await message.getAttribute('role')==='status'&&
