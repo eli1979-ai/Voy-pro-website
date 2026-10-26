@@ -229,6 +229,71 @@ await scenario('Marvao public meeting map markup',
     const raw=await map.getAttribute('src');
     ok(Boolean(raw)&&/^https:\/\//.test(raw),'map iframe has HTTPS source (remote iframe deliberately blocked)');
   });
+// Verify the *deployed* Marvão manual WhatsApp handoff copy and validation.
+// Never open WhatsApp or send the guest's message: only exercise a past-date
+// validation case with synthetic data. The route requests remain human-approved.
+for(const [locale,path,copy] of [
+  ['EN','/portugal/',{
+    button:'Continue to WhatsApp',send:'Tap Send in WhatsApp',
+    approval:'not booked until our team confirms',past:'Choose today or a future date.'
+  }],
+  ['PT','/pt/portugal/',{
+    button:'Continuar no WhatsApp',send:'Toque em Enviar no WhatsApp',
+    approval:'só fica reservado após a nossa confirmação',
+    past:'Escolha a data de hoje ou uma data futura.'
+  }],
+  ['HE','/he/portugal/',{
+    button:'המשך ל־WhatsApp',send:'יש ללחוץ על שליחה ב־WhatsApp',
+    approval:'הסיור יוזמן רק לאחר אישור מאיתנו',
+    past:'יש לבחור את התאריך של היום או תאריך עתידי.'
+  }]
+]){
+  await scenario('Marvao request handoff '+locale,path,{width:390},
+    async(page,ok,result,outbounds)=>{
+      const form=page.locator('#request [data-portugal-request-form]');
+      const btn=form.locator('button[type="submit"]');
+      const note=form.locator('[data-portugal-request-status]');
+      ok(await form.count()===1&&await btn.count()===1,
+        'public page has exactly one Marvao enquiry form and submit control');
+      ok((await btn.innerText()).trim()===copy.button,
+        'button describes continuing to WhatsApp, not an already sent enquiry');
+      const intro=await note.innerText();
+      ok(intro.includes(copy.send)&&intro.includes(copy.approval),
+        'localized instructions require tapping Send and local confirmation');
+      ok(await note.getAttribute('role')==='status'&&
+        await note.getAttribute('aria-live')==='polite',
+        'request help text is accessible as a live status');
+      const route=form.locator('select[name="route"]');
+      for(const code of ['express','explorer','megalithic']){
+        const link=page.locator('[data-portugal-tour="'+code+'"]');
+        ok(await link.count()===1,'one dedicated link for '+code);
+        await link.click();
+        ok(await route.inputValue()===code,
+          'request CTA chooses the requested '+code+' tour');
+      }
+      await route.selectOption('express');
+      const date=form.locator('[name="date"]');
+      ok(/^\d{4}-\d{2}-\d{2}$/.test(await date.getAttribute('min')||''),
+        'Portugal-local calendar date is set as minimum');
+      await date.fill('2000-01-01');
+      await form.locator('[name="guide_language"]').selectOption('en');
+      await form.locator('[name="full_name"]').fill('Synthetic QA Guest');
+      const before=page.url();
+      const prevented=await form.evaluate(el=>
+        !el.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+      ok(prevented,'expired request submission is prevented');
+      ok((await note.innerText()).includes(copy.past),
+        'expired date displays localized validation instead of leaving website');
+      ok(page.url()===before&&
+        !outbounds.some(x=>x.method!=='GET'),
+        'invalid enquiry does not trigger a navigation or network write');
+      await note.screenshot({
+        path:join(OUT,'marvao-invalid-date-'+locale.toLowerCase()+'.png'),
+        animations:'disabled'
+      });
+      result.notes.push('No real WhatsApp contact, booking or payment attempted.');
+    });
+}
 // Booking preflight only: change group composition, never submit or create a hold.
 // All remote API requests remain blocked. Full mocked booking flow has its own CI suite.
 await scenario('Budapest booking composition preflight',
