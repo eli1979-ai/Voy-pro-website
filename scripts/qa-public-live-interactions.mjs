@@ -156,10 +156,8 @@ for(const [locale,path] of [
     }),'all 60 review source links use trusted platforms');
     const quotes=await cards.locator('.vp-review-text').allTextContents();
     ok(quotes.slice(0,20).every(q=>q.trim().length>=35),'full-length review text');
-    // On a PR, this address is still deployed from main. The feature itself
-    // is tested with the PR build by qa-visual-browser.mjs; once merged,
-    // scheduled/manual live checks must require it on the public alias.
-    if(process.env.GITHUB_EVENT_NAME!=='pull_request'){
+    // PR #529 is now deployed on the public Staging alias; this must also
+    // pass for every future PR (not merely the weekly/manual run).
       // The entire approved review must be readable without scrolling a
       // tiny inner text pane. No external original-review URL is opened.
       const original=root.locator('.vp-review-group').nth(1).
@@ -180,7 +178,7 @@ for(const [locale,path] of [
       await page.keyboard.press('Escape');
       ok(!(await dialog.isVisible()),'Escape closes complete-review dialog');
       ok(await expand.evaluate(el=>document.activeElement===el),'modal restores opener focus');
-    }else result.notes.push('Full reader pending main deployment; validated separately against local PR build.');
+
     const pause=root.locator('[data-vp-reviews-pause]');
     ok(await pause.isVisible(),'pause control accessible');
     if(await pause.getAttribute('aria-pressed')==='true')await pause.click();
