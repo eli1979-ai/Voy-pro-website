@@ -568,7 +568,12 @@ try{
       };
       if(consentCopies[name]){
         const essential=page.locator('[data-consent-essential]');
-        if(await essential.isVisible())await essential.click();
+        if(await essential.isVisible()){
+          check(await essential.getAttribute('aria-pressed')===null&&
+            await page.locator('[data-consent-analytics]').getAttribute('aria-pressed')===null,
+            name+' first-time cookie choice remains unselected');
+          await essential.click();
+        }
         const opener=page.locator('footer [data-cookie-settings]').first();
         await opener.click();
         const bar=page.locator('.consent-banner');
@@ -578,6 +583,12 @@ try{
           name+' reopened cookie choices offer localized close without changes');
         const saved=await page.evaluate(()=>localStorage.getItem('voy_consent_v1'));
         check(Boolean(saved),name+' original explicit essential consent is recorded');
+        check(await bar.locator('[data-consent-essential]').getAttribute('aria-pressed')==='true'&&
+          await bar.locator('[data-consent-analytics]').getAttribute('aria-pressed')==='false',
+          name+' reopened dialog marks the saved essential choice, not analytics');
+        check(await bar.locator('[data-consent-essential]').evaluate(el=>
+          getComputedStyle(el).boxShadow!=='none'),
+          name+' saved privacy choice is visibly distinguished');
         await close.click();
         check(await bar.isHidden(),name+' close button hides reopened preferences');
         check(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
@@ -592,6 +603,24 @@ try{
           name+' Escape restores focus to preferences opener');
         check(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===saved,
           name+' Escape preserves existing consent without analytics writes');
+        // In the isolated local build every third-party API is blocked. Test
+        // both saved decisions without creating any real tracking requests.
+        await opener.click();
+        await bar.locator('[data-consent-analytics]').click();
+        const analyticsRecord=await page.evaluate(()=>localStorage.getItem('voy_consent_v1'));
+        check(Boolean(analyticsRecord)&&JSON.parse(analyticsRecord).analytics===true,
+          name+' explicit local analytics preference is stored when chosen');
+        await opener.click();
+        check(await bar.locator('[data-consent-analytics]').getAttribute('aria-pressed')==='true'&&
+          await bar.locator('[data-consent-essential]').getAttribute('aria-pressed')==='false',
+          name+' reopened dialog correctly marks saved analytics choice');
+        await bar.locator('[data-consent-dismiss]').click();
+        check(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===analyticsRecord,
+          name+' close preserves explicitly saved analytics decision unchanged');
+        await opener.click();
+        await bar.locator('[data-consent-essential]').click();
+        check(await page.evaluate(()=>JSON.parse(localStorage.getItem('voy_consent_v1')).analytics)===false,
+          name+' guest can revoke analytics and return to essential only');
       }
       if(name==='guide-pt-mobile'){
         const expected='/pt/portugal/';
