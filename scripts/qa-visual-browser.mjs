@@ -573,6 +573,25 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Browser regression: a WhatsApp link created on load must reflect the
+      // latest tour and party selections when the customer opens the menu.
+      // Values are changed in local DOM only; no availability/booking/API call.
+      if(name==='budapest-en-mobile'){
+        const oldUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+        await page.evaluate(()=>{
+          const form=document.querySelector('#availability-form');
+          form.querySelector('[name="experience"]').value='exp_bud_margaret';
+          form.querySelector('[name="adults"]').value='4';
+        });
+        await page.locator('.nav-menu-toggle').click();
+        const freshUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+        const message=freshUrl?new URL(freshUrl).searchParams.get('text')||'':'';
+        check(freshUrl!==oldUrl&&freshUrl?.startsWith('https://wa.me/36300993099?text='),
+          name+' WhatsApp menu URL refreshes after local tour/party change');
+        check(message.includes('Margaret')&&message.includes('Independent riders: 4'),
+          name+' WhatsApp message includes current selected tour and four riders');
+        await page.keyboard.press('Escape');
+      }
       // Previously decided guests may leave the reopened privacy drawer
       // without converting "close" into analytics acceptance or refusal.
       // Check all supported destinations/locales with real keyboard behavior.
