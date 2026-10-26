@@ -57,7 +57,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null,onlinePayment=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -122,7 +122,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         guideLanguages:['en','he'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12},
         {id:alternateTourId,title:'Margaret Tour',priceFrom:70,currency:'EUR',bookingEnabled:true,
           guideLanguages:['en','hu'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
-    else if(path==='/api/v1/payments/capabilities')data={online_card:false};
+    else if(path==='/api/v1/payments/capabilities')data={online_card:Boolean(onlinePayment),provider:onlinePayment?'stripe':null};
     else if(path.includes('/availability?'))data={slots:expiredSlots?[
       {id:'11111111-1111-4111-8111-111111111111',time:'09:00',
         starts_at:new Date(Date.now()-60000).toISOString(),sellable:true,requestable:false},
@@ -172,6 +172,23 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       if(badOffers==='invalid-limit')data[0].max_per_booking='unlimited';
       if(badOffers==='currency-mismatch')data[0].currency='USD';
       if(badOffers==='duplicate-product')data.push({...data[0]});
+    }
+    else if(path==='/api/v1/payments/intents'){
+      const completed=onlinePayment==='completed'||onlinePayment==='completed-no-reference';
+      data={
+        status:completed?'completed':'requires_action',
+        ui_mode:completed?'none':'redirect',
+        booking_id:'44444444-4444-4444-8444-444444444444',
+        booking_reference:'VOY-PAY-MOCK',
+        amount:completed?0:120,
+        currency:'EUR',
+        checkout_url:'https://checkout.stripe.com/c/pay/cs_test_mock_no_network'
+      };
+      if(onlinePayment==='wrong-total')data.amount=125;
+      if(onlinePayment==='wrong-currency')data.currency='USD';
+      if(onlinePayment==='untrusted-host')data.checkout_url='https://not-stripe.invalid/checkout';
+      if(onlinePayment==='missing-reference'||onlinePayment==='completed-no-reference')
+        delete data.booking_reference;
     }
     else if(path==='/api/v1/bookings'){
       if(slowFinalSubmission)await new Promise(done=>setTimeout(done,650));
@@ -566,7 +583,40 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         Date.now=()=>actualNow()+3*60*1000;
       });
     }
+    if(onlinePayment){
+      const payment=root.locator('#customer [name="payment"]');
+      check(await payment.locator('option[value="pay_now_card"]').count()===1,
+        name+' payment option appears only when mock FBM enables Stripe');
+      await payment.selectOption('pay_now_card');
+    }
     await root.locator('#confirmButton').click();
+    if(onlinePayment){
+      await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+      const textResult=await root.locator('#success').innerText();
+      const finalPosts=calls.filter(c=>c.path==='/api/v1/payments/intents');
+      check(finalPosts.length===1&&Boolean(finalPosts[0]?.idempotencyKey)&&
+        finalPosts[0]?.payload?.promo_code==='TESTPARTNER'&&
+        finalPosts[0]?.payload?.payment_method==='pay_now_card',
+        name+' one idempotent online request preserves affiliate and selected payment');
+      const completed=onlinePayment==='completed';
+      check(completed?
+        textResult.includes('Payment confirmed')&&textResult.includes('VOY-PAY-MOCK'):
+        textResult.includes('Online payment needs verification')&&
+          !textResult.includes('Payment confirmed'),
+        name+' provider response never fabricates a payment success');
+      check(!calls.some(c=>c.path==='/api/v1/bookings')&&
+        !calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+        name+' online checkout failure never creates duplicate arrival booking or deletes converted hold');
+      check(await root.locator('#checkout:not(.hidden)').count()===0,
+        name+' payment outcome closes original payment form');
+      await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+        new Event('submit',{bubbles:true,cancelable:true})));
+      check(calls.filter(c=>c.path==='/api/v1/payments/intents').length===1,
+        name+' response cannot be submitted again without staff reconciliation');
+      check(errors.length===0,name+' mocked online payment has no Chrome exceptions');
+      await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+      return;
+    }
     if(bookingSelectionMismatch){
       await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
       const receipt=await root.locator('#success').innerText();
@@ -929,6 +979,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 }
 try{
   await run('desktop-booking');
+  await run('desktop-online-payment-completed',{onlinePayment:'completed'});
+  await run('mobile-online-payment-wrong-total',{mobile:true,onlinePayment:'wrong-total'});
+  await run('desktop-online-payment-wrong-currency',{onlinePayment:'wrong-currency'});
+  await run('mobile-online-payment-untrusted-host',{mobile:true,onlinePayment:'untrusted-host'});
+  await run('desktop-online-payment-missing-reference',{onlinePayment:'missing-reference'});
+  await run('mobile-online-payment-completed-missing-reference',{mobile:true,onlinePayment:'completed-no-reference'});
   await run('desktop-pilot-english-yes-booking',{englishPilot:'yes'});
   await run('mobile-pilot-english-no-staff-request',{mobile:true,staffRequest:true,englishPilot:'no'});
   await run('desktop-pilot-english-unanswered-booking',{englishPilot:'unanswered'});
