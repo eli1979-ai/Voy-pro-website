@@ -29,8 +29,12 @@ const highlights=[
   '/budapest/tours/buda-castle-ezraider-tour/', '/manage/'
 ];
 assert.ok(highlights.every(path=>allPaths.has(path)),'Missing approved highlight path');
+const partialPR=process.env.GITHUB_EVENT_NAME==='pull_request';
+// PRs exercise high-value routes and every supported locale quickly.
+// The existing weekly/manual schedule still audits every canonical page.
+const canonicalChecked=partialPR?sitemapPaths.filter(path=>highlights.includes(path)):sitemapPaths;
 const targets=[
-  ...sitemapPaths.map(path=>({path,width:390,height:844})),
+  ...canonicalChecked.map(path=>({path,width:390,height:844})),
   ...highlights.map(path=>({path,width:320,height:700})),
   ...highlights.map(path=>({path,width:1440,height:900})),
   {path:'/',width:1440,height:900,alias:true}
@@ -251,6 +255,8 @@ const summary={
   checked:new Date().toISOString(),
   mode:'public read-only staging browser QA; no live booking, FBM, payment or third-party requests',
   sitemapPages:sitemapPaths.length,
+  canonicalChecked:canonicalChecked.length,
+  coverage:partialPR?'PR representative pages':'Full canonical sitemap',
   totalViews:rows.length,
   passed:rows.filter(row=>row.ok).length,
   failed:failures.length,blockedRequests,assetFailures,
@@ -261,7 +267,7 @@ const markdown=[
   '# VOY PRO — public alias live browser QA',
   '',
   '**Time:** '+summary.checked,
-  '**Coverage:** '+summary.totalViews+' views; '+summary.sitemapPages+' canonical pages, 390px mobile plus highlight 320px and 1440px; one www alias and one safe destination click.',
+  '**Coverage:** '+summary.coverage+'; '+summary.totalViews+' views; '+summary.canonicalChecked+' of '+summary.sitemapPages+' canonical pages at 390px, plus highlight 320px and 1440px; one www alias and one safe destination click.',
   '**Passed:** '+summary.passed+'/'+summary.totalViews,
   '**Blocked requests:** '+blockedRequests+' (external services, all writes, and non-allowlisted paths intentionally denied).',
   '**First-party asset HTTP failures:** '+assetFailures,
