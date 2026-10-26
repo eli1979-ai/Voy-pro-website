@@ -62,7 +62,7 @@
 .vp-review-expand{
   border:0;background:transparent;padding:2px 0 0;
   color:#006478;text-decoration:underline;text-underline-offset:3px;
-  text-align:start;cursor:pointer;font:800 .72rem/1.35 inherit;
+  text-align:start;cursor:pointer;font-size:.72rem;line-height:1.35;font-weight:800;font-family:inherit;
 }
 .vp-review-expand:focus-visible,.vp-review-dialog button:focus-visible,
 .vp-review-dialog a:focus-visible{outline:3px solid #08798b;outline-offset:3px}
