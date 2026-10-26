@@ -313,8 +313,10 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       const language=planner.locator('select[name="guide_language"]');
       const englishRow=planner.locator('.b2b-english-check');
       const english=planner.locator('input[name="english_ok"]');
+      const decline=planner.locator('[data-b2b-english-decline]');
       check(await language.count()===1,name+' B2B planner asks for guide language');
-      check(await english.count()===1,name+' offers one explicit fallback option');
+      check(await english.count()===1&&await decline.count()===1,
+        name+' offers explicit yes and no fallback choices');
       check(!(await english.isChecked()),name+' English fallback starts unanswered');
       check(!(await englishRow.isVisible())&&await english.isDisabled(),
         name+' English fallback is hidden until a non-English choice');
@@ -324,12 +326,20 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       await english.check();
       check(await english.isChecked(),name+' customer can explicitly accept alternative');
       await language.selectOption('hu');
-      check(!(await english.isChecked())&&await english.isEnabled(),
+      check(!(await english.isChecked())&&await english.isEnabled()&&
+        await decline.getAttribute('aria-pressed')==='false',
         name+' changing non-English language clears previous acceptance');
+      await decline.click();
+      check(await decline.getAttribute('aria-pressed')==='true'&&!(await english.isChecked()),
+        name+' customer can explicitly refuse English as a guide-language alternative');
       await english.check();
+      check(await decline.getAttribute('aria-pressed')==='false',
+        name+' opting into English clears explicit refusal');
       await language.selectOption('en');
-      check(!(await english.isChecked())&&await english.isDisabled()&&!(await englishRow.isVisible()),
-        name+' English primary cannot inherit or duplicate fallback acceptance');
+      check(!(await english.isChecked())&&await english.isDisabled()&&
+        !(await englishRow.isVisible())&&!(await decline.isVisible())&&
+        await decline.getAttribute('aria-pressed')==='false',
+        name+' English primary cannot inherit or duplicate either alternative choice');
     }
     if(rtb){
       // Exercise the actual progressive enhancement of all nine request-only
