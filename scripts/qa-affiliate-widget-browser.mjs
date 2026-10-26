@@ -7,9 +7,20 @@ import {chromium} from 'playwright';
 
 const out=resolve('visual-qa-output');
 const widget=await readFile('dist/assets/affiliate-booking-widget.js');
+// Source gate is part of the public safety boundary. A test-only clone,
+// served solely by the local fixture, is the ONLY enabled browser version.
+const source=widget.toString('utf8');
+const dormantGate='const ENGLISH_ALT_PILOT_ENABLED=false;';
+if(source.split(dormantGate).length!==2)
+  throw new Error('English-alternative source gate is missing or repeated');
+const pilotWidget=Buffer.from(source.replace(dormantGate,
+  'const ENGLISH_ALT_PILOT_ENABLED=true;'));
 const originAPI='https://fbm-widget-fixture.invalid';
 const partnerScript='<script src="/assets/affiliate-booking-widget.js" data-voy-affiliate-widget data-target="affiliate-target" data-affiliate="TESTPARTNER" data-client-key="public_fixture_key" data-api-root="'+originAPI+'"></script>';
 const pageHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Partner</title></head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main>'+partnerScript+'</body></html>';
+const pilotPartnerHTML=pageHTML.replace(
+  'src="/assets/affiliate-booking-widget.js"',
+  'src="/assets/affiliate-booking-widget-pilot-fixture.js"');
 const headEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Simulated Head Embed</title>'+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
 const duplicateEmbedHTML='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Double Partner Embed</title>'+partnerScript+partnerScript+'</head><body><main><h1>Partner-only demo</h1><div id="affiliate-target"></div></main></body></html>';
 const wpLikeHTML='<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isolated RTL WordPress-style partner fixture</title><style>.entry-content button,.entry-content input,.entry-content select{background:#f00!important;color:#000!important}body{font-family:serif}</style></head><body><article class="entry-content"><h1>דף שותף לדוגמה</h1><form id="wp-contact"><label>טופס עצמאי <input type="text" value="guest"></label><button type="button">Host form</button></form><div id="affiliate-target"></div>'+partnerScript+'</article></body></html>';
@@ -22,11 +33,14 @@ const crossOriginPartnerHTML=wpLikeHTML.replace(partnerScript,
 const partnerCsp="default-src 'none'; script-src https://voy-pro.com; "+
   "connect-src "+originAPI+"; style-src 'unsafe-inline'; form-action 'self'";
 const server=createServer((req,res)=>{
-  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'||req.url==='/?wp-rtl'||req.url==='/?wp-cross-origin'){
+  if(req.url==='/'||req.url==='/?head-embed'||req.url==='/?duplicate-embed'||req.url==='/?wp-rtl'||req.url==='/?wp-cross-origin'||req.url==='/?synthetic-english-pilot'){
     res.writeHead(200,{'content-type':'text/html',
       ...(req.url==='/?wp-cross-origin'?{'content-security-policy':partnerCsp}:{})});
-    res.end(req.url==='/?wp-cross-origin'?crossOriginPartnerHTML:
+    res.end(req.url==='/?synthetic-english-pilot'?pilotPartnerHTML:req.url==='/?wp-cross-origin'?crossOriginPartnerHTML:
       req.url==='/?wp-rtl'?wpLikeHTML:req.url==='/?duplicate-embed'?duplicateEmbedHTML:req.url==='/?head-embed'?headEmbedHTML:pageHTML);
+  }
+  else if(req.url==='/assets/affiliate-booking-widget-pilot-fixture.js'){
+    res.writeHead(200,{'content-type':'text/javascript'});res.end(pilotWidget);
   }
   else if(req.url==='/assets/affiliate-booking-widget.js'){
     res.writeHead(200,{'content-type':'text/javascript'});res.end(widget);
@@ -43,7 +57,7 @@ const check=(value,label)=>{
   else{failures++;lines.push('FAIL: '+label);}
 };
 const tourId='exp_bud_buda',alternateTourId='exp_bud_margaret',slotId='22222222-2222-4222-8222-222222222222';
-async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null}={}){
+async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false,expiredSlots=false,slowFinalSubmission=false,firstPostFails=false,headEmbed=false,duplicateEmbed=false,holdExpiresDuringPost=null,badHold=null,malformedBookingReply=null,malformedStaffReply=null,wpRtl=false,mutatedRetryAfter503=false,badQuote=null,withExtras=false,switchSlotAfterExtras=false,quoteExpiresBeforeConfirmation=false,departureStartsBeforeSubmit=false,slowHoldReleaseSwitch=false,bookingPriceMismatch=null,quoteExpiresAfterFailedPost=false,allocatedHold=false,midnightRollover=false,badOffers=null,wpCrossOrigin=false,badFinalGuideLanguage=null,badStaffPromoCode=null,bookingSelectionMismatch=null,englishPilot=null}={}){
   const page=await browser.newPage({viewport:mobile?{width:390,height:844}:{width:1280,height:800},reducedMotion:'reduce'});
   const calls=[],errors=[];
   // Budapest switches from UTC+1 to the next local date at 23:00Z in winter.
@@ -142,7 +156,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         badHold==='missing-guide-language'?null:payload?.guide_language,
       ...(badHold==='missing-expiry'?{}:{expires_at:badHold==='invalid-expiry'?'not-a-date':
         new Date(Date.now()+(badHold==='past-expiry'?-60000:600000)).toISOString()}),
-      requires_staff_confirmation:false
+      requires_staff_confirmation:false,
+      english_alternative_accepted:payload?.english_alternative_accepted??null
     };
     else if(path==='/api/v1/ancillary/offers'){
       if(badOffers==='unavailable')return route.fulfill({
@@ -180,6 +195,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
             is_private:bookingSelectionMismatch==='private'
               ?requestDetails.get('is_private')!=='true':requestDetails.get('is_private')==='true',
             guide_language:badFinalGuideLanguage==='missing'?null:(badFinalGuideLanguage||'he'),
+            english_alternative_accepted:englishPilot==='booking-mismatch'?false:
+              (calls.filter(c=>c.path==='/api/v1/holds').at(-1)?.payload?.english_alternative_accepted??null),
             total:bookingPriceMismatch==='different-total'?expectedTotal+25:expectedTotal,
             discount:20,currency:'EUR',
             ...(bookingPriceMismatch==='missing-partner-code'?{}:{promo_code_applied:payload?.promo_code})};
@@ -191,6 +208,8 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
           ?{type:'booking_capacity_request',status:'approved',reference:'VP-CAP-FAKE'}
           :{type:'booking_capacity_request',status:'pending',reference:'VP-CAP-FAKE',
             guide_language:badFinalGuideLanguage==='missing'?null:(badFinalGuideLanguage||'he'),
+            english_alternative_accepted:englishPilot==='staff-mismatch'?false:
+              (payload?.english_alternative_accepted??null),
             pricing:{promo_code_applied:badStaffPromoCode==='missing'?null:
               (badStaffPromoCode||payload?.promo_code)}};
     }
@@ -204,7 +223,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       body:JSON.stringify(data)});
   });
   try{
-    const response=await page.goto(host+(wpCrossOrigin?'/?wp-cross-origin':wpRtl?'/?wp-rtl':duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
+    const response=await page.goto(host+(englishPilot?'/?synthetic-english-pilot':wpCrossOrigin?'/?wp-cross-origin':wpRtl?'/?wp-rtl':duplicateEmbed?'/?duplicate-embed':headEmbed?'/?head-embed':'/'),{waitUntil:'domcontentloaded',timeout:20000});
     check(response?.status()===200,name+' local partner host loads');
     if(wpCrossOrigin){
       check(externalAssetServed&&
@@ -283,6 +302,38 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(await language.inputValue()===''&&await language.locator('option[value="hu"]').count()===0,
       name+' returning to original affiliate tour clears unsupported Hungarian');
     await language.selectOption('he');
+    const englishAlt=root.locator('select[name="englishAlternative"]');
+    if(englishPilot){
+      check(await root.locator('#englishAltRow').isVisible()&&
+        !await englishAlt.isDisabled(),
+        name+' isolated test clone shows the optional English fallback');
+      // The shared Chrome suite intentionally switches Hebrew → English →
+      // Hebrew below. It must erase a previous answer. For normal consent
+      // tests, choose Yes/No/blank only AFTER that regression step.
+      if(englishPilot==='reset'){
+        await englishAlt.selectOption('yes');
+        check(await language.inputValue()==='he',
+          name+' optional English answer never replaces requested Hebrew');
+        await language.selectOption('en');
+        check(!await root.locator('#englishAltRow').isVisible()&&
+          await englishAlt.inputValue()===''&&await englishAlt.isDisabled(),
+          name+' selecting English as primary clears old fallback');
+        await language.selectOption('he');
+        check(await root.locator('#englishAltRow').isVisible()&&
+          await englishAlt.inputValue()==='',
+          name+' returning to Hebrew requires a fresh explicit fallback choice');
+        check(!calls.some(c=>c.path.includes('/availability?')||
+          c.path==='/api/v1/holds'||c.path==='/api/v1/bookings'),
+          name+' guide changes alone cannot create commercial requests');
+        check(errors.length===0,name+' no Chrome exceptions in consent reset');
+        await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+        return;
+      }
+    }else{
+      check(!await root.locator('#englishAltRow').isVisible()&&
+        await englishAlt.isDisabled(),
+        name+' public source gate keeps English alternative hidden and disabled');
+    }
     if(midnightRollover){
       const oldDate=await dateField.inputValue();
       check(oldDate==='2026-10-25',name+' tab began with Budapest local October 25');
@@ -370,6 +421,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
     check(await departure.count()===0,
       name+' affiliate language change invalidates previously displayed departure');
     await language.selectOption('he');
+    if(englishPilot){
+      const answer=englishPilot==='no'?'no':englishPilot==='unanswered'?'':'yes';
+      await englishAlt.selectOption(answer);
+      check(await englishAlt.inputValue()===answer&&await language.inputValue()==='he',
+        name+' refreshed Hebrew selection retains its explicit optional answer');
+    }
     await root.locator('#searchButton').click();
     await departure.waitFor({timeout:10000});
     check(await departure.count()===1,
@@ -807,6 +864,46 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
         name+' repeated submission during pending request cannot create duplicate POSTs');
     }
     await root.locator('#success:not(.hidden)').waitFor({timeout:10000});
+    if(englishPilot){
+      const answer=englishPilot==='no'?false:
+        englishPilot==='unanswered'?null:true;
+      const entry=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/holds';
+      const sent=calls.find(c=>c.path===entry&&c.method==='POST');
+      check(sent&&Object.hasOwn(sent.payload,'english_alternative_accepted')&&
+        sent.payload.english_alternative_accepted===answer,
+        name+' persisted preference is exact Yes/No/unanswered rather than inferred');
+      check(calls.filter(c=>c.path.includes('/availability?')).every(
+        c=>c.path.includes('guide_language=he')),
+        name+' fallback preference preserves original Hebrew availability choice');
+      if(englishPilot==='staff-mismatch'||englishPilot==='booking-mismatch'){
+        const textResult=await root.locator('#success').innerText();
+        check(textResult.includes('English alternative needs verification')&&
+          !textResult.includes('Your booking has been received')&&
+          !textResult.includes('Your confirmation request was received'),
+          name+' server consent discrepancy never generates a success receipt');
+        check((await root.locator('#status.error').innerText()).includes('Do not submit again')&&
+          await root.locator('#checkout:not(.hidden)').count()===0,
+          name+' consent mismatch disables new checkout');
+        await root.locator('#customer').evaluate(el=>el.dispatchEvent(
+          new Event('submit',{bubbles:true,cancelable:true})));
+        const finalEndpoint=staffRequest?'/api/v1/booking-capacity-requests':'/api/v1/bookings';
+        check(calls.filter(c=>c.path===finalEndpoint).length===1&&
+          !calls.some(c=>c.method==='DELETE'&&c.path.startsWith('/api/v1/holds/')),
+          name+' server mismatch cannot retry final POST or delete converted hold');
+        check(errors.length===0,name+' no Chrome exception in opt-in mismatch');
+        await page.screenshot({path:join(out,'affiliate-'+name+'.png'),fullPage:true});
+        return;
+      }
+      const textResult=await root.locator('#success').innerText();
+      const label=answer===true?'Accepted':answer===false?'Declined':'Not answered';
+      check(textResult.includes('English alternative: '+label)&&
+        textResult.includes('Requested guiding language: Hebrew'),
+        name+' receipt includes both original language and recorded consent');
+    }else{
+      check(!calls.some(c=>c.payload&&
+        Object.hasOwn(c.payload,'english_alternative_accepted')),
+        name+' publicly shipped widget never transmits optional English consent');
+    }
     const receipt=await root.locator('#success').innerText();
     check(receipt.includes('Requested guiding language: Hebrew'),
       name+' receipt preserves requested language');
@@ -832,6 +929,12 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
 }
 try{
   await run('desktop-booking');
+  await run('desktop-pilot-english-yes-booking',{englishPilot:'yes'});
+  await run('mobile-pilot-english-no-staff-request',{mobile:true,staffRequest:true,englishPilot:'no'});
+  await run('desktop-pilot-english-unanswered-booking',{englishPilot:'unanswered'});
+  await run('mobile-pilot-english-mismatch-booking',{mobile:true,englishPilot:'booking-mismatch'});
+  await run('desktop-pilot-english-mismatch-staff-request',{staffRequest:true,englishPilot:'staff-mismatch'});
+  await run('mobile-pilot-english-choice-reset',{mobile:true,englishPilot:'reset'});
   await run('desktop-ancillary-missing-price',{badOffers:'missing-price'});
   await run('desktop-ancillary-service-unavailable',{badOffers:'unavailable'});
   await run('mobile-ancillary-service-unavailable',{mobile:true,badOffers:'unavailable'});
