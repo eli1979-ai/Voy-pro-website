@@ -17,6 +17,35 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+// Core tour pages only show three hand-picked alternatives. Ensure guests can
+// reach the full live catalog (including newer routes) in their own language.
+for(const [prefix,label] of [
+  ['', 'See all Budapest tours'],
+  ['he/', 'לכל הסיורים בבודפשט'],
+  ['hu/', 'Az összes budapesti túra']
+]){
+  const catalog='/' + prefix + 'budapest/#tours';
+  const home='site/' + prefix + 'budapest/index.html';
+  if(!read(path.join(root,home)).includes('id="tours"'))
+    fail(home,'tour chooser anchor must exist for core-tour return links');
+  for(const slug of ['buda-castle-ezraider-tour','margaret-island-ezraider-tour']){
+    const file='site/' + prefix + 'budapest/tours/' + slug + '/index.html';
+    const html=read(path.join(root,file));
+    const related=html.match(/<div class="related-grid">([\s\S]*?)<\/div>(<div class="route-compare-cta">[\s\S]*?<\/div>)<\/div><\/section>/);
+    if(!related){fail(file,'related tour cards must lead to a full-catalog CTA');continue;}
+    if((related[1].match(/class="related-card"/g)||[]).length!==3)
+      fail(file,'preserve the existing three distinct recommended options');
+    const action=related[2];
+    if((action.match(/<a\b/g)||[]).length!==1 ||
+       !action.includes('class="btn secondary"') ||
+       !action.includes('href="'+catalog+'"') ||
+       !action.includes('>'+label+'</a>'))
+      fail(file,'full-catalog secondary link must preserve locale and label');
+    if(action.includes('data-track="booking_cta"')||action.includes('href="#booking"'))
+      fail(file,'all-tours link must not replace the booking CTA');
+  }
+}
+
 const release=JSON.parse(read(path.join(site,'release.json')));
 const sitemap=read(path.join(site,'sitemap.xml'));
 // XML Sitemap schema permits only <url> elements and whitespace inside <urlset>.
