@@ -33,7 +33,18 @@ export async function verifyPreviewHttp({rootDir=process.cwd(),previewUrl,reques
   const checked=[];
   for(const path of [...PAGES,...ASSETS]){
     const response=await request(path);
-    if(response.status!==200)throw Error(path+': expected HTTP 200, received '+response.status);
+    if(response.status!==200){
+      // Fail closed on an authentication redirect: a Vercel login page does
+      // not prove that the deployed application passed its HTTP security gate.
+      // Do not print the Location query (which may contain auth parameters).
+      if(response.status===302){
+        let host='unknown';
+        try{host=new URL(header(response.headers,'Location')||'/',previewUrl).hostname;}catch{}
+        throw Error(path+': HTTP 302 before application response (redirect host '+host+
+          '); check protected Preview authentication, never disable protection');
+      }
+      throw Error(path+': expected HTTP 200, received '+response.status);
+    }
     if(typeof response.body!=='string')throw Error(path+': response body unavailable');
     for(const required of globals){
       if(norm(header(response.headers,required.key))!==norm(required.value))
@@ -101,9 +112,14 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
       const n=seq++;
       const headersFile=join(temporary,'headers-'+n);
       const bodyFile=join(temporary,'body-'+n);
-      // CLI v63 wraps native curl and safely injects Deployment Protection
-      // bypass. Keep credentials out of command arguments and logs.
-      const response=spawnSync('vercel',['curl',path,'--deployment',previewUrl,
+      // Invoke the exact immutable Preview URL rather than a project-relative
+      // path. Vercel CLI supports URL-based protected requests and uses its
+      // existing CI authentication; never put a bypass token in arguments.
+      // Keep redirects disabled so a login 302 cannot be mistaken for HTTP 200.
+      if(!path.startsWith('/'))throw Error('Expected origin-relative Preview resource');
+      const exact=new URL(path,previewUrl);
+      if(exact.origin!==previewUrl)throw Error('Refusing non-Preview HTTP target');
+      const response=spawnSync('vercel',['curl',exact.href,
         '--silent','--show-error','--max-redirs','0',
         '--dump-header',headersFile,'--output',bodyFile],{
         encoding:'utf8',timeout:45000,maxBuffer:1024*1024
