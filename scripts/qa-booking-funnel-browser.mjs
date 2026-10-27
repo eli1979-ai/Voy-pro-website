@@ -405,6 +405,8 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
       lang+' staff request has no payment method selector');
     check(await shell.locator('[data-hold-timer]').innerText()==='',
       lang+' staff request does not invent a reserved hold timer');
+    check(await shell.locator('.checkout-assurance').isHidden(),
+      lang+' staff request never claims a price or reserved places before confirmation');
     check(!(await shell.locator('button[type="submit"]').innerText()).trim().match(/^(?:Pay now|Confirm booking)$/i),
       lang+' staff request does not advertise instant booking or payment');
     check(!calls.slice(beforeStaffCalls).some(c=>/\/(holds|quotes|bookings)(?:\/|\?|$)|\/payments\/intents/.test(c.path)),
