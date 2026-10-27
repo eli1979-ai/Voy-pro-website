@@ -110,6 +110,13 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     else if(/\/experiences\/[^/]+\/availability$/.test(routePath)){
       if(phase==='slow')await wait(600);
       if(phase==='error'){status=503;data={error:'fixture unavailable',code:'AVAILABILITY_UNAVAILABLE'};}
+      else if(phase==='staff-check')data={slots:[
+        {id:'11111111-1111-4111-8111-111111111111',time:'10:00',
+          status:'requires_staff_check',sellable:false,requestable:true,
+          requires_staff_confirmation:true},
+        {id:'22222222-2222-4222-8222-222222222222',time:'10:30',
+          status:'sold',sellable:false,requestable:false}
+      ]};
       else if(phase==='slots'||phase==='slow')data={slots:[
         {id:'11111111-1111-4111-8111-111111111111',time:'10:00',sellable:false,requestable:false},
         {id:'22222222-2222-4222-8222-222222222222',time:'10:30',sellable:true,requestable:false}
@@ -376,6 +383,35 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
       lang+' unsellable and non-requestable slot is disabled');
     check(await page.locator('#slotlist button').nth(1).isEnabled(),
       lang+' sellable slot remains selectable');
+
+    // A staff-confirmation departure is NOT instantly bookable. The UI must
+    // allow a request without silently creating a quote, hold or payment.
+    // The fixture never contacts the real backend and never submits this form.
+    phase='staff-check';
+    const beforeStaffCalls=calls.length;
+    await submit.click();
+    await page.locator('#slotlist button').first().waitFor({state:'attached',timeout:10000});
+    const staffSlots=page.locator('#slotlist button');
+    check(await staffSlots.count()===2,
+      lang+' staff-confirmation fixture returns two departures');
+    check(await staffSlots.first().isEnabled()&&await staffSlots.nth(1).isDisabled(),
+      lang+' staff-confirmation is requestable but sold departure is disabled');
+    await staffSlots.first().click();
+    const shell=page.locator('#live-checkout-shell');
+    check(await shell.isVisible()&&
+      (await shell.locator('[data-checkout-heading]').innerText()).trim().length>0,
+      lang+' staff-only slot opens a clearly labeled confirmation-request form');
+    check(await shell.locator('[name="payment_method"]').locator('..').isHidden(),
+      lang+' staff request has no payment method selector');
+    check(await shell.locator('[data-hold-timer]').innerText()==='',
+      lang+' staff request does not invent a reserved hold timer');
+    check(!(await shell.locator('button[type="submit"]').innerText()).trim().match(/^(?:Pay now|Confirm booking)$/i),
+      lang+' staff request does not advertise instant booking or payment');
+    check(!calls.slice(beforeStaffCalls).some(c=>/\/(holds|quotes|bookings)(?:\/|\?|$)|\/payments\/intents/.test(c.path)),
+      lang+' staff-request selection never writes a booking, quote, hold or payment');
+
+    // Changing language must discard the previously shown staff request,
+    // just as it invalidates a regular sellable departure.
     // Guide language is part of the availability request. A changed language
     // must invalidate sellable slots immediately; never reuse a former guide-
     // specific result or proceed to a hold with an obsolete request.
