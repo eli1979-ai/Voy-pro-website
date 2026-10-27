@@ -179,6 +179,35 @@ for(const {page,href,locale,positionMarker} of [
     failures.push(page+': Marvão referral must explain local tour rules differ from Budapest');
 }
 
+
+// Heroes' Square and Citadella are locally coordinated, not direct-checkout
+// flows. Every language must offer a secondary route back to the *same*
+// locale's Budapest tour picker, while retaining the primary local enquiry.
+for(const [prefix,label] of [
+  ['', 'Compare Budapest tours'],
+  ['he/', 'השוואת הסיורים בבודפשט'],
+  ['hu/', 'Budapesti túrák összehasonlítása']
+]){
+  const destination='/'+prefix+'budapest/#tours';
+  for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour']){
+    const file='site/'+prefix+'budapest/tours/'+slug+'/index.html';
+    const html=fs.readFileSync(file,'utf8');
+    const groups=[...html.matchAll(/<div class="route-compare-cta">([\s\S]*?)<\/div>/g)];
+    if(groups.length!==1){failures.push(file+': expected one visible tour-comparison action group');continue;}
+    const buttons=[...groups[0][1].matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/g)]
+      .map(m=>({url:m[1],label:m[2]}));
+    if(buttons.length!==3)failures.push(file+': expected enquiry, comparison, email actions');
+    if(!buttons[0]?.url.startsWith('https://wa.me/36300993099?text='))
+      failures.push(file+': local team WhatsApp enquiry must remain first');
+    if(buttons[1]?.url!==destination || buttons[1]?.label!==label)
+      failures.push(file+': tour comparison must preserve locale and correct copy');
+    if(!buttons[2]?.url.startsWith('mailto:support@voy-pro.com'))
+      failures.push(file+': existing email enquiry must remain available');
+    if(groups[0][1].includes('booking_cta') || groups[0][1].includes('href="#booking"'))
+      failures.push(file+': route comparison must not imply direct booking is available');
+  }
+}
+
 if(failures.length){
   console.error('Budapest group/corporate discovery guard failed.');
   for(const failure of failures) console.error('- '+failure);
