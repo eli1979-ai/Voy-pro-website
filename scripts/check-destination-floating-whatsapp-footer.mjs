@@ -25,6 +25,15 @@ for(const prefix of ['','pt/','he/']){
  check(html.includes('class="mobilebook portugal-mobile"'),file+': Portugal mobile request CTA removed');
 }
 check(js.includes("if(!(isBudapestPage||isPortugalPage)||!document.querySelector('.mobilebook'))return;"),'Portugal/Budapest float runtime missing');
+// The mobile nav is created at load, but booking/date/party choices may change.
+// Recompute the WhatsApp URL when opening and activating the navigation link.
+const mobileNav=js.slice(js.indexOf('function enhanceMobileNavigation()'),js.indexOf("document.querySelectorAll('a.brand')"));
+check(mobileNav.includes("const mobileWa=sheet.querySelector('[data-mobile-nav-wa]');"),'Mobile navigation WhatsApp link missing');
+check(mobileNav.includes("const refreshMobileWhatsApp=()=>{mobileWa.href=whatsAppUrl();};"),'Mobile nav must derive fresh WhatsApp URL from current form selections');
+check(mobileNav.includes("mobileWa.addEventListener('pointerdown',refreshMobileWhatsApp);"),'Mobile nav pointer activation uses stale tour context');
+check(/mobileWa\.addEventListener\('click',\(\)=>\{\s*refreshMobileWhatsApp\(\);\s*track\('whatsapp_clicked'/.test(mobileNav),'Mobile nav click must refresh WhatsApp before tracking');
+check(mobileNav.includes("btn.onclick=()=>{if(mobileWa)mobileWa.href=whatsAppUrl();"),'Mobile nav must refresh WhatsApp on opening, including keyboard use');
+
 check(js.includes("const whatsappPortugal=isPortugalPage||vehicleGuideSource==='marvao'||vehicleGuideSource==='marvao-pt'")&&
   js.includes("const whatsappBudapest=isBudapestPage||vehicleGuideSource==='budapest'")&&
   js.includes("return 'https://wa.me/'+(whatsappPortugal?'351935695004':'36300993099')"),

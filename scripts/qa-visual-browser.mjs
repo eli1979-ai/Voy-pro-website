@@ -573,6 +573,36 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Browser regression: a WhatsApp link created on load must reflect the
+      // latest tour and party selections when the customer opens the menu.
+      // Values are changed in local DOM only; no availability/booking/API call.
+      if(name==='budapest-en-mobile'){
+        const oldUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+        await page.evaluate(()=>{
+          const form=document.querySelector('#availability-form');
+          const experience=form.querySelector('[name="experience"]');
+          const riders=form.querySelector('[name="adults"]');
+          // The blocked external catalog can leave controls disabled or without
+          // their remote options. Simulate an enabled, confirmed local selector,
+          // without dispatching events or contacting the provider.
+          if(![...experience.options].some(opt=>opt.value==='exp_bud_margaret'))
+            experience.add(new Option('Margaret Island by EZRaider','exp_bud_margaret'));
+          if(![...riders.options].some(opt=>opt.value==='4'))
+            riders.add(new Option('4','4'));
+          experience.disabled=false;
+          riders.disabled=false;
+          experience.value='exp_bud_margaret';
+          riders.value='4';
+        });
+        await page.locator('.nav-menu-toggle').click();
+        const freshUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+        const message=freshUrl?new URL(freshUrl).searchParams.get('text')||'':'';
+        check(freshUrl!==oldUrl&&freshUrl?.startsWith('https://wa.me/36300993099?text='),
+          name+' WhatsApp menu URL refreshes after local tour/party change');
+        check(message.includes('Margaret')&&message.includes('Independent riders: 4'),
+          name+' WhatsApp message includes current selected tour and four riders (actual: '+message.slice(0,230)+')');
+        await page.keyboard.press('Escape');
+      }
       // Previously decided guests may leave the reopened privacy drawer
       // without converting "close" into analytics acceptance or refusal.
       // Check all supported destinations/locales with real keyboard behavior.

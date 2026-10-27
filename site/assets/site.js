@@ -520,7 +520,16 @@
     const langRow=sheet.querySelector('[data-mobile-language-row]');
     if(langRow)document.querySelectorAll('.language-picker .lang-switch').forEach(link=>langRow.appendChild(link.cloneNode(true)));
     const mobileWa=sheet.querySelector('[data-mobile-nav-wa]');
-    if(mobileWa){mobileWa.href=whatsAppUrl();mobileWa.addEventListener('click',()=>track('whatsapp_clicked',{page,context:'mobile_nav'}));}
+    if(mobileWa){
+      // Tour/date/party choices can change after page load; never reuse a stale link.
+      const refreshMobileWhatsApp=()=>{mobileWa.href=whatsAppUrl();};
+      refreshMobileWhatsApp();
+      mobileWa.addEventListener('pointerdown',refreshMobileWhatsApp);
+      mobileWa.addEventListener('click',()=>{
+        refreshMobileWhatsApp();
+        track('whatsapp_clicked',{page,context:'mobile_nav'});
+      });
+    }
     const close=()=>{sheet.hidden=true;btn.setAttribute('aria-expanded','false');document.body.classList.remove('nav-open')};
     // CSS hides the menu toggle above 1180px. If a visitor rotates their
     // device or widens the window while the sheet is open, close the modal
@@ -537,7 +546,7 @@
     };
     desktopNav?.addEventListener?.('change',closeOnDesktop);
     if(desktopNav?.matches)close();
-    btn.onclick=()=>{sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
+    btn.onclick=()=>{if(mobileWa)mobileWa.href=whatsAppUrl();sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
   }
   document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});
 
