@@ -442,10 +442,16 @@
       const date=String(f.get('date')||'').trim();
       const people=String(f.get('people')||'').trim();
       const guide=String(f.get('guide_language')||'').trim();
-      const name=String(f.get('full_name')||'').trim();
-      const notes=String(f.get('notes')||'').trim();
+      // Limit the *encoded link*, not only visible characters: Hebrew and
+      // emoji may expand to 6-12 URL bytes per Unicode code point. Discard
+      // malformed lone surrogate halves so encodeURIComponent cannot throw.
+      const safePoints=value=>Array.from(String(value||'').trim())
+        .filter(point=>!(point.length===1&&/^[\uD800-\uDFFF]$/.test(point)));
+      const name=safePoints(f.get('full_name')).slice(0,100);
+      const allNotes=safePoints(f.get('notes'));
+      const notes=allNotes.slice(0,500);
       const status=form.querySelector('[data-portugal-request-status]');
-      if(!route||!date||!guide||!name){
+      if(!route||!date||!guide||!name.length){
         if(status)status.textContent=labels.missing;
         return;
       }
@@ -459,16 +465,46 @@
         :locale==='pt'
           ?'Olá, gostaria de pedir disponibilidade para um passeio de EZRaider em Marvão através da VOY PRO.'
           :'Hi, I’d like to request availability for an EZRaider tour in Marvão through VOY PRO.';
-      const lines=[
+      const requiredLines=[
         intro,'',
         labels.route+': '+(routeNames[route]||route),
         labels.date+': '+((locale==='pt'||locale==='he')?confirmationDateLabel(date):date),
         labels.people+': '+people,
-        labels.language+': '+guideLanguageLabel(guide),
-        labels.name+': '+name
+        labels.language+': '+guideLanguageLabel(guide)
       ];
-      if(notes)lines.push(labels.notes+': '+notes);
-      lines.push((locale==='pt'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname);
+      const sourceLine=(locale==='pt'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname;
+      const messageFor=(nameCount,notesCount)=>{
+        const lines=[...requiredLines,labels.name+': '+name.slice(0,nameCount).join('')];
+        if(notes.length){
+          // The ellipsis tells the guest that more details may need to be
+          // sent in WhatsApp; never silently remove the source or route.
+          const clipped=notesCount<allNotes.length;
+          lines.push(labels.notes+': '+notes.slice(0,notesCount).join('')+(clipped?'…':''));
+        }
+        lines.push(sourceLine);
+        return lines.join('\n');
+      };
+      const urlPrefix='https://wa.me/351935695004?text=';
+      const withinBudget=message=>urlPrefix.length+encodeURIComponent(message).length<1800;
+      const maxFitting=(upper,build)=>{
+        let low=0,high=upper;
+        while(low<high){
+          const mid=Math.ceil((low+high)/2);
+          if(withinBudget(build(mid)))low=mid;
+          else high=mid-1;
+        }
+        return low;
+      };
+      // Preserve essential context and as much of the name as possible,
+      // then fill the remaining link budget with optional notes.
+      const nameCount=maxFitting(name.length,n=>messageFor(n,0));
+      const notesCount=maxFitting(notes.length,n=>messageFor(nameCount,n));
+      const message=messageFor(nameCount,notesCount);
+      if(!withinBudget(message)){
+        if(status)status.textContent=locale==='he'?'ההודעה ארוכה מדי. נא לקצר את הפרטים.':
+          locale==='pt'?'Mensagem demasiado longa. Reduza os detalhes.':'Message too long. Please shorten the details.';
+        return;
+      }
       const requestAnalytics={page,context:'portugal_availability_request',route,date,people:people||null,guide_language:guide};
       // A guest's WhatsApp action must not wait for a best-effort session
       // write: mobile navigation would otherwise stall when the API is slow.
@@ -476,7 +512,7 @@
       // to optional analytics consent. No customer name/notes enter telemetry.
       track('whatsapp_clicked',requestAnalytics);
       void createSession('whatsapp_clicked',requestAnalytics).catch(()=>{});
-      location.href='https://wa.me/351935695004?text='+encodeURIComponent(lines.join('\n'));
+      location.href='https://wa.me/351935695004?text='+encodeURIComponent(message);
     });
   }
   bindPortugalRequestFlow();
