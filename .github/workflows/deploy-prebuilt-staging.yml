@@ -100,25 +100,9 @@ jobs:
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Prebuilt Preview: $URL" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Smoke test protected Preview before considering any release
+      - name: Smoke test protected Preview HTTP parity (security, redirects, assets)
         if: inputs.publish_preview
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
-        run: |
-          set -euo pipefail
-          vercel curl /release.json --deployment "$PREVIEW_URL" > /tmp/voy-release.json
-          for path in / /budapest/ /he/budapest/ /hu/budapest/ /portugal/ /he/portugal/ /pt/portugal/; do
-            vercel curl "$path" --deployment "$PREVIEW_URL" > /tmp/voy-page.html
-            grep -Eqi '<html|<!doctype' /tmp/voy-page.html
-          done
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const got = JSON.parse(fs.readFileSync('/tmp/voy-release.json', 'utf8'));
-          const want = JSON.parse(fs.readFileSync('site/release.json', 'utf8'));
-          if (got.version !== want.version || got.target !== 'staging' || got.seo_indexable !== false) {
-            throw Error('Published Preview release differs from reviewed Staging source');
-          }
-          NODE
-          # Further parity gate (HTTP security headers / redirects / auth / FBM)
-          # is mandatory before approval of a production workflow replacement.
+        run: node scripts/check-prebuilt-preview-http.mjs

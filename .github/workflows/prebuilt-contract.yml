@@ -9,6 +9,8 @@ on:
       - 'scripts/check-prebuilt-workflow.mjs'
       - 'scripts/check-prebuilt-output.mjs'
       - 'scripts/test-prebuilt-output.mjs'
+      - 'scripts/check-prebuilt-preview-http.mjs'
+      - 'scripts/test-prebuilt-preview-http.mjs'
       - 'vercel.json'
       - 'site/release.json'
       - 'package.json'
@@ -20,6 +22,8 @@ on:
       - 'scripts/check-prebuilt-workflow.mjs'
       - 'scripts/check-prebuilt-output.mjs'
       - 'scripts/test-prebuilt-output.mjs'
+      - 'scripts/check-prebuilt-preview-http.mjs'
+      - 'scripts/test-prebuilt-preview-http.mjs'
       - 'vercel.json'
       - 'site/release.json'
       - 'package.json'
@@ -43,3 +47,5 @@ jobs:
         run: node scripts/check-prebuilt-workflow.mjs
       - name: Test built-artifact parity gate against safe and unsafe fixtures
         run: node scripts/test-prebuilt-output.mjs
+      - name: Test protected Preview HTTP parity against safe and unsafe fixtures (offline)
+        run: node scripts/test-prebuilt-preview-http.mjs

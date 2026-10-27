@@ -39,4 +39,5 @@ assert.doesNotMatch(workflow, /cat\s*>\s*\.vercel\/output\/config\.json|rm -rf \
 assert.match(workflow, /npm run verify:launch/);
 assert.match(workflow, /npm run qa:site/);
 assert.match(workflow, /node scripts\/check-prebuilt-output\.mjs/, 'Do not deploy before built-artifact route/header parity check');
+assert.match(workflow, /node scripts\/check-prebuilt-preview-http\.mjs/, 'Manual Preview must verify served HTTP security headers, redirects, assets and noindex');
 console.log('Prebuilt pilot source/workflow safety contract: OK (no Vercel calls)');
