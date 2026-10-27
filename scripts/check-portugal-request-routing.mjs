@@ -109,8 +109,13 @@ for(const locale of ['en','pt','he']){
     const text=new URL(location.href).searchParams.get('text')||'';
     assert.ok(text.includes('2026-10-18')&&text.includes(pathname)&&text.includes('Vila de Marvão Express Tour')&&text.includes('4'),
       locale+' '+scenario+': required staff context lost to link clipping');
-    assert.ok(text.includes('…'),
-      locale+' '+scenario+': shortened notes must visibly end with an ellipsis');
+    if(scenario!=='lone-surrogates'){
+      assert.ok(text.includes('…'),
+        locale+' '+scenario+': shortened notes must visibly end with an ellipsis');
+    }else{
+      assert.ok(!text.includes('…'),
+        locale+' '+scenario+': a compact cleaned message must not claim truncation');
+    }
     assert.ok(!/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(text),
       locale+' '+scenario+': malformed Unicode leaked to WhatsApp');
     assert.ok(!Object.hasOwn(sessionCalls.at(-1).metadata,'full_name')&&
