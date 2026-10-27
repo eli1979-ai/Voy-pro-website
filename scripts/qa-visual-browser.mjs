@@ -240,6 +240,25 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(restored.ok,name+' floating WhatsApp becomes visible again after Manage Booking leaves the viewport');
         if(!restored.ok)results.push('DIAGNOSTIC '+name+' restore '+JSON.stringify(restored));
       }
+      // Exercise the real static homepage card script in Chromium, not only a
+      // Node DOM stub. Clicking card copy must navigate to the destination.
+      const comingSoonCursor=await page.locator('#destinations .destination-card--coming-soon')
+        .evaluate(node=>getComputedStyle(node).cursor);
+      check(comingSoonCursor==='default',name+' Prague coming-soon card has no clickable pointer');
+      for(const [slug,selector] of [
+        ['budapest','.destination-card--budapest > p'],
+        ['portugal','.destination-card--marvao > p']
+      ]){
+        try{
+          await page.locator('#destinations '+selector).evaluate(node=>node.click());
+          await page.waitForURL('**/'+slug+'/',{timeout:5000});
+          check(new URL(page.url()).pathname==='/'+slug+'/',
+            name+' '+slug+' homepage destination card body opens the destination');
+          await page.goBack({waitUntil:'domcontentloaded',timeout:10000});
+        }catch(error){
+          check(false,name+' '+slug+' homepage card body navigation: '+String(error).slice(0,170));
+        }
+      }
       for(const slug of ['budapest','portugal']){
         try{
           await page.locator('.parent-hero-destination--'+(slug==='portugal'?'marvao':slug)+' img').click({timeout:5000});
