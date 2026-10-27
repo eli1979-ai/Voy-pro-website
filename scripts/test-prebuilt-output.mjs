@@ -72,30 +72,35 @@ try{
   setup();
   {
     const c=clone();
-    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__$',status:404});
+    // Vercel trailingSlash:true redirects the noncanonical spelling first.
+    // Check the canonical protected 404, not the intermediate 308.
+    c.routes.splice(5,0,
+      {src:'^/manage/__sensitive_probe__$',status:308,
+        headers:{Location:'/manage/__sensitive_probe__/'}},
+      {src:'^/manage/__sensitive_probe__/$',status:404});
     save('.vercel/output/config.json',c);
     assert.equal(verifyPrebuilt(root).redirects,3);
   }
   reject(()=>{
     const c=clone();
-    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__$',status:500});
+    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__/$',status:500});
     save('.vercel/output/config.json',c);
   },/Unexpected redirect\/error/);
   reject(()=>{
     const c=clone();
-    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__$',status:404});
+    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__/$',status:404});
     delete c.routes[3].headers['Cache-Control'];
     save('.vercel/output/config.json',c);
   },/Cache-Control/);
   reject(()=>{
     const c=clone();
-    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__$',status:404});
+    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__/$',status:404});
     delete c.routes[4].headers['X-Robots-Tag'];
     save('.vercel/output/config.json',c);
   },/X-Robots-Tag/);
   reject(()=>{
     const c=clone();
-    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__$',status:308,headers:{Location:'/manage/'}});
+    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__/$',status:308,headers:{Location:'/manage/'}});
     save('.vercel/output/config.json',c);
   },/Unexpected redirect\/error/);
   reject(()=>{
