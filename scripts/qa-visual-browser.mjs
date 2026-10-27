@@ -579,7 +579,10 @@ try{
         'budapest-en-corporate-desktop':'corporate/team event',
         'budapest-en-private-mobile':'question about a private EZRaider tour'
       };
-      if(authoredB2B[name]){
+      const sourceLocale=name.startsWith('budapest-he-')?'עמוד':
+        name.startsWith('budapest-hu-')?'Oldal':'Page';
+      const isB2BPage=/^\/(?:he\/|hu\/)?budapest\/(?:group-tours|corporate-events|private-tours)\/$/.test(new URL(path,base).pathname);
+      if(authoredB2B[name]||isB2BPage){
         // Earlier route-guide checks may have navigated away from the tour.
         // Inspect the original enquiry page rather than the guide's DOM.
         if(new URL(page.url()).pathname!==new URL(path,base).pathname)
@@ -588,7 +591,11 @@ try{
         const url=new URL(href);
         const msg=url.searchParams.get('text')||'';
         check(url.hostname==='wa.me'&&url.pathname==='/36300993099'&&
-          msg.includes(authoredB2B[name]),name+' page-authored B2B WhatsApp brief survives JS');
+          msg.length>80&&(!authoredB2B[name]||msg.includes(authoredB2B[name])),
+          name+' page-authored B2B WhatsApp brief survives JS');
+        const sourceLines=msg.split('\n').filter(line=>line===sourceLocale+': '+new URL(path,base).pathname);
+        check(sourceLines.length===1,
+          name+' WhatsApp includes exact public origin path once without query or booking identifiers');
         check(!msg.includes('I’d like to check a Budapest tour'),
           name+' does not degrade its detailed enquiry to a generic greeting');
       }

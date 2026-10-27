@@ -1111,7 +1111,19 @@
       try{hasAuthoredInquiry=(new URL(href)).searchParams.get('text')?.trim().length>30;}
       catch{hasAuthoredInquiry=false;}
     }
-    if(hasAuthoredInquiry)return;
+    if(hasAuthoredInquiry){
+      // Send the public source path, not query parameters, booking tokens or
+      // client state. Keep the authored multi-question message unchanged.
+      const sourceLabel=locale==='he'?'עמוד':locale==='hu'?'Oldal':'Page';
+      const link=new URL(href);
+      const message=link.searchParams.get('text')||'';
+      const sourceLine=sourceLabel+': '+location.pathname;
+      if(!message.split('\n').includes(sourceLine)){
+        link.searchParams.set('text',message+'\n'+sourceLine);
+        a.href=link.toString();
+      }
+      return;
+    }
     const refresh=()=>{a.href=whatsAppUrl();};
     refresh();
     a.addEventListener('pointerdown',refresh);
