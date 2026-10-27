@@ -2,6 +2,7 @@
 // Offline safety contract for the manual, non-production prebuilt release pilot.
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { matchesGlob } from 'node:path';
 
 const read = path => readFileSync(path, 'utf8');
 const workflow = read('.github/workflows/deploy-prebuilt-staging.yml');
@@ -15,6 +16,53 @@ assert.equal(release.seo_indexable, false, 'Pilot must remain non-indexable');
 assert.equal(vercel.buildCommand, 'npm run build');
 assert.equal(vercel.outputDirectory, 'dist');
 assert.equal(vercel.trailingSlash, true);
+// Approved Git preview gate: retain production and explicit release-candidate paths.
+// Structural + local glob regression checks only; Vercel's actual matcher must
+// still be proven by one isolated PR branch and reviewed release branch.
+const expectedDeployments={
+  '**':false,
+  main:true,
+  'release/**':true,
+  'preview/**':true
+};
+function assertGitDeploymentAllowlist(source){
+  assert.deepEqual(source.git,{deploymentEnabled:expectedDeployments},
+    'Git deployments must be denied by default, preserving main and reviewed release/preview branches');
+  assert.equal(source.ignoreCommand,undefined,
+    'Ignored Build Step must not silently change deployment behavior');
+  assert.equal(source.github?.enabled,undefined,
+    'Legacy github.enabled may not disable all Git deployments');
+}
+assertGitDeploymentAllowlist(vercel);
+const mutations=[
+  {git:{deploymentEnabled:{...expectedDeployments,'**':true}}},
+  {git:{deploymentEnabled:{...expectedDeployments,main:false}}},
+  {git:{deploymentEnabled:{...expectedDeployments,'release/**':false}}},
+  {git:{deploymentEnabled:{...expectedDeployments,'preview/**':false}}},
+  {git:{deploymentEnabled:{'**':false,main:true,'preview/**':true}}},
+  {git:{deploymentEnabled:{...expectedDeployments,'feature/**':true}}},
+  {git:{deploymentEnabled:false}},
+  {git:{...vercel.git,unknownSetting:true}},
+  {ignoreCommand:'exit 0'},
+  {github:{enabled:false}}
+];
+for(const mutant of mutations){
+  const bad={...vercel,...mutant};
+  assert.throws(()=>assertGitDeploymentAllowlist(bad),
+    'Unsafe Git auto-deploy configuration must be rejected');
+}
+function locallyEnabled(branch){
+  const matching=Object.entries(expectedDeployments)
+    .filter(([pattern])=>matchesGlob(branch,pattern));
+  // Per Vercel docs: any matching true wins; unspecified branches default true.
+  return matching.length===0||matching.some(([,enabled])=>enabled===true);
+}
+for(const branch of ['main','release/rc-1','preview/rc-1','release/2026/oct','preview/qa/nested'])
+  assert.equal(locallyEnabled(branch),true,'Required release branch disabled: '+branch);
+for(const branch of ['feature/mobile','docs/cost','ci/policy','fix/booking','hotfix/checkout'])
+  assert.equal(locallyEnabled(branch),false,'Routine branch allowed a deployment: '+branch);
+console.log('Git Preview allowlist: strict config, 10 unsafe mutations and 10 local matcher cases OK');
+
 const common = vercel.headers.find(x => x.source === '/(.*)');
 assert.ok(common, 'Global security headers are required');
 const values = Object.fromEntries(common.headers.map(x => [x.key.toLowerCase(), x.value]));

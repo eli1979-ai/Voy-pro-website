@@ -1,6 +1,6 @@
 # VOY PRO Website development cost and CI/CD policy
 
-Status: **proposed / documentation only**. This policy records the agreed direction and does not itself change GitHub Actions, Vercel settings, a live domain, required checks, or deployment behavior. Operational changes must be made via their own reviewed PRs and approved deployment changes.
+Status: **operating guidance with an approval-gated Vercel Git Preview rollout**. The checked-in `vercel.json` on each branch is authoritative; a change proposed in a Draft PR is **not active on `main`** until independently approved and merged. This document never authorizes public-domain, checkout, security or Production changes.
 
 ## Purpose and scope
 
@@ -12,7 +12,7 @@ Repository: **public** `eli1979-ai/Voy-pro-website`; do not place secrets, custo
 
 - Current GitHub workflow `.github/workflows/verify-staging.yml` runs `npm run build`, launch readiness, site QA and many regression assertions on push to `main` and pull requests.
 - `package.json` composes many validators into the build script and creates `dist/`. Preserve these checks or provide proven coverage equivalent to the existing checks.
-- A **manual** prebuilt workflow exists in `.github/workflows/deploy-prebuilt-staging.yml`. It presently hardcodes an old release version (`1.33.0`), while the package version examined on 2026-10-27 was `1.48.99`. It also contains a hand-written Vercel output routes config. It is **not verified as a faithful, release-ready replacement**; review route/header/redirect parity, Git/commit provenance, secrets handling, failure/rollback, and protected-preview smoke access before using it.
+- The **manual** Prebuilt workflow `.github/workflows/deploy-prebuilt-staging.yml` uses the pinned official Vercel CLI and a reviewed `main` source. The no-deploy run [#40549976170](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40549976170) and protected Preview run [#40553212926](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40553212926) **both succeeded** on 2026-10-27, proving GitHub-built output, route/security/redirect parity, isolated `vercel deploy --prebuilt`, and protected Preview HTTP checks. The Preview has no public-domain aliases. This **does not approve Production deployment**.
 - The Vercel project called `voy-pro-staging` was observed serving the custom domains `voy-pro.com` and `www.voy-pro.com`, with production-target deploys. **Do not treat the project name `staging` as proof that it is disposable.** Verify live mapping before touching it.
 - A public GitHub repository generally allows standard GitHub-hosted Actions runners without billed Actions minutes under GitHub's prevailing rules. Confirm current account conditions and runner types; third-party/AI, larger runners and related services can have separate charges.
 
@@ -24,10 +24,11 @@ Repository: **public** `eli1979-ai/Voy-pro-website`; do not place secrets, custo
 4. Where user-facing visual or API integration testing is needed, assemble a reviewed release candidate and produce one protected Vercel preview with relevant browser/smoke checks. Do not require every corrective commit to create a new Vercel build.
 5. Merge/promote only after required checks and explicit owner approval. Avoid automated changeover of public domains. Check noindex/canonical URLs, SEO behavior and booking flow against exact candidate after any deploy path change.
 
-## Build/deploy cost controls — for follow-on PRs, not automatic changes now
+## Build/deploy cost controls — verified candidate, merge still gated
 
-- Inventory Vercel previews and production deployments separately; count excessive branch builds and build failures.
-- Consider Vercel ignored-build rules or explicit/manual preview deployment **only after** verifying that critical integration tests and required checks still run and public production releases are unaffected.
+- Inventory Vercel previews and production deployments separately; count excessive branch builds and build failures. Team-wide Build CPU charges also include other projects, so do not attribute all of them to this website.
+- An approved candidate for `git.deploymentEnabled` explicitly permits `main`, `release/**` and `preview/**` while disabling routine branch Previews with `"**": false`. **Vercel states a matching `true` wins.** On 2026-10-27, controlled Git pushes showed **zero** deployments for routine `ci/vercel-preview-allowlist-20261027` while the `preview/cost-policy-rc-20261027` and `release/cost-policy-rc-20261027` branches each produced **one READY Preview**, without public-domain aliases. Three GitHub CI checks remained green for the routine branch. See Draft PR #575. These observations do not mean the candidate has already been merged to `main`.
+- Do not substitute `ignoreCommand`, disable Production Git integration, bypass deployment protection or remove any full GitHub QA gate.
 - Evaluate a GitHub-produced `dist/` artifact published via Vercel Build Output API / prebuilt deployment. Confirm exact parity with current `vercel.json` redirects, headers, trailing slashes, static files, robots/noindex rules, runtime API paths, environment semantics and deployment protection; never accept a shortcut that silently omits security headers or public redirects.
 - For any deploy CLI, pin a reviewed exact version and use protected `VERCEL_TOKEN` environment secret rather than embedding tokens in command lines or logs. Restrict any secrets-bearing job to reviewed, appropriately approved source.
 - Only benchmark Vercel build machine tiers where builds still run on Vercel. Compare billable dollars and latency, not headline minute price.
@@ -52,12 +53,12 @@ Measure per week and per billing cycle: GitHub workflow minutes (standard vs any
 
 Any implementation PR must explain: cost hypothesis, exact triggers changed, tests maintained, staging/live domains affected, prior and projected build count, evidence of preview/production parity, safe rollback, and whether owner approval is needed.
 
-## Sequenced rollout — new PRs required
+## Sequenced rollout and remaining gates
 
-1. Collect historical build counts/cost per project and check current live domain mapping.
-2. Repair and independently validate the existing manual prebuilt workflow as a *non-production experiment*; do not invoke it for live release until its outdated hardcoded version and routes/security parity are fixed.
-3. Run a no-cost Actions build against a disposable preview, verify page routing, multilingual pages, API/checkout flows, robots headers, redirects, and published content.
-4. Only after evidence and human approval, propose reducing redundant Git-triggered previews, keeping an explicit release route and safe rollback.
-5. Recheck costs and quality after a full billing period.
+1. **Baseline collected:** separate production-target and Preview deployment counts, build-wall-time samples and team-wide Build CPU charge categories; custom-domain routing inspected.
+2. **Prebuilt proven:** an official GitHub-runner build and isolated protected Preview succeeded. It is not permission to deploy or promote to Production.
+3. **Allowlist tested:** Vercel's actual Git integration suppressed one routine branch while preserving explicitly named `preview/**` and `release/**` branch Previews; their HTTP security/noindex checks passed. This is separate from future live `main` verification.
+4. **Requires owner approval:** merge the rollout PR only after full green CI and reviewed real-branch evidence; `main:true` must remain intact. Immediately verify the Git-connected Production-target deployment, domain aliases and public noindex/security behavior on the exact approved merged commit. If anything fails, revert only the Git Preview allowlist block, preserving all headers, routes, payment behavior and domains.
+5. **Measure later:** compare Vercel build counts and attributable billing over a normal development cycle, not just the two one-off verification Previews. Any GitHub branch-protection/ruleset hardening is a separate approval-gated security task.
 
 This policy does **not** permit altering `.github/**`, `vercel.json`, package dependencies, production settings, payment/business rules or merging PRs without the existing explicit approvals.
