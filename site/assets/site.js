@@ -312,7 +312,12 @@
   // future. The server remains authoritative for price and availability.
   function checkoutHoldIsValid(hold,atMs=Date.now()){
     const id=typeof hold?.id==='string'?hold.id.trim():'';
-    const expiry=typeof hold?.expires_at==='string'?Date.parse(hold.expires_at):NaN;
+    // Holds must expire at a concrete instant. Date.parse() also accepts
+    // date-only, local/offset-less and human-readable strings; these are
+    // ambiguous across guest time zones and must not authorize checkout.
+    const stamp=typeof hold?.expires_at==='string'?hold.expires_at.trim():'';
+    const zonedInstant=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/i.test(stamp);
+    const expiry=zonedInstant?Date.parse(stamp):NaN;
     return Boolean(id)&&Number.isFinite(expiry)&&expiry>atMs;
   }
   function abandonInvalidHold(hold){

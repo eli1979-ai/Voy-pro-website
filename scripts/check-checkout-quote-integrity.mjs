@@ -31,6 +31,13 @@ else{
   const later='2026-10-27T12:05:00Z',past='2026-10-27T11:59:59Z';
   const cases=[
     [{id:'hold_123',expires_at:later},true,'future valid token'],
+    [{id:'hold_123',expires_at:'2026-10-27T14:05:00+02:00'},true,'explicitly offset future expiry'],
+    [{id:'hold_123',expires_at:'2026-10-27T12:05:00.123Z'},true,'fractional UTC future expiry'],
+    [{id:'hold_123',expires_at:'2026-10-27'},false,'date-only expiry is ambiguous'],
+    [{id:'hold_123',expires_at:'2026-10-27T12:05:00'},false,'local timezone-less expiry is ambiguous'],
+    [{id:'hold_123',expires_at:'Tue, 27 Oct 2026 12:05:00 GMT'},false,'HTTP-date expiry is not canonical'],
+    [{id:'hold_123',expires_at:'2026-10-27 12:05:00+00:00'},false,'non-ISO expiry must not authorize checkout'],
+    [{id:'hold_123',expires_at:'2026-10-27T12:05:00+99:99'},false,'invalid UTC offset'],
     [{id:'',expires_at:later},false,'empty hold token'],
     [{expires_at:later},false,'missing hold token'],
     [null,false,'missing response'],
