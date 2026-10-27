@@ -22,6 +22,10 @@ for(const locale of ['en','pt','he']){
     locale+': request CTA must describe opening WhatsApp, not a completed submission');
   assert.ok(html.includes(labels.send)&&html.includes(labels.confirmation),
     locale+': clearly require the guest to press Send and wait for human confirmation');
+  assert.ok(html.includes('name="full_name" autocomplete="name" maxlength="100" required'),
+    locale+': constrain name to a WhatsApp-safe length');
+  assert.ok(html.includes('name="notes" rows="3" maxlength="500"'),
+    locale+': constrain notes to a WhatsApp-safe length');
   const pathname=(locale==='en'?'/portugal/':`/${locale}/portugal/`);
   const location={pathname,href:''};
   const values={route:'express',date:'2026-10-18',people:'4',guide_language:'en',full_name:'Test Customer',notes:'Test group'};
@@ -72,5 +76,18 @@ for(const locale of ['en','pt','he']){
   assert.ok(!Object.hasOwn(sessionCalls[0].metadata,'full_name')&&
     !Object.hasOwn(sessionCalls[0].metadata,'notes'),
     locale+': guest name/notes must not enter analytics metadata');
+  // Restore oversized values as may happen on browser back or through
+  // programmatic form updates; the final WhatsApp href must still be bounded.
+  values.full_name='N'.repeat(200);
+  values.notes='X'.repeat(2400);
+  location.href='';
+  submitListeners[0]({preventDefault(){}});
+  const oversizedMessage=new URL(location.href).searchParams.get('text')||'';
+  assert.ok(oversizedMessage.includes('N'.repeat(100))&&!oversizedMessage.includes('N'.repeat(101)),
+    locale+': long customer name must be safely capped in the outgoing URL');
+  assert.ok(oversizedMessage.includes('X'.repeat(500))&&!oversizedMessage.includes('X'.repeat(501)),
+    locale+': long notes must be safely capped in the outgoing URL');
+  assert.ok(location.href.length<1800,
+    locale+': outgoing WhatsApp URL too long even after bounded free text');
 }
 console.log('PASS: Marvão EN/PT/HE request navigates to +351 WhatsApp immediately, even with a permanently stalled analytics session.');

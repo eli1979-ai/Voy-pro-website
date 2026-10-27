@@ -419,8 +419,10 @@
       const date=String(f.get('date')||'').trim();
       const people=String(f.get('people')||'').trim();
       const guide=String(f.get('guide_language')||'').trim();
-      const name=String(f.get('full_name')||'').trim();
-      const notes=String(f.get('notes')||'').trim();
+      // WhatsApp deep links have practical length limits. Bound free text
+      // both at the input and at message construction (e.g. restored forms).
+      const name=String(f.get('full_name')||'').trim().slice(0,100);
+      const notes=String(f.get('notes')||'').trim().slice(0,500);
       const status=form.querySelector('[data-portugal-request-status]');
       if(!route||!date||!guide||!name){
         if(status)status.textContent=labels.missing;
