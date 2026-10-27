@@ -94,17 +94,21 @@ export function verifyPrebuilt(rootDir=process.cwd()){
     }
   };
   walk();
+  // Probe the canonical slash-terminated URL. Vercel trailingSlash:true
+  // issues a legitimate 308 for the noncanonical no-slash spelling; testing
+  // that intermediate redirect as a missing resource is a false failure.
   // A deliberately nonexistent Manage URL must be protected even if it 404s.
   // Vercel's canonical Git-built deployment returns 404 for this URL with
   // noindex + private no-store; demanding 200 would reject a correct build.
   // Only this probe permits 404: every real built resource still requires 200.
-  const sensitiveProbe='/manage/__sensitive_probe__';
+  const sensitiveProbe='/manage/__sensitive_probe__/';
   paths.push(sensitiveProbe);
   for(const pathname of [...new Set(paths)]){
     const actual=simulate(config,pathname);
     const validNotFound=pathname===sensitiveProbe&&actual.status===404;
     if(actual.redirect||(actual.status>=400&&!validNotFound))
-      fail('Unexpected redirect/error for public resource '+pathname);
+      fail('Unexpected redirect/error for public resource '+pathname+
+        ' (status='+actual.status+', redirectStatus='+(actual.redirect?.status??'none')+')');
     const canonicalStatic=pathname.endsWith('/')?pathname+'index.html':pathname;
     if(actual.rewrite&&actual.rewrite!==canonicalStatic&&actual.rewrite!==pathname)
       fail('Unexpected cross-page rewrite for '+pathname+' => '+actual.rewrite);
