@@ -66,6 +66,53 @@ try{
   reject(()=>{const c=clone();c.routes[4].has=[{type:'header',key:'x-bypass',value:'yes'}];save('.vercel/output/config.json',c);},/Conditional or transformed/);
   reject(()=>{const c=clone();c.routes[0].methods=['POST'];save('.vercel/output/config.json',c);},/Conditional or transformed/);
   reject(()=>{const c=clone();c.routes[4].src='^\\/(?!assets\\/).*';save('.vercel/output/config.json',c);},/missing\/mismatched/);
-  reject(()=>{const c=clone();c.routes.unshift({src:'^/$',dest:'/budapest/index.html'});save('.vercel/output/config.json',c);},/cross-page rewrite/);
+  reject(()=>{const c=clone();c.routes.unshift({src:'^/  console.log('PASS: prebuilt parity hermetic tests (valid and eighteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,dest:'/budapest/index.html'});save('.vercel/output/config.json',c);},/cross-page rewrite/);
+  // Positive case reproduces canonical Vercel behavior for a nonexistent
+  // Manage URL: 404 is correct iff the private/no-store and noindex
+  // protections stay in force.
+  setup();
+  {
+    const c=clone();
+    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,status:404});
+    save('.vercel/output/config.json',c);
+    assert.equal(verifyPrebuilt(root).redirects,3);
+  }
+  reject(()=>{
+    const c=clone();c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,status:500});
+    save('.vercel/output/config.json',c);
+  },/Unexpected redirect\/error/);
+  reject(()=>{
+    const c=clone();c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,status:404});
+    delete c.routes[3].headers['Cache-Control'];save('.vercel/output/config.json',c);
+  },/Cache-Control/);
+  reject(()=>{
+    const c=clone();c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,status:404});
+    delete c.routes[4].headers['X-Robots-Tag'];save('.vercel/output/config.json',c);
+  },/X-Robots-Tag/);
+  reject(()=>{
+    const c=clone();
+    c.routes.splice(5,0,{src:'^/manage/__sensitive_probe__  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,status:308,headers:{Location:'/manage/'}});
+    save('.vercel/output/config.json',c);
+  },/Unexpected redirect\/error/);
+  // Every real built page must still return 200, even if the Manage probe
+  // is correctly 404-protected.
+  reject(()=>{
+    const c=clone();c.routes.splice(5,0,{src:'^/manage/  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
+}finally{rmSync(root,{recursive:true,force:true});}
+,status:404});
+    save('.vercel/output/config.json',c);
+  },/Unexpected redirect\/error/);
   console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
 }finally{rmSync(root,{recursive:true,force:true});}
