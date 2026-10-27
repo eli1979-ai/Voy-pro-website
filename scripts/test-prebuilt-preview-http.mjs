@@ -56,7 +56,14 @@ try{
   assert.deepEqual(await exercise(),{pages:8,staticChecks:3,redirects:3});
   await reject((p,r)=>{if(p==='/assets/site.js')delete r.headers['X-Robots-Tag'];return r;},/X-Robots-Tag/);
   await reject((p,r)=>{if(p==='/manage/')delete r.headers['Cache-Control'];return r;},/Cache-Control/);
-  await reject((p,r)=>{if(p==='/')r.status=302;return r;},/expected HTTP 200/);
+  await reject((p,r)=>{
+    if(p==='/'){r.status=302;r.headers.Location='https://vercel.com/login?state=DO_NOT_LOG_AUTH_PARAMS';}
+    return r;
+  },/HTTP 302 before application response \(redirect host vercel\.com\)/);
+  await reject((p,r)=>{
+    if(p==='/'){r.status=302;r.headers.Location='/another-page?private=token';}
+    return r;
+  },/HTTP 302 before application response \(redirect host voy-pro-preview-123\.vercel\.app\)/);
   await reject((p,r)=>{if(p==='/portugal/')r.body='not html';return r;},/non-HTML/);
   await reject((p,r)=>{if(p==='/robots.txt')r.body='User-agent: *\nAllow: /';return r;},/robots/);
   await reject((p,r)=>{if(p==='/release.json')r.body=JSON.stringify({version:'0',target:'staging',seo_indexable:false});return r;},/release identity/);
@@ -67,5 +74,5 @@ try{
   await reject((p,r)=>{if(p==='/')r.headers['Referrer-Policy']='unsafe-url';return r;},/Referrer-Policy/);
   await assert.rejects(exercise({url:'https://voy-pro.com'}),/isolated HTTPS/);
   await assert.rejects(exercise({url:'https://voy-pro-preview-123.vercel.app.evil.example'}),/isolated HTTPS/);
-  console.log('PASS: protected Preview HTTP parity (positive + 13 fail-closed fixtures, offline)');
+  console.log('PASS: protected Preview HTTP parity (positive + 14 fail-closed fixtures, offline)');
 }finally{rmSync(root,{recursive:true,force:true});}
