@@ -9,7 +9,11 @@ requireText('let checkoutPreparationActiveGeneration=null;','checkout active-gen
 requireText('function invalidateCheckoutPreparation(){','checkout invalidation helper is missing');
 requireText("if(checkoutPreparationActiveGeneration===preparationGeneration)return;",'same-generation duplicate checkout preparation is not blocked');
 requireText('if(preparationGeneration!==checkoutPreparationGeneration)return;','stale quote completion is not rejected');
-requireText("api('/holds/'+encodeURIComponent(hold.id),{method:'DELETE'}).catch(()=>{});",'stale newly-created hold is not released');
+requireText("const oldHoldId=typeof hold?.id==='string'?hold.id.trim():'';",'stale hold must validate its token before release');
+requireText("if(oldHoldId)api('/holds/'+encodeURIComponent(oldHoldId),{method:'DELETE'}).catch(()=>{});",
+  'stale newly-created hold with a valid token is not released');
+if(js.includes("api('/holds/'+encodeURIComponent(hold.id),{method:'DELETE'})"))
+  failures.push('stale hold deletion must not construct holds/undefined');
 requireText('if(checkoutPreparationActiveGeneration===preparationGeneration){','stale preparation can still clear a newer preparation lock');
 requireText('if(!completed&&preparationGeneration===checkoutPreparationGeneration)enabledSlots.forEach(btn=>btn.disabled=false);','stale preparation can re-enable obsolete slot controls');
 const invalidations=(js.match(/invalidateCheckoutPreparation\(\);/g)||[]).length;
