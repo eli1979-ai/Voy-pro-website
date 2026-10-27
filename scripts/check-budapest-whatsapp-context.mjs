@@ -19,5 +19,12 @@ for(const locale of ['', 'he/', 'hu/']){
     }
   }
 }
+const sharedJs=fs.readFileSync('site/assets/site.js','utf8');
+if(!sharedJs.includes('const authoredInquiryPage=')||
+   !sharedJs.includes("if(hasAuthoredInquiry){")||
+   !sharedJs.includes("link.searchParams.set('text',message+")||
+   !sharedJs.includes("sourceLabel+': '+location.pathname")||
+   !sharedJs.includes("if(authoredInquiryPage&&/^https:"))
+  failures.push('Browser runtime may replace page-authored group/private/corporate WhatsApp messages');
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}
 console.log(`Budapest WhatsApp context guard OK: ${checked} visible links across 9 pages.`);

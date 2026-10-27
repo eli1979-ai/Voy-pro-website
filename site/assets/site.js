@@ -1132,7 +1132,35 @@
     else if(name==='booking_cta') createSession('booking_intent',{page});
     track(name==='booking_cta'?'hero_cta_clicked':name,{label:(el.textContent||'').trim().slice(0,120),target:analyticsLinkTarget(el.getAttribute('href'))});
   }));
-  document.querySelectorAll('[data-wa]').forEach(a=>{a.href=whatsAppUrl();const refresh=()=>{a.href=whatsAppUrl();};a.addEventListener('pointerdown',refresh);a.addEventListener('click',refresh);});
+  // Group, corporate and private enquiry pages deliberately author a detailed
+  // WhatsApp brief. Never replace it with the generic Budapest greeting.
+  // Ordinary booking/navigation CTAs still recompute from the live form.
+  const authoredInquiryPage=/(?:^|\/)budapest\/(?:group-tours|corporate-events|private-tours)\/?$/.test(routePath);
+  document.querySelectorAll('[data-wa]').forEach(a=>{
+    const href=a.getAttribute('href')||'';
+    let hasAuthoredInquiry=false;
+    if(authoredInquiryPage&&/^https:\/\/wa\.me\/36300993099\?text=/.test(href)){
+      try{hasAuthoredInquiry=(new URL(href)).searchParams.get('text')?.trim().length>30;}
+      catch{hasAuthoredInquiry=false;}
+    }
+    if(hasAuthoredInquiry){
+      // Send the public source path, not query parameters, booking tokens or
+      // client state. Keep the authored multi-question message unchanged.
+      const sourceLabel=locale==='he'?'עמוד':locale==='hu'?'Oldal':'Page';
+      const link=new URL(href);
+      const message=link.searchParams.get('text')||'';
+      const sourceLine=sourceLabel+': '+location.pathname;
+      if(!message.split('\n').includes(sourceLine)){
+        link.searchParams.set('text',message+'\n'+sourceLine);
+        a.href=link.toString();
+      }
+      return;
+    }
+    const refresh=()=>{a.href=whatsAppUrl();};
+    refresh();
+    a.addEventListener('pointerdown',refresh);
+    a.addEventListener('click',refresh);
+  });
   document.querySelectorAll('[data-special-request]').forEach(a=>a.addEventListener('click',()=>{
     const context=a.dataset.specialRequest||'private_flexible';
     // Preserve a page-authored structured enquiry; fall back to the generic request template elsewhere.
