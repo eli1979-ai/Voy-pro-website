@@ -682,6 +682,15 @@ footer .brand{
 .tour-picker#destinations .destination-card--prague{
   --destination-photo:url("https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Prague_Castle_from_Charles_Bridge%2C_August_2025.jpg/960px-Prague_Castle_from_Charles_Bridge%2C_August_2025.jpg");--destination-focus:center 48%;
 }
+/* Upcoming destinations are informational, not navigation targets. */
+.tour-picker#destinations .destination-card--coming-soon{
+  cursor:default;
+}
+.tour-picker#destinations .destination-card--coming-soon:hover{
+  transform:none;
+  box-shadow:0 12px 32px rgba(13,21,29,.14);
+  border-color:rgba(13,36,49,.35);
+}
 .tour-picker#destinations .destination-card--coming-soon::before{
   background-image:linear-gradient(180deg,rgba(15,29,41,.38),rgba(15,29,41,.46) 55%,rgba(8,22,33,.73)),var(--destination-photo);filter:saturate(.75);
 }
