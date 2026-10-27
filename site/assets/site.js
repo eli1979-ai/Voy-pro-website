@@ -2063,6 +2063,7 @@
     const shell=document.querySelector('#live-checkout-shell'); if(!shell) return;
     const form=shell.querySelector('#live-checkout-form');
     shell.querySelector('[data-checkout-heading]').textContent=t('Complete your booking','השלמת ההזמנה');
+    const assurance=shell.querySelector('.checkout-assurance'); if(assurance)assurance.hidden=false;
     const pay=form?.querySelector('[name="payment_method"]')?.closest('.field'); if(pay) pay.hidden=false;
     const legal=form?.querySelector('[data-checkout-legal]'); if(legal){legal.hidden=false;const box=legal.querySelector('input');if(box){box.required=true;box.checked=false;}}
     const submit=form?.querySelector('button[type="submit"]'); if(submit) submit.textContent=t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');
@@ -2455,6 +2456,8 @@
     releaseHold(); setBookingStep(3); const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;
     shell.querySelector('[data-checkout-heading]').textContent=t('Request confirmation','בקשת אישור');
     shell.querySelector('[data-checkout-summary]').innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(experience.title)}</b><span>${escapeHTML(date)} · ${escapeHTML(slot.time)}</span></div>${isPrivate?`<span class="checkout-private-flag">${t('Private request','בקשה פרטית')}</span>`:''}</div>${renderPartySummary(composition)}<div class="party-summary"><span>${requestedGuideLanguageLabel()} · ${escapeHTML(guideLanguageLabel(guideLanguage))}</span></div><span>${t('This group needs a quick availability confirmation.','לקבוצה הזו נדרש אישור זמינות קצר.')}</span>`;
+    // Staff confirmation is not a reservation: no hold or verified quote exists.
+    const assurance=shell.querySelector('.checkout-assurance'); if(assurance)assurance.hidden=true;
     shell.querySelector('[data-hold-timer]').textContent='';
     const ancillary=shell.querySelector('[data-ancillary-upsell]');if(ancillary){ancillary.hidden=true;ancillary.innerHTML='';}
     const form=shell.querySelector('#live-checkout-form');const pay=form.querySelector('[name="payment_method"]').closest('.field');pay.hidden=true;
