@@ -1,6 +1,6 @@
 # VOY PRO Website development cost and CI/CD policy
 
-Status: **proposed / documentation only**. This policy records the agreed direction and does not itself change GitHub Actions, Vercel settings, a live domain, required checks, or deployment behavior. Operational changes must be made via their own reviewed PRs and approved deployment changes.
+Status: **cost policy approved; Prebuilt pilot workflow merged; Preview suppression not active**. The approved policy and merged #566 provide manual GitHub-built Preview validation, but no real `vercel build` + `vercel deploy --prebuilt` release has been verified. Changing Vercel automatic deployments remains a separately gated decision.
 
 ## Purpose and scope
 
@@ -12,7 +12,7 @@ Repository: **public** `eli1979-ai/Voy-pro-website`; do not place secrets, custo
 
 - Current GitHub workflow `.github/workflows/verify-staging.yml` runs `npm run build`, launch readiness, site QA and many regression assertions on push to `main` and pull requests.
 - `package.json` composes many validators into the build script and creates `dist/`. Preserve these checks or provide proven coverage equivalent to the existing checks.
-- A **manual** prebuilt workflow exists in `.github/workflows/deploy-prebuilt-staging.yml`. It presently hardcodes an old release version (`1.33.0`), while the package version examined on 2026-10-27 was `1.48.99`. It also contains a hand-written Vercel output routes config. It is **not verified as a faithful, release-ready replacement**; review route/header/redirect parity, Git/commit provenance, secrets handling, failure/rollback, and protected-preview smoke access before using it.
+- The **manual-only** GitHub-built Prebuilt pilot `.github/workflows/deploy-prebuilt-staging.yml` was merged in #566 on 2026-10-27. The stale `1.33.0` check and hand-written Vercel routes were replaced with source-identity and Build Output API parity gates, including 13 negative offline fixtures and a protected HTTP Preview gate. Offline tests passed on main; **the real manual Vercel CLI build/deploy has NOT been run**. Only a confirmed protected Preview test can establish runtime parity.
 - The Vercel project called `voy-pro-staging` was observed serving the custom domains `voy-pro.com` and `www.voy-pro.com`, with production-target deploys. **Do not treat the project name `staging` as proof that it is disposable.** Verify live mapping before touching it.
 - A public GitHub repository generally allows standard GitHub-hosted Actions runners without billed Actions minutes under GitHub's prevailing rules. Confirm current account conditions and runner types; third-party/AI, larger runners and related services can have separate charges.
 
@@ -61,3 +61,7 @@ Any implementation PR must explain: cost hypothesis, exact triggers changed, tes
 5. Recheck costs and quality after a full billing period.
 
 This policy does **not** permit altering `.github/**`, `vercel.json`, package dependencies, production settings, payment/business rules or merging PRs without the existing explicit approvals.
+
+## Preview suppression preparation (not enabled)
+
+A structural, offline-tested candidate is documented in `docs/VERCEL-PREVIEW-RELEASE-GATE.md` and `docs/candidates/vercel-git-preview-allowlist.json`. Vercel's `git.deploymentEnabled` suppresses unwanted Git-triggered deployments before build scheduling, whereas `ignoreCommand` skips builds but still counts canceled deployments against deployment quotas. This proposal keeps `main` automatic Production deployments enabled, and allows reviewable `release/**` and `preview/**` branch candidates; routine branches are blocked only after an approved configuration change. Never apply it before the real Prebuilt Preview pilot and branch-matching checks.

@@ -1,3 +1,4 @@
+import './test-vercel-git-preview-policy.mjs';
 #!/usr/bin/env node
 // Fast hermetic negative/positive tests; no network, credentials or deployments.
 import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
