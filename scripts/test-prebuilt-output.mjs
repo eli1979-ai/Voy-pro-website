@@ -62,5 +62,12 @@ try{
   reject(()=>{const c=clone();c.routes.unshift({src:'^/$',status:307,headers:{Location:'/budapest/'}});save('.vercel/output/config.json',c);},/Unexpected redirect/);
   reject(()=>{const c=clone();c.routes[4].continue=false;save('.vercel/output/config.json',c);},/Non-continuing/);
   reject(()=>save('.vercel/output/config.json',{version:3,routes:[]}),/routing rules/);
-  console.log('PASS: prebuilt parity hermetic tests (valid and eight fail-closed scenarios)');
+  reject(()=>{const c=clone();c.routes.splice(4,0,{handle:'filesystem'});save('.vercel/output/config.json',c);},/missing\/mismatched/);
+  reject(()=>{const c=clone();c.routes[4].has=[{type:'header',key:'x-bypass',value:'yes'}];save('.vercel/output/config.json',c);},/Conditional or transformed/);
+  reject(()=>{const c=clone();c.routes[0].methods=['POST'];save('.vercel/output/config.json',c);},/Conditional or transformed/);
+  reject(()=>{const c=clone();c.routes[4].src='^\\/(?!assets\\/).*';save('.vercel/output/config.json',c);},/missing\/mismatched/);
+  reject(()=>{const c=clone();c.routes.unshift({src:'^/
+}finally{rmSync(root,{recursive:true,force:true});}
+,dest:'/budapest/index.html'});save('.vercel/output/config.json',c);},/cross-page rewrite/);
+  console.log('PASS: prebuilt parity hermetic tests (valid and thirteen fail-closed scenarios)');
 }finally{rmSync(root,{recursive:true,force:true});}
