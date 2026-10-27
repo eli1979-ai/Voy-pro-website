@@ -89,5 +89,34 @@ for(const locale of ['en','pt','he']){
     locale+': long notes must be safely capped in the outgoing URL');
   assert.ok(location.href.length<1800,
     locale+': outgoing WhatsApp URL too long even after bounded free text');
+  // Character-count limits are insufficient for percent-encoded Hebrew,
+  // emojis and combining sequences. Keep source/route/date and avoid invalid
+  // UTF-16 even when restored form data is malformed.
+  for(const [scenario,fullName,fullNotes] of [
+    ['Hebrew','ש'.repeat(100),'מ'.repeat(500)],
+    ['emoji','👨‍👩‍👧'.repeat(24),'🛴'.repeat(500)],
+    ['mixed','א'.repeat(90)+'👩🏽‍💻','שלום🚴'.repeat(300)],
+    ['lone-surrogates','A\uD800'.repeat(80),'B\uDC00'.repeat(400)]
+  ]){
+    values.full_name=fullName;
+    values.notes=fullNotes;
+    location.href='';
+    submitListeners[0]({preventDefault(){}});
+    assert.ok(location.href.startsWith('https://wa.me/351935695004?text='),
+      locale+' '+scenario+': request stopped opening WhatsApp');
+    assert.ok(location.href.length<1800,
+      locale+' '+scenario+': URL exceeds safe encoded length');
+    const text=new URL(location.href).searchParams.get('text')||'';
+    assert.ok(text.includes('2026-10-18')&&text.includes(pathname)&&text.includes('Vila de Marvão Express Tour')&&text.includes('4'),
+      locale+' '+scenario+': required staff context lost to link clipping');
+    assert.ok(text.includes('…'),
+      locale+' '+scenario+': shortened notes must visibly end with an ellipsis');
+    assert.ok(!/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(text),
+      locale+' '+scenario+': malformed Unicode leaked to WhatsApp');
+    assert.ok(!Object.hasOwn(sessionCalls.at(-1).metadata,'full_name')&&
+      !Object.hasOwn(sessionCalls.at(-1).metadata,'notes'),
+      locale+' '+scenario+': personal text leaked to analytics');
+  }
 }
+
 console.log('PASS: Marvão EN/PT/HE request navigates to +351 WhatsApp immediately, even with a permanently stalled analytics session.');
