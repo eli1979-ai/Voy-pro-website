@@ -573,46 +573,6 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
-      // Page-specific commercial enquiry briefs must survive JavaScript startup.
-      const authoredB2B={
-        'budapest-en-groups-mobile':'group EZRaider experience',
-        'budapest-en-corporate-desktop':'corporate/team event',
-        'budapest-en-private-mobile':'question about a private EZRaider tour'
-      };
-      const sourceLocale=name.startsWith('budapest-he-')?'עמוד':
-        name.startsWith('budapest-hu-')?'Oldal':'Page';
-      const isB2BPage=/^\/(?:he\/|hu\/)?budapest\/(?:group-tours|corporate-events|private-tours)\/$/.test(new URL(path,base).pathname);
-      if(authoredB2B[name]||isB2BPage){
-        // Earlier route-guide checks may have navigated away from the tour.
-        // Inspect the original enquiry page rather than the guide's DOM.
-        if(new URL(page.url()).pathname!==new URL(path,base).pathname)
-          await page.goto(base+path,{waitUntil:'domcontentloaded'});
-        // Initialization can finish after DOMContentLoaded when a blocked
-        // optional external request resolves. Wait for the transformed link,
-        // not just the original static HTML anchor.
-        const sourcePath=new URL(path,base).pathname;
-        try{
-          await page.waitForFunction(({sourcePath,sourceLocale})=>{
-            const href=document.querySelector('a[data-wa]')?.getAttribute('href');
-            if(!href)return false;
-            try{
-              const msg=new URL(href).searchParams.get('text')||'';
-              return msg.split('\n').includes(sourceLocale+': '+sourcePath);
-            }catch{return false;}
-          },{sourcePath,sourceLocale},{timeout:9000});
-        }catch{/* Assert the exact failure below, with a concise diagnostic. */}
-        const href=await page.locator('a[data-wa]').first().getAttribute('href');
-        const url=new URL(href);
-        const msg=url.searchParams.get('text')||'';
-        check(url.hostname==='wa.me'&&url.pathname==='/36300993099'&&
-          msg.length>80&&(!authoredB2B[name]||msg.includes(authoredB2B[name])),
-          name+' page-authored B2B WhatsApp brief survives JS');
-        const sourceLines=msg.split('\n').filter(line=>line===sourceLocale+': '+new URL(path,base).pathname);
-        check(sourceLines.length===1,
-          name+' WhatsApp includes exact public origin path once without query or booking identifiers (found '+sourceLines.length+'; tail: '+msg.slice(-170)+')');
-        check(!msg.includes('I’d like to check a Budapest tour'),
-          name+' does not degrade its detailed enquiry to a generic greeting');
-      }
       // Previously decided guests may leave the reopened privacy drawer
       // without converting "close" into analytics acceptance or refusal.
       // Check all supported destinations/locales with real keyboard behavior.
@@ -699,6 +659,46 @@ try{
         await page.locator('.nav-menu-toggle').click();
         check(await page.locator('#mobile-nav-sheet [data-ez-context="back"]').getAttribute('href')===original,'HE tour guide mobile back retains exact tour page');
         check(await page.locator('#mobile-nav-sheet [data-ez-context="booking"]').getAttribute('href')==='/he/budapest/#booking','HE mobile booking stays in Budapest');
+      }
+      // Page-specific commercial enquiry briefs must survive JavaScript startup.
+      const authoredB2B={
+        'budapest-en-groups-mobile':'group EZRaider experience',
+        'budapest-en-corporate-desktop':'corporate/team event',
+        'budapest-en-private-mobile':'question about a private EZRaider tour'
+      };
+      const sourceLocale=name.startsWith('budapest-he-')?'עמוד':
+        name.startsWith('budapest-hu-')?'Oldal':'Page';
+      const isB2BPage=/^\/(?:he\/|hu\/)?budapest\/(?:group-tours|corporate-events|private-tours)\/$/.test(new URL(path,base).pathname);
+      if(authoredB2B[name]||isB2BPage){
+        // Earlier route-guide checks may have navigated away from the tour.
+        // Inspect the original enquiry page rather than the guide's DOM.
+        if(new URL(page.url()).pathname!==new URL(path,base).pathname)
+          await page.goto(base+path,{waitUntil:'domcontentloaded'});
+        // Initialization can finish after DOMContentLoaded when a blocked
+        // optional external request resolves. Wait for the transformed link,
+        // not just the original static HTML anchor.
+        const sourcePath=new URL(path,base).pathname;
+        try{
+          await page.waitForFunction(({sourcePath,sourceLocale})=>{
+            const href=document.querySelector('a[data-wa]')?.getAttribute('href');
+            if(!href)return false;
+            try{
+              const msg=new URL(href).searchParams.get('text')||'';
+              return msg.split('\n').includes(sourceLocale+': '+sourcePath);
+            }catch{return false;}
+          },{sourcePath,sourceLocale},{timeout:9000});
+        }catch{/* Assert the exact failure below, with a concise diagnostic. */}
+        const href=await page.locator('a[data-wa]').first().getAttribute('href');
+        const url=new URL(href);
+        const msg=url.searchParams.get('text')||'';
+        check(url.hostname==='wa.me'&&url.pathname==='/36300993099'&&
+          msg.length>80&&(!authoredB2B[name]||msg.includes(authoredB2B[name])),
+          name+' page-authored B2B WhatsApp brief survives JS');
+        const sourceLines=msg.split('\n').filter(line=>line===sourceLocale+': '+new URL(path,base).pathname);
+        check(sourceLines.length===1,
+          name+' WhatsApp includes exact public origin path once without query or booking identifiers (found '+sourceLines.length+'; tail: '+msg.slice(-170)+')');
+        check(!msg.includes('I’d like to check a Budapest tour'),
+          name+' does not degrade its detailed enquiry to a generic greeting');
       }
     }catch(e){failures++;results.push('FAIL: '+name+' interaction error '+(e.stack||String(e)).slice(0,900));}
     finally{await page.close();}
