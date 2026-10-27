@@ -1,0 +1,51 @@
+name: Verify prebuilt pilot safety (offline)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-prebuilt-staging.yml'
+      - '.github/workflows/prebuilt-contract.yml'
+      - 'scripts/check-prebuilt-workflow.mjs'
+      - 'scripts/check-prebuilt-output.mjs'
+      - 'scripts/test-prebuilt-output.mjs'
+      - 'scripts/check-prebuilt-preview-http.mjs'
+      - 'scripts/test-prebuilt-preview-http.mjs'
+      - 'vercel.json'
+      - 'site/release.json'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-prebuilt-staging.yml'
+      - '.github/workflows/prebuilt-contract.yml'
+      - 'scripts/check-prebuilt-workflow.mjs'
+      - 'scripts/check-prebuilt-output.mjs'
+      - 'scripts/test-prebuilt-output.mjs'
+      - 'scripts/check-prebuilt-preview-http.mjs'
+      - 'scripts/test-prebuilt-preview-http.mjs'
+      - 'vercel.json'
+      - 'site/release.json'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prebuilt-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate source and manual Preview-only workflow (no Vercel API)
+        run: node scripts/check-prebuilt-workflow.mjs
+      - name: Test built-artifact parity gate against safe and unsafe fixtures
+        run: node scripts/test-prebuilt-output.mjs
+      - name: Test protected Preview HTTP parity against safe and unsafe fixtures (offline)
+        run: node scripts/test-prebuilt-preview-http.mjs

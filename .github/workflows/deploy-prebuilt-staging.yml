@@ -1,82 +1,108 @@
-name: Deploy prebuilt staging to Vercel
+name: Validate VOY PRO prebuilt Staging (manual)
 
+# Safe trial only. No Git push triggers, no production target or alias.
 on:
   workflow_dispatch:
+    inputs:
+      publish_preview:
+        description: 'After review, publish one isolated Vercel Preview; default only validates locally'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: voy-website-prebuilt-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  pilot:
+    # Deployment credentials are never exposed to feature branches or fork PRs.
+    if: github.repository == 'eli1979-ai/Voy-pro-website' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
+    timeout-minutes: 35
     env:
       VERCEL_ORG_ID: team_AA8zTEaOrKIoyiAbn42L4CoU
       VERCEL_PROJECT_ID: prj_mllzA4eTnK6ITda3AI7BpHbmVe7j
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
-      - name: Verify Vercel token is configured
-        shell: bash
-        run: |
-          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
-            echo "Missing repository secret VERCEL_TOKEN"
-            exit 1
-          fi
+      - name: Check manual prebuilt safety contract
+        run: node scripts/check-prebuilt-workflow.mjs
 
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Build reviewed staging artifact
-        run: npm run build
-
-      - name: Create Vercel Build Output API artifact
-        shell: bash
+      - name: Build and test canonical source on GitHub Actions
         run: |
           set -euo pipefail
-          rm -rf .vercel
-          mkdir -p .vercel/output/static
-          cp -a dist/. .vercel/output/static/
-          cat > .vercel/project.json <<EOF
-          {"orgId":"$VERCEL_ORG_ID","projectId":"$VERCEL_PROJECT_ID"}
-          EOF
-          cat > .vercel/output/config.json <<'EOF'
-          {
-            "version": 3,
-            "routes": [
-              {"src": "^/$", "status": 307, "headers": {"Location": "/budapest/"}},
-              {"src": "/manage/(.*)", "headers": {"X-Robots-Tag": "noindex, nofollow", "Cache-Control": "private, no-store, max-age=0"}},
-              {"src": "/(.*)", "headers": {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "strict-origin-when-cross-origin", "X-Frame-Options": "DENY", "Permissions-Policy": "camera=(), microphone=(), geolocation=(), usb=()", "Cross-Origin-Opener-Policy": "same-origin"}, "continue": true},
-              {"handle": "filesystem"}
-            ]
-          }
-          EOF
+          npm run build
+          npm run verify:launch
+          npm run qa:site
 
-      - name: Deploy prebuilt artifact
-        id: deploy
-        shell: bash
-        run: |
-          URL="$(vercel deploy --prebuilt --token="${{ secrets.VERCEL_TOKEN }}")"
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "### VOY PRO staging preview" >> "$GITHUB_STEP_SUMMARY"
-          echo "$URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Install reviewed Vercel CLI
+        run: npm install --global vercel@63.1.2
 
-      - name: Smoke test deployed release
-        shell: bash
+      - name: Pull only Preview build settings
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          URL="${{ steps.deploy.outputs.url }}"
-          curl --fail --silent --show-error "$URL/release.json" | tee /tmp/release.json
-          curl --fail --silent --show-error "$URL/budapest/" >/tmp/budapest.html
-          curl --fail --silent --show-error "$URL/he/portugal/" >/tmp/portugal-he.html
-          curl --fail --silent --show-error "$URL/pt/portugal/" >/tmp/portugal-pt.html
+          set -euo pipefail
+          test -n "$VERCEL_TOKEN"
+          vercel pull --yes --environment=preview
+
+      - name: Build authentic Vercel output on GitHub runner (no Vercel Build CPU)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          vercel build
+          test -f .vercel/output/config.json
+          test -f .vercel/output/static/release.json
           node - <<'NODE'
-          const fs = require('fs');
-          const r = JSON.parse(fs.readFileSync('/tmp/release.json','utf8'));
-          if (r.version !== '1.33.0') throw new Error('Unexpected version '+r.version);
-          if (r.target !== 'staging') throw new Error('Expected staging target');
-          if (r.seo_indexable !== false) throw new Error('Staging must be noindex');
-          console.log('Smoke test OK', r);
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const src = JSON.parse(fs.readFileSync('site/release.json', 'utf8'));
+          const out = JSON.parse(fs.readFileSync('.vercel/output/static/release.json', 'utf8'));
+          const config = JSON.parse(fs.readFileSync('.vercel/output/config.json', 'utf8'));
+          if (config.version !== 3) throw Error('Unexpected Build Output API version');
+          if (pkg.version !== src.version || src.version !== out.version) throw Error('Stale or mismatched release');
+          if (out.target !== 'staging' || out.seo_indexable !== false) throw Error('Unsafe release flags');
+          if (!fs.existsSync('.vercel/output/static/index.html')) throw Error('Root homepage missing');
+          for (const path of ['budapest/index.html', 'he/budapest/index.html', 'hu/budapest/index.html', 'portugal/index.html', 'pt/portugal/index.html', 'he/portugal/index.html']) {
+            if (!fs.existsSync('.vercel/output/static/' + path)) throw Error('Missing localized page: ' + path);
+          }
+          console.log('Official prebuilt artifact source/version/languages: OK');
           NODE
+
+      - name: Fail closed on canonical redirects, headers, assets and robots parity
+        run: node scripts/check-prebuilt-output.mjs
+
+      # Never publish unless the owner explicitly selects publish_preview.
+      # This creates an isolated preview URL, not a Production deployment/alias.
+      - name: Publish isolated Preview (explicit manual opt-in)
+        if: inputs.publish_preview
+        id: preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          URL="$(vercel deploy --prebuilt)"
+          case "$URL" in
+            https://*.vercel.app) ;;
+            *) echo "Unexpected preview URL; refusing to proceed"; exit 1;;
+          esac
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Prebuilt Preview: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test protected Preview HTTP parity (security, redirects, assets)
+        if: inputs.publish_preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          PREVIEW_URL: ${{ steps.preview.outputs.url }}
+        run: node scripts/check-prebuilt-preview-http.mjs
