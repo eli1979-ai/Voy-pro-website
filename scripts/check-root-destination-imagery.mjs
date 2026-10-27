@@ -11,6 +11,10 @@ for(const place of ['budapest','marvao','prague']){
 check(css.includes('.tour-picker#destinations .destination-card::before'), 'image styles must remain homepage-scoped');
 check(css.includes('var(--destination-photo)'), 'image and gradient fallback missing');
 check(css.includes('.destination-card--coming-soon::before'),'Prague must remain muted');
+check(/\.destination-card--coming-soon\s*\{\s*cursor:default;\s*\}/.test(css),
+  'Prague must not advertise a clickable pointer');
+check(/\.destination-card--coming-soon:hover\s*\{[^}]*transform:none;/.test(css),
+  'Prague must not animate like a clickable destination');
 check(css.includes('@media(max-width:800px)'),'mobile-specific overlay missing');
 check(css.includes('prefers-reduced-motion:reduce'),'reduced motion support missing');
 check(html.includes('aria-label="Czechia, Prague coming soon"'),'Prague status missing');
