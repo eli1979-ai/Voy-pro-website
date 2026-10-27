@@ -587,6 +587,20 @@ try{
         // Inspect the original enquiry page rather than the guide's DOM.
         if(new URL(page.url()).pathname!==new URL(path,base).pathname)
           await page.goto(base+path,{waitUntil:'domcontentloaded'});
+        // Initialization can finish after DOMContentLoaded when a blocked
+        // optional external request resolves. Wait for the transformed link,
+        // not just the original static HTML anchor.
+        const sourcePath=new URL(path,base).pathname;
+        try{
+          await page.waitForFunction(({sourcePath,sourceLocale})=>{
+            const href=document.querySelector('a[data-wa]')?.getAttribute('href');
+            if(!href)return false;
+            try{
+              const msg=new URL(href).searchParams.get('text')||'';
+              return msg.split('\n').includes(sourceLocale+': '+sourcePath);
+            }catch{return false;}
+          },{sourcePath,sourceLocale},{timeout:9000});
+        }catch{/* Assert the exact failure below, with a concise diagnostic. */}
         const href=await page.locator('a[data-wa]').first().getAttribute('href');
         const url=new URL(href);
         const msg=url.searchParams.get('text')||'';
@@ -595,7 +609,7 @@ try{
           name+' page-authored B2B WhatsApp brief survives JS');
         const sourceLines=msg.split('\n').filter(line=>line===sourceLocale+': '+new URL(path,base).pathname);
         check(sourceLines.length===1,
-          name+' WhatsApp includes exact public origin path once without query or booking identifiers');
+          name+' WhatsApp includes exact public origin path once without query or booking identifiers (found '+sourceLines.length+'; tail: '+msg.slice(-170)+')');
         check(!msg.includes('I’d like to check a Budapest tour'),
           name+' does not degrade its detailed enquiry to a generic greeting');
       }
