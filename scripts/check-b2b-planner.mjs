@@ -23,7 +23,9 @@ for(const loc of locs)for(const type of types){
 }
 const js=fs.readFileSync('site/assets/site.js','utf8');
 check(js.includes('function bindB2BEnquiryPlanner()'),'Builder binding missing');
-check(js.includes("location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join("),'WhatsApp transfer missing');
+check(js.includes("const whatsAppLink='https://wa.me/36300993099?text='+encodeURIComponent(lines.join(")&&
+  js.includes('location.href=whatsAppLink;'),'WhatsApp transfer missing');
+check(js.includes('if(whatsAppLink.length>=1800)'),'Encoded WhatsApp URL length guard missing');
 check(js.includes("if(!form.reportValidity())return"),'Native validation missing');
 check(js.includes("if(!Number.isSafeInteger(size)||size<1||size>10000)return"),'Headcount guard missing');
 check(js.includes("source:'b2b_planner'"),'Non-PII attribution missing');
@@ -47,6 +49,11 @@ if(plannerStart>=0&&plannerEnd>plannerStart){
   };
   let clicked;
   const btn={addEventListener(type,handler){if(type==='click')clicked=handler;}};
+  const notes={error:'',events:{},focused:false,
+    setCustomValidity(message){this.error=message;},
+    reportValidity(){this.reported=this.error;return !this.error;},
+    focus(){this.focused=true;},
+    addEventListener(type,handler){this.events[type]=handler;}};
   const languageField={value:'en',events:{},
     addEventListener(name,handler){this.events[name]=handler;}};
   const englishRow={hidden:false};
@@ -59,6 +66,7 @@ if(plannerStart>=0&&plannerEnd>plannerStart){
     addEventListener(type,handler){this.events[type]=handler;}};
   const form={dataset:{b2bPlanner:kind},querySelector(selector){
    if(selector==='input[name="requested_date"]')return date;
+   if(selector==='textarea[name="notes"]')return notes;
    if(selector==='select[name="guide_language"]')return languageField;
    if(selector==='input[name="english_ok"]')return englishChoice;
    if(selector==='[data-b2b-english-decline]')return englishDecline;
@@ -150,6 +158,25 @@ if(plannerStart>=0&&plannerEnd>plannerStart){
   check(!decodeURIComponent(context.location.href).includes(englishLabel+': yes'),
     locale+'/'+kind+': English cannot be its own alternative');
   check(context.tracks===5,locale+'/'+kind+': valid manual WhatsApp handoffs not counted');
+  // Guard the final *encoded URL*, not character count: 400 Hebrew chars or
+  // 180 emoji are permitted by the form but far exceed deep-link budgets.
+  for(const [caseName,value] of [['hebrew','ש'.repeat(400)],['emoji','🚀'.repeat(180)]]){
+    context.location.href='';
+    formValues.notes=value;
+    clicked();
+    check(context.location.href==='',locale+'/'+kind+': '+caseName+' overlong link navigated to WhatsApp');
+    check(notes.error.length>0&&notes.reported===notes.error&&notes.focused,
+      locale+'/'+kind+': '+caseName+' must show accessible validity guidance');
+    check(context.tracks===5,locale+'/'+kind+': '+caseName+' must not count as a successful handoff');
+  }
+  formValues.notes='Short event details';
+  notes.events.input?.();
+  check(notes.error==='',locale+'/'+kind+': link error did not clear on edits');
+  clicked();
+  check(context.location.href.startsWith('https://wa.me/36300993099?text='),
+    locale+'/'+kind+': corrected short message did not hand off');
+  check(context.location.href.length<1800,locale+'/'+kind+': corrected URL violates encoded length budget');
+  check(context.tracks===6,locale+'/'+kind+': corrected handoff not tracked once');
  }
 }
 
