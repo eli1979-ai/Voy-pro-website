@@ -51,4 +51,4 @@ Read-only WP REST content re-audit in the same pass: all **21/21** published tou
 
 **No site mutation:** No WordPress menu, theme, ACF, widget, WPCode, booking, DNS or production change was made in this pass. Draft PR stays unmerged.
 
-The 29 October revision of the draft patch explicitly catches malformed percent-encoding in URL fragments and leaves native browser behavior unchanged. Twelve synthetic cases were re-run locally with Node and passed; the browser probe remains unexecuted in production.
+The 28 October follow-up revision of the draft patch explicitly catches malformed percent-encoding in URL fragments and leaves native browser behavior unchanged. Twelve synthetic cases were re-run locally with Node and passed; the browser probe remains unexecuted in production.
