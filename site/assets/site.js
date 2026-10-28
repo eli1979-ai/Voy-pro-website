@@ -421,6 +421,23 @@
     const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
     const routeSelect=form.querySelector('[name="route"]');
     const dateInput=form.querySelector('[name="date"]');
+    const status=form.querySelector('[data-portugal-request-status]');
+    const defaultStatus=status?.textContent||'';
+    let showingRequestError=false;
+    const showRequestError=message=>{
+      if(status){status.textContent=message;showingRequestError=true;}
+    };
+    const clearRequestError=()=>{
+      if(showingRequestError&&status){
+        status.textContent=defaultStatus;
+        showingRequestError=false;
+      }
+    };
+    // Keep the original explanation about pressing Send and human confirmation
+    // available after a guest corrects a field, instead of leaving a stale
+    // "missing details", expired-date or long-link warning on screen.
+    form.addEventListener('input',clearRequestError);
+    form.addEventListener('change',clearRequestError);
     // WordPress, browser back/forward and mobile tabs can stay open overnight.
     // Use the local Lisbon calendar date for the visible picker and validation.
     const syncPortugalRequestDateMin=()=>{
@@ -450,14 +467,16 @@
       const name=safePoints(f.get('full_name')).slice(0,100);
       const allNotes=safePoints(f.get('notes'));
       const notes=allNotes.slice(0,500);
-      const status=form.querySelector('[data-portugal-request-status]');
       if(!route||!date||!guide||!name.length){
-        if(status)status.textContent=labels.missing;
+        showRequestError(labels.missing);
         return;
       }
       if(date<today){
-        if(status)status.textContent=labels.past;
+        // Focusing the date can blur a just-edited text field and dispatch
+        // a bubbling change event. Focus first so that our own reset handler
+        // cannot immediately erase this important past-date warning.
         dateInput?.focus({preventScroll:true});
+        showRequestError(labels.past);
         return;
       }
       const intro=locale==='he'
@@ -501,8 +520,8 @@
       const notesCount=maxFitting(notes.length,n=>messageFor(nameCount,n));
       const message=messageFor(nameCount,notesCount);
       if(!withinBudget(message)){
-        if(status)status.textContent=locale==='he'?'ההודעה ארוכה מדי. נא לקצר את הפרטים.':
-          locale==='pt'?'Mensagem demasiado longa. Reduza os detalhes.':'Message too long. Please shorten the details.';
+        showRequestError(locale==='he'?'ההודעה ארוכה מדי. נא לקצר את הפרטים.':
+          locale==='pt'?'Mensagem demasiado longa. Reduza os detalhes.':'Message too long. Please shorten the details.');
         return;
       }
       const requestAnalytics={page,context:'portugal_availability_request',route,date,people:people||null,guide_language:guide};
@@ -1257,6 +1276,12 @@
       const kind=form.dataset.b2bPlanner;
       if(!['group','corporate'].includes(kind))return;
       const date=form.querySelector('input[name="requested_date"]');
+      const notes=form.querySelector('textarea[name="notes"]');
+      const whatsAppLengthError=locale==='he'
+        ?'הודעת הוואטסאפ ארוכה מדי. קצרו את הפרטים האופציונליים ונסו שוב.'
+        :locale==='hu'?'A WhatsApp-üzenet túl hosszú. Rövidítsd a nem kötelező részleteket, majd próbáld újra.'
+        :'The WhatsApp message is too long. Shorten the optional details and try again.';
+      notes?.addEventListener('input',()=>notes.setCustomValidity(''));
       const dateErrorLabel=locale==='he'
         ?'יש לבחור תאריך מהיום והלאה.'
         :locale==='hu'?'Válassz mai vagy későbbi dátumot.':'Choose today or a future date.';
@@ -1299,6 +1324,9 @@
       const btn=form.querySelector('[data-b2b-open]');
       if(!btn)return;
       btn.addEventListener('click',()=>{
+        // A previously long message must not leave stale form validity errors
+        // after the guest edits any optional field and retries.
+        notes?.setCustomValidity('');
         // Native HTML validity is deliberately checked here, since the button is
         // type=button to prevent a JS-disabled form from submitting private data.
         syncDateMinimum();
@@ -1353,10 +1381,22 @@
           if(value)lines.push(label+': '+value);
         }
         lines.push(l.source+': '+location.pathname);
+        // Percent-encoded Hebrew/emoji can expand a short-looking enquiry to
+        // an unreliable WhatsApp deep link. Never silently discard customer
+        // details, claim the enquiry was sent, or record a successful hand-off.
+        const whatsAppLink='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+        if(whatsAppLink.length>=1800){
+          if(notes){
+            notes.setCustomValidity(whatsAppLengthError);
+            notes.reportValidity();
+            notes.focus();
+          }
+          return;
+        }
         // Intentionally do not persist private text, company, or customer name
         // in analytics/session storage or submit it to an unverified backend.
         track('b2b_whatsapp_planner_opened',{context:kind,page,participants:size,guide_language:language,source:'b2b_planner'});
-        location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+        location.href=whatsAppLink;
       });
     });
   }
@@ -1591,7 +1631,12 @@
   const RECOVERY_TTL_MS=2*60*60*1000;
   function savedSelectionRecovery(){
     const state=safeJSON(getStore('voy_recovery_state'));
-    if(!state||!state.saved_at||Date.now()-Number(state.saved_at)>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
+    // Browser storage is untrusted and device clocks can change. Invalid,
+    // non-finite and future timestamps must never keep a resume prompt alive.
+    const savedAt=state?.saved_at;
+    const savedAtValid=typeof savedAt==='number'&&Number.isSafeInteger(savedAt)&&savedAt>0;
+    const age=savedAtValid?Date.now()-savedAt:NaN;
+    if(!savedAtValid||age<0||age>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
     if(!state.experience_id||!state.date||!state.composition)return null;
     return state;
   }
