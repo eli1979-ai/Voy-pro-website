@@ -354,6 +354,30 @@
     return `<div class="quote-breakdown">${rows}${totalRow}${note}</div>`;
   }
   function currentRequestDetails(){
+    if(isPortugalPage){
+      // A guest may use the floating or mobile-nav WhatsApp button after
+      // filling part of the Marvão request form. Carry only public tour choices
+      // into that explicit handoff; never copy their name, notes or attribution.
+      const requestForm=document.querySelector('[data-portugal-request-form]');
+      if(!requestForm)return {};
+      const selected=new FormData(requestForm);
+      const route=String(selected.get('route')||'').trim();
+      const date=String(selected.get('date')||'').trim();
+      const people=String(selected.get('people')||'').trim();
+      const guide=String(selected.get('guide_language')||'').trim().toLowerCase();
+      const names={express:'Vila de Marvão Express Tour',
+        explorer:'Marvão Explorer Tour',
+        megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
+      const dateMs=/^\d{4}-\d{2}-\d{2}$/.test(date)?Date.parse(date+'T12:00:00Z'):NaN;
+      const dateValid=Number.isFinite(dateMs)&&new Date(dateMs).toISOString().slice(0,10)===date&&
+        date>=portugalDate(0);
+      return {
+        experience_title:names[route]||null,
+        date:dateValid?date:null,
+        people:['2','3','4'].includes(people)?people:null,
+        guide_language:['en','pt'].includes(guide)?guide:null
+      };
+    }
     const form=document.querySelector('#availability-form');
     if(!form) return {};
     const data=new FormData(form);
@@ -382,14 +406,23 @@
     const lines=[context==='booking_confirmation'?bookingConfirmed:context==='private_flexible'?privateFlexible:context==='extended'?extended:context==='group'?groupRequest:context==='corporate'?corporateRequest:generic];
     const detailLines=[];
     if(details.booking_reference)detailLines.push(t(`Booking reference: ${details.booking_reference}`,`מספר הזמנה: ${details.booking_reference}`));
-    if(details.experience_title)detailLines.push(t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
+    if(details.experience_title)detailLines.push(whatsappPortugal&&locale==='pt'
+      ?`Passeio: ${details.experience_title}`
+      :t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
     const confirmedBooking=context==='booking_confirmation';
-    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`):t(`Preferred date: ${confirmationDateLabel(details.date)}`,`תאריך מועדף: ${confirmationDateLabel(details.date)}`));
+    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`)
+      :whatsappPortugal&&locale==='pt'?`Data preferida: ${confirmationDateLabel(details.date)}`
+      :t(`Preferred date: ${confirmationDateLabel(details.date)}`,`תאריך מועדף: ${confirmationDateLabel(details.date)}`));
     if(details.requested_time)detailLines.push(confirmedBooking?(locale==='he'?`שעה: ${details.requested_time}`:locale==='hu'?`Időpont: ${details.requested_time}`:`Time: ${details.requested_time}`):t(`Preferred time: ${confirmationTimeLabel(details.requested_time)}`,`שעה מועדפת: ${confirmationTimeLabel(details.requested_time)}`));
     if(details.riders)detailLines.push(t(`Independent riders: ${details.riders}`,`רוכבים עצמאיים: ${details.riders}`));
+    if(whatsappPortugal&&details.people)detailLines.push(locale==='he'
+      ?`משתתפים: ${details.people}`:locale==='pt'
+        ?`Pessoas: ${details.people}`:`People: ${details.people}`);
     if(Number(details.children||0)>0)detailLines.push(t(`Child passengers: ${details.children}`,`נוסעים ילדים: ${details.children}`));
     if(Number(details.babies||0)>0)detailLines.push(t(`Baby passengers: ${details.babies}`,`נוסעים פעוטות: ${details.babies}`));
-    if(details.guide_language)detailLines.push(t(`Requested guiding language: ${guideLanguageLabel(details.guide_language)}`,`שפת הדרכה מבוקשת: ${guideLanguageLabel(details.guide_language)}`));
+    if(details.guide_language)detailLines.push(whatsappPortugal&&locale==='pt'
+      ?`Idioma do guia: ${guideLanguageLabel(details.guide_language)}`
+      :t(`Requested guiding language: ${guideLanguageLabel(details.guide_language)}`,`שפת הדרכה מבוקשת: ${guideLanguageLabel(details.guide_language)}`));
     if(details.is_private)detailLines.push(t('Private tour: yes','סיור פרטי: כן'));
     if(Array.isArray(details.extras)&&details.extras.length){
       const extrasText=details.extras.map(item=>`${item.name} ×${Number(item.quantity||0)}`).join(', ');
@@ -1637,7 +1670,30 @@
     const savedAtValid=typeof savedAt==='number'&&Number.isSafeInteger(savedAt)&&savedAt>0;
     const age=savedAtValid?Date.now()-savedAt:NaN;
     if(!savedAtValid||age<0||age>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
-    if(!state.experience_id||!state.date||!state.composition)return null;
+    // A saved v1 party is not a booking. Discard malformed snapshots before
+    // displaying a restore button that would inevitably fail after clicking.
+    const party=state?.composition;
+    const date=state?.date;
+    const parsedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)
+      ?Date.parse(date+'T12:00:00Z'):NaN;
+    const validDate=Number.isFinite(parsedDate)&&
+      new Date(parsedDate).toISOString().slice(0,10)===date;
+    const validParty=party&&typeof party==='object'&&!Array.isArray(party)&&
+      ['riders_16_plus','child_passengers_3_15','baby_passengers_1_2'].every(key=>
+        Number.isSafeInteger(party[key])&&party[key]>=0)&&
+      party.riders_16_plus>=1&&
+      (party.request_15yo_independent_assessment===undefined||
+        typeof party.request_15yo_independent_assessment==='boolean');
+    const language=state?.guide_language;
+    const validLanguage=language===null||
+      (typeof language==='string'&&/^[a-z]{2,8}$/.test(language));
+    if(state.version!==1||typeof state.experience_id!=='string'||
+      !state.experience_id.trim()||state.experience_id.length>128||
+      !validDate||!validParty||typeof state.is_private!=='boolean'||
+      !validLanguage){
+      delStore('voy_recovery_state');
+      return null;
+    }
     return state;
   }
   function saveSelectionRecovery(experience,date,composition,isPrivate,guideLanguage){
