@@ -126,3 +126,24 @@ The three locales each pass synthetic tests for detecting all eight original pro
 **Risk and release order:** Do not deploy this copy by adding another WPCode v6.3 DOM replacement. Export/read current ACF field groups and their exact field-key/value mapping for EN page #7, HU #90 and HE #92, along with the current PHP `templates/template-home.php` source. Store rollback values privately (the website repository is public). Verify current files+DB backup can restore. Then patch these ACF values, obtain native Hungarian review, and test actual server-side HTML after WordPress cache clear in EN/HU/HE, 375px and desktop. Preserve existing seven tour cards and route detail links in each locale. Actual tour eligibility still requires operations approval. No new guaranteed child-seat, accessibility, road legality or speed claims are added.
 
 **Separate footer/map:** Owner already installed v6.2 at existing WPCode #488 for navigation; that is independent of this source-copy work. Original v6.2 still rewrites the existing Google iframe from a free-text address search. Do not make a further location change before Google Business Profile identity and actual guest entrance are confirmed separately; Városház u. 14 is the business directory address, while Pilvax köz is an entrance/location reference, not necessarily identical map coordinates.
+
+## Search-result titles and localization — checked 28 October 2026
+
+Read-only WordPress `pages.get` on the actual three pages shows:
+
+| Locale | WP page ID | Native page title | Current public HTML `<title>` (crawler) | Candidate SEO title — **not published** |
+|---|---:|---|---|---|
+| EN | 7 | `Home` | `Home - EZRaider Budapest by VOY PRO` | `EZRaider Budapest Tours | VOY PRO` |
+| HU | 90 | `Főoldal` | `Főoldal - VOY Pro` | `EZRaider túrák Budapesten | VOY PRO` |
+| HE | 92 | `בית` | `בית - VOY Pro` | `סיורי איזיריידר בבודפשט | VOY PRO` |
+
+All three have URL/slug variants already deployed (EN `/budapest/`, HU `/budapest/fooldal/`, HE `/budapest/בית/`). **Do not rename slugs, create redirects, alter language relationships or change global site title simply to edit SEO copy.** Yoast SEO (v28.7) and Yoast SEO Premium (v21.0) are both active according to the current installed-plugin inventory. Premium's version difference requires a **compatibility and safe-update review**, but does not by itself establish a vulnerability or malfunction; never auto-update commercial plugins during this source-copy task.
+
+Proposed localized meta descriptions (verify character counts, voice and actual tour availability before publication):
+- EN: `Discover guided EZRaider tours in Budapest with VOY PRO. Explore Buda Castle, Heroes' Square and more. Ask our team about routes, safety and availability.`
+- HU: `Fedezze fel Budapestet vezetett EZRaider-túrákon a VOY PRO csapatával! Budai Vár, Hősök tere és további útvonalak. Érdeklődjön a lehetőségekről!`
+- HE: `גלו את בודפשט בסיור איזיריידר מודרך עם VOY PRO: טירת בודה, כיכר הגיבורים ומסלולים נוספים. פרטים, התאמה וזמינות בתיאום עם הצוות.`
+
+At release time inspect **actual existing Yoast post-level SEO title and description values**, the WordPress/Polylang canonical and `hreflang` relationships, and search-engine eligibility before editing. This WordPress connector does not expose the relevant private Yoast fields: do not pretend the proposed values are installed. Keep the owner tasks deferred in [issue #604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
+
+**Separate operational caveat:** Unlike SEO wording, the still-present source-level `BOOK NOW` FareHarbor anchor must not be changed to a new direct booking/FBM endpoint without separate approval; v6.2's client-side WhatsApp transformation is not equivalent to replacing underlying PHP output.
