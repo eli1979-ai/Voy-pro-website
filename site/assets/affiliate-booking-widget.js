@@ -587,6 +587,7 @@
                typeof slot.id!=='string'||!slot.id.trim()||seen.has(slot.id)||
                typeof slot.time!=='string'||!slot.time.trim()||
                typeof slot.sellable!=='boolean'||typeof slot.requestable!=='boolean'||
+               (slot.sellable&&slot.requestable)||
                slot.is_private!==expectedPrivate)return false;
             seen.add(slot.id);
             return true;
