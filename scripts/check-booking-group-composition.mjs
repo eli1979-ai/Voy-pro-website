@@ -57,6 +57,8 @@ const saved=new Map();
 const context={
   getStore:key=>saved.get(key),delStore:key=>saved.delete(key),
   safeJSON:raw=>{try{return JSON.parse(raw);}catch{return null;}},
+  // Explicitly model the operating calendar date (not the runner timezone).
+  budapestDate:()=> '2026-10-28',
   Date:class extends Date{static now(){return now;}}
 };
 vm.runInNewContext(recoveryCode+'; inspectRecovery=savedSelectionRecovery;',context,{timeout:1000});
@@ -90,6 +92,7 @@ const invalidSnapshots=[
   ['long-experience',{experience_id:'x'.repeat(129)}],
   ['malformed-date',{date:'tomorrow'}],
   ['impossible-date',{date:'2026-02-30'}],
+  ['past-budapest-date',{date:'2026-10-27'}],
   ['missing-date',{date:null}],
   ['missing-party',{composition:null}],
   ['array-party',{composition:[]}],
