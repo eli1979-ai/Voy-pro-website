@@ -1682,7 +1682,11 @@
     const parsedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)
       ?Date.parse(date+'T12:00:00Z'):NaN;
     const validDate=Number.isFinite(parsedDate)&&
-      new Date(parsedDate).toISOString().slice(0,10)===date;
+      new Date(parsedDate).toISOString().slice(0,10)===date&&
+      // A selection from yesterday may still be within the storage TTL,
+      // but its past departure cannot be restored. Hide that stale action
+      // before the guest clicks it; do not touch current form choices.
+      date>=budapestDate(0);
     const validParty=party&&typeof party==='object'&&!Array.isArray(party)&&
       ['riders_16_plus','child_passengers_3_15','baby_passengers_1_2'].every(key=>
         Number.isSafeInteger(party[key])&&party[key]>=0)&&
