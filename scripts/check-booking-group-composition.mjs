@@ -61,7 +61,9 @@ const context={
 };
 vm.runInNewContext(recoveryCode+'; inspectRecovery=savedSelectionRecovery;',context,{timeout:1000});
 const validSaved={version:1,experience_id:'exp_bud_buda',date:'2026-10-29',
-  composition:{riders_16_plus:2,child_passengers_3_15:1,baby_passengers_1_2:0}};
+  is_private:false,guide_language:'he',
+  composition:{riders_16_plus:2,child_passengers_3_15:1,baby_passengers_1_2:0,
+    request_15yo_independent_assessment:false}};
 const readSaved=value=>{
   saved.set('voy_recovery_state',JSON.stringify({...validSaved,saved_at:value}));
   return context.inspectRecovery();
@@ -76,4 +78,40 @@ for(const good of [now,now-5000,now-2*60*60*1000]){
     'fresh saved selection unexpectedly hidden: '+good);
   assert.equal(saved.has('voy_recovery_state'),true,'valid saved party unexpectedly removed');
 }
-console.log('PASS: corrupted, future and expired recovery timestamps fail closed; fresh selections remain available.');
+const readSnapshot=value=>{
+  saved.set('voy_recovery_state',JSON.stringify(value));
+  return context.inspectRecovery();
+};
+const invalidSnapshots=[
+  ['wrong-version',{version:2}],
+  ['missing-version',{version:undefined}],
+  ['missing-experience',{experience_id:undefined}],
+  ['non-string-experience',{experience_id:{id:'exp_bud_buda'}}],
+  ['long-experience',{experience_id:'x'.repeat(129)}],
+  ['malformed-date',{date:'tomorrow'}],
+  ['impossible-date',{date:'2026-02-30'}],
+  ['missing-date',{date:null}],
+  ['missing-party',{composition:null}],
+  ['array-party',{composition:[]}],
+  ['fractional-riders',{composition:{...validSaved.composition,riders_16_plus:1.5}}],
+  ['string-riders',{composition:{...validSaved.composition,riders_16_plus:'2'}}],
+  ['zero-riders',{composition:{...validSaved.composition,riders_16_plus:0}}],
+  ['negative-children',{composition:{...validSaved.composition,child_passengers_3_15:-1}}],
+  ['missing-babies',{composition:{riders_16_plus:2,child_passengers_3_15:1}}],
+  ['false-string-assessment',{composition:{...validSaved.composition,
+    request_15yo_independent_assessment:'false'}}],
+  ['false-string-private',{is_private:'false'}],
+  ['object-language',{guide_language:{code:'he'}}],
+  ['invalid-language',{guide_language:'he\nmalicious'}]
+];
+for(const [name,patch] of invalidSnapshots){
+  const result=readSnapshot({...validSaved,saved_at:now,...patch});
+  assert.equal(result,null,name+': invalid stored selection displayed');
+  assert.equal(saved.has('voy_recovery_state'),false,name+': invalid selection not cleared');
+}
+assert.equal(readSnapshot({...validSaved,saved_at:now,guide_language:null})?.experience_id,
+  'exp_bud_buda','partial selection without a guide preference remains parseable');
+assert.equal(readSnapshot({...validSaved,saved_at:now,composition:{
+  riders_16_plus:2,child_passengers_3_15:1,baby_passengers_1_2:0}})?.experience_id,
+  'exp_bud_buda','older v1 optional assessment flag is accepted');
+console.log('PASS: corrupt, future and expired timestamps and malformed v1 party/date/mode are discarded; valid selections remain.');
