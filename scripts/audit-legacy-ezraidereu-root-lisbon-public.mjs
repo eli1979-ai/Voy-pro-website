@@ -15,6 +15,8 @@ const strip=s=>String(s).replace(/<!--[\s\S]*?-->/g,' ')
   .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ');
 const plain=s=>strip(s).replace(/<[^>]+>/g,' ').replace(/&(?:nbsp|amp);/gi,' ').replace(/\s+/g,' ').trim();
 const hrefs=s=>[...strip(s).matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map(m=>m[2].replace(/&amp;/gi,'&'));
+const attrs=(s,tag,key)=>[...String(s).matchAll(new RegExp('<'+tag+'\\b[^>]*\\b'+key+'\\s*=\\s*(["\\x27])([^"\\x27]*?)\\1','gi'))].map(m=>m[2].replace(/&amp;/gi,'&'));
+const fareharbor=x=>/^https?:\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x);
 const issue=(code,severity,detail)=>({code,severity,detail});
 export function auditLegacyPage(kind,html,url=pages[kind]){
   if(!(kind in pages))throw Error('Unknown page type');
@@ -33,8 +35,20 @@ export function auditLegacyPage(kind,html,url=pages[kind]){
     if(!links.some(x=>/ezraidereu\.com\/budapest\/?$/i.test(x)))
       issues.push(issue('BUDAPEST_DESTINATION_NOT_CONFIRMED','medium','Cannot find known Budapest destination link.'));
   }else{
-    if(links.some(x=>/^https?:\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x)))
-      issues.push(issue('LISBON_FAREHARBOR_LINK','high','Obsolete Lisbon fareharbor anchor in server source; checkout availability not confirmed.'));
+    if(links.some(fareharbor))
+      issues.push(issue('LISBON_FAREHARBOR_LINK','high','FareHarbor link in HTML; live checkout availability not confirmed.'));
+    const embeds=[...attrs(source,'iframe','src'),...attrs(source,'script','src'),
+      ...attrs(source,'form','action')];
+    if(embeds.some(fareharbor))
+      issues.push(issue('LISBON_FAREHARBOR_EMBED','high','FareHarbor iframe, external script or form action remains in HTML source.'));
+    if(/<[^>]+\b(?:data-fareharbor(?:-[\w-]+)?|data-fh-(?:item|calendar|company))\s*=/i.test(source))
+      issues.push(issue('LISBON_BOOKING_WIDGET_ATTRIBUTE','high','FareHarbor/widget-related data attribute remains; do not certify checkout disabled.'));
+    const visibleButtons=[...strip(source).matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)]
+      .map(m=>m[1].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim());
+    if(visibleButtons.some(x=>/^(?:book now|book a tour|reserve now|buy tickets)$/i.test(x)))
+      issues.push(issue('LISBON_BOOKING_BUTTON','high','Visible booking button remains; not proof of provider purchasability.'));
+    if(/<script\b[^>]*>[\s\S]*?fareharbor\S*[\s\S]*?<\/script>/i.test(source))
+      issues.push(issue('LISBON_INLINE_FAREHARBOR_REFERENCE','manual','Inline script references FareHarbor; inspect runtime usage before claiming sale path removed.'));
     if(/(?:^|\s)(?:40|60|80)\s*euros?\b|€\s*(?:40|60|80)/i.test(body))
       issues.push(issue('LISBON_LEGACY_FARES','medium','Historical Lisbon published tour prices visible.'));
     if(!/not currently offered for new bookings/i.test(body))
@@ -66,7 +80,20 @@ function selfTest(){
     .replace(/Short tour 40 euros, full tour 60 euros, extended 80 euros\./g,
       'Lisbon tours are not currently offered for new bookings through this website.');
   assert.equal(auditLegacyPage('lisbon',safeLisbon).status,'source-clean');
-  console.log('PASS: 9 read-only public source audit scenarios');
+  const bookingCases=[
+    ['iframe','<iframe src="https://fareharbor.com/embeds/book"></iframe>','LISBON_FAREHARBOR_EMBED'],
+    ['external script','<script src="https://fareharbor.com/embeds/api.js"></script>','LISBON_FAREHARBOR_EMBED'],
+    ['form action','<form action="https://fareharbor.com/checkout"></form>','LISBON_FAREHARBOR_EMBED'],
+    ['widget attribute','<div data-fareharbor-company="legacy"></div>','LISBON_BOOKING_WIDGET_ATTRIBUTE'],
+    ['booking button','<button type="button">Book Now</button>','LISBON_BOOKING_BUTTON'],
+    ['inline mention','<script>console.log("fareharbor.com")</script>','LISBON_INLINE_FAREHARBOR_REFERENCE'],
+  ];
+  for(const [label,markup,expected] of bookingCases){
+    const fixture=safeLisbon.replace('</main>','</main>'); // long, complete fixture
+    const injected=fixture.replace('</body>',markup+'</body>');
+    assert.ok(auditLegacyPage('lisbon',injected).issues.some(x=>x.code===expected),label+' misses '+expected);
+  }
+  console.log('PASS: 15 read-only public source audit scenarios (9 original + 6 hidden-booking regressions)');
 }
 async function main(){
   if(process.argv.includes('--self-test')){selfTest();return;}
