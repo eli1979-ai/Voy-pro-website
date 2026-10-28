@@ -35,7 +35,13 @@ for(const locale of ['en','pt','he']){
   const initialStatus='The customer must press Send in WhatsApp; this is not a confirmed booking.';
   const status={textContent:initialStatus};
   const routeSelect={value:''};
-  const dateInput={min:'',focus(){}};
+  let dateFocusCount=0;
+  const dateInput={min:'',focus(){
+    dateFocusCount++;
+    // Browser blur of the organizer-name input can emit a trailing change
+    // while validation moves focus back to the invalid date.
+    for(const fn of changeListeners)fn({target:{type:'text'}});
+  }};
   const form={
     querySelector(selector){
       if(selector==='[name="route"]')return routeSelect;
@@ -79,6 +85,7 @@ for(const locale of ['en','pt','he']){
   values.date='2026-10-08';
   submitListeners[0]({preventDefault(){}});
   assert.ok(status.textContent!==initialStatus,locale+': past-date error not announced');
+  assert.equal(dateFocusCount,1,locale+': past-date validation must focus date exactly once');
   values.date='2026-10-18';
   inputListeners[0]();
   assert.equal(status.textContent,initialStatus,
