@@ -18,7 +18,7 @@ requireText("const out=await api('/experiences/'+encodeURIComponent(experience.i
 
 // Exercise the exact source helper in an isolated Node VM: malicious JSON
 // booleans must never make a departure eligible for checkout or staff request.
-const functionSource=js.match(/^  function verifiedAvailabilitySlots\\(response\\)\\{[\\s\\S]*?^  \\}/m)?.[0];
+const functionSource=js.match(/^  function verifiedAvailabilitySlots\(response\)\{[\s\S]*?^  \}/m)?.[0];
 if(!functionSource)failures.push('FBM availability response validation helper missing');
 else{
   const verified=runInNewContext('('+functionSource.trim()+')');
