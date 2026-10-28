@@ -62,3 +62,17 @@ Any implementation PR must explain: cost hypothesis, exact triggers changed, tes
 5. **Measure real savings:** compare routine Preview suppression, Vercel Build CPU charges attributable to the website (not team-wide costs including FBM), GitHub Actions usage, failures and deployment duration over a normal development cycle. No dollar saving is proven yet. Any GitHub branch-protection/ruleset hardening is a separate approval-gated security task.
 
 This policy does **not** permit altering `.github/**`, `vercel.json`, package dependencies, production settings, payment/business rules or merging PRs without the existing explicit approvals.
+
+## Read-only cost checkpoint — 2026-10-28 (preliminary; no rollout change)
+
+Observed directly from the connected Vercel project and team billing APIs. This is an **early measurement**, not proof of an 80% saving or a project-specific cost allocation.
+
+| Source / UTC interval | Observed | Important boundary |
+| --- | --- | --- |
+| `voy-pro-staging` deployments from 2026-10-27 18:30 UTC through the 2026-10-28 inspection | **12** deployments, all `production / READY`, all Git branch `main`; **0 Preview deployments** in this interval | The list API returned 100 most recent project deployments and covers the whole requested interval. This confirms the allowlist did not create routine branch Previews in this observed interval, but **each merge to main still creates a public-project production-target deployment**. |
+| Vercel **team-wide** bill, 2026-10-26 07:00 to 2026-10-27 07:00 UTC | `Build CPU Minutes`: **$9.856** | Team-wide, not website-only; before the 2026-10-27 18:30 UTC allowlist merge. |
+| Vercel **team-wide** bill, 2026-10-27 07:00 to 2026-10-28 07:00 UTC | `Build CPU Minutes`: **$2.016** | Team-wide and spans **both before and after** the 18:30 UTC rollout. The raw decrease is **$7.840 (79.5%)**, but cannot be attributed entirely to the website or allowlist. |
+
+Additional test of the routine branch `fix/b2b-whatsapp-encoded-length-20261028`: Vercel's branch-filtered deployment list returned **zero deployments**, while the Draft PR's standard GitHub site/build, mocked deployed-booking and full browser/mobile/RTL QA runs all succeeded on commit `8d459dd9a90a86e2d04e4aa85a0ae106ab24550a` (2026-10-28). This is a practical example of maintaining full QA without a routine Vercel Preview.
+
+**Next optimization candidate, not implemented or approved:** investigate an owner-reviewed release-batch procedure that retains atomic Draft PRs and the complete required GitHub QA but avoids making many separate `main` merges in a short period. The twelve observed `main` deployments are the remaining clear build-frequency lever; do not change `main: true`, domain aliases, deploy protection, or required checks to achieve it. Measure a full post-rollout billing cycle, distinguish the website from FBM charges, and verify the exact deploy/rollback path before proposing any config or release-process change requiring owner approval.
