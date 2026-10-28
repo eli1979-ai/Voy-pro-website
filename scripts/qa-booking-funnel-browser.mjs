@@ -66,7 +66,8 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
         mode==='garbled-clock'?'invalid-date':Date.now(),
       experience_id:'exp_bud_buda',
       experience_slug:'buda-highlights',experience_title:'Buda Highlights',
-      date:selectedDate,is_private:mode==='private',guide_language:'he',
+      date:selectedDate,is_private:mode==='private',
+      guide_language:mode==='unset-guide'?null:'he',
       composition:{riders_16_plus:mode==='corrupt-party'?'2':2,
         child_passengers_3_15:1,
         baby_passengers_1_2:0,request_15yo_independent_assessment:false}
@@ -296,6 +297,19 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
           lang+' expired saved group is never applied');
         check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
           lang+' expired selection is discarded from essential-only storage');
+      }else if(recovery==='unset-guide'){
+        check(await form.locator('select[name="adults"]').inputValue()==='2'&&
+          await form.locator('select[name="children"]').inputValue()==='1'&&
+          await form.locator('select[name="babies"]').inputValue()==='0',
+          lang+' partial saved party is restored without a saved guide language');
+        check(await guide.inputValue()==='',
+          lang+' partial restore never chooses a guide language on behalf of the guest');
+        const guidance=await page.locator('#availability-status').innerText();
+        check(guidance.includes(lang==='he'?'בחרו שפת הדרכה':
+          lang==='hu'?'Válaszd ki az idegenvezetés nyelvét':'Choose your guide language'),
+          lang+' partial restore explicitly requests a fresh guide language choice');
+        check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))!==null,
+          lang+' partial selection is not destroyed while awaiting guide-language choice');
       }else if(recovery==='private'){
         check(await form.locator('select[name="adults"]').inputValue()==='2'&&
           await form.locator('select[name="children"]').inputValue()==='1'&&
@@ -585,6 +599,7 @@ try{
   await scenario('en',paths[0][1],{recovery:'private'});
   await scenario('he',paths[1][1],{recovery:'private'});
   await scenario('hu',paths[2][1],{recovery:'private'});
+  for(const [lang,path] of paths)await scenario(lang,path,{recovery:'unset-guide'});
   await scenario('en',paths[0][1],{recovery:'expired'});
   for(const [lang,path] of paths)await scenario(lang,path,{recovery:'future-clock'});
   await scenario('en',paths[0][1],{recovery:'garbled-clock'});
