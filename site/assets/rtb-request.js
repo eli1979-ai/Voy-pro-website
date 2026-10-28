@@ -25,7 +25,7 @@
       rateLimited:'Too many enquiries were sent recently. Please wait a few minutes before retrying with the same details. Delivery is unverified; this is not a booking.',
       conflict:'This enquiry ID belongs to different details. Change your request details to send a new enquiry, or contact our team. Nothing has been accepted.',
       rejected:'The date, time or other details were rejected. Review your selection and try again.',
-      needsWhatsApp:'Secure enquiry intake is disabled. WhatsApp is opening with your prefilled enquiry; you must send it yourself.',
+      needsWhatsApp:'Secure enquiry intake is disabled. WhatsApp is opening with your prefilled enquiry; you must send it yourself.',needsWhatsAppManual:'Secure enquiry intake is disabled. Open WhatsApp using the link below and type the request yourself. No enquiry has been confirmed.',
       retry:'Retry enquiry',manual:'Contact us on WhatsApp',
       manualBlank:'Open WhatsApp without a prefilled message',
       manualTooLong:'This prefilled WhatsApp enquiry is too long for a reliable link. Open WhatsApp below and type the request yourself. No delivery or booking is confirmed.',
@@ -41,7 +41,7 @@
       rateLimited:'נשלחו יותר מדי בקשות בזמן קצר. המתינו מספר דקות ונסו שוב בלי לשנות את הפרטים. לא ניתן לאמת את קליטת הפנייה; זו אינה הזמנה.',
       conflict:'מספר הפנייה כבר קשור לפרטים אחרים. שנו את פרטי הבקשה כדי לשלוח פנייה חדשה, או פנו לצוות. לא התקבלה פנייה חדשה.',
       rejected:'התאריך, השעה או פרטים אחרים נדחו. בדקו את הפרטים ונסו שוב.',
-      needsWhatsApp:'קליטה מאובטחת אינה פעילה. WhatsApp ייפתח עם פנייה מוכנה — יש לשלוח אותה בעצמכם.',
+      needsWhatsApp:'קליטה מאובטחת אינה פעילה. WhatsApp ייפתח עם פנייה מוכנה — יש לשלוח אותה בעצמכם.',needsWhatsAppManual:'קליטת הפניות המאובטחת אינה פעילה. פתחו WhatsApp מהקישור שלמטה והקלידו את הפנייה בעצמכם. לא אומתה קליטת פנייה.',
       retry:'ניסיון שליחה חוזר',manual:'יצירת קשר ב־WhatsApp',
       manualBlank:'פתיחת WhatsApp ללא הודעה מוכנה',
       manualTooLong:'הפנייה ארוכה מדי לקישור WhatsApp אמין. פתחו את WhatsApp מהקישור למטה והקלידו את פרטי הבקשה בעצמכם. לא אומתה קליטת פנייה ולא בוצעה הזמנה.',
@@ -57,7 +57,7 @@
       rateLimited:'Túl sok kérés érkezett rövid időn belül. Várj néhány percet, majd próbáld újra ugyanazokkal az adatokkal. A beérkezés nem ellenőrzött; ez nem foglalás.',
       conflict:'Ez a kérésazonosító más adatokhoz tartozik. Módosítsd a kérés adatait egy új érdeklődéshez, vagy keresd a csapatot. Új kérés nem érkezett.',
       rejected:'A dátum, az időpont vagy más adat nem fogadható el. Ellenőrizd az adatokat és próbáld újra.',
-      needsWhatsApp:'A biztonságos kérések fogadása nem aktív. Megnyílik a WhatsApp üzenete, amelyet neked kell elküldened.',
+      needsWhatsApp:'A biztonságos kérések fogadása nem aktív. Megnyílik a WhatsApp üzenete, amelyet neked kell elküldened.',needsWhatsAppManual:'A biztonságos kérések fogadása nem aktív. Nyisd meg a WhatsAppot az alábbi hivatkozással, és írd be magad az üzenetet. A kérést nem igazoltuk vissza.',
       retry:'Kérés újrapróbálása',manual:'Kapcsolat WhatsAppon',
       manualBlank:'WhatsApp megnyitása előre kitöltött üzenet nélkül',
       manualTooLong:'Az előre kitöltött WhatsApp-üzenet túl hosszú a megbízható megnyitáshoz. Nyisd meg a WhatsAppot az alábbi hivatkozással, és írd be magad az adatokat. A kérés kézbesítése nem igazolt, és nincs foglalás.',
@@ -285,7 +285,10 @@
       link.target='_blank';
       link.rel='noopener noreferrer';
       link.textContent=whatsappTooLong?labels.manualBlank:labels.manual;
-      if(whatsappTooLong)feedback.textContent=labels.manualTooLong;
+      // Preserve the actual delivery/consent/conflict reason. An oversized
+      // deep link is an additional manual-handoff warning, not a replacement
+      // for the fact that delivery is unknown or retry is restricted.
+      if(whatsappTooLong)feedback.textContent=[feedback.textContent,labels.manualTooLong].filter(Boolean).join(' ');
       link.dataset.rtbManual='';
       link.className='btn secondary';
       feedback.insertAdjacentElement('afterend',link);
@@ -358,7 +361,7 @@
       if(response.status===404){
         // The relay has not been activated. The user must SEND the WhatsApp
         // message personally. Never portray this as a CRM acknowledgement.
-        feedback.textContent=labels.needsWhatsApp;
+        feedback.textContent=whatsappTooLong?labels.needsWhatsAppManual:labels.needsWhatsApp;
         if(whatsappTooLong){manualLink();return;}
         location.assign(whatsappUrl);
         return;
