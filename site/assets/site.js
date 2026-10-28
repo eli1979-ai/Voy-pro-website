@@ -1765,7 +1765,10 @@
       // unsupported, or now-unavailable choices BEFORE mutating the live form.
       const valid=experience&&experience.bookingEnabled!==false&&
         select&&hasOption(select,experience.id)&&date&&language&&
-        guideLanguagesForProduct(experience).includes(code)&&
+        // A v1 snapshot with no selected guide language may still restore
+        // the party and date. Keep language unset; the normal booking search
+        // requires an explicit choice before contacting FBM.
+        (!code||guideLanguagesForProduct(experience).includes(code))&&
         validDate&&counts.riders_16_plus>=1&&
         choices.every(([field,value])=>Number.isSafeInteger(value)&&
           value>=0&&hasOption(field,value))&&
@@ -1792,7 +1795,10 @@
       adults.dispatchEvent(new Event('change',{bubbles:true}));
       setSelectedTourHint(experience);
       const status=document.querySelector('#availability-status');
-      if(status)status.textContent=t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.');
+      if(status)status.textContent=code
+        ?t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.')
+        :locale==='hu'?'A választás visszaállítva. Válaszd ki az idegenvezetés nyelvét, mielőtt elérhetőséget keresel.'
+        :t('Selection restored. Choose your guide language before checking availability.','הבחירה שוחזרה. בחרו שפת הדרכה לפני בדיקת הזמינות.');
       track('selection_recovery_restored',{experience_id:experience.id,date:iso,is_private:Boolean(state.is_private),guide_language:code});
       patchSession({stage:'selection_recovery_restored',experience_id:experience.id,selected_date:iso,is_private:Boolean(state.is_private),guide_language:code});
       shell.hidden=true;form.scrollIntoView({behavior:'smooth',block:'center'});
