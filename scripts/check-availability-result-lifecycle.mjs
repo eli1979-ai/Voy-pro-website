@@ -16,7 +16,7 @@ const staleChecks=(js.match(/if\(searchGeneration!==availabilitySearchGeneration
 if(staleChecks<3)failures.push('availability lifecycle needs stale guards after session, response and error paths');
 requireText("const out=await api('/experiences/'+encodeURIComponent(experience.id)+'/availability?'+q.toString(),{method:'GET'});",'availability request path is missing');
 requireText('if(s.starts_at&&Date.parse(s.starts_at)<=Date.now())','departures need a fresh start-time check at click, after results were rendered');
-requireText('invalidateAvailabilityResults();\n          status.textContent=locale===\'hu\'','a newly expired departure must invalidate stale slots and explain the recheck');
+requireText("invalidateAvailabilityResults();\n          status.textContent=t('This departure has already started. Search again for current availability.'",'a newly expired departure must invalidate stale slots and explain the recheck');
 
 // Exercise the exact source helper in an isolated Node VM: malicious JSON
 // booleans must never make a departure eligible for checkout or staff request.
