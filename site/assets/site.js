@@ -2468,6 +2468,30 @@
     shell.scrollIntoView({behavior:'smooth',block:'center'});
   }
 
+  // The backend owns departure decisions. The browser must not interpret
+  // truthy strings such as "false" as permission to book or request.
+  function verifiedAvailabilitySlots(response){
+    if(!response||!Array.isArray(response.slots)||response.slots.length>100)
+      throw new Error('Invalid availability response');
+    const ids=new Set();
+    for(const slot of response.slots){
+      if(!slot||typeof slot!=='object'||Array.isArray(slot)||
+        typeof slot.id!=='string'||!slot.id.trim()||
+        typeof slot.time!=='string'||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(slot.time)||
+        typeof slot.sellable!=='boolean'||
+        typeof slot.requestable!=='boolean'||
+        (slot.sellable&&slot.requestable)||
+        ids.has(slot.id))
+        throw new Error('Invalid availability slot');
+      if(Object.prototype.hasOwnProperty.call(slot,'starts_at')&&
+        (typeof slot.starts_at!=='string'||!Number.isFinite(Date.parse(slot.starts_at))))
+        throw new Error('Invalid departure start');
+      ids.add(slot.id);
+    }
+    return response.slots.filter(s=>!s.starts_at||new Date(s.starts_at).getTime()>Date.now());
+  }
+
   const form=document.querySelector('#availability-form');
   if(form){
     const status=document.querySelector('#availability-status'), slots=document.querySelector('#slotlist');
@@ -2584,7 +2608,7 @@
       try{
         const out=await api('/experiences/'+encodeURIComponent(experience.id)+'/availability?'+q.toString(),{method:'GET'});
         if(searchGeneration!==availabilitySearchGeneration)return;
-        const list=(out.slots||[]).filter(s=>!s.starts_at||new Date(s.starts_at).getTime()>Date.now());
+        const list=verifiedAvailabilitySlots(out);
         if(!list.length){patchSession({stage:'availability_empty',selected_date:String(data.get('date')),experience_id:experience.id});status.innerHTML=rescueMarkup(t('No departures found right now.','לא נמצאו יציאות זמינות כרגע.'));bindInlineWhatsApp(status);return;}
         setBookingStep(2);status.textContent=t('Choose a departure:','בחרו שעה:');
         list.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='slot';b.setAttribute('aria-pressed','false');b.disabled=!s.sellable&&!s.requestable;const suffix=s.requestable?t(' · confirmation',' · נדרש אישור'):s.status==='low'?t(' · limited',' · זמינות מוגבלת'):'';b.textContent=s.time+suffix;b.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false')});b.classList.add('on');b.setAttribute('aria-pressed','true');track('slot_selected',{date:data.get('date'),time:s.time,party_size:party,status:s.status,is_private:isPrivate,guide_language:guideLanguage});patchSession({stage:'slot_selected',selected_date:data.get('date'),selected_time:s.time,slot_id:s.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});if(s.requestable&&isPrivate){status.innerHTML=`${t('This private group needs a quick confirmation. Send the requested date and time and we’ll check the available setup.','לקבוצה הפרטית הזו נדרש אישור קצר. שלחו את התאריך והשעה המבוקשים ונבדוק את האפשרויות הזמינות.')}<div class="status-actions"><a class="btn secondary" href="${whatsAppUrl('private_flexible',{experience_title:experience.title,date:String(data.get('date')),requested_time:s.time,riders:composition.riders_16_plus,children:composition.child_passengers_3_15,babies:composition.baby_passengers_1_2,is_private:true,guide_language:guideLanguage})}">WhatsApp</a></div>`;}else if(s.requestable)capacityRequestForm(s,composition,String(data.get('date')),experience,false,guideLanguage);else prepareStandardCheckout(s,composition,String(data.get('date')),experience,isPrivate,guideLanguage);};slots.appendChild(b)});
