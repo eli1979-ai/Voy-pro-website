@@ -1,0 +1,83 @@
+<!-- EZRaiderEU footer anchor-navigation fallback v1, 2026-10-28.
+     Append this block to the END of existing WPCode snippet #488; do not create
+     a second WPCode snippet. This is not installed automatically. -->
+<style>
+/* Make the actual classic WordPress footer menu links keyboard/click reachable.
+   Do not change footer positioning or blanket-disable overlays. */
+footer .menu a,#colophon .menu a,.site-footer .menu a,
+[id*="menu-footermenu"] a,[class*="footermenu"] a{
+  position:relative;pointer-events:auto;z-index:1;
+}
+</style>
+<script>
+(function(){
+  'use strict';
+  var HOME={
+    en:'/budapest/',
+    hu:'/budapest/fooldal/',
+    he:'/budapest/בית/'
+  };
+  var FRAGMENTS={whyezraider:1,about:1,tours:1,gallery:1,blog:1,contact:1};
+  var LABELS={
+    whyezraider:['why the ezraider','why ezraider','miért az ezraider','למה איזיריידר','למה ezraider'],
+    about:['about ezraider','about the ezraider','az ezraider','על איזיריידר'],
+    tours:['the tours','tours','túrák','הסיורים','סיורים'],
+    gallery:['gallery','galéria','גלריה / סיורים','גלריה'],
+    blog:['blog','בלוג'],
+    contact:['contact us','contact','kapcsolat','איש קשר','צור קשר']
+  };
+  function pathOf(raw){
+    var p;try{p=decodeURIComponent(raw);}catch(_){p=raw;}
+    return p.replace(/\/+$/,'/')||'/';
+  }
+  function clean(v){
+    return String(v||'').normalize('NFKC').toLowerCase()
+      .replace(/[?:!.,;\u200e\u200f]/g,'').replace(/\s+/g,' ').trim();
+  }
+  function isFooter(anchor){
+    return !!(anchor&&anchor.closest&&anchor.closest('footer,#colophon,.site-footer,.footer-navigation,.footer-menu,[id*="menu-footermenu"],[class*="footermenu"]'));
+  }
+  function targetElement(fragment){
+    var direct=document.getElementById(fragment);
+    if(direct)return direct;
+    // Some legacy PHP templates have visible headings but omit matching IDs.
+    var labels=LABELS[fragment]||[];
+    var nodes=document.querySelectorAll('h1,h2,h3,h4');
+    for(var i=0;i<nodes.length;i++){
+      var text=clean(nodes[i].textContent);
+      for(var j=0;j<labels.length;j++)if(text===clean(labels[j]))return nodes[i];
+    }
+    return null; // Fail open to the original browser behavior if no safe target exists.
+  }
+  function onClick(event){
+    if(event.defaultPrevented||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+    var anchor=event.target&&event.target.closest&&event.target.closest('a[href]');
+    if(!isFooter(anchor)||anchor.hasAttribute('download')||anchor.target==='_blank')return;
+    var url;
+    try{url=new URL(anchor.href,document.baseURI);}catch(_){return;}
+    if(url.protocol!=='https:'||!(/^(www\.)?ezraidereu\.com$/i).test(url.hostname))return;
+    var fragment=decodeURIComponent((url.hash||'').slice(1)).toLowerCase();
+    if(!Object.prototype.hasOwnProperty.call(FRAGMENTS,fragment))return;
+    var destination=pathOf(url.pathname),allowed=false;
+    for(var lang in HOME)if(destination===HOME[lang])allowed=true;
+    if(!allowed||pathOf(window.location.pathname).indexOf('/budapest/')!==0)return;
+    if(destination!==pathOf(window.location.pathname)||url.hostname!==window.location.hostname){
+      // Existing theme click handlers may incorrectly eat absolute hash links.
+      event.preventDefault();event.stopImmediatePropagation();window.location.assign(url.href);
+      return;
+    }
+    var section=targetElement(fragment);
+    if(!section){anchor.setAttribute('data-ezre-footer-unresolved',fragment);return;}
+    event.preventDefault();event.stopImmediatePropagation();
+    if(window.history&&window.history.replaceState){
+      window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+    }
+    if(section.style&&(!section.style.scrollMarginTop))section.style.scrollMarginTop='90px';
+    try{
+      section.scrollIntoView({block:'start',behavior:window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+    }catch(_){section.scrollIntoView();}
+  }
+  // Capture only known footer home-section URLs; header, tour links and WhatsApp unaffected.
+  document.addEventListener('click',onClick,true);
+})();
+</script>
