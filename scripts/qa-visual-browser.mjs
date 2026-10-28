@@ -302,6 +302,21 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(await route.inputValue()===code,name+' '+code+' preselects the correct route');
       }
       const initialStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      // Clicking a tour card must dispatch a real form change. A previously
+      // visible missing-fields warning must clear without a WhatsApp handoff.
+      await route.selectOption('');
+      const missingPrevented=await requestForm.evaluate(el=>
+        !el.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+      const missingStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      check(missingPrevented&&missingStatus!==initialStatus,
+        name+' missing route shows a validation warning before changing a tour card');
+      const beforeRouteClickUrl=page.url();
+      await page.locator('[data-portugal-tour="explorer"]').click();
+      check(await route.inputValue()==='explorer'&&
+        await requestForm.locator('[data-portugal-request-status]').innerText()===initialStatus,
+        name+' tour card updates select and clears obsolete form warning');
+      check(page.url().split('#')[0]===beforeRouteClickUrl.split('#')[0],
+        name+' tour-card correction stays on the same request page');
       await route.selectOption('express');
       await date.fill('2000-01-01');
       await language.selectOption('en');
