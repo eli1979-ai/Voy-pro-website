@@ -105,6 +105,10 @@ async function main(){
       const content=base?await readFile(join(base,kind+'.html'),'utf8'):await (async()=>{
         const response=await fetch(url,{signal:AbortSignal.timeout(15000),headers:{'user-agent':'EZRaiderEU-ReadOnlySourceAudit/1.0'}});
         if(!response.ok)throw Error('HTTP '+response.status);
+        const finalURL=new URL(response.url),expectedURL=new URL(url);
+        if(finalURL.origin!==expectedURL.origin
+          ||finalURL.pathname.replace(/\/+$/,'/')!==expectedURL.pathname.replace(/\/+$/,'/'))
+          throw Error('Unexpected final URL after redirect: '+finalURL.origin+finalURL.pathname);
         if(!/text\/html/i.test(response.headers.get('content-type')??''))throw Error('Not HTML');
         return response.text();
       })();
