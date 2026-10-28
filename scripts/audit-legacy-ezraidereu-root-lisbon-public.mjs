@@ -29,9 +29,12 @@ export function auditLegacyPage(kind,html,url=pages[kind]){
   if(kind==='root'){
     if(/Lisbon|Lisabon|Athén|Athens/i.test(source.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]??''))
       issues.push(issue('STALE_ROOT_TITLE','medium','Root title still advertises inactive or unverified destinations.'));
+    const destinationHeadings=[...strip(source).matchAll(/<h[2-6]\b[^>]*>([\s\S]*?)<\/h[2-6]>/gi)]
+      .map(m=>m[1].replace(/<[^>]*>/g,' ').trim());
     if(links.some(x=>/(?:\/lisbon(?:\/|\?|#|$)|athen\.ezraidereu\.com)/i.test(x))
-      ||/Lisbon\s+Check\s*out|VoyproAth[eé]n\s+Check\s*out/i.test(body))
-      issues.push(issue('LEGACY_DESTINATION_CTA','high','Root still has a Lisbon or Athens destination marketing CTA.'));
+      ||/Lisbon\s+Check\s*out|VoyproAth[eé]n\s+Check\s*out/i.test(body)
+      ||destinationHeadings.some(x=>/\b(?:Lisbon|Lisabon|Lisboa|Athens|Athén)\b/i.test(x)))
+      issues.push(issue('LEGACY_DESTINATION_CTA','high','Root still has Lisbon or Athens destination marketing.'));
     if(!links.some(x=>/ezraidereu\.com\/budapest\/?$/i.test(x)))
       issues.push(issue('BUDAPEST_DESTINATION_NOT_CONFIRMED','medium','Cannot find known Budapest destination link.'));
   }else{
@@ -49,7 +52,7 @@ export function auditLegacyPage(kind,html,url=pages[kind]){
       issues.push(issue('LISBON_BOOKING_BUTTON','high','Visible booking button remains; not proof of provider purchasability.'));
     if(/<script\b[^>]*>[\s\S]*?fareharbor\S*[\s\S]*?<\/script>/i.test(source))
       issues.push(issue('LISBON_INLINE_FAREHARBOR_REFERENCE','manual','Inline script references FareHarbor; inspect runtime usage before claiming sale path removed.'));
-    if(/(?:^|\s)(?:40|60|80)\s*euros?\b|€\s*(?:40|60|80)/i.test(body))
+    if(/(?:€\s*\d+(?:[.,]\d{1,2})?|\b\d+(?:[.,]\d{1,2})?\s*(?:euros?|€)\b)/i.test(body))
       issues.push(issue('LISBON_LEGACY_FARES','medium','Historical Lisbon published tour prices visible.'));
     if(!/not currently offered for new bookings/i.test(body))
       issues.push(issue('LISBON_NO_NEW_BOOKINGS_NOTICE_UNCONFIRMED','manual','No explicit non-bookable status notice detected.'));
@@ -87,13 +90,16 @@ function selfTest(){
     ['widget attribute','<div data-fareharbor-company="legacy"></div>','LISBON_BOOKING_WIDGET_ATTRIBUTE'],
     ['booking button','<button type="button">Book Now</button>','LISBON_BOOKING_BUTTON'],
     ['inline mention','<script>console.log("fareharbor.com")</script>','LISBON_INLINE_FAREHARBOR_REFERENCE'],
+    ['changed price','<p>New promotional price: €55.</p>','LISBON_LEGACY_FARES'],
   ];
   for(const [label,markup,expected] of bookingCases){
     const fixture=safeLisbon.replace('</main>','</main>'); // long, complete fixture
     const injected=fixture.replace('</body>',markup+'</body>');
     assert.ok(auditLegacyPage('lisbon',injected).issues.some(x=>x.code===expected),label+' misses '+expected);
   }
-  console.log('PASS: 15 read-only public source audit scenarios (9 original + 6 hidden-booking regressions)');
+  const headedRoot=rootReady.replace('</body>','<h2>Lisboa — new tours!</h2></body>');
+  assert.ok(auditLegacyPage('root',headedRoot).issues.some(x=>x.code==='LEGACY_DESTINATION_CTA'));
+  console.log('PASS: 17 read-only public source audit scenarios (9 original + 8 regressions)');
 }
 async function main(){
   if(process.argv.includes('--self-test')){selfTest();return;}
