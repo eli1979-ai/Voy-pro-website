@@ -2752,6 +2752,15 @@
       typedCoupon.focus();return;
     }
     if(checkoutForm.dataset.submitting==='true')return;
+    // Only a NEW staff request is blocked when its departure has started.
+    // If a submission may already exist, preserve its idempotent retry path.
+    if(bookingState.capacityRequest&&!bookingState.submissionSnapshot&&
+      bookingState.slot?.starts_at&&Date.parse(bookingState.slot.starts_at)<=Date.now()){
+      if(st)st.textContent=t('This departure has already started. Search again for current availability.','היציאה הזו כבר התחילה. בצעו חיפוש חדש לזמינות עדכנית.');
+      const button=checkoutForm.querySelector('button[type="submit"]');
+      if(button)button.disabled=true;
+      return;
+    }
     const existingSubmission=bookingState.submissionSnapshot||null;
     let customer=existingSubmission?.customer||null;
     let paymentMethod=existingSubmission?.payment_method||null;

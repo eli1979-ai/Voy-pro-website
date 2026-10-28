@@ -45,7 +45,7 @@ const paths=[
   ['hu','/hu/budapest/tours/buda-castle-ezraider-tour/']
 ];
 const wait=ms=>new Promise(done=>setTimeout(done,ms));
-async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null,sessionStalled=false,expiryAtClick=false}={}){
+async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null,sessionStalled=false,expiryAtClick=false,expiryAtSubmit=false}={}){
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
   // The tab is opened at 23:59 Budapest local time after the DST change.
   // Move only its simulated clock forward; FBM routes remain mocked.
@@ -416,6 +416,39 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
       return;
     }
 
+    if(expiryAtSubmit){
+      // The departure was future-dated when a staff-request form opened.
+      // Its start passes while the guest is entering contact details.
+      // New submissions must stop without hitting the request endpoint.
+      phase='expires-before-click';
+      await submit.click();
+      const requestSlot=page.locator('#slotlist button').first();
+      await requestSlot.waitFor({state:'attached',timeout:10000});
+      check(await requestSlot.isEnabled(),
+        lang+' future staff-requestable departure may open a request form');
+      await requestSlot.click();
+      const request=page.locator('#live-checkout-form');
+      check(await page.locator('#live-checkout-shell').isVisible(),
+        lang+' request form opens while departure is still in the future');
+      await request.locator('[name="full_name"]').fill('Test Guest');
+      await request.locator('[name="email"]').fill('test@example.invalid');
+      await request.locator('[name="phone"]').fill('+15550001111');
+      const beforePost=calls.length;
+      await page.clock.setFixedTime(new Date(Date.now()+2*60*1000));
+      await request.locator('button[type="submit"]').click();
+      check(/already started|כבר התחילה|már elkezdődött/i.test(
+        await request.locator('[data-checkout-status]').innerText()),
+        lang+' request after departure start explains that availability must be refreshed');
+      check(await request.locator('button[type="submit"]').isDisabled(),
+        lang+' expired staff-request submit stays disabled until a new search');
+      check(!calls.slice(beforePost).some(c=>
+        ['/booking-capacity-requests','/quotes','/holds','/bookings','/payments'].some(
+          prefix=>c.path===prefix||c.path.startsWith(prefix+'/')||c.path.startsWith(prefix+'?'))),
+        lang+' expired new staff request makes zero commercial API calls');
+      check(pageErrors.length===0,lang+' expiry-before-submit has no browser errors');
+      return;
+    }
+
     // A staff-confirmation departure is NOT instantly bookable. The UI must
     // allow a request without silently creating a quote, hold or payment.
     // The fixture never contacts the real backend and never submits this form.
@@ -529,6 +562,7 @@ try{
   await scenario('he',paths[1][1]);
   await scenario('hu',paths[2][1]);
   for(const [lang,path] of paths)await scenario(lang,path,{expiryAtClick:true});
+  for(const [lang,path] of paths)await scenario(lang,path,{expiryAtSubmit:true});
   await scenario('en',paths[0][1],{catalogDown:true});
   await scenario('he',paths[1][1],{catalogDown:true});
   await scenario('hu',paths[2][1],{catalogDown:true});
