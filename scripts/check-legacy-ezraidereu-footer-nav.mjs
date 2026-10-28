@@ -25,4 +25,11 @@ assert.equal(environment().click({ctrlKey:true}).prevented,false);
 assert.equal(environment({href:'https://elsewhere.example/budapest/#tours'}).click().prevented,false);
 assert.equal(environment({href:'https://ezraidereu.com/budapest/#garbage'}).click().prevented,false);
 const missing=environment({id:'none',heading:'Completely Different',href:'https://ezraidereu.com/budapest/#about'}).click();assert.equal(missing.unresolved,'about');assert.equal(missing.prevented,false);
-console.log('Legacy footer fallback: 8 synthetic tests passed');
+// Verify Hebrew encoded path, Hungarian heading and rejection of malformed link hashes.
+const hebrew=environment({path:'/budapest/בית/',id:'none',heading:'הסיורים:',href:'https://ezraidereu.com/budapest/%D7%91%D7%99%D7%AA/#tours'}).click();
+assert.equal(hebrew.scrolled,true);assert.equal(hebrew.assigned,null);
+const hungarian=environment({path:'/budapest/fooldal/',id:'none',heading:'Miért az EZRaider?',href:'https://ezraidereu.com/budapest/fooldal/#whyezraider'}).click();
+assert.equal(hungarian.scrolled,true);
+assert.equal(environment({href:'http://ezraidereu.com/budapest/#tours'}).click().prevented,false);
+assert.equal(environment({href:'https://ezraidereu.com/budapest/#%invalid'}).click().prevented,false);
+console.log('Legacy footer fallback: 12 synthetic tests passed');
