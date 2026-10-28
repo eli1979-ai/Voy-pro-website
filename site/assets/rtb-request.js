@@ -27,6 +27,8 @@
       rejected:'The date, time or other details were rejected. Review your selection and try again.',
       needsWhatsApp:'Secure enquiry intake is disabled. WhatsApp is opening with your prefilled enquiry; you must send it yourself.',
       retry:'Retry enquiry',manual:'Contact us on WhatsApp',
+      manualBlank:'Open WhatsApp without a prefilled message',
+      manualTooLong:'This prefilled WhatsApp enquiry is too long for a reliable link. Open WhatsApp below and type the request yourself. No delivery or booking is confirmed.',
       type:'Tour',none:'Select a language',invalid:'Please check the form before continuing.'},
     he:{title:'בקשת סיור',intro:'ספרו לצוות בודפשט מתי תרצו לצאת. זו פנייה בלבד, לא הזמנה מאושרת.',
       date:'תאריך מועדף',time:'שעת יציאה מועדפת',riders:'רוכבים עצמאיים',language:'שפת הדרכה מבוקשת',
@@ -41,6 +43,8 @@
       rejected:'התאריך, השעה או פרטים אחרים נדחו. בדקו את הפרטים ונסו שוב.',
       needsWhatsApp:'קליטה מאובטחת אינה פעילה. WhatsApp ייפתח עם פנייה מוכנה — יש לשלוח אותה בעצמכם.',
       retry:'ניסיון שליחה חוזר',manual:'יצירת קשר ב־WhatsApp',
+      manualBlank:'פתיחת WhatsApp ללא הודעה מוכנה',
+      manualTooLong:'הפנייה ארוכה מדי לקישור WhatsApp אמין. פתחו את WhatsApp מהקישור למטה והקלידו את פרטי הבקשה בעצמכם. לא אומתה קליטת פנייה ולא בוצעה הזמנה.',
       type:'סיור',none:'בחרו שפה',invalid:'יש לבדוק את פרטי הטופס לפני ההמשך.'},
     hu:{title:'Túraigénylés',intro:'Írd meg a budapesti csapatnak, mikor szeretnél indulni. Ez érdeklődés, nem visszaigazolt foglalás.',
       date:'Kívánt dátum',time:'Kívánt indulási idő',riders:'Önálló vezetők',language:'Kért idegenvezetési nyelv',
@@ -55,6 +59,8 @@
       rejected:'A dátum, az időpont vagy más adat nem fogadható el. Ellenőrizd az adatokat és próbáld újra.',
       needsWhatsApp:'A biztonságos kérések fogadása nem aktív. Megnyílik a WhatsApp üzenete, amelyet neked kell elküldened.',
       retry:'Kérés újrapróbálása',manual:'Kapcsolat WhatsAppon',
+      manualBlank:'WhatsApp megnyitása előre kitöltött üzenet nélkül',
+      manualTooLong:'Az előre kitöltött WhatsApp-üzenet túl hosszú a megbízható megnyitáshoz. Nyisd meg a WhatsAppot az alábbi hivatkozással, és írd be magad az adatokat. A kérés kézbesítése nem igazolt, és nincs foglalás.',
       type:'Túra',none:'Válassz nyelvet',invalid:'Ellenőrizd az űrlap adatait.'}
   };
   const labels=strings[locale];
@@ -269,12 +275,17 @@
     if(draft.email)lines.push(labels.email+': '+draft.email);
     if(draft.phone)lines.push(labels.phone+': '+draft.phone);
     const whatsappUrl='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+    // Encoded multibyte names can exceed safe WhatsApp deep-link lengths
+    // even while every HTML maxlength is satisfied. Never silently discard
+    // the guest's details or offer a broken prefilled fallback link.
+    const whatsappTooLong=whatsappUrl.length>=1800;
     const manualLink=()=>{
       const link=document.createElement('a');
-      link.href=whatsappUrl;
+      link.href=whatsappTooLong?'https://wa.me/36300993099':whatsappUrl;
       link.target='_blank';
       link.rel='noopener noreferrer';
-      link.textContent=labels.manual;
+      link.textContent=whatsappTooLong?labels.manualBlank:labels.manual;
+      if(whatsappTooLong)feedback.textContent=labels.manualTooLong;
       link.dataset.rtbManual='';
       link.className='btn secondary';
       feedback.insertAdjacentElement('afterend',link);
@@ -348,6 +359,7 @@
         // The relay has not been activated. The user must SEND the WhatsApp
         // message personally. Never portray this as a CRM acknowledgement.
         feedback.textContent=labels.needsWhatsApp;
+        if(whatsappTooLong){manualLink();return;}
         location.assign(whatsappUrl);
         return;
       }
