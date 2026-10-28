@@ -612,12 +612,21 @@ try{
         const message=floated.searchParams.get('text')||'';
         const peopleLabel=name.includes('-he-')?'משתתפים: 4':
           name.includes('-pt-')?'Pessoas: 4':'People: 4';
+        // The customer message is localized: never mistake a formatted date
+        // or a translated guide-language name for dropped form values.
+        const dateLocale=name.includes('-he-')?'he-IL':
+          name.includes('-pt-')?'pt-PT':'en-GB';
+        const formattedDate=new Intl.DateTimeFormat(dateLocale,{
+          day:'numeric',month:'short',year:'numeric',timeZone:'UTC'
+        }).format(new Date(Date.UTC(2026,9,30)));
+        const languageLabel=name.includes('-he-')?'פורטוגזית':
+          name.includes('-pt-')?'Português':'Portuguese';
         check(floated.hostname==='wa.me'&&floated.pathname==='/351935695004',
           name+' floating WhatsApp keeps the local Marvão number');
         check(message.includes('Marvão Explorer Tour')&&
-          message.includes('2026-10-30')&&message.includes(peopleLabel)&&
-          message.includes('Português'),
-          name+' floating WhatsApp carries current route, date, party and guide language');
+          message.includes(formattedDate)&&message.includes(peopleLabel)&&
+          message.includes(languageLabel),
+          name+' floating WhatsApp carries current localized route, date, party and guide language');
         check(!message.includes('Private Browser Name')&&
           !message.includes('Private Browser Notes')&&
           !message.includes('2000-01-01'),
@@ -632,9 +641,9 @@ try{
           const navUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
           const mobileMessage=navUrl?new URL(navUrl).searchParams.get('text')||'':'';
           check(mobileMessage.includes('Marvão Explorer Tour')&&
-            mobileMessage.includes('2026-10-30')&&mobileMessage.includes(peopleLabel)&&
-            mobileMessage.includes('Português'),
-            name+' mobile menu WhatsApp recomputes selected Marvão tour choices');
+            mobileMessage.includes(formattedDate)&&mobileMessage.includes(peopleLabel)&&
+            mobileMessage.includes(languageLabel),
+            name+' mobile menu WhatsApp recomputes localized Marvão tour choices');
           check(!mobileMessage.includes('Private Browser Name')&&
             !mobileMessage.includes('Private Browser Notes'),
             name+' mobile menu WhatsApp excludes personal details');
