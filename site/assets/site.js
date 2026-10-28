@@ -1257,6 +1257,12 @@
       const kind=form.dataset.b2bPlanner;
       if(!['group','corporate'].includes(kind))return;
       const date=form.querySelector('input[name="requested_date"]');
+      const notes=form.querySelector('textarea[name="notes"]');
+      const whatsAppLengthError=locale==='he'
+        ?'הודעת הוואטסאפ ארוכה מדי. קצרו את הפרטים האופציונליים ונסו שוב.'
+        :locale==='hu'?'A WhatsApp-üzenet túl hosszú. Rövidítsd a nem kötelező részleteket, majd próbáld újra.'
+        :'The WhatsApp message is too long. Shorten the optional details and try again.';
+      notes?.addEventListener('input',()=>notes.setCustomValidity(''));
       const dateErrorLabel=locale==='he'
         ?'יש לבחור תאריך מהיום והלאה.'
         :locale==='hu'?'Válassz mai vagy későbbi dátumot.':'Choose today or a future date.';
@@ -1299,6 +1305,9 @@
       const btn=form.querySelector('[data-b2b-open]');
       if(!btn)return;
       btn.addEventListener('click',()=>{
+        // A previously long message must not leave stale form validity errors
+        // after the guest edits any optional field and retries.
+        notes?.setCustomValidity('');
         // Native HTML validity is deliberately checked here, since the button is
         // type=button to prevent a JS-disabled form from submitting private data.
         syncDateMinimum();
@@ -1353,10 +1362,22 @@
           if(value)lines.push(label+': '+value);
         }
         lines.push(l.source+': '+location.pathname);
+        // Percent-encoded Hebrew/emoji can expand a short-looking enquiry to
+        // an unreliable WhatsApp deep link. Never silently discard customer
+        // details, claim the enquiry was sent, or record a successful hand-off.
+        const whatsAppLink='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+        if(whatsAppLink.length>=1800){
+          if(notes){
+            notes.setCustomValidity(whatsAppLengthError);
+            notes.reportValidity();
+            notes.focus();
+          }
+          return;
+        }
         // Intentionally do not persist private text, company, or customer name
         // in analytics/session storage or submit it to an unverified backend.
         track('b2b_whatsapp_planner_opened',{context:kind,page,participants:size,guide_language:language,source:'b2b_planner'});
-        location.href='https://wa.me/36300993099?text='+encodeURIComponent(lines.join('\n'));
+        location.href=whatsAppLink;
       });
     });
   }
