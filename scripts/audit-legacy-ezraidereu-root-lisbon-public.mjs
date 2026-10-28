@@ -71,7 +71,7 @@ function selfTest(){
 async function main(){
   if(process.argv.includes('--self-test')){selfTest();return;}
   const arg=process.argv.indexOf('--fixture-dir'),base=arg>=0?process.argv[arg+1]:null;
-  if(arg>=0&&(!base||base.startsWith('--'))throw Error('--fixture-dir requires a directory');
+  if(arg>=0&&(!base||base.startsWith('--')))throw Error('--fixture-dir requires a directory');
   const results=[];
   for(const [kind,url] of Object.entries(pages)){
     try{
