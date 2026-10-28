@@ -2063,6 +2063,7 @@
     const shell=document.querySelector('#live-checkout-shell'); if(!shell) return;
     const form=shell.querySelector('#live-checkout-form');
     shell.querySelector('[data-checkout-heading]').textContent=t('Complete your booking','השלמת ההזמנה');
+    const assurance=shell.querySelector('.checkout-assurance'); if(assurance)assurance.hidden=false;
     const pay=form?.querySelector('[name="payment_method"]')?.closest('.field'); if(pay) pay.hidden=false;
     const legal=form?.querySelector('[data-checkout-legal]'); if(legal){legal.hidden=false;const box=legal.querySelector('input');if(box){box.required=true;box.checked=false;}}
     const submit=form?.querySelector('button[type="submit"]'); if(submit) submit.textContent=t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום');
@@ -2455,6 +2456,8 @@
     releaseHold(); setBookingStep(3); const shell=document.querySelector('#live-checkout-shell');shell.hidden=false;
     shell.querySelector('[data-checkout-heading]').textContent=t('Request confirmation','בקשת אישור');
     shell.querySelector('[data-checkout-summary]').innerHTML=`<div class="checkout-summary-head"><div><b>${escapeHTML(experience.title)}</b><span>${escapeHTML(date)} · ${escapeHTML(slot.time)}</span></div>${isPrivate?`<span class="checkout-private-flag">${t('Private request','בקשה פרטית')}</span>`:''}</div>${renderPartySummary(composition)}<div class="party-summary"><span>${requestedGuideLanguageLabel()} · ${escapeHTML(guideLanguageLabel(guideLanguage))}</span></div><span>${t('This group needs a quick availability confirmation.','לקבוצה הזו נדרש אישור זמינות קצר.')}</span>`;
+    // Staff confirmation is not a reservation: no hold or verified quote exists.
+    const assurance=shell.querySelector('.checkout-assurance'); if(assurance)assurance.hidden=true;
     shell.querySelector('[data-hold-timer]').textContent='';
     const ancillary=shell.querySelector('[data-ancillary-upsell]');if(ancillary){ancillary.hidden=true;ancillary.innerHTML='';}
     const form=shell.querySelector('#live-checkout-form');const pay=form.querySelector('[name="payment_method"]').closest('.field');pay.hidden=true;
@@ -2463,6 +2466,30 @@
     bookingState={slot,composition,quote:null,hold:null,experience,date,capacityRequest:true,isPrivate,guideLanguage,promoCode:initialPromoCode,idempotencyKey:'voy_'+uuid()};ensureSingleCouponControl();
     shell.querySelector('[data-checkout-heading]')?.focus({preventScroll:true});
     shell.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  // The backend owns departure decisions. The browser must not interpret
+  // truthy strings such as "false" as permission to book or request.
+  function verifiedAvailabilitySlots(response){
+    if(!response||!Array.isArray(response.slots)||response.slots.length>100)
+      throw new Error('Invalid availability response');
+    const ids=new Set();
+    for(const slot of response.slots){
+      if(!slot||typeof slot!=='object'||Array.isArray(slot)||
+        typeof slot.id!=='string'||!slot.id.trim()||
+        typeof slot.time!=='string'||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(slot.time)||
+        typeof slot.sellable!=='boolean'||
+        typeof slot.requestable!=='boolean'||
+        (slot.sellable&&slot.requestable)||
+        ids.has(slot.id))
+        throw new Error('Invalid availability slot');
+      if(Object.prototype.hasOwnProperty.call(slot,'starts_at')&&
+        (typeof slot.starts_at!=='string'||!Number.isFinite(Date.parse(slot.starts_at))))
+        throw new Error('Invalid departure start');
+      ids.add(slot.id);
+    }
+    return response.slots.filter(s=>!s.starts_at||new Date(s.starts_at).getTime()>Date.now());
   }
 
   const form=document.querySelector('#availability-form');
@@ -2581,7 +2608,7 @@
       try{
         const out=await api('/experiences/'+encodeURIComponent(experience.id)+'/availability?'+q.toString(),{method:'GET'});
         if(searchGeneration!==availabilitySearchGeneration)return;
-        const list=(out.slots||[]).filter(s=>!s.starts_at||new Date(s.starts_at).getTime()>Date.now());
+        const list=verifiedAvailabilitySlots(out);
         if(!list.length){patchSession({stage:'availability_empty',selected_date:String(data.get('date')),experience_id:experience.id});status.innerHTML=rescueMarkup(t('No departures found right now.','לא נמצאו יציאות זמינות כרגע.'));bindInlineWhatsApp(status);return;}
         setBookingStep(2);status.textContent=t('Choose a departure:','בחרו שעה:');
         list.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='slot';b.setAttribute('aria-pressed','false');b.disabled=!s.sellable&&!s.requestable;const suffix=s.requestable?t(' · confirmation',' · נדרש אישור'):s.status==='low'?t(' · limited',' · זמינות מוגבלת'):'';b.textContent=s.time+suffix;b.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false')});b.classList.add('on');b.setAttribute('aria-pressed','true');track('slot_selected',{date:data.get('date'),time:s.time,party_size:party,status:s.status,is_private:isPrivate,guide_language:guideLanguage});patchSession({stage:'slot_selected',selected_date:data.get('date'),selected_time:s.time,slot_id:s.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});if(s.requestable&&isPrivate){status.innerHTML=`${t('This private group needs a quick confirmation. Send the requested date and time and we’ll check the available setup.','לקבוצה הפרטית הזו נדרש אישור קצר. שלחו את התאריך והשעה המבוקשים ונבדוק את האפשרויות הזמינות.')}<div class="status-actions"><a class="btn secondary" href="${whatsAppUrl('private_flexible',{experience_title:experience.title,date:String(data.get('date')),requested_time:s.time,riders:composition.riders_16_plus,children:composition.child_passengers_3_15,babies:composition.baby_passengers_1_2,is_private:true,guide_language:guideLanguage})}">WhatsApp</a></div>`;}else if(s.requestable)capacityRequestForm(s,composition,String(data.get('date')),experience,false,guideLanguage);else prepareStandardCheckout(s,composition,String(data.get('date')),experience,isPrivate,guideLanguage);};slots.appendChild(b)});
