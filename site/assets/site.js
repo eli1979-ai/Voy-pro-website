@@ -1637,7 +1637,30 @@
     const savedAtValid=typeof savedAt==='number'&&Number.isSafeInteger(savedAt)&&savedAt>0;
     const age=savedAtValid?Date.now()-savedAt:NaN;
     if(!savedAtValid||age<0||age>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
-    if(!state.experience_id||!state.date||!state.composition)return null;
+    // A saved v1 party is not a booking. Discard malformed snapshots before
+    // displaying a restore button that would inevitably fail after clicking.
+    const party=state?.composition;
+    const date=state?.date;
+    const parsedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)
+      ?Date.parse(date+'T12:00:00Z'):NaN;
+    const validDate=Number.isFinite(parsedDate)&&
+      new Date(parsedDate).toISOString().slice(0,10)===date;
+    const validParty=party&&typeof party==='object'&&!Array.isArray(party)&&
+      ['riders_16_plus','child_passengers_3_15','baby_passengers_1_2'].every(key=>
+        Number.isSafeInteger(party[key])&&party[key]>=0)&&
+      party.riders_16_plus>=1&&
+      (party.request_15yo_independent_assessment===undefined||
+        typeof party.request_15yo_independent_assessment==='boolean');
+    const language=state?.guide_language;
+    const validLanguage=language===null||
+      (typeof language==='string'&&/^[a-z]{2,8}$/.test(language));
+    if(state.version!==1||typeof state.experience_id!=='string'||
+      !state.experience_id.trim()||state.experience_id.length>128||
+      !validDate||!validParty||typeof state.is_private!=='boolean'||
+      !validLanguage){
+      delStore('voy_recovery_state');
+      return null;
+    }
     return state;
   }
   function saveSelectionRecovery(experience,date,composition,isPrivate,guideLanguage){
