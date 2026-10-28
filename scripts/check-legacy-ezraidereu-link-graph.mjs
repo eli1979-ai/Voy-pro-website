@@ -108,9 +108,13 @@ export function auditSnapshot(snapshot){
   for(const x of outcomes){const k=x.path;if(seen.has(k))duplicates.push(k);seen.add(k);}
   const required=[...expected.values()].filter(x=>x.type!=='home');
   const missing=required.filter(x=>!seen.has(x.path)).map(x=>({id:x.id,path:x.path,type:x.type}));
+  const extras=outcomes.filter(x=>x.type==='home'||x.type==='unknown')
+    .map(x=>({id:x.id,path:x.path,type:x.type}));
   const problems=outcomes.filter(x=>x.errors.length);
-  return {status:missing.length||duplicates.length||problems.length?'fail':'pass',received:records.length,
-    expected:required.length,missing,duplicates,problems,flags:outcomes.filter(x=>x.flags.length).map(x=>({id:x.id,flags:x.flags}))};
+  const wrongCount=records.length!==required.length;
+  return {status:missing.length||extras.length||duplicates.length||problems.length||wrongCount?'fail':'pass',received:records.length,
+    expected:required.length,missing,extras,duplicates,problems,
+    flags:outcomes.filter(x=>x.flags.length).map(x=>({id:x.id,flags:x.flags}))};
 }
 function selfTest(){
   const records=[...expected.values()].filter(x=>x.type!=='home').map(item=>{
@@ -151,7 +155,16 @@ function selfTest(){
   const dup=auditSnapshot([...records,records[0]]);
   assert.equal(dup.status,'fail');
   assert.equal(dup.duplicates.length,1);
-  console.log('PASS: 12 snapshot scenarios (clean, nine safety/link regressions, missing, duplicate) on 33 published items');
+  const extraHome={id:7,status:'publish',link:origin+'/budapest/',
+    content:'<p>EZRaider Budapest homepage test, intentionally not in 33-content export</p>'+
+      '<a href="https://wa.me/36300993099?text='+encodeURIComponent('Source page: '+origin+'/budapest/')+'">WhatsApp</a>'+
+      '<a href="mailto:Voyprobud@gmail.com">Email</a>'};
+  assert.deepEqual(auditRecord(extraHome).errors,[],'isolated home record is individually valid');
+  const unexpected=auditSnapshot([...records,extraHome]);
+  assert.equal(unexpected.status,'fail');
+  assert.equal(unexpected.extras.length,1);
+  assert.equal(unexpected.received,34);
+  console.log('PASS: 13 snapshot scenarios (clean, nine safety/link regressions, missing, duplicate, extra home) on 33 published items');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else {
