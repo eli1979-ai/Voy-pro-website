@@ -2465,7 +2465,7 @@
     shell.scrollIntoView({behavior:'smooth',block:'center'});
   }
 
-  // FBM owns the departure decision. The browser must not interpret
+  // The backend owns departure decisions. The browser must not interpret
   // truthy strings such as "false" as permission to book or request.
   function verifiedAvailabilitySlots(response){
     if(!response||!Array.isArray(response.slots)||response.slots.length>100)
