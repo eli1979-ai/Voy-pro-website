@@ -39,3 +39,14 @@ The owner reports the footer navigation bar is not working. The read-only classi
 6. Keep `Ezraider-os#981` first-party FBM booking launch gate separate; none of this permits payment/booking activation.
 
 This is an **installation-ready proposal only**, not a production fix. Do not merge the source-only PR or publish a WPCode change without following the site release approval and visual QA process.
+## Further verification — 28 October (separate autonomous pass)
+
+An additional **read-only DOM probe** is staged at `docs/legacy-wordpress/ezraidereu-footer-dom-probe.js`. In the live browser console while scrolled to the footer, it audits **only** the six exact on-page fragment names, permitted hosts and three locale homepage paths. It returns rows with current href, same-page versus cross-page status, matching `id`, exact heading fallback, CSS visibility and pointer-event state, bounding dimensions and the actual `elementFromPoint` at the link center. It DOES NOT modify the page, send any request or install anything. It is a diagnostic, not a fix or a click automation. An `offscreen` hit-test means the footer was outside the viewport. Even `link-receives-hit` does not rule out a JS click handler suppressing navigation.
+
+Public page text independently confirms all three locale footers include their six navigation links and also carry a legacy `BOOK NOW` FareHarbor link. Crawled text is not a live JavaScript browser; it cannot say whether a WPCode conversion is installed and running. **Do not equate a raw FareHarbor source link with a functioning checkout or active link post-JS.** The archived proposed WPCode v6 *already includes* a general FareHarbor-to-source-aware-WhatsApp rewrite; before applying any new footer booking fix, inspect snippet #488 to avoid duplicate or conflicting logic.
+
+Read-only WP REST content re-audit in the same pass: all **21/21** published tour CPT posts, seven each in EN/HU/HE, contain exactly one WhatsApp URL and a `Voyprobud@gmail.com` reference, with **zero** `fareharbor` occurrences in their stored content. This applies to individual tour post content, **not** the legacy PHP template/footer.
+
+**Diagnostic code parsing:** standalone DOM probe syntax checked in a JavaScript parser (PASS). GitHub Actions on the new exact PR head must be inspected separately; successful website build does not automatically run the standalone browser probe or the separate synthetic tests.
+
+**No site mutation:** No WordPress menu, theme, ACF, widget, WPCode, booking, DNS or production change was made in this pass. Draft PR stays unmerged.
