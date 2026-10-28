@@ -8,11 +8,21 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 export const STAGING='https://ezraider-os-staging.vercel.app/api/v1';
-export const PROBES=[
-  {id:'budapest_config',route:'/destinations/budapest'},
-  {id:'budapest_catalog',route:'/experiences?destination=budapest'},
-  {id:'payment_capability',route:'/payments/capabilities'}
-];
+// A small explicit allowlist is mandatory: GET is not proof that an endpoint
+// is side-effect free. FBM's GET /experiences/:id/availability currently calls
+// ensure_public_departures and can prepare departures in Staging. It must NOT
+// be used in this unauthorised, read-only smoke. Use mocked browser QA instead.
+const READ_ONLY_ROUTES=Object.freeze({
+  budapest_config:'/destinations/budapest',
+  budapest_catalog:'/experiences?destination=budapest',
+  payment_capability:'/payments/capabilities'
+});
+export const PROBES=Object.entries(READ_ONLY_ROUTES).map(([id,route])=>({id,route}));
+function readOnlyProbe(probe){
+  return probe&&typeof probe.id==='string'&&
+    Object.prototype.hasOwnProperty.call(READ_ONLY_ROUTES,probe.id)&&
+    probe.route===READ_ONLY_ROUTES[probe.id];
+}
 
 function safeUrl(raw,expected){
   const url=new URL(raw);
@@ -175,6 +185,13 @@ export async function audit(request=fetch,config=publicClientConfig(
   fs.readFileSync('site/assets/runtime-config.js','utf8')),probes=PROBES){
   const rows=[];
   for(const probe of probes){
+    // Reject the request BEFORE OPTIONS or GET; no network call to endpoints
+    // which can allocate inventory, create holds, or mutate bookings.
+    if(!readOnlyProbe(probe)){
+      rows.push({id:String(probe?.id||'unknown'),ok:false,
+        reason:'Rejected: endpoint is outside the strictly read-only smoke allowlist'});
+      continue;
+    }
     try{
       rows.push(await readBrowserPreflight(probe,request));
     }catch(e){
@@ -202,7 +219,7 @@ export function report(result){
     '| --- | --- | --- |',
     ...result.rows.map(row=>'| '+row.id+' | '+(row.ok?'PASS':'FAIL')+' | '+row.reason.replace(/\|/g,'/')+' |'),
     '',
-    '**Boundary:** browser OPTIONS+GET verifies only these three public Staging read routes. It does not verify Production, partner-origin CORS, or availability (its GET handler can invoke departure-creation RPC), checkout, card charging, staffing, or migrations. The cutover decision remains NO-GO.',
+    '**Boundary:** only these three allowlisted, side-effect-free Staging routes are eligible for browser OPTIONS+GET. All other routes fail before any network request. It does not verify Production, partner-origin CORS, or availability (its GET handler can invoke departure-creation RPC), checkout, card charging, staffing, or migrations. The cutover decision remains NO-GO.',
     ''
   ].join('\n');
 }
@@ -261,6 +278,24 @@ async function test(){
   assert.equal(requests.filter(x=>x.method==='GET').length,3);
   assert.equal(requests.filter(x=>x.method==='OPTIONS').length,3);
   assert.ok(!report(success).includes(key),'Never print public client keys in result artifacts');
+  // Reject even innocently named paths when they are not the EXACT allowlist
+  // route. The availability GET invokes a scheduling RPC in FBM and is NOT
+  // eligible for a no-side-effects Staging smoke.
+  for(const unsafe of [
+    {id:'budapest_availability',
+      route:'/experiences/exp_bud_buda/availability?date=2099-01-01&riders_16_plus=1'},
+    {id:'budapest_catalog',route:'/holds'},
+    {id:'payment_capability',route:'/payments/intents'},
+    {id:'budapest_config',route:'/destinations/budapest?refresh=true'},
+    {id:'budapest_config',route:'https://attacker.invalid/api/v1/destinations/budapest'}
+  ]){
+    const before=requests.length;
+    const rejected=await audit(respond,configs,[unsafe]);
+    assert.equal(rejected.failed,1,'Disallowed route must fail closed');
+    assert.equal(rejected.rows.length,1,'Disallowed route must not attempt preflight or GET');
+    assert.equal(requests.length,before,'Disallowed route must trigger zero network requests');
+    assert.ok(!report(rejected).includes(unsafe.route),'Do not echo rejected URLs into audit reports');
+  }
   mocks.budapest_catalog=[];
   assert.equal((await audit(respond,configs)).failed,1,'Empty product catalog must fail closed');
   mocks.budapest_catalog=[{
