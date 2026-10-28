@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Read-only HTML-source audit for the legacy WordPress channel. No browser/runtime mutations. */
+/** EZRaiderEU: read-only raw-HTML audit. Never mistake a bot challenge for a clean homepage. */
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -10,34 +10,85 @@ const PAGES = Object.freeze({
   he: 'https://ezraidereu.com/budapest/%D7%91%D7%99%D7%AA/',
 });
 const ISSUE = (code, severity, detail) => ({ code, severity, detail });
+const extractAttributes = (html, tag, attribute) =>
+  [...html.matchAll(new RegExp('<' + tag + '\\b[^>]*\\b' + attribute + '\\s*=\\s*(["\\x27])([^"\\x27]*?)\\1', 'gi'))]
+    .map(m => m[2].replace(/&amp;/gi, '&'));
+const withoutNonVisibleTags = html => html
+  .replace(/<!--[\s\S]*?-->/g, ' ')
+  .replace(/<(script|style|noscript|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
+const visibleText = html => withoutNonVisibleTags(html)
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&(?:nbsp|amp|quot|apos);/gi, ' ')
+  .replace(/&#(?:x[0-9a-f]+|[0-9]+);/gi, ' ')
+  .replace(/\s+/g, ' ').trim();
+const isFareHarborUrl = x => /^https?:\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x);
+const isLegacyMap = x => /Pilvax(?:\s|\+|%20|&#32;|%2B|%2520)*k(?:öz|oz|%C3%B6z)/i.test(x);
+
+function isPlausibleBudapestHomepage(locale, html, text) {
+  // Guard against 200-OK bot walls, skeletal/error pages and accidentally fetched articles.
+  if (typeof html !== 'string' || html.length < 1500) return false;
+  if (!/<html\b/i.test(html) || !/<body\b/i.test(html) || !/<\/body\s*>/i.test(html)) return false;
+  if (/cf-chl-|\/cdn-cgi\/challenge-platform|just a moment|attention required.{0,30}cloudflare|verify you are human|checking your browser|security verification/i.test(html)) return false;
+  if (!/(?:budapest|בודפשט)/i.test(text)) return false;
+  const navTokens = {en:/(?:tours|ezraider)/i,hu:/(?:túrák|ezraider)/i,he:/(?:סיורים|איזיריידר|ezraider)/i};
+  if (!(navTokens[locale] || navTokens.en).test(text)) return false;
+  // Site has footer anchors and several actual links. Header text alone is not sufficient.
+  return extractAttributes(html, 'a', 'href').length >= 4;
+}
 
 export function auditPage(locale, html, url = PAGES[locale]) {
-  const issues = [];
-  if (!/<html\b/i.test(html) || /cf-chl-|just a moment|attention required.*cloudflare/i.test(html)) {
-    return { locale, url, status: 'inconclusive', issues: [ISSUE('BLOCKED_OR_NON_HTML', 'unknown', 'Response may be a CDN challenge, not the published page.')] };
+  if (!Object.hasOwn(PAGES, locale)) throw Error('Unknown locale: ' + locale);
+  const plain = visibleText(String(html ?? ''));
+  if (!isPlausibleBudapestHomepage(locale, html, plain)) {
+    return { locale, url, status: 'inconclusive', issueCount: 1,
+      issues: [ISSUE('BLOCKED_OR_NON_HOME_HTML', 'unknown', 'Too short, missing homepage structure, unexpected locale, or challenge/error response. Do not treat as clean.')] };
   }
-  const hrefs = [...html.matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map(m => m[2].replace(/&amp;/g, '&'));
-  const renderedText = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&(?:nbsp|amp);/g, ' ');
+  const htmlNoScripts = withoutNonVisibleTags(html);
+  const hrefs = extractAttributes(htmlNoScripts, 'a', 'href');
+  const iframes = extractAttributes(htmlNoScripts, 'iframe', 'src');
+  const scripts = extractAttributes(html, 'script', 'src');
+  const issues = [];
   const addIf = (condition, code, severity, detail) => { if (condition) issues.push(ISSUE(code, severity, detail)); };
-  addIf(/voy\.pro\.eu@gmail\.com/i.test(renderedText) || hrefs.some(x => /voy\.pro\.eu@gmail\.com/i.test(x)), 'OLD_BUDAPEST_EMAIL', 'high', 'Legacy public contact email remains; desired site contact is Voyprobud@gmail.com, not the WP admin email.');
-  addIf(hrefs.some(x => /(?:^|\/\/)\s*(?:www\.)?fareharbor\.com\b/i.test(x)) || /fareharbor\.com/i.test(html), 'FAREHARBOR_PRESENT', 'high', 'FareHarbor reference remains. Classify before changing, since live booking cutover is not approved.');
-  addIf(/Lisbon|Lisszabon|ליסבון/i.test(renderedText), 'LISBON_STALE', 'medium', 'Lisbon claim found in Budapest content; verify context before removal.');
-  addIf(/anyone can join|suitable for all riders|bárki csatlakozhat|minden 16 éven felüli számára|כל אחד יכול להצטרף|מתאים לכל הרוכבים/i.test(renderedText), 'UNIVERSAL_SUITABILITY', 'high', 'Unqualified eligibility/accessibility claim detected.');
-  addIf(/ride any path|menjen bármilyen ösvényen|סעו על כל שביל/i.test(renderedText), 'UNRESTRICTED_ROUTE_CLAIM', 'medium', 'Vehicle marketing claim needs distinction from legal tour route permissions.');
-  addIf(/Pilvax(?:\s|\+|%20|\x20|&#32;|%2B|%2520)*k/i.test(html), 'LEGACY_MAP_REFERENCE', 'high', 'Map source still references Pilvax köz; verify current official Maps place identity and actual meeting point before replacement.');
-  const trusted = ['google.com/maps', 'tripadvisor.', 'getyourguide.'].map(domain => hrefs.some(x => x.includes(domain)));
-  addIf(trusted.filter(Boolean).length < 3, 'TRUST_STRIPE_SOURCE_UNCONFIRMED', 'manual', 'All three provider links not confirmed in source anchors; client-side WPCode may add them; inspect actual desktop/mobile DOM.');
+  addIf(/voy\.pro\.eu@gmail\.com/i.test(plain) || hrefs.some(x => /voy\.pro\.eu@gmail\.com/i.test(x)),
+    'OLD_BUDAPEST_EMAIL', 'high', 'Old Budapest public contact persists in source (client JS changes do not remove source).');
+  addIf(hrefs.some(isFareHarborUrl) || iframes.some(isFareHarborUrl) || scripts.some(isFareHarborUrl),
+    'FAREHARBOR_PRESENT', 'high', 'Real FareHarbor link, embed, or externally loaded script present. Do not activate FBM replacement without approval.');
+  addIf(/Lisbon|Lisszabon|ליסבון/i.test(plain),
+    'LISBON_STALE', 'medium', 'Budapest marketing text mentions Lisbon; inspect surrounding context.');
+  addIf(/anyone can join|suitable for all riders|bárki csatlakozhat|minden 16 éven felüli számára|כל אחד יכול להצטרף|מתאים לכל הרוכבים/i.test(plain),
+    'UNIVERSAL_SUITABILITY', 'high', 'Blanket eligibility/accessibility promise remains.');
+  addIf(/ride any path|menjen bármilyen ösvényen|סעו על כל שביל/i.test(plain),
+    'UNRESTRICTED_ROUTE_CLAIM', 'medium', 'Unrestricted route promise needs distinction from permitted guided routes.');
+  addIf(iframes.some(isLegacyMap) || isLegacyMap(plain),
+    'LEGACY_MAP_REFERENCE', 'high', 'Visible Pilvax reference or iframe source: verify business pin and actual guest entrance; do not automatically geocode.');
+  const has = {
+    maps: hrefs.some(x => /(?:google\.[^/]+\/maps|maps\.app\.goo\.gl)/i.test(x)),
+    tripadvisor: hrefs.some(x => /tripadvisor\./i.test(x)),
+    getyourguide: hrefs.some(x => /getyourguide\./i.test(x)),
+  };
+  addIf(Object.values(has).filter(Boolean).length < 3,
+    'TRUST_STRIPE_SOURCE_UNCONFIRMED', 'manual', 'Source lacks one or more external trust provider links; WPCode may create these in live JS; inspect the final DOM.');
   return { locale, url, status: 'audited-source-only', issueCount: issues.length, issues };
 }
 
 function selfTest() {
-  const dirty = `<html><a href="https://fareharbor.com/example">Book</a><span>voy.pro.eu@gmail.com</span><p>Anyone can join. Tourists in Lisbon.</p><iframe src="https://www.google.com/maps/embed?pb=Pilvax+k%C3%B6z"></iframe></html>`;
+  const page = (locale, body, head='') =>
+    '<!doctype html><html lang="' + locale + '"><head><title>EZRaider Budapest</title>' + head + '</head><body>' +
+    '<nav><a href="#tours">Tours</a><a href="#contact">Contact</a><a href="#about">About</a><a href="#gallery">Gallery</a></nav>' +
+    '<main><h1>EZRaider Budapest</h1><h2 id="tours">Túrák סיורים</h2>' + '<p>Budapest guided tours</p>'.repeat(110) + body +
+    '</main></body></html>';
+  const dirty = page('en', '<a href="https://fareharbor.com/example">Book</a><span>voy.pro.eu@gmail.com</span><p>Anyone can join. Tourists in Lisbon.</p><iframe src="https://www.google.com/maps/embed?pb=Pilvax+k%C3%B6z"></iframe>');
   const found = auditPage('en', dirty).issues.map(x => x.code);
-  for (const expected of ['OLD_BUDAPEST_EMAIL', 'FAREHARBOR_PRESENT', 'LISBON_STALE', 'UNIVERSAL_SUITABILITY', 'LEGACY_MAP_REFERENCE', 'TRUST_STRIPE_SOURCE_UNCONFIRMED']) assert.ok(found.includes(expected), expected);
-  assert.equal(auditPage('he', '<html><p>סעו על כל שביל</p></html>').issues.some(x => x.code === 'UNRESTRICTED_ROUTE_CLAIM'), true);
-  assert.equal(auditPage('en', '<html><title>Just a moment...</title></html>').status, 'inconclusive');
-  assert.equal(auditPage('hu', '<html><p>Hello</p></html>').issues.some(x => x.code === 'FAREHARBOR_PRESENT'), false);
-  console.log('Self-test: 4 cases passed');
+  for (const expected of ['OLD_BUDAPEST_EMAIL', 'FAREHARBOR_PRESENT', 'LISBON_STALE', 'UNIVERSAL_SUITABILITY', 'LEGACY_MAP_REFERENCE', 'TRUST_STRIPE_SOURCE_UNCONFIRMED'])
+    assert.ok(found.includes(expected), expected);
+  assert.equal(auditPage('he', page('he', '<p>סעו על כל שביל</p>')).issues.some(x => x.code === 'UNRESTRICTED_ROUTE_CLAIM'), true);
+  assert.equal(auditPage('en', '<html><p>Just a moment...</p></html>').status, 'inconclusive');
+  assert.equal(auditPage('hu', '<html><p>Hello</p></html>').status, 'inconclusive');
+  assert.equal(auditPage('en', page('en', '<p>Budapest</p>','<script>var diagnostic="fareharbor.com Pilvax+k%C3%B6z";</script>')).issues.some(x => ['FAREHARBOR_PRESENT','LEGACY_MAP_REFERENCE'].includes(x.code)), false);
+  assert.equal(auditPage('en', page('en','<a href="https://fareharbor.com/embeds/book/">Book now</a>')).issues.some(x => x.code === 'FAREHARBOR_PRESENT'), true);
+  assert.equal(auditPage('en', '<html><head></head><body>'+'Budapest tours '.repeat(500)+'</body></html>').status, 'inconclusive');
+  assert.equal(auditPage('en', page('en','<p>Tour information</p>').replace('Budapest','Berlin').replace(/Budapest guided tours/g,'Berlin guided tours').replace('EZRaider Budapest','EZRaider Berlin')).status, 'inconclusive');
+  console.log('Self-test: 8 cases passed, including challenge, skeletal response and JS false-positive guards');
 }
 
 async function main() {
@@ -50,16 +101,24 @@ async function main() {
   for (const [locale, url] of Object.entries(PAGES)) {
     try {
       const html = fixtures
-        ? await readFile(join(fixtures, `${locale}.html`), 'utf8')
-        : await (async () => { const response = await fetch(url, { signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'EZRaiderEU-SourceAudit/1.0 (+read-only)' } }); if (!response.ok) throw Error(`HTTP ${response.status}`); return response.text(); })();
+        ? await readFile(join(fixtures, locale + '.html'), 'utf8')
+        : await (async () => {
+            const response = await fetch(url, { signal: AbortSignal.timeout(15000),
+              headers: { 'user-agent': 'EZRaiderEU-SourceAudit/2.0 (+read-only)' } });
+            if (!response.ok) throw Error('HTTP ' + response.status);
+            const type = response.headers.get('content-type') || '';
+            if (!/text\/html/i.test(type)) throw Error('Not HTML: ' + type);
+            return response.text();
+          })();
       results.push(auditPage(locale, html, url));
     } catch (error) {
-      results.push({ locale, url, status: 'inconclusive', issues: [ISSUE('FETCH_FAILED', 'unknown', String(error.message))] });
+      results.push({ locale, url, status: 'inconclusive',
+        issues: [ISSUE('FETCH_FAILED', 'unknown', String(error.message))] });
     }
   }
-  const output = { generatedAt: new Date().toISOString(), method: 'raw HTML response only; not a rendered browser/JS test', results };
+  const output = { generatedAt: new Date().toISOString(), method: 'raw HTML only; no JS-rendered DOM, booking or map certification', results };
   if (args.includes('--json')) console.log(JSON.stringify(output, null, 2));
-  else for (const r of results) console.log(`${r.locale}: ${r.status}\n${r.issues.map(x => `  - ${x.severity}: ${x.code} — ${x.detail}`).join('\n')}`);
+  else for (const r of results) console.log(r.locale + ': ' + r.status + '\n' + r.issues.map(x => '  - ' + x.severity + ': ' + x.code + ' — ' + x.detail).join('\n'));
   if (results.some(x => x.status === 'inconclusive')) process.exitCode = 2;
   else if (results.some(x => x.issues.some(y => y.severity === 'high'))) process.exitCode = 1;
 }
