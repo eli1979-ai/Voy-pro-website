@@ -408,7 +408,9 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
         lang+' expired click explains why a new availability search is required');
       check(!await page.locator('#live-checkout-shell').isVisible().catch(()=>false),
         lang+' expired departure never opens staff request or checkout');
-      check(!calls.slice(beforeClickCalls).some(c=>/\\/(?:quotes|holds|bookings|booking-capacity-requests|payments)(?:\\/|\\?|$)/.test(c.path)),
+      check(!calls.slice(beforeClickCalls).some(c=>
+        ['/quotes','/holds','/bookings','/booking-capacity-requests','/payments'].some(
+          prefix=>c.path===prefix||c.path.startsWith(prefix+'/')||c.path.startsWith(prefix+'?'))),
         lang+' expired click performs no commercial API requests');
       check(pageErrors.length===0,lang+' expired departure click has no browser errors');
       return;
