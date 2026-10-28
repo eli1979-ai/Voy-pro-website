@@ -421,6 +421,23 @@
     const routeNames={express:'Vila de Marvão Express Tour',explorer:'Marvão Explorer Tour',megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
     const routeSelect=form.querySelector('[name="route"]');
     const dateInput=form.querySelector('[name="date"]');
+    const status=form.querySelector('[data-portugal-request-status]');
+    const defaultStatus=status?.textContent||'';
+    let showingRequestError=false;
+    const showRequestError=message=>{
+      if(status){status.textContent=message;showingRequestError=true;}
+    };
+    const clearRequestError=()=>{
+      if(showingRequestError&&status){
+        status.textContent=defaultStatus;
+        showingRequestError=false;
+      }
+    };
+    // Keep the original explanation about pressing Send and human confirmation
+    // available after a guest corrects a field, instead of leaving a stale
+    // "missing details", expired-date or long-link warning on screen.
+    form.addEventListener('input',clearRequestError);
+    form.addEventListener('change',clearRequestError);
     // WordPress, browser back/forward and mobile tabs can stay open overnight.
     // Use the local Lisbon calendar date for the visible picker and validation.
     const syncPortugalRequestDateMin=()=>{
@@ -450,14 +467,16 @@
       const name=safePoints(f.get('full_name')).slice(0,100);
       const allNotes=safePoints(f.get('notes'));
       const notes=allNotes.slice(0,500);
-      const status=form.querySelector('[data-portugal-request-status]');
       if(!route||!date||!guide||!name.length){
-        if(status)status.textContent=labels.missing;
+        showRequestError(labels.missing);
         return;
       }
       if(date<today){
-        if(status)status.textContent=labels.past;
+        // Focusing the date can blur a just-edited text field and dispatch
+        // a bubbling change event. Focus first so that our own reset handler
+        // cannot immediately erase this important past-date warning.
         dateInput?.focus({preventScroll:true});
+        showRequestError(labels.past);
         return;
       }
       const intro=locale==='he'
@@ -501,8 +520,8 @@
       const notesCount=maxFitting(notes.length,n=>messageFor(nameCount,n));
       const message=messageFor(nameCount,notesCount);
       if(!withinBudget(message)){
-        if(status)status.textContent=locale==='he'?'ההודעה ארוכה מדי. נא לקצר את הפרטים.':
-          locale==='pt'?'Mensagem demasiado longa. Reduza os detalhes.':'Message too long. Please shorten the details.';
+        showRequestError(locale==='he'?'ההודעה ארוכה מדי. נא לקצר את הפרטים.':
+          locale==='pt'?'Mensagem demasiado longa. Reduza os detalhes.':'Message too long. Please shorten the details.');
         return;
       }
       const requestAnalytics={page,context:'portugal_availability_request',route,date,people:people||null,guide_language:guide};
