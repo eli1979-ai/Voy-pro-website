@@ -40,6 +40,7 @@ check(html.includes('<script src="/assets/home-destination-cards.js"></script>')
   'Homepage card navigation script is not loaded');
 const cardScript=fs.readFileSync('site/assets/home-destination-cards.js','utf8');
 let navigations=0;
+let selectedText='';
 const mockCard=()=>{
   let onClick;
   return {
@@ -55,7 +56,9 @@ const mockCard=()=>{
   };
 };
 const activeCards=[mockCard(),mockCard()];
-vm.runInNewContext(cardScript,{document:{querySelectorAll:selector=>{
+vm.runInNewContext(cardScript,{document:{
+  getSelection:()=>({toString:()=>selectedText}),
+  querySelectorAll:selector=>{
   check(selector.includes(':not(.destination-card--coming-soon)'),
     'Prague coming-soon card must not be clickable');
   return activeCards;
@@ -66,6 +69,13 @@ activeCards[0].fire({target:{closest:()=>({})}});
 activeCards[0].fire({ctrlKey:true});
 activeCards[0].fire({button:1});
 activeCards[1].fire({defaultPrevented:true});
-check(navigations===2,'Only unmodified background clicks may navigate');
+selectedText='  Marvão tour details  ';
+activeCards[0].fire({});
+activeCards[1].fire({});
+check(navigations===2,'Selecting card text must not trigger navigation');
+selectedText='   ';
+activeCards[0].fire({});
+check(navigations===3,'Cleared or whitespace-only text selection must allow ordinary click');
+check(navigations===3,'Only unmodified background clicks without selected text may navigate');
 if(fail.length){console.error('Root destination card test FAIL:\n'+fail.join('\n'));process.exit(1)}
 console.log('Root destination card photography, links, credits, overlay, responsive and coming-soon checks OK.');

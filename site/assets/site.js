@@ -482,7 +482,12 @@
     dateInput?.addEventListener?.('focus',syncPortugalRequestDateMin);
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
-      if(routeSelect&&routeNames[route])routeSelect.value=route;
+      if(routeSelect&&routeNames[route]){
+        routeSelect.value=route;
+        // A tour-card choice is a genuine form edit: notify the existing
+        // input/change flow so obsolete validation is cleared immediately.
+        routeSelect.dispatchEvent(new Event('change',{bubbles:true}));
+      }
     }));
     form.addEventListener('submit',e=>{
       e.preventDefault();
