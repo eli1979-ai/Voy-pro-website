@@ -1798,7 +1798,8 @@
       if(status)status.textContent=code
         ?t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.')
         :locale==='hu'?'A választás visszaállítva. Válaszd ki az idegenvezetés nyelvét, mielőtt elérhetőséget keresel.'
-        :t('Selection restored. Choose your guide language before checking availability.','הבחירה שוחזרה. בחרו שפת הדרכה לפני בדיקת הזמינות.');
+        :locale==='he'?'הבחירה שוחזרה. בחרו שפת הדרכה לפני בדיקת הזמינות.'
+        :'Selection restored. Choose your guide language before checking availability.';
       track('selection_recovery_restored',{experience_id:experience.id,date:iso,is_private:Boolean(state.is_private),guide_language:code});
       patchSession({stage:'selection_recovery_restored',experience_id:experience.id,selected_date:iso,is_private:Boolean(state.is_private),guide_language:code});
       shell.hidden=true;form.scrollIntoView({behavior:'smooth',block:'center'});
