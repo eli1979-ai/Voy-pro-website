@@ -472,8 +472,11 @@
         return;
       }
       if(date<today){
-        showRequestError(labels.past);
+        // Focusing the date can blur a just-edited text field and dispatch
+        // a bubbling change event. Focus first so that our own reset handler
+        // cannot immediately erase this important past-date warning.
         dateInput?.focus({preventScroll:true});
+        showRequestError(labels.past);
         return;
       }
       const intro=locale==='he'
