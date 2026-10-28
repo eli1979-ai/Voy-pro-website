@@ -592,6 +592,55 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Marvão floating and mobile-menu WhatsApp links must reflect the most
+      // recent PUBLIC request selections. The browser uses the locally built
+      // artifact; external WhatsApp, FBM and tracking requests are blocked.
+      if(name.startsWith('marvao-')){
+        const form=page.locator('#request [data-portugal-request-form]');
+        await form.locator('select[name="route"]').selectOption('explorer');
+        await form.locator('input[name="date"]').fill('2026-10-30');
+        await form.locator('select[name="people"]').selectOption('4');
+        await form.locator('select[name="guide_language"]').selectOption('pt');
+        await form.locator('input[name="full_name"]').fill('Private Browser Name');
+        await form.locator('textarea[name="notes"]').fill('Private Browser Notes');
+        const floating=page.locator('a.whatsapp[data-wa]');
+        const floatingUrl=await floating.evaluate(link=>{
+          link.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+          return link.href;
+        });
+        const floated=new URL(floatingUrl);
+        const message=floated.searchParams.get('text')||'';
+        const peopleLabel=name.includes('-he-')?'משתתפים: 4':
+          name.includes('-pt-')?'Pessoas: 4':'People: 4';
+        check(floated.hostname==='wa.me'&&floated.pathname==='/351935695004',
+          name+' floating WhatsApp keeps the local Marvão number');
+        check(message.includes('Marvão Explorer Tour')&&
+          message.includes('2026-10-30')&&message.includes(peopleLabel)&&
+          message.includes('Português'),
+          name+' floating WhatsApp carries current route, date, party and guide language');
+        check(!message.includes('Private Browser Name')&&
+          !message.includes('Private Browser Notes')&&
+          !message.includes('2000-01-01'),
+          name+' floating WhatsApp excludes private fields and outdated dates');
+        if(name.includes('-pt-')){
+          check(['Passeio:','Data preferida:','Pessoas:','Idioma do guia:'].every(x=>message.includes(x)),
+            name+' floating WhatsApp keeps Portuguese field labels');
+        }
+        const toggle=page.locator('.nav-menu-toggle');
+        if(await toggle.isVisible()){
+          await toggle.click();
+          const navUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+          const mobileMessage=navUrl?new URL(navUrl).searchParams.get('text')||'':'';
+          check(mobileMessage.includes('Marvão Explorer Tour')&&
+            mobileMessage.includes('2026-10-30')&&mobileMessage.includes(peopleLabel)&&
+            mobileMessage.includes('Português'),
+            name+' mobile menu WhatsApp recomputes selected Marvão tour choices');
+          check(!mobileMessage.includes('Private Browser Name')&&
+            !mobileMessage.includes('Private Browser Notes'),
+            name+' mobile menu WhatsApp excludes personal details');
+          await page.keyboard.press('Escape');
+        }
+      }
       // Browser regression: a WhatsApp link created on load must reflect the
       // latest tour and party selections when the customer opens the menu.
       // Values are changed in local DOM only; no availability/booking/API call.
