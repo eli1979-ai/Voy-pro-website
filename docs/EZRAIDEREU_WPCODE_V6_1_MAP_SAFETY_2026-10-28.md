@@ -28,3 +28,19 @@ Public business-listing sources corroborate a **business address** at Városház
 - Rollback: restore exact saved prior #488 content in the SAME snippet; never create a second snippet.
 
 Original v6 was a prepared but not verified-installed document in the Library. v6.1 here is simply a safer candidate; not a deployment or confirmation of live behaviour.
+
+## 28 October 2026 — integrated v7 candidate prepared after v6.2 was installed by owner
+
+**Owner report:** WPCode #488 **v6.2 is installed**. The earlier v6.1 source-only candidate did not contain v6.2's final live-footer navigation fallback and therefore MUST NOT be used as an installation replacement. It remains archival documentation.
+
+**New single-snippet future candidate:** `docs/legacy-wordpress/ezraidereu-wpcode-488-v7-integrated-map-hold.html` is based on the exact owner-supplied v6.2 replacement file, **not** the standalone archived v6.1. It:
+- Retains the entire second `<script>` (footer click interception) **byte-for-byte**, SHA-256 `fc2c9e2d6ce17f13c27ffbd9abf094e2e68153b01ecdc3af1bd6f8b47b810080`.
+- Preserves the exact runtime implementation of `function rewrite()`, `function correctBudapestEmail()`, and `function repairTourNavigation()` from the owner-installed v6.2 candidate, including WhatsApp / source attribution, mail correction and clickable tour cards.
+- Removes only v6.2's unverified `google.com/maps?q=` iframe reassignment, visible Pilvax address substitution and unsupported new “meeting point” card insertion, plus comments explaining the change. It does **not** create a verified new embed or change any server-side address.
+- Still includes the candidate three-provider trust links. The Google Maps shortlink supplied by the owner is retained for an external profile link, but it has not been independently resolved to an official Place ID from the available public data.
+
+**Focused validation:** Local exact-file diff and JavaScript `node --check` on both inline scripts PASS; SHA-256 check confirms the footer script unchanged; three other business functions byte-for-byte unchanged; no guessed iframe or meeting-point DOM injection remains. Added `scripts/check-legacy-ezraidereu-wpcode-v7-integrated.mjs` with the known 12 synthetic footer scenarios plus the map/invariance safeguards. The standalone test is not wired into the standard VOY PRO website build; exact GitHub CI to be verified after final commit.
+
+**Critical restriction:** This candidate is NOT a map fix, and it must **NOT be installed in Production** merely because it eliminates an incorrect guess. With v6.2's map override removed, the legacy PHP/ACF template's existing iframe may resurface and lead to an old or incorrect location, potentially affecting guests. Wait until both the exact owner-approved guest entrance/location and a correct official Google embed can be included and visually reviewed, with a restorable up-to-date site backup. A Draft PR merge in the VOY PRO website repository would not deploy it to legacy WordPress anyway.
+
+The only owner actions are deferred in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604). Do not interrupt the owner for this optional source candidate now.
