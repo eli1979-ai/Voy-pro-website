@@ -51,6 +51,23 @@ function contentString(r){
 function hrefsOf(html){
   return [...html.matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map(m=>m[2].replace(/&amp;/gi,'&'));
 }
+function fullyDecoded(value){
+  let v=String(value).replace(/\+/g,' ');
+  for(let i=0;i<3;i++){
+    let next;
+    try{next=decodeURIComponent(v)}catch(_){break}
+    if(next===v)break;
+    v=next;
+  }
+  return v.normalize('NFC');
+}
+function whatsappSourceMatches(waUrl,pagePath){
+  const match=waUrl.match(/[?&]text=([^&#]*)/i);
+  if(!match)return false;
+  const text=fullyDecoded(match[1]);
+  // Source attribution is a stable path, not locale-dependent label text.
+  return text.includes('https://ezraidereu.com'+pagePath);
+}
 export function auditRecord(r){
   const errors=[],flags=[],html=contentString(r),url=r.link??r.url,permalink=canonical(url);
   const item=expected.get(permalink);
@@ -59,6 +76,10 @@ export function auditRecord(r){
   if(r.status!=='publish')errors.push('NOT_PUBLISHED');
   if(html.length<100)errors.push('MISSING_BODY');
   const anchors=hrefsOf(html);
+  for(const href of anchors){
+    if(/^(?:javascript|vbscript|data|file):/i.test(href.trim()))errors.push('UNSAFE_ANCHOR_SCHEME');
+    if(/^http:\/\//i.test(href.trim()))errors.push('INSECURE_HTTP_ANCHOR');
+  }
   const local=anchors.map(x=>canonical(x,url)).filter(x=>x!==null);
   for(const ref of local)if(ref==='MALFORMED'||!expected.has(ref))errors.push('UNKNOWN_INTERNAL_LINK:'+ref);
   const mail=anchors.filter(x=>/^mailto:/i.test(x));
@@ -67,6 +88,8 @@ export function auditRecord(r){
   if(/fareharbor\.com/i.test(html))errors.push('FAREHARBOR_IN_STORED_CONTENT');
   const wa=anchors.filter(x=>/^https:\/\/wa\.me\/36300993099(?:[?#]|$)/i.test(x));
   if(wa.length!==1)errors.push('EXPECTED_ONE_CORRECT_WHATSAPP_LINK');
+  if(wa.length===1 && !whatsappSourceMatches(wa[0],permalink))
+    errors.push('WHATSAPP_SOURCE_ATTRIBUTION_MISMATCH');
   if(item?.type==='tour'){
     if(!html.includes('<!--more-->')||!html.includes('ezre-tour-long-copy'))errors.push('TOUR_LONG_COPY_MARKER_MISSING');
     const family=groups.get(item.family);
@@ -97,7 +120,7 @@ function selfTest(){
     const related=item.type==='tour'?'':'<a href="'+origin+'/budapest/tours/buda-castle-tour/">Tour</a>';
     return {id:item.id,status:'publish',link:origin+encodeURI(item.path),
       content:'<p>Guided EZRaider Budapest tour information.</p>'+translations+related+
-        '<a href="https://wa.me/36300993099?text=Budapest">WhatsApp</a>'+
+        '<a href="https://wa.me/36300993099?text='+encodeURIComponent('Budapest source: '+origin+item.path)+'">WhatsApp</a>'+
         '<a href="mailto:Voyprobud@gmail.com">Email</a>'+
         (item.type==='tour'?'<!--more--><section class="ezre-tour-long-copy">Further tour information</section>':'')};
   });
@@ -113,6 +136,9 @@ function selfTest(){
     {name:'broken tour internal link',list:mutate(43,x=>({...x,content:x.content+' <a href="/budapest/tours/does-not-exist/">Bad</a>'})),error:'UNKNOWN_INTERNAL_LINK:/budapest/tours/does-not-exist/'},
     {name:'missing long copy',list:mutate(45,x=>({...x,content:x.content.replace('<!--more-->','')})),error:'TOUR_LONG_COPY_MARKER_MISSING'},
     {name:'unexpected WhatsApp number',list:mutate(44,x=>({...x,content:x.content.replace('wa.me/36300993099','wa.me/36000000000')})),error:'EXPECTED_ONE_CORRECT_WHATSAPP_LINK'},
+    {name:'WhatsApp wrong source page',list:mutate(38,x=>({...x,content:x.content.replace(encodeURIComponent('Budapest source: '+origin+'/budapest/tours/buda-castle-tour/'),encodeURIComponent('Budapest source: '+origin+'/budapest/tours/night-tour/'))})),error:'WHATSAPP_SOURCE_ATTRIBUTION_MISMATCH'},
+    {name:'unsafe JavaScript link',list:mutate(49,x=>({...x,content:x.content+' <a href="javascript:alert(1)">Unsafe</a>'})),error:'UNSAFE_ANCHOR_SCHEME'},
+    {name:'insecure HTTP link',list:mutate(390,x=>({...x,content:x.content+' <a href="http://ezraidereu.com/budapest/tours/buda-castle-tour/">HTTP</a>'})),error:'INSECURE_HTTP_ANCHOR'},
   ];
   for(const t of tests){
     const bad=auditSnapshot(t.list);
@@ -125,7 +151,7 @@ function selfTest(){
   const dup=auditSnapshot([...records,records[0]]);
   assert.equal(dup.status,'fail');
   assert.equal(dup.duplicates.length,1);
-  console.log('PASS: 9 snapshot scenarios (clean, six safety/link regressions, missing, duplicate) on 33 published items');
+  console.log('PASS: 12 snapshot scenarios (clean, nine safety/link regressions, missing, duplicate) on 33 published items');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else {
