@@ -248,7 +248,7 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     }
     if(recovery){
       const banner=page.locator('[data-resume-booking]');
-      if(['future-clock','garbled-clock','corrupt-party','stale-version'].includes(recovery)){
+      if(['future-clock','garbled-clock','corrupt-party','stale-version','expired'].includes(recovery)){
         check(await banner.isHidden(),
           lang+' invalid saved record does not show a restore prompt');
         check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
@@ -292,12 +292,7 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
           document.querySelector('[data-resume-booking]')?.hidden===true,
           null,{timeout:6000});
       }
-      if(recovery==='expired'){
-        check(await form.locator('select[name="adults"]').inputValue()==='1',
-          lang+' expired saved group is never applied');
-        check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
-          lang+' expired selection is discarded from essential-only storage');
-      }else if(recovery==='unset-guide'){
+      if(recovery==='unset-guide'){
         check(await form.locator('select[name="adults"]').inputValue()==='2'&&
           await form.locator('select[name="children"]').inputValue()==='1'&&
           await form.locator('select[name="babies"]').inputValue()==='0',
@@ -600,7 +595,7 @@ try{
   await scenario('he',paths[1][1],{recovery:'private'});
   await scenario('hu',paths[2][1],{recovery:'private'});
   for(const [lang,path] of paths)await scenario(lang,path,{recovery:'unset-guide'});
-  await scenario('en',paths[0][1],{recovery:'expired'});
+  for(const [lang,path] of paths)await scenario(lang,path,{recovery:'expired'});
   for(const [lang,path] of paths)await scenario(lang,path,{recovery:'future-clock'});
   await scenario('en',paths[0][1],{recovery:'garbled-clock'});
   for(const [lang,path] of paths)await scenario(lang,path,{recovery:'corrupt-party'});
