@@ -29,10 +29,11 @@ for(const locale of ['en','pt','he']){
   const pathname=(locale==='en'?'/portugal/':`/${locale}/portugal/`);
   const location={pathname,href:''};
   const values={route:'express',date:'2026-10-18',people:'4',guide_language:'en',full_name:'Test Customer',notes:'Test group'};
-  const submitListeners=[];
+  const submitListeners=[],inputListeners=[],changeListeners=[];
   const trackEvents=[];
   const sessionCalls=[];
-  const status={textContent:''};
+  const initialStatus='The customer must press Send in WhatsApp; this is not a confirmed booking.';
+  const status={textContent:initialStatus};
   const routeSelect={value:''};
   const dateInput={min:'',focus(){}};
   const form={
@@ -42,7 +43,11 @@ for(const locale of ['en','pt','he']){
       if(selector==='[data-portugal-request-status]')return status;
       return null;
     },
-    addEventListener(event,fn){if(event==='submit')submitListeners.push(fn)}
+    addEventListener(event,fn){
+      if(event==='submit')submitListeners.push(fn);
+      if(event==='input')inputListeners.push(fn);
+      if(event==='change')changeListeners.push(fn);
+    }
   };
   const sandbox={
     isPortugalPage:true,locale,location,page:pathname,
@@ -61,6 +66,35 @@ for(const locale of ['en','pt','he']){
   };
   vm.runInNewContext(handler+';bindPortugalRequestFlow();',sandbox,{timeout:1000});
   assert.equal(submitListeners.length,1,locale+': missing submit listener');
+  assert.equal(inputListeners.length,1,locale+': error reset must react to text changes');
+  assert.equal(changeListeners.length,1,locale+': error reset must react to date/select changes');
+  values.route='';
+  location.href='';
+  submitListeners[0]({preventDefault(){}});
+  assert.ok(status.textContent!==initialStatus,locale+': missing-field error not announced');
+  changeListeners[0]();
+  assert.equal(status.textContent,initialStatus,
+    locale+': correcting a required select should restore the original sending guidance');
+  values.route='express';
+  values.date='2026-10-08';
+  submitListeners[0]({preventDefault(){}});
+  assert.ok(status.textContent!==initialStatus,locale+': past-date error not announced');
+  values.date='2026-10-18';
+  inputListeners[0]();
+  assert.equal(status.textContent,initialStatus,
+    locale+': correcting an expired date must clear the stale warning');
+  values.route='🚀'.repeat(2000);
+  submitListeners[0]({preventDefault(){}});
+  assert.ok(status.textContent!==initialStatus,
+    locale+': oversized encoded message must display a warning');
+  assert.equal(location.href,'',locale+': overlong message must not navigate');
+  values.route='express';
+  changeListeners[0]();
+  assert.equal(status.textContent,initialStatus,
+    locale+': fixing an oversized message must restore the original guidance');
+  // Field edits are not a submission, tracking or backend operation.
+  assert.equal(trackEvents.length,0,locale+': correction itself must not emit analytics');
+  assert.equal(sessionCalls.length,0,locale+': correction itself must not invoke backend');
   let prevented=false;
   submitListeners[0]({preventDefault(){prevented=true}});
   assert.equal(prevented,true,locale+': form should prevent direct browser submit');
