@@ -102,3 +102,27 @@ E-mail: `Voyprobud@gmail.com`. WhatsApp: `+36 30 099 3099`.
 8. Independent FBM #981 release gates remain: no first-party client activation, external providers, new credentials or payment changes until separately approved.
 
 **Review:** editorial drafts are not statements of legal compliance, equipment certification, universally safe use, actual bookable time slots or approved tour boundaries.
+
+## 28 October source-level audit — exact risk-to-replacement crosswalk
+
+**New structured handoff:** `docs/legacy-wordpress/ezraidereu-acf-home-copy-replacement-manifest-20261028.json`. This documents **24 source-observed passages** (eight EN, eight HU, eight HE) with the actual old text, conservative editorial replacement, and risk category (unrestricted road/terrain, unqualified age/child, universal accessibility, unqualified tour speed/range, or wrong Lisbon destination). `fieldName=null` intentionally marks the lack of an authenticated ACF field mapping. The manifest is **not** executable content-writing code, and replacements may require contextual editing when text spans several WYSIWYG blocks.
+
+**Source evidence, not JavaScript display:** Public server-rendered pages at:
+- EN `https://ezraidereu.com/budapest/`
+- HU `https://ezraidereu.com/budapest/fooldal/`
+- HE `https://ezraidereu.com/budapest/בית/`
+
+The public HTML text still contains old universal-suitability/disability/baby or two-adult assertions, Lisbon as the attraction's destination, `voy.pro.eu@gmail.com` and inconsistent top-speed/range descriptions. The independently published 21 tour CPT bodies were corrected, but these legacy home sections come from PHP/ACF and were last modified much earlier. **A client-side WPCode v6.2 mailto rewrite does not modify this source content and does not fix search-bot/crawler visibility.** The public crawler cannot certify currently executing WPCode or footer JS.
+
+**New read-only source QA:** `scripts/audit-legacy-ezraidereu-home-copy.mjs`, no dependencies, network calls or WordPress writes:
+```sh
+node scripts/audit-legacy-ezraidereu-home-copy.mjs --self-test
+node scripts/audit-legacy-ezraidereu-home-copy.mjs --locale en --input home-en-server.html --mode baseline
+node scripts/audit-legacy-ezraidereu-home-copy.mjs --locale hu --input home-hu-server.html --mode post
+node scripts/audit-legacy-ezraidereu-home-copy.mjs --locale he --input home-he-server.html --mode post
+```
+The three locales each pass synthetic tests for detecting all eight original problems, finding all eight proposed replacements, and refusing to certify Cloudflare challenge/short pages (nine scenarios). The source auditor normalizes whitespace and some HTML entities and strips scripts, so these are **source-only text checks**, not proof that new copy appears at the right location or reads naturally. `--mode post` returns exit **1** when a known old phrase remains, exit **2** when the input is too short or provides insufficient corrected-copy evidence, and exit **0** only when no known old phrases are present and at least three proposed replacements are present. Unrecognized risk wording remains possible; an editor must compare the full ACF data.
+
+**Risk and release order:** Do not deploy this copy by adding another WPCode v6.3 DOM replacement. Export/read current ACF field groups and their exact field-key/value mapping for EN page #7, HU #90 and HE #92, along with the current PHP `templates/template-home.php` source. Store rollback values privately (the website repository is public). Verify current files+DB backup can restore. Then patch these ACF values, obtain native Hungarian review, and test actual server-side HTML after WordPress cache clear in EN/HU/HE, 375px and desktop. Preserve existing seven tour cards and route detail links in each locale. Actual tour eligibility still requires operations approval. No new guaranteed child-seat, accessibility, road legality or speed claims are added.
+
+**Separate footer/map:** Owner already installed v6.2 at existing WPCode #488 for navigation; that is independent of this source-copy work. Original v6.2 still rewrites the existing Google iframe from a free-text address search. Do not make a further location change before Google Business Profile identity and actual guest entrance are confirmed separately; Városház u. 14 is the business directory address, while Pilvax köz is an entrance/location reference, not necessarily identical map coordinates.
