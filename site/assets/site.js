@@ -1591,7 +1591,12 @@
   const RECOVERY_TTL_MS=2*60*60*1000;
   function savedSelectionRecovery(){
     const state=safeJSON(getStore('voy_recovery_state'));
-    if(!state||!state.saved_at||Date.now()-Number(state.saved_at)>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
+    // Browser storage is untrusted and device clocks can change. Invalid,
+    // non-finite and future timestamps must never keep a resume prompt alive.
+    const savedAt=state?.saved_at;
+    const savedAtValid=typeof savedAt==='number'&&Number.isSafeInteger(savedAt)&&savedAt>0;
+    const age=savedAtValid?Date.now()-savedAt:NaN;
+    if(!savedAtValid||age<0||age>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
     if(!state.experience_id||!state.date||!state.composition)return null;
     return state;
   }
