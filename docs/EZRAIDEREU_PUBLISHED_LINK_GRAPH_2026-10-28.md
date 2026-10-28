@@ -69,3 +69,17 @@ The illustration above is intentionally partial and will fail the full 33-record
 - Correct exact Google business pin/guest entrance only after verifying the owner-supplied Google Maps profile, not by text geocoding; see [#598](https://github.com/eli1979-ai/Voy-pro-website/pull/598).
 - Existing WPCode #488 v6.2 installed by owner remains the active footer client patch. Do not add a second widget/snippet. Do not change FareHarbor plugin / FBM/OTA booking / payments.
 - Every owner-required action is deferred in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604), with no additional request in this autonomous pass.
+
+## Follow-up regression hardening — 28 October 2026
+
+The validator now enforces **WhatsApp source attribution**: the query text in the single allowed Budapest `wa.me/36300993099` link must contain the *same* canonical page that carries that link, after up to three decode passes for the historical Hebrew percent-encoded slugs. Previously the validator checked only the destination phone number, so a copy/pasted enquiry link could silently attribute a customer to the wrong tour/page.
+
+Additionally, any stored `<a>` pointing to `javascript:`, `vbscript:`, `data:` or `file:` is rejected as an unsafe anchor scheme; `http://` anchors are flagged as insecure (including links back to the old site). These checks do not rewrite link targets, strip content, or prohibit legitimate `mailto:`/HTTPS links.
+
+The full export validator now also **rejects extra homepage/unknown records** and a wrong total count, even if all 33 expected records happen to be present. The intended input remains exactly the 21 tours, nine blog posts and three recommendations pages. Legacy ACF home pages are not interchangeable with those 33 stored HTML bodies.
+
+**Verification from actual connected WordPress content:** re-fetched all **33/33** `context=edit` records in five independent batches, ran the **new** `auditRecord` contract (including source attribution and unsafe href scanning), and obtained **zero errors** across seven EN + seven HU + seven HE tour posts, nine blog posts and three recommendations pages. No customer records or full post bodies were committed to GitHub.
+
+**Regression suite:** the isolated JavaScript harness exercising the *exact GitHub-fetched script and manifest* reports **13/13 scenarios passed**: the previous nine cases plus wrong WhatsApp source, unsafe JavaScript href, insecure HTTP href, and an otherwise individually valid **extra** home page. The previous expected count of nine tests is superseded. The exact GitHub Actions build/launch/site QA remains a separate check and does **not** automatically execute the standalone link-graph selftest.
+
+**Scope caution:** a WordPress attachment/media path, theme-generated footer/nav, ACF homepage sections, a third-party iframe or a redirect can still be broken in the live browser while all stored-content checks pass. This tool does not confirm public network response, bot visibility, booking availability, provider pricing, or whether a Google Maps pin is correct. Changes requiring owner access/approval remain deferred to [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
