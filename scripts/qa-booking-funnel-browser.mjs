@@ -45,7 +45,7 @@ const paths=[
   ['hu','/hu/budapest/tours/buda-castle-ezraider-tour/']
 ];
 const wait=ms=>new Promise(done=>setTimeout(done,ms));
-async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null,sessionStalled=false}={}){
+async function scenario(lang,path,{catalogDown=false,overnightRollover=false,recovery=null,sessionStalled=false,expiryAtClick=false}={}){
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
   // The tab is opened at 23:59 Budapest local time after the DST change.
   // Move only its simulated clock forward; FBM routes remain mocked.
@@ -110,6 +110,11 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     else if(/\/experiences\/[^/]+\/availability$/.test(routePath)){
       if(phase==='slow')await wait(600);
       if(phase==='error'){status=503;data={error:'fixture unavailable',code:'AVAILABILITY_UNAVAILABLE'};}
+      else if(phase==='expires-before-click')data={slots:[
+        {id:'33333333-3333-4333-8333-333333333333',time:'11:00',
+          starts_at:new Date(Date.now()+60000).toISOString(),
+          sellable:false,requestable:true,status:'requires_staff_check'}
+      ]};
       else if(phase==='staff-check')data={slots:[
         {id:'11111111-1111-4111-8111-111111111111',time:'10:00',
           status:'requires_staff_check',sellable:false,requestable:true,
@@ -384,6 +389,33 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     check(await page.locator('#slotlist button').nth(1).isEnabled(),
       lang+' sellable slot remains selectable');
 
+    if(expiryAtClick){
+      // Real-browser time travel: backend supplied a future departure; while
+      // the guest keeps the page open that departure starts. Clicking must
+      // discard the stale result and must NOT start the staff-request flow.
+      phase='expires-before-click';
+      await submit.click();
+      await page.locator('#slotlist button').first().waitFor({state:'attached',timeout:10000});
+      check(await page.locator('#slotlist button').count()===1&&
+        await page.locator('#slotlist button').first().isEnabled(),
+        lang+' future staff-requestable departure appears before its start');
+      const beforeClickCalls=calls.length;
+      await page.clock.setFixedTime(new Date(Date.now()+2*60*1000));
+      await page.locator('#slotlist button').first().click();
+      check(await page.locator('#slotlist button').count()===0,
+        lang+' click after departure start clears stale availability');
+      check(/already started|כבר התחילה|már elkezdődött/i.test(await message.innerText()),
+        lang+' expired click explains why a new availability search is required');
+      check(!await page.locator('#live-checkout-shell').isVisible().catch(()=>false),
+        lang+' expired departure never opens staff request or checkout');
+      check(!calls.slice(beforeClickCalls).some(c=>
+        ['/quotes','/holds','/bookings','/booking-capacity-requests','/payments'].some(
+          prefix=>c.path===prefix||c.path.startsWith(prefix+'/')||c.path.startsWith(prefix+'?'))),
+        lang+' expired click performs no commercial API requests');
+      check(pageErrors.length===0,lang+' expired departure click has no browser errors');
+      return;
+    }
+
     // A staff-confirmation departure is NOT instantly bookable. The UI must
     // allow a request without silently creating a quote, hold or payment.
     // The fixture never contacts the real backend and never submits this form.
@@ -496,6 +528,7 @@ try{
   await scenario('hu',paths[2][1],{overnightRollover:true});
   await scenario('he',paths[1][1]);
   await scenario('hu',paths[2][1]);
+  for(const [lang,path] of paths)await scenario(lang,path,{expiryAtClick:true});
   await scenario('en',paths[0][1],{catalogDown:true});
   await scenario('he',paths[1][1],{catalogDown:true});
   await scenario('hu',paths[2][1],{catalogDown:true});
