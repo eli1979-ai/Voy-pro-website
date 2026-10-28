@@ -145,6 +145,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       if(badAvailability==='missing-slots')delete result.slots;
       if(badAvailability==='missing-slot-id')delete result.slots[0].id;
       if(badAvailability==='unknown-sellable')result.slots[0].sellable='true';
+      if(badAvailability==='contradictory-permissions')result.slots[0].requestable=true;
       return result;
     }
     if(key==='/api/v1/promotions/validate')return {
@@ -482,7 +483,7 @@ async function flush(){
 for(const badAvailability of [
   'wrong-experience','wrong-date','wrong-group','wrong-party-size',
   'wrong-private','wrong-slot-private','duplicate-slot','missing-slots',
-  'missing-slot-id','unknown-sellable'
+  'missing-slot-id','unknown-sellable','contradictory-permissions'
 ]){
   const app=mount({badAvailability});
   await flush();
