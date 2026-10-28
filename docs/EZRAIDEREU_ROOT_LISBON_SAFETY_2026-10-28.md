@@ -35,3 +35,17 @@ Before an owner-approved live release:
 Tracking issue: [#609](https://github.com/eli1979-ai/Voy-pro-website/issues/609). All owner-required actions are explicitly deferred in the existing [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604) queue so the owner is not interrupted.
 
 Current business truth source is the operating team, not the archived root landing. No production WordPress, DNS, payments, redirects, Vercel, FTP, GitHub main or FareHarbor changes were made in this task. A green GitHub build on a docs-only PR does not certify any live browser or FareHarbor checkout state.
+
+## Independent public-source regression audit
+
+A second, separate script `scripts/audit-legacy-ezraidereu-root-lisbon-public.mjs` is now included to validate the *real source HTML once root/Lisbon are corrected*. It does NOT deploy or change those sites.
+
+Usage:
+```sh
+node scripts/audit-legacy-ezraidereu-root-lisbon-public.mjs --self-test
+node scripts/audit-legacy-ezraidereu-root-lisbon-public.mjs --fixture-dir /path/to/public-html
+node scripts/audit-legacy-ezraidereu-root-lisbon-public.mjs
+```
+For `--fixture-dir`, provide `root.html` and `lisbon.html` obtained from a public **server response**; scripts are stripped before the scan. Without fixtures it sends only two public GET requests, with a 15-second timeout each. It never executes scripts, sends forms or opens FareHarbor checkout. It detects obsolete root destination CTAs, a stale title, actual FareHarbor anchors in Lisbon source, old published prices and missing non-bookable status. It deliberately returns **inconclusive (exit 2)** for Cloudflare challenges, short/skeletal documents, unreadable responses, or missing minimal page structure — never a false clean. Known severe links return **exit 1**. Passing source-only status is **not proof** of browser click behavior or that the FareHarbor provider is disabled.
+
+Isolated local execution of the exact GitHub-fetched JavaScript ran **9/9 self-test assertions successfully**, including root/Lisbon legacy fixtures, challenge/error pages, a single-anchor page, and safe replacements. This source auditor is not currently wired into GitHub Actions and must not be made a fragile production CI gate when Cloudflare blocks anonymous automated GETs. The prior 10 candidate safety tests remain separate.
