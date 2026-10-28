@@ -175,6 +175,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
       if(badAvailability==='duplicate-slot')data.slots.push({...data.slots[0]});
       if(badAvailability==='missing-slots')delete data.slots;
       if(badAvailability==='missing-slot-id')delete data.slots[0].id;
+      if(badAvailability==='contradictory-permissions')data.slots[0].requestable=true;
     }
     else if(path==='/api/v1/promotions/validate')
       data={valid:payload?.code==='TESTPARTNER',code:'TESTPARTNER'};
@@ -1094,6 +1095,7 @@ try{
   await run('mobile-availability-wrong-private',{mobile:true,badAvailability:'wrong-private'});
   await run('desktop-availability-duplicate-slot',{badAvailability:'duplicate-slot'});
   await run('mobile-availability-without-slots',{mobile:true,badAvailability:'missing-slots'});
+  await run('desktop-availability-contradictory-permissions',{badAvailability:'contradictory-permissions'});
   await run('desktop-online-payment-completed',{onlinePayment:'completed'});
   await run('mobile-online-payment-wrong-total',{mobile:true,onlinePayment:'wrong-total'});
   await run('desktop-online-payment-wrong-currency',{onlinePayment:'wrong-currency'});
