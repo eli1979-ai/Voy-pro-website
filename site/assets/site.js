@@ -2475,7 +2475,7 @@
       if(!slot||typeof slot!=='object'||Array.isArray(slot)||
         typeof slot.id!=='string'||!slot.id.trim()||
         typeof slot.time!=='string'||
-        !/^(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?$/.test(slot.time)||
+        !/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(slot.time)||
         typeof slot.sellable!=='boolean'||
         typeof slot.requestable!=='boolean'||
         (slot.sellable&&slot.requestable)||
