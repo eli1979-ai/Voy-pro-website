@@ -61,7 +61,10 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
       (mode==='expired'?-1:3),12,0,0));
     const selectedDate=day.toISOString().slice(0,10);
     localStorage.setItem('voy_recovery_state',JSON.stringify({
-      version:1,saved_at:Date.now(),experience_id:'exp_bud_buda',
+      version:1,
+      saved_at:mode==='future-clock'?Date.now()+60000:
+        mode==='garbled-clock'?'invalid-date':Date.now(),
+      experience_id:'exp_bud_buda',
       experience_slug:'buda-highlights',experience_title:'Buda Highlights',
       date:selectedDate,is_private:mode==='private',guide_language:'he',
       composition:{riders_16_plus:2,child_passengers_3_15:1,
@@ -243,6 +246,18 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     }
     if(recovery){
       const banner=page.locator('[data-resume-booking]');
+      if(recovery==='future-clock'||recovery==='garbled-clock'){
+        check(await banner.isHidden(),
+          lang+' invalid saved timestamp does not show a restore prompt');
+        check(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
+          lang+' invalid saved timestamp is deleted from essential storage');
+        check(await form.locator('select[name="adults"]').inputValue()==='1',
+          lang+' invalid saved party never touches live form choices');
+        check(!calls.some(c=>/(?:\/holds|\/quotes|\/bookings|\/availability\?)/.test(c.path)),
+          lang+' invalid saved party cannot create a commercial request');
+        check(pageErrors.length===0,lang+' invalid saved timestamp has no browser exceptions');
+        return;
+      }
       await banner.waitFor({state:'visible',timeout:9000});
       check(await form.locator('select[name="adults"]').inputValue()==='1',
         lang+' saved group has not been applied before guest chooses restore');
@@ -570,6 +585,8 @@ try{
   await scenario('he',paths[1][1],{recovery:'private'});
   await scenario('hu',paths[2][1],{recovery:'private'});
   await scenario('en',paths[0][1],{recovery:'expired'});
+  for(const [lang,path] of paths)await scenario(lang,path,{recovery:'future-clock'});
+  await scenario('en',paths[0][1],{recovery:'garbled-clock'});
   await scenario('en',paths[0][1],{recovery:'discard'});
   await scenario('he',paths[1][1],{recovery:'discard'});
   await scenario('hu',paths[2][1],{recovery:'discard'});
