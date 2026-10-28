@@ -45,3 +45,35 @@ assert.ok(!availabilityFlow.includes("await createSession('availability_search'"
 assert.ok(src.includes("passenger seat availability and final price")||src.includes('Passenger seat availability and final price'),'live seat availability explanation missing');
 assert.ok(!block.includes('child_passengers_3_15>riders_16_plus'),'cannot invent seat limit locally');
 console.log('PASS: group composition selection/preview and EN/HE/HU guards; live FBM remains authoritative for seats and prices.');
+
+// A saved party is only a hint for the guest, never a verified reservation.
+// Exercise the actual browser guard with corrupted localStorage timestamps.
+const recoveryStart=src.indexOf('  const RECOVERY_TTL_MS=');
+const recoveryEnd=src.indexOf('  function saveSelectionRecovery(',recoveryStart);
+assert.ok(recoveryStart>=0&&recoveryEnd>recoveryStart,'saved party recovery guard missing');
+const recoveryCode=src.slice(recoveryStart,recoveryEnd);
+const now=Date.parse('2026-10-28T12:00:00.000Z');
+const saved=new Map();
+const context={
+  getStore:key=>saved.get(key),delStore:key=>saved.delete(key),
+  safeJSON:raw=>{try{return JSON.parse(raw);}catch{return null;}},
+  Date:class extends Date{static now(){return now;}}
+};
+vm.runInNewContext(recoveryCode+'; inspectRecovery=savedSelectionRecovery;',context,{timeout:1000});
+const validSaved={version:1,experience_id:'exp_bud_buda',date:'2026-10-29',
+  composition:{riders_16_plus:2,child_passengers_3_15:1,baby_passengers_1_2:0}};
+const readSaved=value=>{
+  saved.set('voy_recovery_state',JSON.stringify({...validSaved,saved_at:value}));
+  return context.inspectRecovery();
+};
+for(const bad of [null,0,-1,'garbled','Infinity','12345',now+1,now+300000,
+  now-2*60*60*1000-1]){
+  assert.equal(readSaved(bad),null,'corrupted, future or expired saved timestamp was accepted: '+bad);
+  assert.equal(saved.has('voy_recovery_state'),false,'invalid saved party was not removed: '+bad);
+}
+for(const good of [now,now-5000,now-2*60*60*1000]){
+  assert.equal(readSaved(good)?.experience_id,'exp_bud_buda',
+    'fresh saved selection unexpectedly hidden: '+good);
+  assert.equal(saved.has('voy_recovery_state'),true,'valid saved party unexpectedly removed');
+}
+console.log('PASS: corrupted, future and expired recovery timestamps fail closed; fresh selections remain available.');
