@@ -25,7 +25,7 @@ The owner reports the footer navigation bar is not working. The read-only classi
 ## Validation
 
 - `node --check` on the extracted inline JS: PASS.
-- `node scripts/check-legacy-ezraidereu-footer-nav.mjs`: PASS, eight synthetic cases for direct ID, heading fallback, inner-page translation navigation, header noninterference, modified click, external URL, unsupported hash and missing target.
+- `node scripts/check-legacy-ezraidereu-footer-nav.mjs`: PASS, twelve synthetic cases (eight original plus Hebrew encoded-path, Hungarian heading fallback, HTTP rejection, and malformed-fragment rejection) for direct ID, heading fallback, inner-page translation navigation, header noninterference, modified click, external URL, unsupported hash and missing target.
 - GitHub Actions `npm run build`, `npm run verify:launch`, and `npm run qa:site` to be verified against exact draft PR head.
 - **No** live frontend DOM or pointer hit testing was possible. These tests do not establish that the overlay/click root cause is fixed on production.
 
@@ -50,3 +50,5 @@ Read-only WP REST content re-audit in the same pass: all **21/21** published tou
 **Diagnostic code parsing:** standalone DOM probe syntax checked in a JavaScript parser (PASS). GitHub Actions on the new exact PR head must be inspected separately; successful website build does not automatically run the standalone browser probe or the separate synthetic tests.
 
 **No site mutation:** No WordPress menu, theme, ACF, widget, WPCode, booking, DNS or production change was made in this pass. Draft PR stays unmerged.
+
+The 29 October revision of the draft patch explicitly catches malformed percent-encoding in URL fragments and leaves native browser behavior unchanged. Twelve synthetic cases were re-run locally with Node and passed; the browser probe remains unexecuted in production.
