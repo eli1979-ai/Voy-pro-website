@@ -1767,7 +1767,7 @@
         select&&hasOption(select,experience.id)&&date&&language&&
         // A v1 snapshot with no selected guide language may still restore
         // the party and date. Keep language unset; the normal booking search
-        // requires an explicit choice before contacting FBM.
+        // requires an explicit choice before any availability lookup.
         (!code||guideLanguagesForProduct(experience).includes(code))&&
         validDate&&counts.riders_16_plus>=1&&
         choices.every(([field,value])=>Number.isSafeInteger(value)&&
