@@ -83,8 +83,8 @@ function selfTest(){
  assert.ok(inspectSnapshots(CONTRACT,wrongWorkflow).findings.includes('625:PINNED_SOURCE_CI_NOT_VERIFIED'));
  const changedRun=JSON.parse(JSON.stringify(all));changedRun['625'].runs.workflow_runs[0].head_sha='b'.repeat(40);
  assert.ok(inspectSnapshots(CONTRACT,changedRun).findings.includes('625:SOURCE_CI_HEAD_MISMATCH'));
- const noRuns=JSON.parse(JSON.stringify(all));noRuns['630']={};
- assert.ok(inspectSnapshots(CONTRACT,noRuns).status==='snapshot-matches'); // unknown key is forbidden below
+ const noRuns=JSON.parse(JSON.stringify(all));noRuns['610'].runs={};
+ assert.ok(inspectSnapshots(CONTRACT,noRuns).findings.includes('610:MALFORMED_RUNS'));
  const missing=JSON.parse(JSON.stringify(all));delete missing['596'];
  assert.ok(inspectSnapshots(CONTRACT,missing).findings.includes('NO_LIVE_SNAPSHOT:596'));
  const unexpected=JSON.parse(JSON.stringify(all));unexpected['630']={};
