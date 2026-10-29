@@ -13,6 +13,16 @@ assert.ok(handler.includes("https://wa.me/351935695004?text="),'Portuguese numbe
 for(const locale of ['en','pt','he']){
   const staticPage=locale==='en'?'site/portugal/index.html':'site/'+locale+'/portugal/index.html';
   const html=fs.readFileSync(staticPage,'utf8');
+  // Marvão inquiries are not confirmed bookings: no localized headline may
+  // imply a booking was completed by opening the WhatsApp request form.
+  const requestHeading={
+    en:'Request availability through VOY PRO',
+    pt:'Peça disponibilidade à VOY PRO',
+    he:'בקשת זמינות דרך VOY PRO'
+  }[locale];
+  assert.ok(html.includes('<h3>'+requestHeading+'</h3>'),
+    locale+': request-first Marvão assurance heading must be truthful and localized');
+
   const labels={
     en:{cta:'Continue to WhatsApp',send:'Tap Send in WhatsApp',confirmation:'not booked until our team confirms'},
     pt:{cta:'Continuar no WhatsApp',send:'Toque em Enviar no WhatsApp',confirmation:'só fica reservado após a nossa confirmação'},
