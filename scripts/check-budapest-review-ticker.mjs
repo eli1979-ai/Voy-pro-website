@@ -80,7 +80,7 @@ for(const [page,locale] of locales){
     leftButton.includes('aria-hidden="true"')&&
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
-  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r7')&&
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261029r1')&&
     html.includes('/assets/budapest-review-ticker.css?v=20261023r6'),
     'every localized page must load current versioned review JavaScript and CSS: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
@@ -131,7 +131,7 @@ function node(tag){
     get lastChild(){return this.children[this.children.length-1];}
   };
 }
-async function simulate(payload,lang='en',reducedMotion=false){
+async function simulate(payload,lang='en',reducedMotion=false,initialVisibility='visible'){
   const track=node('div'),viewport=node('div'),pause=node('button'),root=node('section');
   root.hidden=true;
   const left=node('button'),right=node('button');
@@ -141,7 +141,9 @@ async function simulate(payload,lang='en',reducedMotion=false){
   // Emulate a pointer hovering over the resumed button AND keyboard focus
   // remaining inside the carousel: neither condition may prevent Resume.
   root.matches=()=>true;
-  const doc={documentElement:{lang},visibilityState:'visible',body:node('body'),
+  const visibilityListeners={};
+  const doc={documentElement:{lang},visibilityState:initialVisibility,body:node('body'),
+    addEventListener(type,listener){visibilityListeners[type]=listener;},
     querySelector:(s)=>s==='[data-vp-reviews-root]'?root:null,
     createElement:node
   };
@@ -164,6 +166,10 @@ async function simulate(payload,lang='en',reducedMotion=false){
   // Let both promise continuations complete.
   for(let i=0;i<6;i++)await Promise.resolve();
   return{root,track,pause,viewport,left,right,frames,body:doc.body,
+    changeVisibility(next){
+      doc.visibilityState=next;
+      visibilityListeners.visibilitychange?.();
+    },
     changeMotion(next){
       assertStrict.equal(typeof motionListener,'function','OS motion listener must be registered');
       media.matches=next;
@@ -342,6 +348,49 @@ for(const language of ['en','he','hu']){
   liveMotion.changeMotion(true);
   assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true,
     language+' switching to reduced motion again must re-pause');
+}
+
+// A background tab must not queue animation frames. Returning must create
+// one fresh loop, without silently clearing an explicit Pause.
+for(const language of ['en','he','hu']){
+  const active=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  assertStrict.equal(active.frames.length,1,language+' initially schedules exactly one frame');
+  const initial=active.viewport.scrollLeft;
+  active.changeVisibility('hidden');
+  active.frames[0](1000);
+  assertStrict.equal(active.frames.length,1,language+' hidden tab must stop scheduling frames');
+  assertStrict.equal(active.viewport.scrollLeft,initial,language+' hidden tab must not move carousel');
+  active.changeVisibility('visible');
+  assertStrict.equal(active.frames.length,2,language+' restoring visibility schedules one replacement frame');
+  active.frames[1](2000);
+  active.frames[2](2040);
+  assert(active.viewport.scrollLeft>initial,language+' restored tab must resume carousel motion');
+  active.pause.events.click();
+  const pausedAt=active.viewport.scrollLeft;
+  assert(active.root.classList.states.has('is-paused'),language+' explicit Pause must work');
+  const previousCount=active.frames.length;
+  active.changeVisibility('hidden');
+  active.changeVisibility('visible');
+  assertStrict.equal(active.frames.length,previousCount+1,
+    language+' visibility restoration creates one new animation loop');
+  active.frames.at(-1)(3000);
+  active.frames.at(-1)(3040);
+  assertStrict.equal(active.viewport.scrollLeft,pausedAt,
+    language+' tab restoration must preserve the explicit Pause state');
+  const initiallyHidden=await simulate(
+    {schema_version:1,expected_count:20,status:'approved',reviews:sample},
+    language,false,'hidden');
+  assertStrict.equal(initiallyHidden.frames.length,0,
+    language+' initially hidden page must request no animation frames');
+  initiallyHidden.changeVisibility('visible');
+  assertStrict.equal(initiallyHidden.frames.length,1,
+    language+' initially hidden page schedules exactly one frame when shown');
+  const reducedHidden=await simulate(
+    {schema_version:1,expected_count:20,status:'approved',reviews:sample},
+    language,true,'hidden');
+  reducedHidden.changeVisibility('visible');
+  assertStrict.equal(reducedHidden.frames.length,0,
+    language+' reduced-motion preference must prevent frames even after tab returns');
 }
 
 assert(approved.track.children[1]?.children?.length===20,'all 20 authentic review slots must display in the visible middle group');
