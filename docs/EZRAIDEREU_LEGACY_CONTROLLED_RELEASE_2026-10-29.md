@@ -113,3 +113,24 @@ The **revised** checker fixes both:
 A PR merge to the modern website would still publish only documentation and test code, not legacy WordPress or root/Lisbon changes. The live release remains blocked by #604 until individual prerequisites and approvals are independently verified.
 
 **29 October follow-up:** The release contract now has **seven workstream records**, of which five are blocked actual releases and two are source-only/owner-installed checkpoints. The exact reviewed static workstream→PR→target→required-gates mappings reject scope swaps. A fake all-true evidence form yields `unverified-attestations-awaiting-review`, never a green release; the CLI exits with code 2. A valid planning document does not substitute for current GitHub CI or private host/provider evidence.
+
+
+## 29 October — fresh GitHub source evidence (read-only)
+
+A new zero-dependency, no-auth **public GitHub metadata checker** `scripts/check-legacy-ezraidereu-github-freshness.mjs` closes a source-freshness blind spot in this static release manifest. It compares each of the six prepared PRs' current **head SHA**, open/draft status, main base branch and **exact pinned existing website CI run** against the archive; it rejects changed heads, closed/merged PRs, wrong workflows, failed/stale source CI and missing results.
+
+```sh
+node scripts/check-legacy-ezraidereu-github-freshness.mjs --self-test
+node scripts/check-legacy-ezraidereu-github-freshness.mjs --live
+```
+
+- `--self-test` runs **13/13** isolated pure-JS regression scenarios; no network request.
+- `--live` makes public read-only GitHub API GET requests with timeouts, no token or repository/WordPress write; HTTP errors, rate limits and unexpected redirects produce **inconclusive**, not success. This is an optional operator command, **not** an Actions workflow or background monitor.
+- Using the **connected GitHub plugin** to supply a fresh independent current-data snapshot, the new inspector returned **6/6 `snapshot-matches`**, with `releaseAuthorized:false`, zero mismatches. All six were still draft and unmerged at this check. This does **not** guarantee they will remain unchanged after this check.
+- A match confirms only the historic **repository** source QA and unchanged draft head metadata; it does not verify live WordPress ACF/PHP, the real browser DOM, backups, provider purchases, Google guest pin, protected host settings or any release approval. The workstream gate in this packet remains **blocked** for every actual production change.
+
+### Confirmed WordPress connector limitations
+
+Authenticated WordPress readback of page IDs **7, 90 and 92** shows `template="templates/template-home.php"`, `content.raw` empty and no `acf` field payload (only trivial `meta`). The connected site-editing `templates.list` returns **zero block templates** and `templates.lookup(home)` returns null for this classic PHP theme. The GitHub account's visible repositories are only `Ezraider-os` and `Voy-pro-website`; the legacy PHP template source has not been located in them.
+
+The installed WordPress connector therefore does **not** expose an authenticated editor/readback for that private PHP template or its actual ACF values. **Do not** generate artificial ACF field keys, overwrite blank REST page bodies or confuse an unreturned classic template with a missing live page. The already deferred owner/host source-and-backup task under #604 remains the only release dependency, not a new request.
