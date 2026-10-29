@@ -646,7 +646,7 @@ try{
         // use its bound as the source of truth, independent of runner zone.
         const dateInput=form.locator('input[name="date"]');
         const lisbonMinimum=await dateInput.getAttribute('min');
-        check(/^\\d{4}-\\d{2}-\\d{2}$/.test(lisbonMinimum||''),
+        check(/^\d{4}-\d{2}-\d{2}$/.test(lisbonMinimum||''),
           name+' Marvão test reads a valid Lisbon-local date minimum');
         const chosenDate=new Date(Date.parse(lisbonMinimum+'T12:00:00Z')+
           3*24*60*60*1000).toISOString().slice(0,10);
