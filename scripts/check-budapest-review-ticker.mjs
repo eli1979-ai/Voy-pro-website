@@ -123,6 +123,7 @@ function node(tag){
     showModal(){this.open=true;},
     close(){this.open=false;this.events.close?.();},
     append(...els){this.children.push(...els);},
+    appendChild(el){this.children.push(el);return el;},
     replaceChildren(...els){this.children=[...els];},
     addEventListener(k,fn,options){this.events[k]=fn;this.eventOptions[k]=options;},
     get lastChild(){return this.children[this.children.length-1];}
