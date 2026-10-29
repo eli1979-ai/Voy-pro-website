@@ -16,7 +16,7 @@ import {readFileSync} from 'node:fs';
 const ADVISORIES=Object.freeze([
  {slug:'wordpress-seo-premium/wp-seo-premium',id:'CVE-2026-10821',max:'27.6.1',exclusive:true,
   fixed:'27.6.1',privilege:'author+',applicability:'Depends on file-based redirect / .htaccess handling, host configuration and role access',
-  source:'https://patchstack.com/database/wordpress/plugin/wordpress-seo-premium/vulnerability/wordpress-yoast-seo-premium-plugin-27-6-1-author-arbitrary-htaccess-directive-injection-to-rce-vulnerability'},
+  source:'https://yoast.com/yoast-seo-premium-may-26-2026/'},
  {slug:'wordpress-seo-premium/wp-seo-premium',id:'CVE-2026-40722',max:'26.6',exclusive:false,
   fixed:'26.7',privilege:'author+',applicability:'Depends on the vulnerable authorization path being reachable',
   source:'https://patchstack.com/database/wordpress/plugin/wordpress-seo-premium/vulnerability/wordpress-yoast-seo-premium-plugin-26-6-broken-access-control-vulnerability'},
@@ -135,7 +135,8 @@ function selfTest(){
  assert.equal(compare('27.6.1','27.6.0'),1);
  assert.equal(compare('1.0-beta','1.0'),null);
  assert.equal(reviewPlugins(all('27.6.1','3.24.0','6.0.6')).results.length,4);
- console.log('PASS: 18 read-only advisory/version/state/schema checks');
+ assert.equal(current.results[0].reference,'https://yoast.com/yoast-seo-premium-may-26-2026/');
+ console.log('PASS: 19 read-only advisory/version/state/schema/source checks');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
