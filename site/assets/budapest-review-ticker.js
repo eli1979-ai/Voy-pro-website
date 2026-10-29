@@ -99,7 +99,12 @@
     fullReviewDialog.lang=locale;
     fullReviewDialog.dir=locale==='he'?'rtl':'ltr';
     fullReviewDialog.replaceChildren(header,info,quote,link);
-    returnFocus=opener;
+    // The two infinite-scroll copies are pointer-clickable but deliberately
+    // aria-hidden. On closing their modal, never focus a button inside an
+    // accessibility-hidden group. Keep focus on the original opener for real
+    // cards; otherwise use a visible, accessible carousel control.
+    const fromDuplicate=Boolean(opener?.closest?.('.vp-review-group[aria-hidden="true"]'));
+    returnFocus=fromDuplicate?(pause.hidden?right:pause):opener;
     fullReviewDialog.showModal();
     closeButton.focus();
     pauseForReading();
