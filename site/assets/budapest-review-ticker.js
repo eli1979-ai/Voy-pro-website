@@ -200,6 +200,12 @@
     };
     viewport.scrollLeft=groupWidth();
     viewport.addEventListener('scroll',normalize,{passive:true});
+    // A keyboard reader must not chase a moving review quote or source link.
+    // Limit this to actual cards: focusing the Resume control must never
+    // silently cancel the explicit request to continue scrolling.
+    viewport.addEventListener('focusin',event=>{
+      if(event.target?.closest?.('.vp-review-card'))pauseForReading();
+    });
     const moveManually=(delta)=>{
       pauseForReading();
       viewport.scrollLeft+=delta;
