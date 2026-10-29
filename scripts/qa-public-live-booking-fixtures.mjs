@@ -203,6 +203,30 @@ async function scenario(locale,path,{recovery=null,sessionStalled=false}={}){
       row.passed=true;
       return;
     }
+    if(recovery==='expired'){
+      // The live client rejects stale dates on load, before a guest could
+      // click Restore. Do not accidentally test for an unsafe, visible CTA.
+      const banner=page.locator('[data-resume-booking]');
+      await page.waitForFunction(()=>
+        document.querySelector('[data-resume-booking]')?.hidden===true&&
+        localStorage.getItem('voy_recovery_state')===null,
+        null,{timeout:8000});
+      ok(await banner.isHidden(),
+        'expired past-date recovery must not offer a Restore action');
+      ok(await form.locator('select[name="adults"]').inputValue()==='1',
+        'expired saved party must not modify the current group');
+      ok(await guide.inputValue()==='',
+        'expired selection must not silently choose a guiding language');
+      ok(!row.backendCalls.some(c=>['/holds','/quotes','/bookings','/payments/intents']
+        .some(endpoint=>c.endpoint.startsWith(endpoint))),
+        'rejecting an expired recovery must never start a booking or payment');
+      ok(errors.length===0,'expired recovery has no uncaught JavaScript errors');
+      await form.screenshot({
+        path:join(OUT,'public-recovery-'+locale+'-expired.png'),animations:'disabled'
+      });
+      row.passed=true;
+      return;
+    }
     if(recovery){
       const banner=page.locator('[data-resume-booking]');
       await banner.waitFor({state:'visible',timeout:8000});
@@ -238,12 +262,7 @@ async function scenario(locale,path,{recovery=null,sessionStalled=false}={}){
           document.querySelector('[data-resume-booking]')?.hidden===true,
           null,{timeout:5500});
       }
-      if(recovery==='expired'){
-        ok(await form.locator('select[name="adults"]').inputValue()==='1',
-          'expired saved party is not applied on the public build');
-        ok(await page.evaluate(()=>localStorage.getItem('voy_recovery_state'))===null,
-          'invalid persisted date is removed from essential-only storage');
-      }else if(recovery==='private'){
+      if(recovery==='private'){
         ok(await form.locator('select[name="adults"]').inputValue()==='2'&&
           await form.locator('select[name="children"]').inputValue()==='1'&&
           await form.locator('select[name="babies"]').inputValue()==='0',
