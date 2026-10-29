@@ -46,8 +46,8 @@ for(const slug of slugs){
    const file=`site/${prefix}budapest/index.html`;
    const html=fs.readFileSync(file,'utf8');
    const href=`/${prefix}budapest/tours/heroes-square-city-ezraider-tour/`;
-   const cards=[...html.matchAll(/<article class="tour-choice-card\\b[^>]*>[\\s\\S]*?<\\/article>/g)]
-     .map(match=>match[0]);
+   const cards=html.split('<article class="tour-choice-card').slice(1)
+     .map(part=>'<article class="tour-choice-card'+part.split('</article>')[0]+'</article>');
    const cityCards=cards.filter(card=>card.includes(`href="${href}"`));
    if(cityCards.length!==1){
      failures.push(`${file}: exactly one discoverable Heroes' Square tour card required, got ${cityCards.length}`);
