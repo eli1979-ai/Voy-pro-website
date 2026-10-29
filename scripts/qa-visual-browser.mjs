@@ -152,6 +152,31 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
               null,{timeout:2000}).catch(()=>{});
             check(await opener.evaluate(el=>document.activeElement===el),
               name+' closing review returns focus to opener');
+            // The carousel's visual before/after copies are aria-hidden,
+            // but their expanded review buttons can be clicked by pointer.
+            // Test the real native dialog in Chrome, not only our VM fixture.
+            const duplicate=carousel.locator('.vp-review-group--before .vp-review-expand').first();
+            check(await duplicate.evaluate(el=>
+              el.tabIndex===-1&&el.closest('.vp-review-group')?.getAttribute('aria-hidden')==='true'),
+              name+' infinite-scroll duplicate is excluded from the accessible tab order');
+            const rightControl=carousel.locator('[data-vp-reviews-right]');
+            const pauseControl=carousel.locator('[data-vp-reviews-pause]');
+            check(await pauseControl.isHidden(),
+              name+' reduced-motion mode hides unnecessary auto-scroll Resume control');
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            check(await rightControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible manual arrow with reduced motion');
+            await page.emulateMedia({reducedMotion:'no-preference'});
+            await page.waitForFunction(()=>
+              document.querySelector('[data-vp-reviews-pause]')?.hidden===false,
+              null,{timeout:3000});
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            check(await pauseControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible Pause/Resume control in normal motion');
           }
         }
       }
