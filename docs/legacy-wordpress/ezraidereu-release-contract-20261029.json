@@ -81,10 +81,10 @@
     },
     {
       "number": 610,
-      "head": "0576521a0b6f48a06336bd2498f2cc8ee219c77c",
+      "head": "7cf1672743db81a84ece4b42d6fcf31f94818d01",
       "role": "root and Lisbon independent proposed HTML and booking-link guard",
       "branch": "docs/ezraidereu-legacy-root-lisbon-safety-20261028",
-      "ciRun": 40746992460,
+      "ciRun": 40864724139,
       "target": "root-and-lisbon-separate-host",
       "state": "draft-unmerged"
     },
@@ -219,5 +219,5 @@
     "noVercelPreviewForDocsOnly": true,
     "rootAndLisbonMustReleaseSeparately": true
   },
-  "testEvidenceScope": "GitHub Actions runs validate repository build/launch/site QA, NOT legacy WordPress live browser behavior or the standalone legacy scripts. All dates/SHAs are a fixed 2026-10-29 snapshot requiring refresh on release. Root and Lisbon use distinct, separately approved release units even when candidate documentation shares PR #610."
+  "testEvidenceScope": "GitHub Actions runs validate repository build/launch/site QA, NOT legacy WordPress live browser behavior or the standalone legacy scripts. All dates/SHAs are a fixed 2026-10-29 snapshot requiring refresh on release. Root and Lisbon use distinct, separately approved release units even when candidate documentation shares PR #610. 29 Oct 2026: #610 head refreshed after correcting protocol-relative and unquoted links; 23 source + 13 candidate self-tests pass, GitHub CI #40864724139 succeeds."
 }
