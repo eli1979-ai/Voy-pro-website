@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-29",
+  "project": "EZRaiderEU legacy release control",
+  "sourceRepository": "eli1979-ai/Voy-pro-website",
+  "applicationBoundary": {
+    "wordpressBudapest": {
+      "baseUrl": "https://ezraidereu.com/budapest/",
+      "jetpackSiteId": 258220563,
+      "theme": "ezraider",
+      "editorType": "classic-PHP-and-ACF"
+    },
+    "legacyRoot": {
+      "baseUrl": "https://ezraidereu.com/",
+      "administrativeAccess": "not-available-in-connected-WordPress"
+    },
+    "legacyLisbon": {
+      "baseUrl": "https://ezraidereu.com/lisbon/",
+      "administrativeAccess": "not-available-in-connected-WordPress"
+    },
+    "excluded": [
+      "voy-pro.com customer frontend",
+      "FBM booking/payment backend",
+      "FareHarbor account",
+      "Vercel live deployments"
+    ]
+  },
+  "ownerDeferredIssue": 604,
+  "trackingIssues": [
+    589,
+    609,
+    615
+  ],
+  "observedCurrentState": {
+    "wordpressWpcode488": "v6.2 installed according to owner; live DOM remains unverified",
+    "ownerSuppliedGoogleBusinessProfile": "https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac",
+    "registeredBusinessProperty": "Budapest District V cadastral parcel 24285: Városház utca 12–14 = Pilvax köz 4",
+    "exactGuestEntrance": "unverified",
+    "backup": "2026-10-26 historical .wpress exists per owner; no current restoration test",
+    "directFbmBooking": "not authorized or activated for legacy WordPress",
+    "livePluginPatching": "not performed",
+    "siteWpCoreVersion": "not independently established",
+    "premiumLicenseStatus": "unverified"
+  },
+  "preparedPullRequests": [
+    {
+      "number": 591,
+      "head": "8aca918a475a825cd2e1677264357834cce26461",
+      "role": "read-only server HTML and 33-content-link QA",
+      "branch": "audit/ezraidereu-html-source-20261028",
+      "ciRun": 40750642954,
+      "target": "none",
+      "state": "draft-unmerged"
+    },
+    {
+      "number": 596,
+      "head": "d299c032b27eec0b8ad94a35146143d3e9299cc3",
+      "role": "EN/HU/HE homepage ACF copy candidates",
+      "branch": "docs/ezraidereu-homepage-acf-copy-20261028",
+      "ciRun": 40709964285,
+      "target": "budapest-wordpress-ACF",
+      "state": "draft-unmerged"
+    },
+    {
+      "number": 598,
+      "head": "cedc92d87a46c9ca2116692e334a9f0737a502b6",
+      "role": "integrated v7 map-hold candidate; preserve v6.2 navigation",
+      "branch": "safety/ezraidereu-wpcode-map-no-guess-20261028",
+      "ciRun": 40850615023,
+      "target": "budapest-WPCode-488",
+      "state": "draft-unmerged"
+    },
+    {
+      "number": 601,
+      "head": "ad3758cdedc13452d37ffe8405b11a933e213053",
+      "role": "archival owner-installed v6.2 footer source and diagnostic",
+      "branch": "fix/ezraidereu-wpcode-488-footer-current-v6-20261028",
+      "ciRun": 40691355871,
+      "target": "documentation-only-do-not-reinstall",
+      "state": "draft-unmerged"
+    },
+    {
+      "number": 610,
+      "head": "0576521a0b6f48a06336bd2498f2cc8ee219c77c",
+      "role": "root and Lisbon independent proposed HTML and booking-link guard",
+      "branch": "docs/ezraidereu-legacy-root-lisbon-safety-20261028",
+      "ciRun": 40746992460,
+      "target": "root-and-lisbon-separate-host",
+      "state": "draft-unmerged"
+    },
+    {
+      "number": 625,
+      "head": "169e6ece38b7222d60666881fcaf45f5332368a9",
+      "role": "plugin-version advisory triage and Yoast preflight",
+      "branch": "audit/ezraidereu-wp-plugin-advisories-20261029",
+      "ciRun": 40850170868,
+      "target": "staging-security-planning",
+      "state": "draft-unmerged"
+    }
+  ],
+  "workstreams": [
+    {
+      "id": "wp-baseline",
+      "target": "budapest-wordpress-ACF",
+      "ownerIssue": 604,
+      "pr": 591,
+      "releaseKind": "read-only-QA",
+      "gateKeys": [],
+      "status": "source-only-green",
+      "automaticDeploy": false
+    },
+    {
+      "id": "wp-acf-content",
+      "target": "budapest-wordpress-ACF",
+      "ownerIssue": 604,
+      "pr": 596,
+      "releaseKind": "content-after-review",
+      "gateKeys": [
+        "freshFullBackupRestored",
+        "acfFieldMappingVerified",
+        "homeTemplateRead",
+        "hungarianCopyReviewed",
+        "stagingContentAndSeoQaPassed",
+        "productionChangeApproved"
+      ],
+      "status": "blocked",
+      "automaticDeploy": false
+    },
+    {
+      "id": "wp-map",
+      "target": "budapest-WPCode-488",
+      "ownerIssue": 604,
+      "pr": 598,
+      "releaseKind": "map-only-after-pin-verification",
+      "gateKeys": [
+        "freshFullBackupRestored",
+        "actualGuestEntranceVerified",
+        "officialGoogleEmbedVerified",
+        "installedWpcodeSnapshotRead",
+        "v62CompatibilityConfirmed",
+        "stagingVisualQaPassed",
+        "productionChangeApproved"
+      ],
+      "status": "blocked",
+      "automaticDeploy": false
+    },
+    {
+      "id": "wp-v62-checkpoint",
+      "target": "documentation-only-do-not-reinstall",
+      "ownerIssue": 604,
+      "pr": 601,
+      "releaseKind": "retain-owner-installed-v6.2",
+      "gateKeys": [],
+      "status": "owner-reported-installed",
+      "automaticDeploy": false
+    },
+    {
+      "id": "wp-security",
+      "target": "staging-security-planning",
+      "ownerIssue": 604,
+      "pr": 625,
+      "releaseKind": "staged-one-plugin-at-a-time",
+      "gateKeys": [
+        "freshFullBackupRestored",
+        "wpCorePhpVersionsVerified",
+        "officialVendorUpdatesVerified",
+        "premiumLicensingVerified",
+        "stagingSecurityQaPassed",
+        "productionChangeApproved"
+      ],
+      "status": "blocked",
+      "automaticDeploy": false
+    },
+    {
+      "id": "root-lisbon",
+      "target": "root-and-lisbon-separate-host",
+      "ownerIssue": 604,
+      "pr": 610,
+      "releaseKind": "independent-site-ownership-and-booking-audit",
+      "gateKeys": [
+        "rootHostSourceIdentified",
+        "rootAndLisbonBackupRestored",
+        "lisbonExistingBookingsReviewed",
+        "providerSalePathReviewed",
+        "publicMessagingApproved",
+        "rootLisbonStagingQaPassed",
+        "productionChangeApproved"
+      ],
+      "status": "blocked",
+      "automaticDeploy": false
+    }
+  ],
+  "hardRules": {
+    "mergeRequiresExplicitOwnerApproval": true,
+    "noWordpressProductionWriteFromGithubMerge": true,
+    "doNotAutoInstallWpcodeV7": true,
+    "neverInstallArchivedV61InsteadOfV62": true,
+    "legacyBookingRemainsWhatsAppEnquiryUntilSeparateAuthorizedCutover": true,
+    "rootLisbonDeployIndependentFromBudapestWordpress": true,
+    "securityReleaseMustNotShareRollbackWithEditorialOrMapChanges": true,
+    "neverInferGuestEntranceFromParcelPostalAddress": true,
+    "noVercelPreviewForDocsOnly": true
+  },
+  "testEvidenceScope": "GitHub Actions runs validate repository build/launch/site QA, NOT legacy WordPress live browser behavior or the standalone legacy scripts. All dates/SHAs are a fixed 2026-10-29 snapshot requiring refresh on release."
+}
