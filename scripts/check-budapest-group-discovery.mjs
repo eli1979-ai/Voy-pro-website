@@ -65,7 +65,15 @@ try {
     querySelector:(selector)=>selector==='[data-ez-video-screen]'?stage:selector==='[data-ez-watch]'?link:null};
   const context={document:{
     querySelector:(selector)=>selector==='[data-ez-video-player]'?player:null,
-    createElement:(tag)=>{const el={tag};created.push(el);return el;}
+    createElement:(tag)=>{
+      const el={tag,focusCount:0,focusedAfterInsertion:false,preventScroll:false,
+        focus(options){
+          this.focusCount++;
+          this.focusedAfterInsertion=stage.child===this;
+          this.preventScroll=options?.preventScroll===true;
+        }};
+      created.push(el);return el;
+    }
   },Set};
   vm.runInNewContext(videoJs,context,{timeout:1000});
   if(created.length!==0||stage.child!==play)
@@ -82,9 +90,14 @@ try {
     failures.push('Explicit Play did not load the selected muted YouTube clip');
   if(!stage.child?.allow?.includes('autoplay'))
     failures.push('Explicitly played EZRaider iframe lacks autoplay permission');
+  if(created[0]?.tabIndex!==0||created[0]?.focusCount!==1||
+    !created[0]?.focusedAfterInsertion||!created[0]?.preventScroll)
+    failures.push('Explicit Play must transfer focus to the new titled iframe after insertion');
   buttons[0].events.click?.();
   if(stage.child?.src?.indexOf('embed/'+videos[0])<0||created.length!==2)
     failures.push('Switching already-playing EZRaider clips did not replace the iframe');
+  if(created[1]?.focusCount!==0)
+    failures.push('Clip switch must retain keyboard focus on the selected video control');
 } catch(error){failures.push('EZRaider opt-in video player runtime failed: '+error.message);}
 
 if(videoJs.includes(disallowedVideo))failures.push('Unlicensed urban riding video remains in allowed player IDs');
