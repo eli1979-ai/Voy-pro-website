@@ -30,23 +30,26 @@ const initializer=js.slice(begin,end);
 for(const route of [
   {name:'home EN',isBudapestPage:false,isPortugalPage:false,locale:'en'},
   {name:'Budapest HE',isBudapestPage:true,isPortugalPage:false,locale:'he'},
+  {name:'Budapest HU',isBudapestPage:true,isPortugalPage:false,locale:'hu'}
   {name:'Portugal PT',isBudapestPage:false,isPortugalPage:true,locale:'pt'}
 ]){
-  let opener,sheet,closeButton,waLink,desktopListener,bodyLocked=false;
+  let opener,sheet,closeButton,waLink,menuLink,desktopListener,bodyLocked=false;
   const create=(tag)=>({
-    tag,attrs:{},hidden:false,textContent:'',className:'',
+    tag,attrs:{},events:{},hidden:false,textContent:'',className:'',
     setAttribute(key,value){this.attrs[key]=value;},
-    addEventListener(){},focus(){document.activeElement=this;},
+    addEventListener(type,fn){this.events[type]=fn;},
+    focus(options){this.focusOptions=options;document.activeElement=this;},
     contains(node){return this===sheet&&(node===closeButton||node===waLink);},
     querySelector(selector){
       if(selector==='.mobile-nav-close')return closeButton;
       if(selector==='[data-mobile-nav-wa]')return waLink;
       return null;
     },
-    querySelectorAll(){return []}
+    querySelectorAll(selector){return this===sheet&&selector==='a'?[menuLink]:[];}
   });
   const nav={firstChild:null,insertBefore(node){opener=node;}};
-  closeButton=create('button');waLink=create('a');
+  closeButton=create('button');waLink=create('a');menuLink=create('a');
+  menuLink.href='/portugal/#tours';
   const desktopBrand=create('a');
   const document={
     body:{
@@ -111,6 +114,31 @@ for(const route of [
   assert.equal(bodyLocked,false);
   assert.equal(document.activeElement,desktopBrand,
     route.name+' must not steal focus when it is already outside the sheet');
+
+  // Clicking a link may keep the visitor in this document (hash navigation),
+  // or navigation may be intercepted. Never leave focus on hidden menu content.
+  media.matches=false;
+  opener.onclick();
+  menuLink.focus();
+  assert.equal(document.activeElement,menuLink);
+  const originalHref=menuLink.href;
+  let defaultPrevented=false;
+  assert.equal(typeof menuLink.events.click,'function',route.name+' links must have close handler');
+  menuLink.events.click({preventDefault(){defaultPrevented=true;}});
+  assert.equal(sheet.hidden,true,route.name+' link click closes the mobile sheet');
+  assert.equal(bodyLocked,false,route.name+' link click releases scroll lock');
+  assert.equal(opener.attrs['aria-expanded'],'false',route.name+' link click resets aria-expanded');
+  assert.equal(document.activeElement,opener,
+    route.name+' link click must restore focus to the visible mobile toggle');
+  assert.equal(opener.focusOptions?.preventScroll,true,
+    route.name+' returning focus must avoid unwanted scroll jumps');
+  assert.equal(menuLink.href,originalHref,route.name+' must retain the actual link destination');
+  assert.equal(defaultPrevented,false,route.name+' link click must not intercept navigation');
+  opener.onclick();
+  assert.equal(sheet.hidden,false,route.name+' navigation remains reopenable after link click');
+  closeButton.onclick();
+  assert.equal(sheet.hidden,true,route.name+' close control still works');
+  assert.equal(document.activeElement,opener,route.name+' close control returns keyboard focus');
 }
 
 if(failures.length){
