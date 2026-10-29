@@ -20,7 +20,7 @@ const attrs=(s,tag,key)=>[...String(s).matchAll(
  new RegExp('<'+tag+'\\b[^>]*?\\b'+key+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s"\\x27=<>`]+))','gi')
 )].map(m=>(m[1]??m[2]??m[3]??'').replace(/&amp;/gi,'&'));
 const hrefs=s=>attrs(strip(s),'a','href');
-const fareharbor=x=>/^(?:https?:)?//(?:[^/?#]+.)?fareharbor.com(?:[/?#]|$)/i.test(String(x).trim());
+const fareharbor=x=>/^(?:https?:)?\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(String(x).trim());
 const issue=(code,severity,detail)=>({code,severity,detail});
 export function auditLegacyPage(kind,html,url=pages[kind]){
   if(!(kind in pages))throw Error('Unknown page type');
