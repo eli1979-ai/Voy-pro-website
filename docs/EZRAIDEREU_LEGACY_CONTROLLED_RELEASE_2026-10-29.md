@@ -89,6 +89,18 @@ node scripts/check-legacy-ezraidereu-release-contract.mjs
 node scripts/check-legacy-ezraidereu-release-contract.mjs --input /private/release-evidence.json
 ```
 
-No input means status reporting only; it does **not** fetch GitHub status or inspect WordPress. Evidence files remain local/private and require source-verifiable `verified:true` + `evidenceRef` per gate, and exact PR SHA. Even if all gates pass the outcome is `human-release-review-required` and **`mayDeployAutomatically:false`**. Production releases still require explicit owner authorization and real host access. The checker rejects multi-workstream releases and archived WPCode restoration as a substitute for current v6.2.
+No input means status reporting only; it does **not** fetch GitHub status or inspect WordPress. Evidence files remain local/private and require source-verifiable `verified:true` + `evidenceRef` per gate, and exact PR SHA. Even if every gate is *self-reported* as verified, the outcome is **`unverified-attestations-awaiting-review`**, the command exits nonzero, and **`mayDeployAutomatically:false`**. An arbitrary `evidenceRef` is only an untrusted pointer, not proof of a completed backup, live CI, authentic owner approval or any release authorization. Production releases still require explicit owner authorization and real host access. The checker rejects multi-workstream releases and archived WPCode restoration as a substitute for current v6.2.
 
 **Technical limitation:** This source-only GitHub repository does not provide live WordPress PHP/ACF editing or a production backup/restore environment. Green standard GitHub Actions do **not** imply legacy WordPress readiness. Do not promote this release dossier as if it were installed.
+
+
+### Independent fail-closed review — 29 October
+
+A blind regression check of the original release-control code reproduced **two real false-readiness weaknesses**: plain `{verified:true,evidenceRef:"anything"}` claims for every gate were reported as `human-release-review-required`, and changing the map workstream's PR from **#598 to unrelated editorial #596** was not rejected. Neither flaw deployed code, but both could have encouraged an unsafe release decision if operators over-trusted the tool.
+
+The **revised** checker fixes both:
+- A hardcoded, individually reviewed workstream-to-PR-to-target-to-mandatory-gates mapping rejects changed PR assignments, changed target hosts, replaced status, missing gates and an attempt to substitute a newer-looking archive for the v6.2 checkpoint.
+- It never marks *self-declared* private evidence as verified. Even complete-looking evidence produces `unverified-attestations-awaiting-review` and nonzero process exit. Independent review of original private restore, vendor license, exact **current** upstream SHA and human authorization is required outside the code.
+- **24/24** targeted local test assertions pass against the exact GitHub-fetched source, including the two formerly missed cases and additional scope/status mutations. Original manifest remains a static **29-Oct snapshot**, not a GitHub online attestation. The new checker makes **no** WordPress, plugin, payment, hosting or GitHub merge changes.
+
+A PR merge to the modern website would still publish only documentation and test code, not legacy WordPress or root/Lisbon changes. The live release remains blocked by #604 until individual prerequisites and approvals are independently verified.
