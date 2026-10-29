@@ -87,3 +87,18 @@ Yoast's [official update help](https://yoast.com/help/not-receiving-updates-supp
 The [Yoast Premium changelog](https://developer.yoast.com/changelog/yoast-seo-premium/) lists **Premium 28.8 released 27 Oct 2026**, with minimum **Yoast SEO free 28.8** and **WordPress 7.0**. This legacy site's WordPress core version has **not been independently established** by the available WordPress connector, so do **not** blindly install Premium 28.8 or update the free/Premium versions out of order. Inspect the actual WP core and PHP versions, legitimate license/update availability, and plugin version dependencies during a restorable staging maintenance release. Any safer intermediate patched version must be vetted for current security fixes and legitimate vendor support, not simply assumed compatible.
 
 The severity ranking above is a **maintenance priority**, not a claim of currently exploitable RCE. Even the vendor's high-impact scenario depends on a manually chosen redirect mode and server prerequisites. The current site redirect method remains **unverified**.
+
+### Read-only Yoast 28.8 upgrade preflight (29 October)
+
+New: `scripts/check-legacy-ezraidereu-yoast-upgrade-preflight.mjs` is an **offline, non-deploying** checklist for the specific Yoast Premium **28.8** upgrade candidate. It has no WordPress network access, credentials, staging/write actions, or update installation code.
+
+```sh
+node scripts/check-legacy-ezraidereu-yoast-upgrade-preflight.mjs --self-test
+node scripts/check-legacy-ezraidereu-yoast-upgrade-preflight.mjs --input /private/upgrade-preflight.json
+```
+
+It requires confirmed core WordPress `>=7.0`, target free Yoast `>=28.8` and PHP `>=7.4` (vendor's general minimum, **not** a complete compatibility certification), plus a verified official Premium package, a restoration-tested current full backup, isolated staging validation and explicit owner release approval. **Other Premium versions are unsupported by this exact checker** until their version-specific dependencies are re-verified. Even when every item is satisfied, the returned status is `ready-for-separate-human-release-review` with `mayDeployAutomatically:false`, never permission to deploy. Missing values return **blocked/inconclusive** rather than a false green.
+
+Tests: **11/11 isolated synthetic preflight scenarios PASS** against exact GitHub-fetched source. The currently verifiable situation yields **six blockers**: unverified WordPress core version, unverified PHP version, no verified official package channel, untested full-site restore, no isolated staging acceptance and no explicit release approval. Those are release prerequisites, not proof the site is broken. Known free Yoast **28.7** is lower than **28.8** and must also be updated *in a safely reviewed coordinated plan* before using Premium 28.8; a proposed target free version is not proof it has been installed.
+
+This does **not** create an automation, install paid plugins, change WordPress, upload any backup, or request the owner to act now. See [deferred action issue #604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
