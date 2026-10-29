@@ -20,7 +20,8 @@ const REQUIRED_RULES=[
  'legacyBookingRemainsWhatsAppEnquiryUntilSeparateAuthorizedCutover',
  'rootLisbonDeployIndependentFromBudapestWordpress',
  'securityReleaseMustNotShareRollbackWithEditorialOrMapChanges',
- 'neverInferGuestEntranceFromParcelPostalAddress','noVercelPreviewForDocsOnly'
+ 'neverInferGuestEntranceFromParcelPostalAddress','noVercelPreviewForDocsOnly',
+ 'rootAndLisbonMustReleaseSeparately'
 ];
 const HEX=/^[0-9a-f]{40}$/i;
 const EXPECTED_PR_TARGETS=Object.freeze({
@@ -45,10 +46,15 @@ const EXPECTED_STREAMS=Object.freeze({
     releaseKind:'staged-one-plugin-at-a-time',
     gates:['freshFullBackupRestored','wpCorePhpVersionsVerified','officialVendorUpdatesVerified',
       'premiumLicensingVerified','stagingSecurityQaPassed','productionChangeApproved']},
-  'root-lisbon':{pr:610,target:'root-and-lisbon-separate-host',status:'blocked',
-    releaseKind:'independent-site-ownership-and-booking-audit',
-    gates:['rootHostSourceIdentified','rootAndLisbonBackupRestored','lisbonExistingBookingsReviewed',
-      'providerSalePathReviewed','publicMessagingApproved','rootLisbonStagingQaPassed','productionChangeApproved']}
+  'root-landing':{pr:610,target:'root-site-only',status:'blocked',
+    releaseKind:'root-destination-landing-only',
+    gates:['rootHostSourceIdentified','rootBackupRestored','rootRoutingAndSeoVerified',
+      'publicMessagingApproved','rootStagingQaPassed','productionChangeApproved']},
+  'lisbon-status':{pr:610,target:'lisbon-site-only',status:'blocked',
+    releaseKind:'lisbon-booking-status-only',
+    gates:['lisbonHostSourceIdentified','lisbonBackupRestored','lisbonExistingBookingsReviewed',
+      'providerSalePathReviewed','lisbonCustomerMessagingApproved','lisbonStagingQaPassed',
+      'productionChangeApproved']}
 });
 
 export function validateContract(contract){
@@ -60,7 +66,7 @@ export function validateContract(contract){
  for(const key of REQUIRED_RULES)fail(contract?.hardRules?.[key]!==true,'UNSAFE_OR_MISSING_HARD_RULE:'+key);
  const prs=contract?.preparedPullRequests??[],streams=contract?.workstreams??[];
  fail(!Array.isArray(prs)||prs.length!==6,'PR_INVENTORY_MUST_HAVE_SIX_RECORDS');
- fail(!Array.isArray(streams)||streams.length!==6,'WORKSTREAM_INVENTORY_MUST_HAVE_SIX_RECORDS');
+ fail(!Array.isArray(streams)||streams.length!==7,'WORKSTREAM_INVENTORY_MUST_HAVE_SEVEN_RECORDS');
  if(!Array.isArray(prs)||!Array.isArray(streams))return findings;
  const unique=(arr,fn)=>new Set(arr.map(fn)).size===arr.length;
  fail(!unique(prs,x=>x.number),'DUPLICATE_PR');
@@ -104,8 +110,9 @@ export function validateContract(contract){
    'CANNOT_REPLACE_OWNER_INSTALLED_V62');
  fail(prs.find(x=>x.number===601)?.target!=='documentation-only-do-not-reinstall',
    'ARCHIVED_WPCODE_SNAPSHOT_MUST_NOT_INSTALL');
- fail(streams.find(x=>x.id==='root-lisbon')?.target!=='root-and-lisbon-separate-host',
-   'ROOT_LISBON_OWNERSHIP_BOUNDARY');
+ fail(streams.find(x=>x.id==='root-landing')?.target!=='root-site-only'||
+      streams.find(x=>x.id==='lisbon-status')?.target!=='lisbon-site-only',
+   'ROOT_AND_LISBON_MUST_BE_SEPARATE_RELEASE_TARGETS');
  return findings;
 }
 export function assessRelease(contract,evidence={}){
@@ -176,7 +183,8 @@ function selfTest(){
  assert.ok(validateContract(noPin).includes('BLOCKED_STREAM_HAS_NO_GATES:wp-map'));
  const unsafeArchive=JSON.parse(JSON.stringify(CONTRACT));unsafeArchive.preparedPullRequests.find(x=>x.number===601).target='budapest-WPCode-488';
  assert.ok(validateContract(unsafeArchive).includes('ARCHIVED_WPCODE_SNAPSHOT_MUST_NOT_INSTALL'));
- assert.equal(assessRelease(CONTRACT,{workstream:'root-lisbon'}).state,'blocked');
+ assert.equal(assessRelease(CONTRACT,{workstream:'root-landing'}).state,'blocked');
+ assert.equal(assessRelease(CONTRACT,{workstream:'lisbon-status'}).state,'blocked');
  assert.equal(assessRelease(CONTRACT,{workstream:'wp-security'}).state,'blocked');
  assert.equal(assessRelease(CONTRACT,{workstream:'unknown'}).state,'blocked');
  assert.equal(assessRelease(CONTRACT,{workstream:'wp-map'}).mayDeployAutomatically,false);
@@ -187,8 +195,8 @@ function selfTest(){
  missingGate.workstreams.find(x=>x.id==='wp-security').gateKeys.pop();
  assert.ok(validateContract(missingGate).includes('REQUIRED_GATE_SET_MISMATCH:wp-security'));
  const renamedTarget=JSON.parse(JSON.stringify(CONTRACT));
- renamedTarget.workstreams.find(x=>x.id==='root-lisbon').target='budapest-wordpress-ACF';
- assert.ok(validateContract(renamedTarget).includes('WRONG_TARGET_FOR_STREAM:root-lisbon'));
+ renamedTarget.workstreams.find(x=>x.id==='root-landing').target='budapest-wordpress-ACF';
+ assert.ok(validateContract(renamedTarget).includes('WRONG_TARGET_FOR_STREAM:root-landing'));
  const retargetPR=JSON.parse(JSON.stringify(CONTRACT));
  retargetPR.preparedPullRequests.find(x=>x.number===598).target='budapest-wordpress-ACF';
  assert.ok(validateContract(retargetPR).includes('PR_TARGET_MISMATCH:598'));
@@ -199,7 +207,20 @@ function selfTest(){
  const masquerade=JSON.parse(JSON.stringify(CONTRACT));
  masquerade.workstreams.find(x=>x.id==='wp-map').status='source-only-green';
  assert.ok(validateContract(masquerade).includes('WRONG_STREAM_STATUS:wp-map'));
- console.log('PASS: 24 read-only release-control and fail-closed gate cases');
+ const joined=JSON.parse(JSON.stringify(CONTRACT));
+ joined.workstreams=joined.workstreams.filter(s=>s.id!=='root-landing'&&s.id!=='lisbon-status');
+ joined.workstreams.push({id:'root-lisbon',pr:610,target:'root-and-lisbon-separate-host',
+   ownerIssue:604,status:'blocked',releaseKind:'independent-site-ownership-and-booking-audit',
+   gateKeys:['productionChangeApproved'],automaticDeploy:false});
+ assert.ok(validateContract(joined).includes('MISSING_REQUIRED_WORKSTREAM'));
+ const mergedRelease=assessRelease(CONTRACT,{workstreams:['root-landing','lisbon-status']});
+ assert.equal(mergedRelease.state,'blocked');
+ assert.ok(mergedRelease.errors.includes('ONE_ATOMIC_WORKSTREAM_PER_RELEASE'));
+ const cloned=JSON.parse(JSON.stringify(CONTRACT));
+ cloned.workstreams.find(s=>s.id==='lisbon-status').gateKeys=
+   cloned.workstreams.find(s=>s.id==='root-landing').gateKeys.slice();
+ assert.ok(validateContract(cloned).includes('REQUIRED_GATE_SET_MISMATCH:lisbon-status'));
+ console.log('PASS: 27 read-only release-control and fail-closed gate cases');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
