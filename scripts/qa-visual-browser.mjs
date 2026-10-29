@@ -166,6 +166,12 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
             await duplicate.evaluate(el=>el.click());
             await modal.waitFor({state:'visible',timeout:4000});
             await page.keyboard.press('Escape');
+            // Native dialog close events (and focus restoration) can follow
+            // Escape asynchronously; assert the eventual accessible focus
+            // destination instead of racing the browser's close callback.
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-right]'),
+              null,{timeout:3000}).catch(()=>{});
             check(await rightControl.evaluate(el=>document.activeElement===el),
               name+' duplicate review close focuses visible manual arrow with reduced motion');
             await page.emulateMedia({reducedMotion:'no-preference'});
@@ -175,6 +181,9 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
             await duplicate.evaluate(el=>el.click());
             await modal.waitFor({state:'visible',timeout:4000});
             await page.keyboard.press('Escape');
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-pause]'),
+              null,{timeout:3000}).catch(()=>{});
             check(await pauseControl.evaluate(el=>document.activeElement===el),
               name+' duplicate review close focuses visible Pause/Resume control in normal motion');
           }
