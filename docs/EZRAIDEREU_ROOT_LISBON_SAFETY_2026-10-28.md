@@ -16,7 +16,7 @@ This task is independent from the Budapest WordPress site `https://ezraidereu.co
 
 1. `docs/legacy-wordpress/ezraidereu-root-safe-landing-candidate.html`: a complete self-contained English HTML document for the **root landing only**, with one verified Budapest tour route, a Budapest-specific WhatsApp enquiry link, accessible headings, responsive layout, and conservative conditional rider language. No Lisbon/Athens card, booking checkout, payment, analytics, remotely hosted script, external font, image library or unverified Marvão/Prague destination URL.
 2. `docs/legacy-wordpress/ezraidereu-lisbon-no-booking-candidate.html`: a neutral legacy Lisbon landing that says new tour bookings are unavailable *through this website*, does not purport to cancel existing reservations, and directs existing purchasers to their **own booking confirmation provider**. No obsolete prices, fares, meeting pin or live FareHarbor CTA. This message is a **proposal**, pending business approval; it must not be published as if existing customer bookings are cancelled.
-3. `scripts/check-legacy-ezraidereu-root-lisbon-candidates.mjs`: no-network, dependency-free static gate. Root whitelist of expected internal and Budapest WhatsApp links; no Lisbon/Athens booking links, no forms/embeds/scripts, no FareHarbor, no accidental standalone booking CTA. Lisbon gate requires a non-bookable notice and an existing-reservation safeguard. Test command: `node scripts/check-legacy-ezraidereu-root-lisbon-candidates.mjs --self-test`. **10 synthetic scenarios PASS** (two valid candidates and eight deliberately unsafe mutations) in isolated local JavaScript execution of the exact committed files.
+3. `scripts/check-legacy-ezraidereu-root-lisbon-candidates.mjs`: no-network, dependency-free static gate. Root whitelist of expected internal and Budapest WhatsApp links; no Lisbon/Athens booking links, no forms/embeds/scripts, no FareHarbor, no accidental standalone booking CTA. Lisbon gate requires a non-bookable notice and an existing-reservation safeguard. Test command: `node scripts/check-legacy-ezraidereu-root-lisbon-candidates.mjs --self-test`. **13 synthetic scenarios PASS** (two valid candidates and eight deliberately unsafe mutations) in isolated local JavaScript execution of the exact committed files.
 
 ## Exact deployment ownership / release boundary
 
@@ -48,4 +48,21 @@ node scripts/audit-legacy-ezraidereu-root-lisbon-public.mjs
 ```
 For `--fixture-dir`, provide `root.html` and `lisbon.html` obtained from a public **server response**; scripts are stripped before the scan. Without fixtures it sends only two public GET requests, with a 15-second timeout each. It never executes scripts, sends forms or opens FareHarbor checkout. It detects obsolete root destination CTAs, a stale title, actual FareHarbor anchors in Lisbon source, old published prices and missing non-bookable status. It deliberately returns **inconclusive (exit 2)** for Cloudflare challenges, short/skeletal documents, unreadable responses, or missing minimal page structure — never a false clean. Known severe links return **exit 1**. Passing source-only status is **not proof** of browser click behavior or that the FareHarbor provider is disabled.
 
-Isolated local execution of the exact GitHub-fetched JavaScript ran **9/9 self-test assertions successfully**, including root/Lisbon legacy fixtures, challenge/error pages, a single-anchor page, and safe replacements. This source auditor is not currently wired into GitHub Actions and must not be made a fragile production CI gate when Cloudflare blocks anonymous automated GETs. The prior 10 candidate safety tests remain separate.
+Isolated local execution of the exact GitHub-fetched JavaScript ran **23/23 self-test assertions successfully**, including root/Lisbon legacy fixtures, challenge/error pages, a single-anchor page, and safe replacements. This source auditor is not currently wired into GitHub Actions and must not be made a fragile production CI gate when Cloudflare blocks anonymous automated GETs. The prior 10 candidate safety tests remain separate.
+
+
+## 29 October — concrete false-clean source bugs fixed
+
+Blind, synthetic mutation checks against the exact GitHub-fetched `audit-legacy-ezraidereu-root-lisbon-public.mjs` uncovered **five valid HTML payment destinations that the prior source-only regex scanner falsely called `source-clean`**:
+
+- Protocol-relative FareHarbor anchor: `<a href="//fareharbor.com/book/">`
+- Protocol-relative FareHarbor iframe: `<iframe src="//fareharbor.com/embeds/book">`
+- Unquoted FareHarbor anchor: `<a href=https://fareharbor.com/book>`
+- Unquoted FareHarbor iframe: `<iframe src=https://fareharbor.com/embeds/book>`
+- Unquoted FareHarbor form action: `<form action=https://fareharbor.com/checkout>`
+
+Fixed the common quoted/unquoted HTML attribute extraction and FareHarbor matcher to accept `//` protocol-relative URLs. Added six source-audit regressions (five provider paths plus unquoted root-to-Lisbon destination); **23/23** standalone source-audit cases PASS, and all five previously hidden booking variants now return a high-severity `risk-present` result. This is only *source* detection, **not proof of live provider checkout or JS-added buttons**.
+
+The separate static **candidate** checker also used to ignore unquoted `href` attributes. Updated its allowlist parser and added three negative mutation tests for an unquoted unapproved external domain, protocol-relative provider href and unsafe `javascript:` href. **13/13** candidate safety cases PASS; both proposed HTML documents still pass with zero candidate findings.
+
+The **real legacy root and Lisbon hosting pages were not updated**. A prior public web crawler displayed the old FareHarbor and Lisbon marketing content, but that cache is not a verified fresh DOM or active provider state. The stronger checks prevent future false approval of the proposed replacements; actual root/Lisbon hosting, booking obligations, fresh backup and separate release approvals remain deferred in #604/#609.
