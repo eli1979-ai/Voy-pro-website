@@ -15,6 +15,9 @@ const htmlFiles=walk(site).filter(p=>p.endsWith('.html'));
 const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
 
+const fail=(file,msg)=>errors.push(file+': '+msg);
+const warn=(file,msg)=>warnings.push(file+': '+msg);
+
 // Accessible descriptions must match the Hebrew-language Budapest pages.
 // Empty alt is legal for purely decorative images; meaningful descriptions
 // must not silently regress to English as these pages evolve.
@@ -29,9 +32,6 @@ for(const [file,html] of htmlMap){
   }
 }
 
-
-const fail=(file,msg)=>errors.push(file+': '+msg);
-const warn=(file,msg)=>warnings.push(file+': '+msg);
 
 // Core tour pages only show three hand-picked alternatives. Ensure guests can
 // reach the full live catalog (including newer routes) in their own language.
