@@ -109,7 +109,7 @@ for(const [path,copy] of guides){
     path+' must preserve accessible first-party preview and official link');
   assert.equal((html.match(/data-ez-video="/g)||[]).length,2,
     path+' must preserve both original manufacturer clips');
-  assert.ok(!/<iframe\\b[^>]*youtube-nocookie/i.test(html),
+  assert.ok(!/<iframe\b[^>]*youtube-nocookie/i.test(html),
     path+' must not hard-code a third-party iframe into initial HTML');
 }
 console.log('EZRaider EN/HE/HU/PT: explicit Play, deferred media, switching, links and allowlist QA passed.');
