@@ -152,6 +152,40 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
               null,{timeout:2000}).catch(()=>{});
             check(await opener.evaluate(el=>document.activeElement===el),
               name+' closing review returns focus to opener');
+            // The carousel's visual before/after copies are aria-hidden,
+            // but their expanded review buttons can be clicked by pointer.
+            // Test the real native dialog in Chrome, not only our VM fixture.
+            const duplicate=carousel.locator('.vp-review-group--before .vp-review-expand').first();
+            check(await duplicate.evaluate(el=>
+              el.tabIndex===-1&&el.closest('.vp-review-group')?.getAttribute('aria-hidden')==='true'),
+              name+' infinite-scroll duplicate is excluded from the accessible tab order');
+            const rightControl=carousel.locator('[data-vp-reviews-right]');
+            const pauseControl=carousel.locator('[data-vp-reviews-pause]');
+            check(await pauseControl.isHidden(),
+              name+' reduced-motion mode hides unnecessary auto-scroll Resume control');
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            // Native dialog close events (and focus restoration) can follow
+            // Escape asynchronously; assert the eventual accessible focus
+            // destination instead of racing the browser's close callback.
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-right]'),
+              null,{timeout:3000}).catch(()=>{});
+            check(await rightControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible manual arrow with reduced motion');
+            await page.emulateMedia({reducedMotion:'no-preference'});
+            await page.waitForFunction(()=>
+              document.querySelector('[data-vp-reviews-pause]')?.hidden===false,
+              null,{timeout:3000});
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-pause]'),
+              null,{timeout:3000}).catch(()=>{});
+            check(await pauseControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible Pause/Resume control in normal motion');
           }
         }
       }
@@ -641,7 +675,18 @@ try{
       if(name.startsWith('marvao-')){
         const form=page.locator('#request [data-portugal-request-form]');
         await form.locator('select[name="route"]').selectOption('explorer');
-        await form.locator('input[name="date"]').fill('2026-10-30');
+        // Never freeze a public request test to a calendar date that will
+        // expire. The live picker itself sets min using Lisbon's local day;
+        // use its bound as the source of truth, independent of runner zone.
+        const dateInput=form.locator('input[name="date"]');
+        const lisbonMinimum=await dateInput.getAttribute('min');
+        check(/^\d{4}-\d{2}-\d{2}$/.test(lisbonMinimum||''),
+          name+' Marvão test reads a valid Lisbon-local date minimum');
+        const chosenDate=new Date(Date.parse(lisbonMinimum+'T12:00:00Z')+
+          3*24*60*60*1000).toISOString().slice(0,10);
+        check(chosenDate>=lisbonMinimum,
+          name+' selected future request date is not earlier than Lisbon minimum');
+        await dateInput.fill(chosenDate);
         await form.locator('select[name="people"]').selectOption('4');
         await form.locator('select[name="guide_language"]').selectOption('pt');
         await form.locator('input[name="full_name"]').fill('Private Browser Name');
@@ -661,7 +706,7 @@ try{
           name.includes('-pt-')?'pt-PT':'en-GB';
         const formattedDate=new Intl.DateTimeFormat(dateLocale,{
           day:'numeric',month:'short',year:'numeric',timeZone:'UTC'
-        }).format(new Date(Date.UTC(2026,9,30)));
+        }).format(new Date(chosenDate+'T12:00:00Z'));
         const languageLabel=name.includes('-he-')?'פורטוגזית':
           name.includes('-pt-')?'Português':'Portuguese';
         check(floated.hostname==='wa.me'&&floated.pathname==='/351935695004',
