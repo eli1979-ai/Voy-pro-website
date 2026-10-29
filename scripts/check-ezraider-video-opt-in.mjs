@@ -47,7 +47,15 @@ function simulate(withPlay=true){
     querySelector(selector){return selector==='[data-ez-video-player]'?player:null;},
     createElement(tag){
       assert.equal(tag,'iframe','only iframe media elements may be created');
-      const frame={tag};frames.push(frame);return frame;
+      const frame={
+        tag,focusCount:0,focusedAfterInsertion:false,preventScroll:false,
+        focus(options){
+          this.focusCount++;
+          this.focusedAfterInsertion=stage.current===this;
+          this.preventScroll=options?.preventScroll===true;
+        }
+      };
+      frames.push(frame);return frame;
     }
   };
   vm.runInNewContext(source,{document},{filename:'ezraider-guide.js',timeout:1000});
@@ -76,6 +84,12 @@ assert.ok(first.frames[0].src.includes('autoplay=1&mute=1'),
   'the explicitly selected video begins muted with native player controls');
 assert.equal(first.frames[0].loading,'eager');
 assert.equal(first.frames[0].referrerPolicy,'strict-origin-when-cross-origin');
+assert.equal(first.frames[0].tabIndex,0,'new video iframe must be keyboard focusable');
+assert.equal(first.frames[0].focusCount,1,'Play should explicitly focus the replacement player');
+assert.equal(first.frames[0].focusedAfterInsertion,true,
+  'focus the iframe only after replacing the Play button in the DOM');
+assert.equal(first.frames[0].preventScroll,true,
+  'focusing the video must not unexpectedly scroll away from the hero');
 
 first.buttons[0].events.click();
 assert.equal(first.frames.length,2,'after Play, switching clips replaces the existing video');
@@ -83,6 +97,9 @@ assert.equal(first.stage.current,first.frames[1]);
 assert.ok(first.frames[1].src.startsWith('https://www.youtube-nocookie.com/embed/1i2IQSShkQ8?'));
 assert.equal(first.watch.href,'https://www.youtube.com/watch?v=1i2IQSShkQ8');
 assert.equal(first.buttons[0].attrs['aria-pressed'],'true');
+assert.equal(first.frames[1].tabIndex,0,'new clip iframe stays keyboard reachable');
+assert.equal(first.frames[1].focusCount,0,
+  'selecting another clip after playback must not steal focus from the selection button');
 
 first.buttons[1].dataset.ezVideo='javascript:alert(1)';
 first.buttons[1].events.click();

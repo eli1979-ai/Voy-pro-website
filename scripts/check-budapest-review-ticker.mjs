@@ -196,6 +196,39 @@ if(manifest.status==='awaiting_verified_approval'){
 const approved=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
 assert(approved.root.hidden===false,'approved 20-item list must activate the ticker');
 
+// Keyboard focus on a review quote, expansion button or source link must
+// pause the moving strip. Merely focusing outside review cards (including
+// the distinct Resume control) must never cancel a user's choice to resume.
+for(const language of ['en','he','hu']){
+  const keyboard=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  assert(typeof keyboard.viewport.events.focusin==='function',
+    language+' review viewport must listen for keyboard focus');
+  keyboard.viewport.events.focusin({target:{closest:()=>null}});
+  assert(!keyboard.root.classList.states.has('is-paused'),
+    language+' non-card focus must not pause reviews');
+  const start=keyboard.viewport.scrollLeft;
+  keyboard.viewport.events.focusin({target:{closest:selector=>
+    selector==='.vp-review-card'?keyboard.track.children[1].children[0]:null}});
+  assert(keyboard.root.classList.states.has('is-paused'),
+    language+' review-card keyboard focus must pause automatic scrolling');
+  assert(keyboard.pause.attrs['aria-pressed']==='true',
+    language+' focus-triggered pause must expose the pressed state');
+  assert(keyboard.pause.textContent===({en:'Resume reviews',he:'המשך גלילת ביקורות',hu:'Értékelések folytatása'}[language]),
+    language+' pause control must show the localized Resume label');
+  const initialFrame=keyboard.frames[0];
+  initialFrame?.(1000);
+  keyboard.frames.at(-1)?.(1070);
+  assert(keyboard.viewport.scrollLeft===start,
+    language+' queued animation frames must not advance while a review has keyboard focus');
+  keyboard.pause.events.click?.();
+  assert(!keyboard.root.classList.states.has('is-paused'),
+    language+' explicit Resume must still restart scrolling after keyboard focus pause');
+  const resumed=keyboard.viewport.scrollLeft;
+  keyboard.frames.at(-1)?.(1140);
+  assert(keyboard.viewport.scrollLeft>resumed,
+    language+' explicit Resume must advance the review ribbon normally');
+}
+
 // Respect the user's OS accessibility setting without burning animation
 // frames for a strip that must never scroll automatically. Manual navigation
 // and the real text/source links remain available to all three locales.
