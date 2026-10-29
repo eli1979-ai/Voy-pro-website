@@ -42,7 +42,7 @@ node scripts/check-legacy-ezraidereu-plugin-advisories.mjs --self-test
 node scripts/check-legacy-ezraidereu-plugin-advisories.mjs --input /private/plugin-versions.json
 ```
 
-Input example (only plugin slug/version/status — **no accounts, mail, access tokens, private backup**):
+Input example (only plugin identity/version/status — **no accounts, mail, access tokens, private backup**). The helper also directly accepts the real connected WordPress `plugin.list` shape, which uses `plugin_file` rather than `slug`; you do not have to manually rename the identifier:
 
 ```json
 {
@@ -54,7 +54,7 @@ Input example (only plugin slug/version/status — **no accounts, mail, access t
 }
 ```
 
-Output `within-advisory-version-range` means only that the version matches a published range. Applicability conditions and authentication remain separate. Status `inconclusive` is returned for missing, duplicated or unparseable plugin versions rather than a false all-clear. Exit code **1**: a selected range match; **2**: incomplete/ambiguous input; **0**: no match to *these four CVEs*, explicitly **not** security certification. Twelve synthetic scenarios exercise old and patched boundaries, missing/duplicate/invalid versions and inactive plugin metadata. This script is **not** connected to GitHub CI or any public schedule; it is intentionally local/offline to preserve low usage and avoid production credentials.
+Output `within-advisory-version-range` means only that the version matches a published range. Applicability conditions and authentication remain separate. Status `inconclusive` is returned for missing, duplicated or unparseable plugin versions rather than a false all-clear. Exit code **1**: a selected range match; **2**: incomplete/ambiguous input; **0**: no match to *these four CVEs*, explicitly **not** security certification. **Eighteen** independent synthetic scenarios check fixed-version boundaries, missing/duplicate/invalid fields, inactive plugins, conflicting IDs, unknown states and the actual `plugin_file` schema. All four selected historical advisories still match the three **active** WordPress plugins in the connected 29-Oct inventory. Both `matches` (all installed-version range matches) and `activeMatches` / `inactiveMatches` are returned to distinguish the risk of code loaded on the site from a disabled plugin's stale version; inactive-version matches still return exit 1 for review, but they do not count as active exposure. An unrecognized activation state is *inconclusive*, not safe. This script is **not** connected to GitHub CI or any public schedule; it is intentionally local/offline to preserve low usage and avoid production credentials.
 
 ## Safest release path
 
@@ -65,3 +65,9 @@ Output `within-advisory-version-range` means only that the version matches a pub
 5. After exact-head QA, a reviewed restore path and owner authorization, schedule a narrowly scoped live maintenance release; verify on real visitors' paths and prepare rollback. Never update all three plugins together or silently disable potentially used content widgets.
 
 **All human/host/plugin-license/production tasks remain deferred:** [owner queue #604](https://github.com/eli1979-ai/Voy-pro-website/issues/604) and [security issue #615](https://github.com/eli1979-ai/Voy-pro-website/issues/615). The current source-only branch is not a WordPress plugin patch and will not change this site's exposure on merge.
+
+### 29 October read-only code verification
+
+The exact GitHub-fetched updated checker was evaluated against the **unmodified 28-plugin WordPress connector response** (using native `plugin_file` fields). It returned **four version matches, four active matches, zero inactive matches, zero unknowns** across the three tracked plugins; 18/18 synthetic cases passed. This is a *detection* result, not any mitigation. CVE applicability requires the conditional plugin feature, host and role constraints discussed above.
+
+**Publication-date nuance:** the patch provider's specific advisory page for CVE-2026-10821 lists **26 October 2026**, while the public CVE record lists an earlier disclosure date of **2 September 2026**. These represent dates attached to different records, not evidence of two separate vulnerabilities. The patched minimum remains 27.6.1.
