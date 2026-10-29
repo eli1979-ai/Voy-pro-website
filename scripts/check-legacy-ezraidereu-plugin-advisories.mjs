@@ -43,8 +43,17 @@ function compare(a,b){
 export function reviewPlugins(input){
  const records=Array.isArray(input)?input:input?.plugins;
  if(!Array.isArray(records))throw Error('Expected {plugins:[{slug,version,status}]} or a plugin array');
- const known=records.filter(x=>x&&typeof x.slug==='string'&&CHECKED.includes(x.slug));
- const ambiguities=CHECKED.filter(slug=>known.filter(x=>x.slug===slug).length!==1);
+ // WordPress plugin.list uses plugin_file; the offline manifest may use slug.
+ // Both fields may appear, but conflicts must not silently select one identity.
+ const normalized=records.map(x=>({
+   slug:x?.slug??x?.plugin_file,
+   version:x?.version,
+   status:x?.status,
+   conflictingIdentity:typeof x?.slug==='string'&&typeof x?.plugin_file==='string'&&x.slug!==x.plugin_file
+ }));
+ const known=normalized.filter(x=>typeof x.slug==='string'&&CHECKED.includes(x.slug));
+ const ambiguities=CHECKED.filter(slug=>known.filter(x=>x.slug===slug).length!==1||
+   known.some(x=>x.slug===slug&&x.conflictingIdentity));
  const results=ADVISORIES.map(advisory=>{
   const item=known.find(x=>x.slug===advisory.slug);
   const version=item?.version;
@@ -52,16 +61,23 @@ export function reviewPlugins(input){
   let match='unknown';
   if(c!==null)match=c<0||(c===0&&!advisory.exclusive)?'within-advisory-version-range':'outside-this-advisory-version-range';
   if(ambiguities.includes(advisory.slug))match='unknown';
+  const pluginState=['active','inactive'].includes(item?.status)?item.status:'unknown';
+  const exposure=match==='unknown'||pluginState==='unknown'?'inconclusive':
+   match==='outside-this-advisory-version-range'?'outside-this-specific-advisory':
+   pluginState==='active'?'active-version-match':'inactive-version-match';
   return {slug:advisory.slug,installedVersion:typeof version==='string'?version:null,
-   pluginState:item?.status??'unknown',advisory:advisory.id,match,
+   pluginState,advisory:advisory.id,match,exposure,
    fixedIn:advisory.fixed,requiredPrivilege:advisory.privilege,
    applicability:advisory.applicability,reference:advisory.source};
  });
  const matches=results.filter(x=>x.match==='within-advisory-version-range').length;
- const unknown=results.filter(x=>x.match==='unknown').length;
+ const activeMatches=results.filter(x=>x.exposure==='active-version-match').length;
+ const inactiveMatches=results.filter(x=>x.exposure==='inactive-version-match').length;
+ const unknown=results.filter(x=>x.exposure==='inconclusive').length;
  return {scope:'four historical advisories only; no complete vulnerability scan',
-   status:unknown?'inconclusive':matches?'review-needed':'no-version-match-to-these-four-advisories',
-   matches,unknown,ambiguousPluginSlugs:ambiguities,results};
+   status:unknown?'inconclusive':activeMatches?'review-needed':inactiveMatches?
+    'inactive-versions-only':'no-version-match-to-these-four-advisories',
+   matches,activeMatches,inactiveMatches,unknown,ambiguousPluginSlugs:ambiguities,results};
 }
 function selfTest(){
  const item=(slug,version,status='active')=>({slug,version,status});
@@ -84,12 +100,42 @@ function selfTest(){
  const dup=reviewPlugins({plugins:[...all('21.0','3.24.0','6.0.6').plugins,item(premium,'27.6.1')]});
  assert.equal(dup.status,'inconclusive');assert.equal(dup.unknown,2);
  const inactive=reviewPlugins({plugins:[item(premium,'21.0','inactive'),item(elementor,'3.24.0'),item(cf7,'6.0.6')]});
- assert.equal(inactive.matches,2);assert.equal(inactive.results[0].pluginState,'inactive');
+ assert.equal(inactive.matches,2);assert.equal(inactive.activeMatches,0);
+ assert.equal(inactive.inactiveMatches,2);assert.equal(inactive.status,'inactive-versions-only');
+ assert.equal(inactive.results[0].pluginState,'inactive');
+ const wordpressShape=reviewPlugins({plugins:[
+  {plugin_file:premium,version:'21.0',status:'active'},
+  {plugin_file:elementor,version:'3.23.4',status:'active'},
+  {plugin_file:cf7,version:'5.9.8',status:'active'}
+ ]});
+ assert.equal(wordpressShape.matches,4);assert.equal(wordpressShape.activeMatches,4);
+ const conflict=reviewPlugins({plugins:[
+  {slug:premium,plugin_file:'different/plugin',version:'21.0',status:'active'},
+  item(elementor,'3.24.0'),item(cf7,'6.0.6')
+ ]});
+ assert.equal(conflict.status,'inconclusive');assert.equal(conflict.unknown,2);
+ const missingState=reviewPlugins({plugins:[
+  {slug:premium,version:'21.0'},item(elementor,'3.24.0'),item(cf7,'6.0.6')
+ ]});
+ assert.equal(missingState.status,'inconclusive');
+ const mixed=reviewPlugins({plugins:[item(premium,'21.0'),item(elementor,'3.23.4','inactive'),item(cf7,'6.0.6')]});
+ assert.equal(mixed.status,'review-needed');assert.equal(mixed.activeMatches,2);
+ assert.equal(mixed.inactiveMatches,1);
+ const malformedWordpress=reviewPlugins({plugins:[
+  {plugin_file:premium,version:'27.6.1',status:'active'},
+  {plugin_file:elementor,version:'3.24.0',status:'active'},
+  {plugin_file:cf7,version:'v6.0.6',status:'active'}
+ ]});
+ assert.equal(malformedWordpress.status,'inconclusive');
+ const unknownState=reviewPlugins({plugins:[
+   item(premium,'27.6.1'),item(elementor,'3.24.0'),item(cf7,'6.0.6','network')
+ ]});
+ assert.equal(unknownState.status,'inconclusive');
  assert.equal(compare('21.0','21.0.0'),0);
  assert.equal(compare('27.6.1','27.6.0'),1);
  assert.equal(compare('1.0-beta','1.0'),null);
  assert.equal(reviewPlugins(all('27.6.1','3.24.0','6.0.6')).results.length,4);
- console.log('PASS: 12 read-only advisory/version/unknown-boundary checks');
+ console.log('PASS: 18 read-only advisory/version/state/schema checks');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
