@@ -101,6 +101,15 @@ for(const input of ['', '?from=https://evil.example','?from=%2F%2Fevil.example',
 }
 assert.equal(h(run('?from=budapest','hu'),'booking'),'/hu/budapest/#booking');
 assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
+// Hungarian destination context must spell the proper place name Marvão
+// correctly, without changing the branch's booking/return destinations.
+const huMarvao=run('?from=marvao','hu');
+assert.equal(h(huMarvao,'back'),'/portugal/');
+assert.equal(huMarvao.actions.back.textContent,'Vissza Marvão oldalára');
+assert.equal(huMarvao.status.textContent,'Folytatás a helyi csapattal Marvão városában.');
+assert.ok(!huMarvao.actions.back.textContent.includes('ãó')&&
+  !huMarvao.status.textContent.includes('ãó'),
+  'Hungarian labels must not distort the canonical Marvão spelling');
 
 // Every new and group/private/corporate guide must return to its exact page, including
 // after switching guide language. The branch booking must stay in Budapest.
