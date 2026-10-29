@@ -44,3 +44,18 @@ Original v6 was a prepared but not verified-installed document in the Library. v
 **Critical restriction:** This candidate is NOT a map fix, and it must **NOT be installed in Production** merely because it eliminates an incorrect guess. With v6.2's map override removed, the legacy PHP/ACF template's existing iframe may resurface and lead to an old or incorrect location, potentially affecting guests. Wait until both the exact owner-approved guest entrance/location and a correct official Google embed can be included and visually reviewed, with a restorable up-to-date site backup. A Draft PR merge in the VOY PRO website repository would not deploy it to legacy WordPress anyway.
 
 The only owner actions are deferred in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604). Do not interrupt the owner for this optional source candidate now.
+
+## 29 October — authoritative parcel evidence reconciles the two streets
+
+New **official legal address evidence** reduces the previous ambiguity:
+
+- [Hungarian National Legislation Database — District V ordinance 5/2020](https://njt.jog.gov.hu/jogszabaly/2020-5-SP-5Y254.3), entry `VH487`: parcel/cadastral number **24285**, `Városház utca 12-14. = Pilvax köz 4.`. The equals sign indicates two address expressions for the **same registered property**.
+- [Hungarian National Legislation Database — District V ordinance 14/2008](https://njt.jog.gov.hu/jogszabaly/2008-14-SP-5Y254), entry `209`: **24285**, `Városház utca 12-14. = Pilvax köz 4.`. Independent historical legal corroboration.
+- [District V local ordinance register 6/2020](https://or.njt.hu/onkormanyzati-rendelet/2020-6-SP-254), row `550`: **24285**, `Városház utca 14, Pilvax köz 4`. This is the exact Budapest business-directory street number.
+- Public [business listing](https://www.top-rated.online/cities/Budapest/place/p/13373076/EZRaider%2BBudapest%2Bby%2BVoy%2BPRO) identifies **EZRaider Budapest by VOY PRO** at `Városház u. 14` and +36 30 099 3099. A different nearby building/hotel at `Pilvax köz 1-3` **must not be used** as the tour guest meeting point.
+
+**Conclusion, carefully scoped:** The `Városház utca 14` and `Pilvax köz 4` address strings are not inherently conflicting: official legal sources tie them to the **same cadastral property #24285**. This significantly reduces uncertainty about the correct *building*. However, a building can have multiple entrances. No source above identifies the actual tour entrance door, the Google Business Profile Place ID or the precise coordinates of the correct map pin. Therefore **the final pin and iframe embed remain unverified**.
+
+**Future implementation rule:** retain the previously owner-supplied official Google Business Profile shortlink `https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac` as the safe link to the business listing when such a link is needed, without inventing Place IDs or appending unverified coordinates. Do not geocode `Városház utca 14`, `Pilvax köz 4` or the nearby `Pilvax köz 1-3` as a substitute for a genuinely verified exact guest entrance. Do not install the separate v7 map-hold snippet into live WordPress while its legacy PHP iframe still has unknown coordinates.
+
+**Owner action impact:** The owner does **not** need to supply the business Maps profile link again, nor choose which street address belongs to the same registered property. Only the **entrance/pin confirmation** and usual restore/release gates remain deferred under issue #604.
