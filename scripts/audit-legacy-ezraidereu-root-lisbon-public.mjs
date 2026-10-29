@@ -14,9 +14,13 @@ const pages={
 const strip=s=>String(s).replace(/<!--[\s\S]*?-->/g,' ')
   .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ');
 const plain=s=>strip(s).replace(/<[^>]+>/g,' ').replace(/&(?:nbsp|amp);/gi,' ').replace(/\s+/g,' ').trim();
-const hrefs=s=>[...strip(s).matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map(m=>m[2].replace(/&amp;/gi,'&'));
-const attrs=(s,tag,key)=>[...String(s).matchAll(new RegExp('<'+tag+'\\b[^>]*\\b'+key+'\\s*=\\s*(["\\x27])([^"\\x27]*?)\\1','gi'))].map(m=>m[2].replace(/&amp;/gi,'&'));
-const fareharbor=x=>/^https?:\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x);
+// Accept valid quoted and unquoted HTML attributes, including protocol-relative
+// URLs. This is a source-level audit, not a DOM parser or runtime checkout test.
+const attrs=(s,tag,key)=>[...String(s).matchAll(
+ new RegExp('<'+tag+'\\b[^>]*?\\b'+key+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s"\\x27=<>`]+))','gi')
+)].map(m=>(m[1]??m[2]??m[3]??'').replace(/&amp;/gi,'&'));
+const hrefs=s=>attrs(strip(s),'a','href');
+const fareharbor=x=>/^(?:https?:)?//(?:[^/?#]+.)?fareharbor.com(?:[/?#]|$)/i.test(String(x).trim());
 const issue=(code,severity,detail)=>({code,severity,detail});
 export function auditLegacyPage(kind,html,url=pages[kind]){
   if(!(kind in pages))throw Error('Unknown page type');
@@ -91,6 +95,11 @@ function selfTest(){
     ['booking button','<button type="button">Book Now</button>','LISBON_BOOKING_BUTTON'],
     ['inline mention','<script>console.log("fareharbor.com")</script>','LISBON_INLINE_FAREHARBOR_REFERENCE'],
     ['changed price','<p>New promotional price: €55.</p>','LISBON_LEGACY_FARES'],
+    ['protocol-relative anchor','<a href="//fareharbor.com/book/">Reserve</a>','LISBON_FAREHARBOR_LINK'],
+    ['protocol-relative iframe','<iframe src="//fareharbor.com/embeds/book"></iframe>','LISBON_FAREHARBOR_EMBED'],
+    ['unquoted anchor','<a href=https://fareharbor.com/book>Reserve</a>','LISBON_FAREHARBOR_LINK'],
+    ['unquoted iframe','<iframe src=https://fareharbor.com/embeds/book></iframe>','LISBON_FAREHARBOR_EMBED'],
+    ['unquoted form','<form action=https://fareharbor.com/book></form>','LISBON_FAREHARBOR_EMBED'],
   ];
   for(const [label,markup,expected] of bookingCases){
     const fixture=safeLisbon.replace('</main>','</main>'); // long, complete fixture
@@ -99,7 +108,9 @@ function selfTest(){
   }
   const headedRoot=rootReady.replace('</body>','<h2>Lisboa — new tours!</h2></body>');
   assert.ok(auditLegacyPage('root',headedRoot).issues.some(x=>x.code==='LEGACY_DESTINATION_CTA'));
-  console.log('PASS: 17 read-only public source audit scenarios (9 original + 8 regressions)');
+  const unquotedLisbon=rootReady.replace('</body>','<a href=/lisbon/>Lisbon destination</a></body>');
+  assert.ok(auditLegacyPage('root',unquotedLisbon).issues.some(x=>x.code==='LEGACY_DESTINATION_CTA'));
+  console.log('PASS: 23 read-only public source audit scenarios (17 previous + 6 overlooked HTML link forms)');
 }
 async function main(){
   if(process.argv.includes('--self-test')){selfTest();return;}
