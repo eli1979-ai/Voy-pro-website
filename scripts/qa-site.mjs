@@ -324,6 +324,18 @@ try{
     'Budapest weekly count-update simulation: '+String(error.stderr||error.message||error).slice(0,1500));
 }
 
+// The vehicle guide must not contact YouTube before the visitor presses Play.
+// Exercise actual video-controller JS in a local VM; no third-party requests.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-ezraider-video-opt-in.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:10000
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/ezraider-guide.js',
+    'EZRaider optional video loading regression: '+String(error.stderr||error.message||error).slice(0,1100));
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){

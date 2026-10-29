@@ -41,9 +41,13 @@ check(html.includes('<script src="/assets/home-destination-cards.js"></script>')
 const cardScript=fs.readFileSync('site/assets/home-destination-cards.js','utf8');
 let navigations=0;
 let selectedText='';
+let selectionAnchor=null;
+let selectionFocus=null;
+let intersectedCard=null;
 const mockCard=()=>{
   let onClick;
   return {
+    contains(node){return node?.card===this;},
     querySelector:selector=>{
       check(selector==='h3 .tour-detail-link[href]','Destination link selector changed');
       return {click:()=>{navigations++;}};
@@ -57,7 +61,15 @@ const mockCard=()=>{
 };
 const activeCards=[mockCard(),mockCard()];
 vm.runInNewContext(cardScript,{document:{
-  getSelection:()=>({toString:()=>selectedText}),
+  getSelection:()=>({
+    toString:()=>selectedText,
+    anchorNode:selectionAnchor,
+    focusNode:selectionFocus,
+    containsNode:(node,allowPartial)=>{
+      check(allowPartial===true,'Selection overlap must include partially selected cards');
+      return node===intersectedCard;
+    }
+  }),
   querySelectorAll:selector=>{
   check(selector.includes(':not(.destination-card--coming-soon)'),
     'Prague coming-soon card must not be clickable');
@@ -69,13 +81,29 @@ activeCards[0].fire({target:{closest:()=>({})}});
 activeCards[0].fire({ctrlKey:true});
 activeCards[0].fire({button:1});
 activeCards[1].fire({defaultPrevented:true});
-selectedText='  Marvão tour details  ';
+// Selecting Budapest card copy must not navigate THAT card, but it must
+// not disable the separate Marvão destination photo/card.
+selectedText='  Budapest tour details  ';
+selectionAnchor={card:activeCards[0]};
+activeCards[0].fire({});
+check(navigations===2,'Selected text inside clicked card must block navigation');
+activeCards[1].fire({});
+check(navigations===3,'Selected text in another card must not block navigation');
+// A selection in unrelated page copy must not make either card inert.
+selectionAnchor={card:null};
+selectionFocus={card:null};
 activeCards[0].fire({});
 activeCards[1].fire({});
-check(navigations===2,'Selecting card text must not trigger navigation');
+check(navigations===5,'Selection elsewhere on the page must not block either destination');
+// A selection with endpoints outside the card may still span its contents.
+intersectedCard=activeCards[1];
+activeCards[1].fire({});
+check(navigations===5,'Selection spanning the clicked card must block navigation');
+// Whitespace-only selection never suppresses a normal click.
 selectedText='   ';
+selectionAnchor={card:activeCards[0]};
+intersectedCard=activeCards[0];
 activeCards[0].fire({});
-check(navigations===3,'Cleared or whitespace-only text selection must allow ordinary click');
-check(navigations===3,'Only unmodified background clicks without selected text may navigate');
+check(navigations===6,'Whitespace-only selection must allow an ordinary click');
 if(fail.length){console.error('Root destination card test FAIL:\n'+fail.join('\n'));process.exit(1)}
 console.log('Root destination card photography, links, credits, overlay, responsive and coming-soon checks OK.');
