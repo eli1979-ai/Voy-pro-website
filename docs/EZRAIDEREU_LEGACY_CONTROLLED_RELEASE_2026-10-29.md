@@ -63,11 +63,18 @@ Preserve these draft PRs and the exact WPCode `v6.2` rollback source. Audit each
 - Verify exact live business profile pin, approved guest entrance and **official correct iframe**. Review the full installed WPCode #488, not a fragment. The #598 integrated v7 candidate preserves the reported v6.2 footer script but **removes** an unverified map override; installing it too early may expose an old PHP map.
 - Stage a single version-locked full-snippet replacement only after backup + source review. Confirm EN/HU/HE footer menu links, WhatsApp, review providers, email and map **with a real browser**, not just synthetic script tests. Do not create a second snippet or activate unrelated booking providers.
 
-### Phase 5 — root + Lisbon **independent host/provider release**
+### Phase 5A — root landing **separate host / rollback / approval**
 
-- Determine the actual root/Lisbon hosting and backups. Audit old Lisbon FareHarbor products and obligations for existing reservations, before disabling public purchase options.
-- Stage #610 candidates only on the hosting that serves `/` and `/lisbon/`; make no false claims about Athens being operable and preserve the Budapest subsite's routing. Review status text and SEO canonicals carefully; removing old links alone **does not disable direct third-party checkout URLs**.
-- If released later, verify root, `www`, Lisbon, redirect chains, canonical/noindex choices, mobile navigation, HTTPS and absence of legacy checkout from the *rendered* page; separately confirm provider controls.
+- Identify the host and serving source for **`/` only**, obtain and successfully restore a current **root-site** backup into isolated staging, and verify `www` redirect/canonical, Budapest link targets, mobile layout and SEO indexing. Do not assert Athens is currently operable.
+- Review the new root destination messaging, and approve a **root-only** release. Changing the root visitor navigation must not be treated as disabling any old Lisbon provider checkout or cancelling bookings. Check external FareHarbor paths separately; preserve `/budapest/` routing and other existing production paths.
+- Release the **root** only with its own tested rollback and approval. Check both `/` and `www` after publication before considering any Lisbon change.
+
+### Phase 5B — Lisbon notice **separate provider / customer / rollback / approval**
+
+- Discover the **`/lisbon/`** serving host and source and independently test restoration from a current Lisbon backup. Do not assume it shares the root application's file ownership or rollback.
+- Review actual live FareHarbor products, sale availability and any **previously paid customers** before changing public language or providers. An HTML notice alone does not disable direct provider checkout URLs.
+- Stage the Lisbon-specific candidate from #610 without booking forms, stale prices or unverifiable route promises. Review existing-reservation instructions and avoid cancellations/refunds without authorization.
+- Require **separate explicit Lisbon release approval**. Independently verify Lisbon source and rendered page, mobile/HTTPS/SEO, direct provider purchasability controls, customer obligations and a Lisbon-only rollback. **Never use root approval as Lisbon approval.**
 
 ## Post-release acceptance (each atomic scope)
 
@@ -101,6 +108,8 @@ A blind regression check of the original release-control code reproduced **two r
 The **revised** checker fixes both:
 - A hardcoded, individually reviewed workstream-to-PR-to-target-to-mandatory-gates mapping rejects changed PR assignments, changed target hosts, replaced status, missing gates and an attempt to substitute a newer-looking archive for the v6.2 checkpoint.
 - It never marks *self-declared* private evidence as verified. Even complete-looking evidence produces `unverified-attestations-awaiting-review` and nonzero process exit. Independent review of original private restore, vendor license, exact **current** upstream SHA and human authorization is required outside the code.
-- **24/24** targeted local test assertions pass against the exact GitHub-fetched source, including the two formerly missed cases and additional scope/status mutations. Original manifest remains a static **29-Oct snapshot**, not a GitHub online attestation. The new checker makes **no** WordPress, plugin, payment, hosting or GitHub merge changes.
+- **24/24** targeted local test assertions pass against the exact GitHub-fetched source, including the two formerly missed cases and additional scope/status mutations. Original manifest remains a static **29-Oct snapshot**, not a GitHub online attestation. The new checker also treats root and Lisbon as separate workstreams sharing source PR #610, not as one release. It makes **no** WordPress, plugin, payment, hosting or GitHub merge changes.
 
 A PR merge to the modern website would still publish only documentation and test code, not legacy WordPress or root/Lisbon changes. The live release remains blocked by #604 until individual prerequisites and approvals are independently verified.
+
+**29 October follow-up:** The release contract now has **seven workstream records**, of which five are blocked actual releases and two are source-only/owner-installed checkpoints. The exact reviewed static workstream→PR→target→required-gates mappings reject scope swaps. A fake all-true evidence form yields `unverified-attestations-awaiting-review`, never a green release; the CLI exits with code 2. A valid planning document does not substitute for current GitHub CI or private host/provider evidence.
