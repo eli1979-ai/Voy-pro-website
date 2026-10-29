@@ -14,6 +14,22 @@ const attrs=tag=>Object.fromEntries([...tag.matchAll(/([:\w-]+)\s*=\s*"([^"]*)"/
 const htmlFiles=walk(site).filter(p=>p.endsWith('.html'));
 const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
+
+// Accessible descriptions must match the Hebrew-language Budapest pages.
+// Empty alt is legal for purely decorative images; meaningful descriptions
+// must not silently regress to English as these pages evolve.
+for(const [file,html] of htmlMap){
+  if(!file.startsWith('he/budapest/'))continue;
+  const images=[...html.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
+  for(const [index,tag] of images.entries()){
+    const alt=attrs(tag).alt;
+    if(alt===undefined)fail(file,'Hebrew image '+(index+1)+' is missing alt');
+    else if(alt.trim()&&!/[\u0590-\u05ff]/.test(alt))
+      fail(file,'Hebrew image '+(index+1)+' has non-Hebrew alt description');
+  }
+}
+
+
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
