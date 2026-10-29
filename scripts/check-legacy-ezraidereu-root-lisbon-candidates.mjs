@@ -13,7 +13,7 @@ const allowed=new Set([
   'https://ezraidereu.com/budapest/'
 ]);
 const hasHtml=s=>/<!doctype html>/i.test(s)&&/<html\s+lang=["']en["']/i.test(s)&&/<main\b/i.test(s)&&/<\/body>/i.test(s);
-const anchors=s=>[...s.matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map(m=>m[2].replace(/&amp;/g,'&'));
+const anchors=s=>[...s.matchAll(/<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/gi)].map(m=>(m[1]??m[2]??m[3]??'').replace(/&amp;/gi,'&'));
 function issues(s,kind) {
   const problems=[];
   const issue=(condition,code)=>{if(condition)problems.push(code)};
@@ -53,9 +53,12 @@ function selfTest(){
     ['Lisbon fake cancellation',lisbon.replace('This notice does not cancel an existing reservation','Old bookings are cancelled'),'MISSING_EXISTING_BOOKING_SAFEGUARD','lisbon'],
     ['Lisbon hidden form',lisbon.replace('</main>','<form><input></form></main>'),'UNREVIEWED_ACTIVE_EMBEDS_OR_FORM','lisbon'],
     ['root unreviewed external link',root.replace('</main>','<a href="https://third-party.example/">External</a></main>'),'UNREVIEWED_DESTINATION:https://third-party.example/','root'],
+    ['root unquoted external',root.replace('</main>','<a href=https://third-party.example/>External</a></main>'),'UNREVIEWED_DESTINATION:https://third-party.example/','root'],
+    ['Lisbon unquoted provider',lisbon.replace('</main>','<a href=//fareharbor.com/book/>Book</a></main>'),'UNREVIEWED_DESTINATION://fareharbor.com/book/','lisbon'],
+    ['root script-scheme',root.replace('</main>','<a href=javascript:alert(1)>Unsafe</a></main>'),'UNREVIEWED_DESTINATION:javascript:alert(1)','root'],
   ];
   for(const [label,html,expected,kind] of samples)assert.ok(issues(html,kind).includes(expected),label+': missing '+expected);
-  console.log('PASS: 10 static candidate safety scenarios (2 valid, 8 intentionally invalid)');
+  console.log('PASS: 13 static candidate safety scenarios (2 valid, 11 intentionally invalid)');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
