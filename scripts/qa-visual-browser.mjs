@@ -489,6 +489,34 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(await menu.getAttribute('aria-expanded')==='false',name+' menu resets aria-expanded');
         check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
           name+' Escape returns focus to original menu button');
+        // A real keyboard Enter on a menu link should close the modal and
+        // return focus even if another handler cancels navigation. Cancelling
+        // the link is confined to this browser fixture; website code never
+        // calls preventDefault or changes the link destination.
+        if(['home-mobile','budapest-he-mobile','budapest-hu-narrow','marvao-pt-mobile'].includes(name)){
+          await menu.click();
+          const link=page.locator('#mobile-nav-sheet a[href]').first();
+          const originalHref=await link.getAttribute('href');
+          await link.evaluate(a=>{
+            a.addEventListener('click',event=>{
+              event.preventDefault();
+              window.__voyNavQALinkActivated=true;
+            },{once:true});
+          });
+          await link.focus();
+          await page.keyboard.press('Enter');
+          check(await page.evaluate(()=>window.__voyNavQALinkActivated===true),
+            name+' keyboard Enter activates a real mobile navigation link');
+          check(await page.locator('#mobile-nav-sheet').isHidden()&&
+            await menu.getAttribute('aria-expanded')==='false',
+            name+' keyboard link closes mobile dialog and resets ARIA');
+          check(await page.evaluate(()=>!document.body.classList.contains('nav-open')),
+            name+' keyboard link releases the body scroll lock');
+          check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
+            name+' keyboard link restores visible menu-button focus');
+          check(await link.getAttribute('href')===originalHref,
+            name+' keyboard link does not rewrite its destination');
+        }
       }
     }
     if(guide){
