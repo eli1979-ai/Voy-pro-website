@@ -28,12 +28,17 @@
     frame.allowFullscreen=true;
     frame.loading='eager';
     frame.referrerPolicy='strict-origin-when-cross-origin';
+    frame.tabIndex=0;
     stage.replaceChildren(frame);
+    return frame;
   };
   play.addEventListener('click',()=>{
     // Only explicit user interaction may create a YouTube iframe.
     started=true;
-    render();
+    const frame=render();
+    // The activated button was removed: keep keyboard users at the player.
+    // Do not steal focus when a visitor switches clips with a selector button.
+    frame?.focus({preventScroll:true});
   });
   for(const button of buttons){
     button.addEventListener('click',()=>{
