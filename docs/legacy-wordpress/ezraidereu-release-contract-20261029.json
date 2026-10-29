@@ -172,18 +172,35 @@
       "automaticDeploy": false
     },
     {
-      "id": "root-lisbon",
-      "target": "root-and-lisbon-separate-host",
+      "id": "root-landing",
+      "target": "root-site-only",
       "ownerIssue": 604,
       "pr": 610,
-      "releaseKind": "independent-site-ownership-and-booking-audit",
+      "releaseKind": "root-destination-landing-only",
       "gateKeys": [
         "rootHostSourceIdentified",
-        "rootAndLisbonBackupRestored",
+        "rootBackupRestored",
+        "rootRoutingAndSeoVerified",
+        "publicMessagingApproved",
+        "rootStagingQaPassed",
+        "productionChangeApproved"
+      ],
+      "status": "blocked",
+      "automaticDeploy": false
+    },
+    {
+      "id": "lisbon-status",
+      "target": "lisbon-site-only",
+      "ownerIssue": 604,
+      "pr": 610,
+      "releaseKind": "lisbon-booking-status-only",
+      "gateKeys": [
+        "lisbonHostSourceIdentified",
+        "lisbonBackupRestored",
         "lisbonExistingBookingsReviewed",
         "providerSalePathReviewed",
-        "publicMessagingApproved",
-        "rootLisbonStagingQaPassed",
+        "lisbonCustomerMessagingApproved",
+        "lisbonStagingQaPassed",
         "productionChangeApproved"
       ],
       "status": "blocked",
@@ -199,7 +216,8 @@
     "rootLisbonDeployIndependentFromBudapestWordpress": true,
     "securityReleaseMustNotShareRollbackWithEditorialOrMapChanges": true,
     "neverInferGuestEntranceFromParcelPostalAddress": true,
-    "noVercelPreviewForDocsOnly": true
+    "noVercelPreviewForDocsOnly": true,
+    "rootAndLisbonMustReleaseSeparately": true
   },
-  "testEvidenceScope": "GitHub Actions runs validate repository build/launch/site QA, NOT legacy WordPress live browser behavior or the standalone legacy scripts. All dates/SHAs are a fixed 2026-10-29 snapshot requiring refresh on release."
+  "testEvidenceScope": "GitHub Actions runs validate repository build/launch/site QA, NOT legacy WordPress live browser behavior or the standalone legacy scripts. All dates/SHAs are a fixed 2026-10-29 snapshot requiring refresh on release. Root and Lisbon use distinct, separately approved release units even when candidate documentation shares PR #610."
 }
