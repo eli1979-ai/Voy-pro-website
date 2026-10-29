@@ -119,6 +119,9 @@ function node(tag){
     classList:{states:new Set(),toggle(k){if(this.states.has(k)){this.states.delete(k);return false;}this.states.add(k);return true;},add(k){this.states.add(k);},remove(k){this.states.delete(k);},contains(k){return this.states.has(k);}},
     offsetWidth:1200,clientWidth:500,scrollLeft:0,
     setAttribute(k,v){this.attrs[k]=v;},
+    focus(){this.focused=true;},
+    showModal(){this.open=true;},
+    close(){this.open=false;this.events.close?.();},
     append(...els){this.children.push(...els);},
     replaceChildren(...els){this.children=[...els];},
     addEventListener(k,fn,options){this.events[k]=fn;this.eventOptions[k]=options;},
@@ -135,7 +138,7 @@ async function simulate(payload,lang='en',reducedMotion=false){
   // Emulate a pointer hovering over the resumed button AND keyboard focus
   // remaining inside the carousel: neither condition may prevent Resume.
   root.matches=()=>true;
-  const doc={documentElement:{lang},visibilityState:'visible',
+  const doc={documentElement:{lang},visibilityState:'visible',body:node('body'),
     querySelector:(s)=>s==='[data-vp-reviews-root]'?root:null,
     createElement:node
   };
@@ -157,7 +160,7 @@ async function simulate(payload,lang='en',reducedMotion=false){
   vm.runInNewContext(script,context,{timeout:1500});
   // Let both promise continuations complete.
   for(let i=0;i<6;i++)await Promise.resolve();
-  return{root,track,pause,viewport,left,right,frames,
+  return{root,track,pause,viewport,left,right,frames,body:doc.body,
     changeMotion(next){
       assertStrict.equal(typeof motionListener,'function','OS motion listener must be registered');
       media.matches=next;
@@ -195,6 +198,55 @@ if(manifest.status==='awaiting_verified_approval'){
 }
 const approved=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
 assert(approved.root.hidden===false,'approved 20-item list must activate the ticker');
+
+// Native review-dialog focus: the middle group is accessible, but the
+// two endless-scroll replicas are aria-hidden even though their buttons
+// intentionally remain pointer-clickable. Closing a replica's modal must
+// never return keyboard focus to an accessibility-hidden subtree.
+for(const language of ['en','he','hu']){
+  const state=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  const expandIn=groupIndex=>{
+    const group=state.track.children[groupIndex];
+    const card=group.children[0];
+    const button=card.children[2].children[0].lastChild;
+    assertStrict.equal(button.tagName,'button');
+    button.closest=selector=>
+      selector==='.vp-review-group[aria-hidden="true"]'&&group.attrs['aria-hidden']==='true'
+        ?group:null;
+    return button;
+  };
+  const original=expandIn(1);
+  original.events.click();
+  const dialog=state.body.lastChild;
+  assertStrict.equal(dialog?.open,true,language+' original review modal opens');
+  dialog.close();
+  assertStrict.equal(original.focused,true,
+    language+' original review modal returns focus to original accessible button');
+  for(const groupIndex of [0,2]){
+    const clone=expandIn(groupIndex);
+    state.pause.focused=false;
+    clone.events.click();
+    assertStrict.equal(dialog.open,true,language+' duplicate review modal opens');
+    dialog.close();
+    assertStrict.equal(state.pause.focused,true,
+      language+' duplicate modal restores focus to visible Pause/Resume control');
+    assertStrict.equal(Boolean(clone.focused),false,
+      language+' duplicate modal must not focus an aria-hidden button');
+  }
+  const reduced=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language,true);
+  const group=reduced.track.children[0];
+  const clone=group.children[0].children[2].children[0].lastChild;
+  clone.closest=selector=>selector==='.vp-review-group[aria-hidden="true"]'?group:null;
+  assertStrict.equal(reduced.pause.hidden,true);
+  clone.events.click();
+  const dialogReduced=reduced.body.lastChild;
+  assertStrict.equal(dialogReduced?.open,true,language+' reduced-motion duplicate modal opens');
+  dialogReduced.close();
+  assertStrict.equal(reduced.right.focused,true,
+    language+' reduced-motion dialog focuses visible manual scroll control');
+  assertStrict.equal(Boolean(clone.focused),false,
+    language+' reduced-motion dialog never focuses accessibility-hidden clone');
+}
 
 // Keyboard focus on a review quote, expansion button or source link must
 // pause the moving strip. Merely focusing outside review cards (including
