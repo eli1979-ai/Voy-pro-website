@@ -30,7 +30,7 @@ const initializer=js.slice(begin,end);
 for(const route of [
   {name:'home EN',isBudapestPage:false,isPortugalPage:false,locale:'en'},
   {name:'Budapest HE',isBudapestPage:true,isPortugalPage:false,locale:'he'},
-  {name:'Budapest HU',isBudapestPage:true,isPortugalPage:false,locale:'hu'}
+  {name:'Budapest HU',isBudapestPage:true,isPortugalPage:false,locale:'hu'},
   {name:'Portugal PT',isBudapestPage:false,isPortugalPage:true,locale:'pt'}
 ]){
   let opener,sheet,closeButton,waLink,menuLink,desktopListener,bodyLocked=false;
