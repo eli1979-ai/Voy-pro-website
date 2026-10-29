@@ -639,7 +639,10 @@
     };
     desktopNav?.addEventListener?.('change',closeOnDesktop);
     if(desktopNav?.matches)close();
-    btn.onclick=()=>{if(mobileWa)mobileWa.href=whatsAppUrl();sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
+    btn.onclick=()=>{if(mobileWa)mobileWa.href=whatsAppUrl();sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});// A same-document link can close the sheet without leaving the page;
+    // return keyboard focus to its visible opener instead of a hidden link.
+    // Do not prevent default navigation or change any destination.
+    sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{close();btn.focus({preventScroll:true})}));
   }
   document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});
 
