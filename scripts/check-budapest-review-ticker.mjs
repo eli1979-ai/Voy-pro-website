@@ -8,6 +8,8 @@ const assert=(ok,message)=>{if(!ok)failures.push(message);};
 const manifest=JSON.parse(fs.readFileSync('site/assets/budapest-approved-reviews.json','utf8'));
 const script=fs.readFileSync('site/assets/budapest-review-ticker.js','utf8');
 const css=fs.readFileSync('site/assets/budapest-review-ticker.css','utf8');
+assertStrict.ok(css.includes('.vp-reviews-pause[hidden]{display:none!important}'),
+  'reduced-motion Pause control must be actually hidden even with author display:flex');
 const locales=[
   ['site/budapest/index.html','en'],
   ['site/he/budapest/index.html','he'],
