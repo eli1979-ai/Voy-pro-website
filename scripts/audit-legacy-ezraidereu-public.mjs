@@ -14,8 +14,8 @@ const ISSUE = (code, severity, detail) => ({ code, severity, detail });
 // actual tag attributes, not arbitrary script strings or data-href lookalikes.
 function decodeUrlEntities(value){
  const named={amp:'&',period:'.',colon:':',sol:'/',quot:'"',apos:"'"};
- return String(value).replace(/&(?:#(?:x[0-9a-f]+|[0-9]+)|amp|period|colon|sol|quot|apos);/gi,ent=>{
-  const code=ent.slice(1,-1);
+ return String(value).replace(/&(?:#(?:x[0-9a-f]+|[0-9]+);?|(?:amp|period|colon|sol|quot|apos);)/gi,ent=>{
+  const code=ent.slice(1,ent.endsWith(';')?-1:undefined);
   if(code[0]==='#'){
    const hex=code[1]?.toLowerCase()==='x';
    const number=Number.parseInt(code.slice(hex?2:1),hex?16:10);
@@ -114,13 +114,14 @@ function selfTest() {
    '<a href=//fareharbor.com/embeds/book/ezraidereu/>Book</a>',
    '<iframe src=https://fareharbor.com/embeds/book/ezraidereu/>',
    '<script src=https://fareharbor.com/embeds/book/ezraidereu.js></script>',
-   '<a href="https://fareharbor&#46;com/embeds/book/ezraidereu/">Book</a>'
+   '<a href="https://fareharbor&#46;com/embeds/book/ezraidereu/">Book</a>',
+   '<a href="https://fareharbor&#46com/embeds/book/ezraidereu/">Book</a>'
   ]) {
    assert.equal(auditPage('en',page('en',html)).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),true,'unsafe source link not detected');
   }
   assert.equal(auditPage('en',page('en','<a data-href="https://fareharbor.com/" href="/budapest/">Info</a>')).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),false);
   assert.equal(auditPage('en',page('en','<a data-label="x > y" href=//fareharbor.com/embeds/book/>Book</a>')).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),true);
-  console.log('Self-test: 14 cases passed, including unquoted/encoded FareHarbor URL and false-positive guards');
+  console.log('Self-test: 15 cases passed, including semicolonless numeric URL entities and false-positive guards');
 }
 
 async function main() {
