@@ -18,7 +18,7 @@ for(const token of required){
  // localized next step without a generic booking-reference form or API call.
  const recovery="Booking details cannot be opened from this link. Use the private Manage Booking link in your confirmation or contact VOY PRO support.";
  const recoveryPt='Não é possível abrir os detalhes da reserva a partir deste link. Use o link privado para gerir a reserva que recebeu na confirmação ou contacte o apoio da VOY PRO.';
- if(!html.includes("if(!token||!c.bookingEnabled){box.innerHTML='<p>'+T("))
+ if(!html.includes("if(!token||!c.bookingEnabled){box.innerHTML='<p>'+(pt?"))
    failures.push('Manage missing-token fallback must remain fail-closed before the authenticated API flow');
  for(const marker of [
    recovery,
