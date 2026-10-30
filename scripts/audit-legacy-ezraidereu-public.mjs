@@ -43,7 +43,17 @@ const visibleText = html => withoutNonVisibleTags(html)
   .replace(/&(?:nbsp|amp|quot|apos);/gi, ' ')
   .replace(/&#(?:x[0-9a-f]+|[0-9]+);/gi, ' ')
   .replace(/\s+/g, ' ').trim();
-const isFareHarborUrl = x => /^(?:https?:)?\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x);
+function isFareHarborUrl(value) {
+  // A real browser trims leading ASCII whitespace, interprets explicit ports
+  // and accepts the trailing DNS root dot. Check the parsed host, not a
+  // fragile literal URL spelling or lookalike domains/userinfo.
+  try {
+    const url = new URL(String(value), 'https://ezraidereu.com/budapest/');
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
+    const host = url.hostname.toLowerCase().replace(/\.$/, '');
+    return host === 'fareharbor.com' || host.endsWith('.fareharbor.com');
+  } catch { return false; }
+}
 const isLegacyMap = x => /Pilvax(?:\s|\+|%20|&#32;|%2B|%2520)*k(?:öz|oz|%C3%B6z)/i.test(x);
 
 function isPlausibleBudapestHomepage(locale, html, text) {
@@ -115,13 +125,24 @@ function selfTest() {
    '<iframe src=https://fareharbor.com/embeds/book/ezraidereu/>',
    '<script src=https://fareharbor.com/embeds/book/ezraidereu.js></script>',
    '<a href="https://fareharbor&#46;com/embeds/book/ezraidereu/">Book</a>',
-   '<a href="https://fareharbor&#46com/embeds/book/ezraidereu/">Book</a>'
+   '<a href="https://fareharbor&#46com/embeds/book/ezraidereu/">Book</a>',
+   '<a href="   https://fareharbor.com/embeds/book/ezraidereu/">Book</a>',
+   '<a href="https://fareharbor.com:443/embeds/book/ezraidereu/">Book</a>',
+   '<a href="https://booking.fareharbor.com./embeds/book/ezraidereu/">Book</a>'
   ]) {
    assert.equal(auditPage('en',page('en',html)).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),true,'unsafe source link not detected');
   }
+  for(const lookalike of [
+    'https://fareharbor.com@evil.example/checkout',
+    'https://fareharbor.com.evil.example/checkout',
+    'https://fakefareharbor.com/checkout'
+  ]) {
+    assert.equal(auditPage('en',page('en','<a href="'+lookalike+'">External link</a>'))
+      .issues.some(x=>x.code==='FAREHARBOR_PRESENT'),false,'false positive for '+lookalike);
+  }
   assert.equal(auditPage('en',page('en','<a data-href="https://fareharbor.com/" href="/budapest/">Info</a>')).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),false);
   assert.equal(auditPage('en',page('en','<a data-label="x > y" href=//fareharbor.com/embeds/book/>Book</a>')).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),true);
-  console.log('Self-test: 15 cases passed, including semicolonless numeric URL entities and false-positive guards');
+  console.log('Self-test: 21 cases passed, including browser-normalized FareHarbor URLs and lookalike-host guards');
 }
 
 async function main() {
