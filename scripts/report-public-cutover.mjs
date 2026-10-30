@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {assessPublicRelease} from './check-public-release-readiness.mjs';
+import {validPublicApiUrl} from './public-api-url-policy.mjs';
+export {validPublicApiUrl};
 
 const STAGING_SITE='prj_mllzA4eTnK6ITda3AI7BpHbmVe7j';
 const STAGING_FBM='prj_h5j84vU4HLucTxiWtQQUue9zcn1V';
@@ -34,16 +36,6 @@ function entry(label,state,evidence){
 // A recorded URL is untrusted configuration, never proof of a running API.
 // Malformed hosts/credentials/ports/queries must be a BLOCKED status,
 // not an exception that prevents the operator from seeing the rest of the report.
-export function validPublicApiUrl(value){
-  try{
-    if(typeof value!=='string'||!value)return false;
-    const url=new URL(value);
-    return url.protocol==='https:'&&url.href===value&&
-      url.hostname.includes('.')&&url.pathname==='/api/v1'&&
-      !url.username&&!url.password&&!url.port&&!url.search&&!url.hash&&
-      !/staging|(^|[-.])stg([-.]|$)/i.test(url.hostname);
-  }catch{return false;}
-}
 export function getCutoverSnapshot(root=process.cwd()){
   const site=path.join(root,'site');
   const manifest=readJSON(path.join(root,'launch/production-environment.json'));

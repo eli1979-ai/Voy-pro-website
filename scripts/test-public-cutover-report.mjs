@@ -9,12 +9,20 @@ for(const malformed of [
   'https://user:secret@api.example.test/api/v1',
   'https://api-staging.example.test/api/v1',
   'https://api.example.test:9999/api/v1',
-  'https://api.example.test/api/v1?token=123'
+  'https://api.example.test/api/v1?token=123',
+  'https://localhost/api/v1','https://api.localhost/api/v1',
+  'https://127.0.0.1/api/v1','https://192.168.1.10/api/v1',
+  'https://8.8.8.8/api/v1','https://[::1]/api/v1',
+  'https://service.local/api/v1','https://fbm.internal/api/v1',
+  'https://foo..com/api/v1','https://foo_bar.example.com/api/v1','https://-foo.example.com/api/v1','https://example-.com/api/v1',
+  'https://foo.com./api/v1','https://api.x/api/v1',`https://${'a'.repeat(64)}.example.com/api/v1`,`https://${'a'.repeat(250)}.example.com/api/v1`
 ]){
   assert.equal(validPublicApiUrl(malformed),false,
     'Malformed or unsafe Production API declarations must fail closed: '+String(malformed));
 }
 assert.equal(validPublicApiUrl('https://api.example.test/api/v1'),true);
+assert.equal(validPublicApiUrl('https://api.example.co.uk/api/v1'),true);
+assert.equal(validPublicApiUrl('https://api.xn--p1ai/api/v1'),true);
 const actual=getCutoverSnapshot();
 assert.equal(actual.decision,'NO-GO','Static source must not self-authorize cutover');
 assert.equal(actual.static_preflight,'BLOCKED','Current checked-in Staging is not Production');
