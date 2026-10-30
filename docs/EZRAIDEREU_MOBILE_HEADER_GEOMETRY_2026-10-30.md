@@ -1,6 +1,6 @@
 # EZRaiderEU Budapest — mobile logo/title overlap measurement gate
 
-Status: **source-only diagnostic, no live WordPress fix**. Work owner: [Issue #723](https://github.com/eli1979-ai/Voy-pro-website/issues/723). The user supplied Android screenshots of the logo overlapping the start of the H1 for Buda Castle and Citadella. Do not upload those screenshots or WP-admin credentials to this public repository.
+Status: **source-only diagnostic, no live WordPress fix**. Locale-coverage gate now requires both Buda and Citadella tour pages in EN/HU/HE at mobile widths, Hebrew RTL computed direction, and fails closed on malformed tour paths. Browser-selected elements must be visually verified before accepting any coordinates. Work owner: [Issue #723](https://github.com/eli1979-ai/Voy-pro-website/issues/723). The user supplied Android screenshots of the logo overlapping the start of the H1 for Buda Castle and Citadella. Do not upload those screenshots or WP-admin credentials to this public repository.
 
 ## Actual ownership and boundary
 
@@ -37,6 +37,7 @@ Status: **source-only diagnostic, no live WordPress fix**. Work owner: [Issue #7
     url: location.origin + location.pathname, locale,
     viewportWidth: window.innerWidth,
     documentWidth: document.documentElement.scrollWidth,
+    documentDir: getComputedStyle(document.documentElement).direction,
     header: rect(header), logo: rect(logo), menu: rect(menu), title: rect(title)
   };
   console.log(JSON.stringify(result, null, 2));
@@ -49,7 +50,7 @@ If a selector finds the wrong element or returns null, inspect it manually and r
 
 - Actual mobile H1 text begins **below** the logo/header, not behind it. At least **8 CSS px clearance** relative to the measured header; no logo/H1, menu/H1 or logo/menu intersection.
 - The hamburger remains visible and clickable; the logo remains visible; all relevant tour pages have correct H1 and no horizontal overflow.
-- EN, HU, HE (including RTL) and representative phone/tablet/desktop layouts examined.
+- EN, HU, HE (including computed `documentDir=rtl` for Hebrew) and representative phone/tablet/desktop layouts examined. Require **both Buda and Citadella in each of EN/HU/HE** on mobile (six locale-tour combinations), one 320px sample and one tablet/desktop; do not accept only one tour per language.
 - The console output and any screen evidence stay in a private Work session; share only a summary and redacted technical measurements in [#723](https://github.com/eli1979-ai/Voy-pro-website/issues/723).
 - **No WP live write from this repository**: a browser-only preview is not a confirmed deployment; isolated restore, approved diff and rollback must be separately established.
 
