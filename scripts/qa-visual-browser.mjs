@@ -18,6 +18,14 @@ const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,'http://127.0.0.1');
     let path=decodeURIComponent(url.pathname);
+    // Local-only simulated fallback for visual QA; this does NOT validate
+    // Vercel's actual public 404 rewrite or response headers.
+    if(path==='/qa-not-found-visual-20261030/'){
+      const fallback=await readFile(resolve(root,'404.html'));
+      res.writeHead(404,{'Content-Type':'text/html; charset=utf-8',
+        'Cache-Control':'no-store'});
+      return res.end(fallback);
+    }
     if(path.endsWith('/'))path+='index.html';
     const full=resolve(root,'.'+path);
     if(!full.startsWith(root+sep))throw Error('Outside build directory');
@@ -939,6 +947,73 @@ try{
       }
     }catch(e){failures++;results.push('FAIL: '+name+' interaction error '+(e.stack||String(e)).slice(0,900));}
     finally{await page.close();}
+  }
+
+  // Work #709 could inspect public 404 only at desktop width. Render the real
+  // built 404 markup through a TEST-SERVER fallback at 1363/390/320px. The
+  // simulated 404 status is NOT evidence of any Vercel edge HTTP behavior.
+  const missingPath='/qa-not-found-visual-20261030/';
+  const recoveries=[
+    '/budapest/','/portugal/','/manage/','mailto:support@voy-pro.com'
+  ];
+  for(const [size,viewport] of [
+    ['desktop',{width:1363,height:936}],
+    ['mobile',{width:390,height:844}],
+    ['narrow',{width:320,height:700}]
+  ]){
+    const name='404-recovery-'+size;
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const pageErrors=[];
+    page.on('pageerror',error=>pageErrors.push(error.message));
+    // Keep the entire synthetic browser fixture offline and avoid suppliers,
+    // analytics, WhatsApp and real website traffic.
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+missingPath,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===404,name+' local fixture responds HTTP 404 (NOT live edge proof)');
+      await page.waitForTimeout(250);
+      await page.evaluate(()=>document.querySelector('[data-consent-essential]')?.click());
+      const info=await page.evaluate(()=>{
+        const main=document.querySelector('main#main-content.error-page');
+        return {
+          hasHeading:Boolean(main?.querySelector('h1')?.textContent?.includes('That page')),
+          robots:document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          skip:Boolean(document.querySelector('a.skip-link[href="#main-content"]')),
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(info.hasHeading,name+' built 404 contains visible recovery heading and main landmark');
+      check(info.robots==='noindex,nofollow',name+' built 404 remains noindex,nofollow');
+      check(info.skip,name+' keyboard skip link points to recovery main');
+      check(info.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+info.overflow+'px)');
+      for(const href of recoveries){
+        const link=page.locator('main.error-page a[href="'+href+'"]');
+        check(await link.count()===1,name+' exactly one recovery link '+href);
+        if(await link.count()!==1)continue;
+        await link.scrollIntoViewIfNeeded();
+        const value=await link.evaluate(a=>{
+          const rect=a.getBoundingClientRect();
+          const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+          const top=document.elementFromPoint(x,y);
+          return {
+            visible:rect.width>0&&rect.height>0,
+            insideViewport:x>=0&&x<=window.innerWidth&&y>=0&&y<=window.innerHeight,
+            hittable:Boolean(top&&(top===a||a.contains(top)))
+          };
+        });
+        check(value.visible&&value.insideViewport&&value.hittable,
+          name+' recovery '+href+' stays visible and hit-testable');
+      }
+      check(pageErrors.length===0,name+' has no uncaught JavaScript errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | '+viewport.width+'x'+viewport.height+' | local built 404 fixture');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
+    }finally{await page.close();}
   }
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
