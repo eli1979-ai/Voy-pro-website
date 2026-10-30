@@ -48,7 +48,11 @@ export function auditMeasurements(input){
   if(overlaps(v.logo,v.title))problems.push(tag+':LOGO_OVERLAPS_TITLE');
   if(overlaps(v.logo,v.menu))problems.push(tag+':LOGO_OVERLAPS_MENU');
   if(overlaps(v.menu,v.title))problems.push(tag+':MENU_OVERLAPS_TITLE');
-  if(width<=480 && v.title.y<edge(v.header,'y')+8)problems.push(tag+':TITLE_NOT_CLEAR_OF_HEADER');
+  // Work #723: .page-top.page-top--home contains .page-header (the H1).
+  // Thus header.bottom may be *after* the H1, even when CSS is correct.
+  // Require mobile title clearance from the visible brand/menu instead.
+  if(width<=480 && v.title.y<Math.max(edge(v.logo,'y'),edge(v.menu,'y'))+8)
+   problems.push(tag+':TITLE_NOT_CLEAR_OF_BRANDING');
  }
  const mobile=coverage.filter(r=>r.width<=480);
  for(const l of LANGS)if(!mobile.some(r=>r.locale===l))problems.push('MISSING_MOBILE_LOCALE:'+l);
@@ -83,8 +87,16 @@ function selfTest(){
  assert.equal(auditMeasurements(overlap).status,'fail');
  const menu=dup();menu.measurements[0].menu.x=90;
  assert.ok(auditMeasurements(menu).problems.some(x=>x.includes('LOGO_OVERLAPS_MENU')));
- const clearance=dup();clearance.measurements[0].title.y=102;
- assert.ok(auditMeasurements(clearance).problems.some(x=>x.includes('TITLE_NOT_CLEAR_OF_HEADER')));
+ const clearance=dup();clearance.measurements[0].title.y=90;
+ assert.ok(auditMeasurements(clearance).problems.some(x=>x.includes('TITLE_NOT_CLEAR_OF_BRANDING')));
+ assert.equal(auditMeasurements(clearance).status,'fail');
+ // The genuine tour header is a parent that can contain its .page-header H1.
+ // A tall parent rectangle must not be mistaken for brand/title overlap.
+ const parentHeader=dup();
+ parentHeader.measurements=parentHeader.measurements.map(row=>({
+  ...row,header:{...row.header,height:200}
+ }));
+ assert.equal(auditMeasurements(parentHeader).status,'pass');
  const scroll=dup();scroll.measurements[0].documentWidth=500;
  assert.ok(auditMeasurements(scroll).problems.some(x=>x.includes('HORIZONTAL_OVERFLOW')));
  const missing=dup();delete missing.measurements[0].logo;
@@ -124,7 +136,7 @@ function selfTest(){
  assert.ok(Math.abs(overlapY-19.719)<0.001);
  assert.ok(Math.abs(afterTitle.y-edge(afterLogo,'y')-56.281)<0.001);
  assert.equal(auditMeasurements(clean).mayPublishAutomatically,false);
- console.log('PASS: 18 fail-closed tests including genuine Work preview geometry regression');
+ console.log('PASS: 19 fail-closed tests including parent-header clearance regression and genuine Work preview geometry');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else if(process.argv.includes('--input')){

@@ -36,6 +36,8 @@ Work tested **this precise CSS in WordPress Customizer Preview only**, then canc
 }
 ```
 
+**Parent-container interpretation (false-fail corrected):** Work established that `.page-top.page-top--home` wraps the tour `.page-header`. Its bottom coordinate may legitimately be below the H1 once restored to normal document flow. The geometry gate must not require `title.y >= header.bottom + 8` on mobile. It instead checks `title.y >= max(logo.bottom, menu.bottom) + 8` and still checks overlap against both rectangles. A 200px-high parent with H1 at y=132 is a clean regression case. This change is only to the read-only checker and does not publish CSS.
+
 At `320×480` on Citadella HU, Work measured real pre-change logo/H1 bounding-box overlap **55×19.719 CSS px**, and after preview **0 overlap**; logo bottom `69.719`, H1 top `126` (56.281px apart). Source-only proposed CSS avoids `z-index` hiding or global `h1` offsets and has **not been installed**. Work also verified Buda EN/HU/HE at 320px (including RTL and opening mobile menu), Citadella HE/HU at 320px, and Citadella EN at 720px; **Citadella EN 320px and exact 375/390/414/768/1366 widths remain unverified**. Other 15 tours were not tested.
 
 The existing `.wpress` backup has **not** been restore-tested in an independently isolated environment; Customizer Preview **is not staging**. No live CSS publication, WPCode changes, provider changes or booking cutover is authorized by this evidence. This candidate is to be validated after the gated [recovery work #604](https://github.com/eli1979-ai/Voy-pro-website/issues/604); then require explicit release approval and rollback instructions. The new geometry checker has stronger six-locale-family/RTL evidence requirements than Work's prior browser session, so **no checker `pass` on actual Work data is claimed**.
@@ -81,7 +83,7 @@ If a selector finds the wrong element or returns null, inspect it manually and r
 
 ## Acceptance and evidence
 
-- Actual mobile H1 text begins **below** the logo/header, not behind it. At least **8 CSS px clearance** relative to the measured header; no logo/H1, menu/H1 or logo/menu intersection.
+- Actual mobile H1 text begins **below** the logo and mobile-menu branding, not behind them. At least **8 CSS px clearance** relative to the lower visible logo/menu bottom (not the containing header's bottom); no logo/H1, menu/H1 or logo/menu intersection.
 - The hamburger remains visible and clickable; the logo remains visible; all relevant tour pages have correct H1 and no horizontal overflow.
 - EN, HU, HE (including computed `documentDir=rtl` for Hebrew) and representative phone/tablet/desktop layouts examined. Require **both Buda and Citadella in each of EN/HU/HE** on mobile (six locale-tour combinations), one 320px sample and one tablet/desktop; do not accept only one tour per language.
 - The console output and any screen evidence stay in a private Work session; share only a summary and redacted technical measurements in [#723](https://github.com/eli1979-ai/Voy-pro-website/issues/723).
