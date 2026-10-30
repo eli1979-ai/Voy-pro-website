@@ -1,3 +1,13 @@
+## 30 October current release-readiness checkpoint — supersedes earlier assumptions
+
+**Source access:** Authenticated [Work admin #685](https://github.com/eli1979-ai/Voy-pro-website/issues/685#issuecomment-6518143822) actually inspected the private classic PHP home template, ACF field groups, and installed WPCode #488 v6.2. Earlier sections referring to PHP/ACF as *still unavailable* describe the older connector-only state and are now superseded. Full source and exact 21 field-coordinate mapping remain **private in Work**, not in this public repository. A distinct global Header & Footer injector, **not #488**, owns the legacy red FareHarbor float and provider-override handlers; deletion remains **uninstalled**.
+
+**Recovery access:** [Work host investigation #693](https://github.com/eli1979-ai/Voy-pro-website/issues/693#issuecomment-6518806791) confirmed `upload_max_filesize=1G`, `post_max_size=64M`, `WordPress automation by Installatron` MU plugin and current live installation ~1.21GB. These are not evidence of the hosting-provider identity, a reachable account panel, an isolated staging target or a completed archive restore. The task was closed as **inspection completed**, not recovery completed. Actual safe clone/restore approval remains blocked in #604.
+
+**Source metadata freshness:** All six current reviewed PR heads were repinned on 30 October with successful *individual* website CI runs. GitHub `main...head` comparisons for #591/#596/#598/#601/#610/#625 respectively show **13 / 13 / 13 / 12 / 11 / 8 commits behind `main`**. Therefore a HEAD/CI match only verifies the old branch version, not merge/readiness against current main. `scripts/check-legacy-ezraidereu-github-freshness.mjs` now correctly flags the divergence as `review-needed`. This snapshot remains timestamped; rerun before release.
+
+**Protected boundaries:** no automated branch merges, mass rebases, live WordPress content edits, WPCode replacements, restore/import, plugin/core/PHP upgrades, host plan purchases or provider/checkout changes. General component-update permission already exists but does not waive the recovery, host-control, explicit release and customer-data gates.
+
 # EZRaiderEU legacy — controlled release package
 
 **Prepared 29 October 2026. No production change.** This document is a source-only coordination layer over six independently prepared draft PRs. It is **not** a WordPress backup, updated template, verified Google embed, provider integration or deployment. **No owner action requested now**; preserve all owner-required work in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
@@ -14,20 +24,20 @@
 
 Public repository rule: **never commit full production WP/ACF exports, site backups, customer data, licensed plugin ZIPs, hosting credentials, API tokens, or unsanitized logs.**
 
-## Verified inventory and 29 October checkpoints
+## Current verified inventory — 30 October 2026
 
-All six PRs are **open, DRAFT, unmerged** and their **then-current** heads each had a successful standard GitHub website Build / Launch-readiness / Site QA check. Runs are source-build evidence **only**: they do not prove customer-browser DOM, backup restoratability or WordPress provider state. Several branches are 3–5 commits behind the then-current `main`, so fresh validations and conflict review are mandatory after any rebase or cherry-pick.
+All six PRs remain **open, DRAFT, unmerged** and their **30-Oct current** heads each have a successful standard GitHub website Build / Launch-readiness / Site QA check. Runs are source-build evidence **only**: they do not prove integration with current `main`, customer-browser DOM, backup restoratability or WordPress provider state. Every branch is currently **8–13 commits behind `main`** (GitHub compare reported `diverged`), so a selected atomic candidate needs a review/rebase or integration and **new exact-integrated-head CI** before merge consideration. The release controller must return `review-needed` for all six because of main-branch drift, not `snapshot-matches` or deployment permission.
 
 | PR | Exact verified head (short) | GitHub run | What it actually supplies | Live status |
 |---|---|---|---|---|
-| [#591](https://github.com/eli1979-ai/Voy-pro-website/pull/591) | `8aca918a` | [40750642954](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40750642954) | Read-only public-home HTML / 33 stored-content link audits | Not deployed or connected to live WordPress |
-| [#596](https://github.com/eli1979-ai/Voy-pro-website/pull/596) | `d299c032` | [40709964285](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40709964285) | EN/HU/HE ACF homepage replacement copy, SEO suggestions; **no ACF keys** | Unpublished |
+| [#591](https://github.com/eli1979-ai/Voy-pro-website/pull/591) | `27fa0cf6` | [41022612302](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/41022612302) | Read-only 33-content link audit plus 42 cross-language tour routes and six static-home menu risks | Not deployed or connected to live WordPress |
+| [#596](https://github.com/eli1979-ai/Voy-pro-website/pull/596) | `620f171e` | [41027472432](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/41027472432) | Source ownership now **21 ACF + 3 hardcoded PHP** candidates, private exact field map not published | Unpublished |
 | [#598](https://github.com/eli1979-ai/Voy-pro-website/pull/598) | `cedc92d8` | [40850615023](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40850615023) | Integrated `v7` WPCode map-hold candidate preserving `v6.2` footer | **Uninstalled; must not install yet** |
-| [#601](https://github.com/eli1979-ai/Voy-pro-website/pull/601) | `ad3758cd` | [40691355871](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40691355871) | Version-locked `v6.2` source checkpoint and browser-console diagnostic | **v6.2 installation owner-reported**; don't reinstall older candidates |
+| [#601](https://github.com/eli1979-ai/Voy-pro-website/pull/601) | `dfeacf76` | [41030636975](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/41030636975) | Owner-installed `v6.2` checkpoint plus 20-case guard for *separate* private global Header/Footer deletion | **v6.2 installation owner-reported**; don't reinstall older candidates |
 | [#610](https://github.com/eli1979-ai/Voy-pro-website/pull/610) | `7cf16727` | [40864724139](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40864724139) | Root/Lisbon HTML proposals and fail-closed stale booking diagnostics | **Unpublished**; different hosting scope |
-| [#625](https://github.com/eli1979-ai/Voy-pro-website/pull/625) | `169e6ece` | [40850170868](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/40850170868) | Security version checks; conditional CVE triage; Yoast compatibility gates | Security vulnerabilities **not patched** |
+| [#625](https://github.com/eli1979-ai/Voy-pro-website/pull/625) | `8f2d95db` | [41029606391](https://github.com/eli1979-ai/Voy-pro-website/actions/runs/41029606391) | Security triage with verified PHP/WP baseline and installed-free Yoast upgrade gate | Security vulnerabilities **not patched** |
 
-**Exact, non-guess facts:** owner supplied official Maps business link `https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac`; municipal property evidence identifies parcel 24285 (Városház utca 14 = Pilvax köz 4), **not** the exact guest entrance. Historical 26-Oct `.wpress` archive is neither fresh after later edits nor restoration-tested.
+**Exact, non-guess facts:** owner supplied official Maps business link `https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac`; municipal property evidence identifies parcel 24285 (Városház utca 14 = Pilvax köz 4), **not** the exact guest entrance. Work created a newer 30-Oct 607.33MB `.wpress` archive, but it predates four HU translation updates and **has not been restoration-tested**; hosting control panel and staging still unknown.
 
 ## Operational release sequence — separate rollback domains
 
