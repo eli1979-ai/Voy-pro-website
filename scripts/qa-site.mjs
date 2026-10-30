@@ -87,6 +87,36 @@ for(const locale of ['', 'he/', 'hu/']){
   }
 }
 
+// Home and editorial locale accessibility parity: only the visible active
+// language link may represent the current page. This is a read-only invariant;
+// it must not change localized marketing content or booking behavior.
+const editorialSlugs=[
+  'buda-castle-without-walking','first-day',
+  'unique-things-to-do','where-to-stay'
+];
+const editorialLocaleFiles=[
+  'index.html',
+  ...['','he/','hu/'].flatMap(locale=>[
+    locale+'budapest/index.html',
+    ...editorialSlugs.map(slug=>locale+'budapest/'+slug+'/index.html')
+  ])
+];
+for(const file of editorialLocaleFiles){
+  const html=htmlMap.get(file);
+  if(!html){fail(file,'home/editorial locale page missing');continue;}
+  const header=(html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)||[])[0]||'';
+  const links=[...header.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/gi)]
+    .map(match=>match[0]);
+  const active=links.filter(link=>
+    /\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
+  const current=links.filter(link=>/\baria-current="page"/.test(link));
+  const expectedHref=file==='index.html'?'/':'/'+file.replace(/index\.html$/,'');
+  if(links.length!==3||active.length!==1||current.length!==1||
+    active[0]!==current[0]||!active[0].includes('href="'+expectedHref+'"')||
+    (header.match(/\baria-current="page"/g)||[]).length!==1)
+    fail(file,'home/editorial selected language must have one matching current-page link');
+}
+
 const release=JSON.parse(read(path.join(site,'release.json')));
 const sitemap=read(path.join(site,'sitemap.xml'));
 // XML Sitemap schema permits only <url> elements and whitespace inside <urlset>.
