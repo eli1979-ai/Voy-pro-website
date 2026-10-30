@@ -10,9 +10,31 @@ const PAGES = Object.freeze({
   he: 'https://ezraidereu.com/budapest/%D7%91%D7%99%D7%AA/',
 });
 const ISSUE = (code, severity, detail) => ({ code, severity, detail });
-const extractAttributes = (html, tag, attribute) =>
-  [...html.matchAll(new RegExp('<' + tag + '\\b[^>]*\\b' + attribute + '\\s*=\\s*(["\\x27])([^"\\x27]*?)\\1', 'gi'))]
-    .map(m => m[2].replace(/&amp;/gi, '&'));
+// Classic PHP templates can emit quoted or unquoted attributes. Only parse
+// actual tag attributes, not arbitrary script strings or data-href lookalikes.
+function decodeUrlEntities(value){
+ const named={amp:'&',period:'.',colon:':',sol:'/',quot:'"',apos:"'"};
+ return String(value).replace(/&(?:#(?:x[0-9a-f]+|[0-9]+)|amp|period|colon|sol|quot|apos);/gi,ent=>{
+  const code=ent.slice(1,-1);
+  if(code[0]==='#'){
+   const hex=code[1]?.toLowerCase()==='x';
+   const number=Number.parseInt(code.slice(hex?2:1),hex?16:10);
+   return Number.isSafeInteger(number)&&number>0&&number<=0x10ffff&&!(number>=0xd800&&number<=0xdfff)
+    ?String.fromCodePoint(number):ent;
+  }
+  return named[code.toLowerCase()]??ent;
+ });
+}
+function extractAttributes(html,tag,attribute){
+ const tagPattern=new RegExp('<'+tag+'\\b((?:"[^"]*"|\\x27[^\\x27]*\\x27|[^\\x27">])*)>','gi');
+ const attrPattern=new RegExp('(?:^|\\s)'+attribute+'\\s*=\\s*(?:"([^"]*)"|\\x27([^\\x27]*)\\x27|([^\\s"\\x27'+String.fromCharCode(96)+'=<>]+))','i');
+ const links=[];
+ for(const item of html.matchAll(tagPattern)){
+  const match=item[1].match(attrPattern);
+  if(match)links.push(decodeUrlEntities(match[1]??match[2]??match[3]));
+ }
+ return links;
+}
 const withoutNonVisibleTags = html => html
   .replace(/<!--[\s\S]*?-->/g, ' ')
   .replace(/<(script|style|noscript|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ');
@@ -21,7 +43,7 @@ const visibleText = html => withoutNonVisibleTags(html)
   .replace(/&(?:nbsp|amp|quot|apos);/gi, ' ')
   .replace(/&#(?:x[0-9a-f]+|[0-9]+);/gi, ' ')
   .replace(/\s+/g, ' ').trim();
-const isFareHarborUrl = x => /^https?:\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x);
+const isFareHarborUrl = x => /^(?:https?:)?\/\/(?:[^/?#]+\.)?fareharbor\.com(?:[/?#]|$)/i.test(x);
 const isLegacyMap = x => /Pilvax(?:\s|\+|%20|&#32;|%2B|%2520)*k(?:öz|oz|%C3%B6z)/i.test(x);
 
 function isPlausibleBudapestHomepage(locale, html, text) {
@@ -88,7 +110,17 @@ function selfTest() {
   assert.equal(auditPage('en', page('en','<a href="https://fareharbor.com/embeds/book/">Book now</a>')).issues.some(x => x.code === 'FAREHARBOR_PRESENT'), true);
   assert.equal(auditPage('en', '<html><head></head><body>'+'Budapest tours '.repeat(500)+'</body></html>').status, 'inconclusive');
   assert.equal(auditPage('en', page('en','<p>Tour information</p>').replace('Budapest','Berlin').replace(/Budapest guided tours/g,'Berlin guided tours').replace('EZRaider Budapest','EZRaider Berlin')).status, 'inconclusive');
-  console.log('Self-test: 8 cases passed, including challenge, skeletal response and JS false-positive guards');
+  for(const html of [
+   '<a href=//fareharbor.com/embeds/book/ezraidereu/>Book</a>',
+   '<iframe src=https://fareharbor.com/embeds/book/ezraidereu/>',
+   '<script src=https://fareharbor.com/embeds/book/ezraidereu.js></script>',
+   '<a href="https://fareharbor&#46;com/embeds/book/ezraidereu/">Book</a>'
+  ]) {
+   assert.equal(auditPage('en',page('en',html)).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),true,'unsafe source link not detected');
+  }
+  assert.equal(auditPage('en',page('en','<a data-href="https://fareharbor.com/" href="/budapest/">Info</a>')).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),false);
+  assert.equal(auditPage('en',page('en','<a data-label="x > y" href=//fareharbor.com/embeds/book/>Book</a>')).issues.some(x=>x.code==='FAREHARBOR_PRESENT'),true);
+  console.log('Self-test: 14 cases passed, including unquoted/encoded FareHarbor URL and false-positive guards');
 }
 
 async function main() {
