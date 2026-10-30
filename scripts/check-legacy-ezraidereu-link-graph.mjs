@@ -52,9 +52,9 @@ function contentString(r){
 // unquoted hrefs. An entity-obfuscated booking link is still a real link.
 // No DOM, network access, or executable HTML is involved.
 function decodeHref(value){
-  const named={amp:'&',quot:'"',apos:"'",colon:':',sol:'/',tab:'\t',newline:'\n'};
-  return String(value).replace(/&(?:#(?:x[0-9a-f]+|[0-9]+)|amp|quot|apos|colon|sol|tab|newline);/gi,entity=>{
-    const code=entity.slice(1,-1);
+  const named={amp:'&',quot:'"',apos:"'",colon:':',sol:'/',tab:'\t',newline:'\n',period:'.'};
+  return String(value).replace(/&(?:#(?:x[0-9a-f]+|[0-9]+);?|(?:amp|quot|apos|colon|sol|tab|newline|period);)/gi,entity=>{
+    const code=entity.slice(1,entity.endsWith(';')?-1:undefined);
     if(code.startsWith('#')){
       const hex=code[1]?.toLowerCase()==='x';
       const number=Number.parseInt(code.slice(hex?2:1),hex?16:10);
@@ -186,6 +186,8 @@ function selfTest(){
     {name:'unquoted broken internal URL',list:mutate(43,x=>({...x,content:x.content+' <a href=/budapest/tours/missing-unquoted/>Broken</a>'})),error:'UNKNOWN_INTERNAL_LINK:/budapest/tours/missing-unquoted/'},
     {name:'unquoted FareHarbor link',list:mutate(390,x=>({...x,content:x.content+' <a href=//fareharbor.com/embeds/book/ezraidereu/>Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
     {name:'entity-encoded FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&#46;com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
+    {name:'named-period-encoded FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&period;com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
+    {name:'unterminated-numeric-period FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&#46com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
   ];
   for(const t of tests){
     const bad=auditSnapshot(t.list);
@@ -207,7 +209,7 @@ function selfTest(){
   assert.equal(unexpected.status,'fail');
   assert.equal(unexpected.extras.length,1);
   assert.equal(unexpected.received,34);
-  console.log('PASS: 19 snapshot scenarios (clean, fifteen safety/link regressions, missing, duplicate, extra home) on 33 published items');
+  console.log('PASS: 21 snapshot scenarios (clean, seventeen safety/link regressions, missing, duplicate, extra home) on 33 published items');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else {
