@@ -43,6 +43,27 @@ for(const [path,link,origin] of links){
 }
 for(const locale of ['','he/','hu/','pt/']){
  const html=fs.readFileSync('site/'+locale+'ezraider/index.html','utf8');
+
+ // The active locale must be announced to assistive technologies, including
+ // when ezraider-context.js preserves origin-aware from/return_to parameters.
+ // Do not infer current language from the caller's locale or query string.
+ const guideLanguageLinks=[...html.matchAll(/<a\b[^>]*\bdata-ez-language\b[^>]*>/g)].map(m=>m[0]);
+ const activeGuideLinks=guideLanguageLinks.filter(tag=>
+   /\bactive\b/.test((tag.match(/\bclass="([^"]*)"/)||[])[1]||''));
+ const currentGuideLinks=guideLanguageLinks.filter(tag=>/\baria-current="page"/.test(tag));
+ const ownLang=locale?locale.slice(0,-1):'en';
+ const ownHref='/'+locale+'ezraider/?from=home';
+ assert.equal(guideLanguageLinks.length,4,locale+': expected EN/HE/HU/PT guide locale choices');
+ assert.equal(activeGuideLinks.length,1,locale+': exactly one visible selected guide language');
+ assert.equal(currentGuideLinks.length,1,locale+': exactly one ARIA current guide page');
+ assert.equal(activeGuideLinks[0],currentGuideLinks[0],
+   locale+': visual and screen-reader active language must agree');
+ assert.ok(currentGuideLinks[0].includes('hreflang="'+ownLang+'"')&&
+   currentGuideLinks[0].includes('href="'+ownHref+'"'),
+   locale+': active guide locale must point to its own context-aware guide URL');
+ assert.equal((html.match(/\baria-current="page"/g)||[]).length,1,
+   locale+': unexpected additional page-current annotation');
+
  assert.ok(html.includes('rel="canonical" href="https://voy-pro.com/'+locale+'ezraider/"'));
  assert.ok(html.includes('id="choose-destination"')&&html.includes('data-ez-context="back"'));
  assert.ok(!html.includes('data-ez-context="booking"')&&html.includes('src="/assets/ezraider-context.js"'),
