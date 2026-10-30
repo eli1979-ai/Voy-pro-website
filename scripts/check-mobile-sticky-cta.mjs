@@ -22,6 +22,19 @@ check(js.includes("link.setAttribute('aria-label'"),'Accessible WhatsApp name mi
 check(css.includes('.compact-booking-whatsapp .compact-booking-whatsapp-label{display:none}'),'Mobile-only label reduction missing');
 check(css.includes('bottom:var(--booking-whatsapp-bottom,calc(104px + env(safe-area-inset-bottom,0px)))'),'WhatsApp sticky-bar clearance missing');
 check(css.includes('.rtl .compact-booking-whatsapp'),'RTL placement missing');
+
+for(const marker of [
+  '@media(min-width:801px)',
+  'body[data-page$="/budapest/"] .compact-booking-whatsapp{',
+  'box-sizing:border-box;width:52px;height:52px;min-width:52px;min-height:52px;',
+  'body[data-page$="/budapest/"] .compact-booking-whatsapp .compact-booking-whatsapp-label{display:none}'
+]){
+  check(css.includes(marker),'Desktop Budapest hub WhatsApp collision protection missing: '+marker);
+}
+// The runtime must retain the original destination-specific WhatsApp link and
+// programmatic label even when the visual desktop label becomes icon-only.
+check(js.includes("link.setAttribute('aria-label'"),'Compact WhatsApp accessible name missing');
+
 check(js.includes("const rect=bar.getBoundingClientRect();"),'Floating WhatsApp should measure actual bar top');
 check(js.includes("window.innerHeight-rect.top+12"),'WhatsApp must maintain 12px clearance to bar');
 check(js.includes("link.style.setProperty('--booking-whatsapp-bottom',clearance+'px')"),'Floating WhatsApp CSS var not updated');
