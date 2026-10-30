@@ -6,9 +6,10 @@
  * node scripts/check-legacy-ezraidereu-github-freshness.mjs --self-test
  * node scripts/check-legacy-ezraidereu-github-freshness.mjs --live
  *
- * --live fetches GitHub's public API (up to 12 GETs; NOT CI).
- * A success result means only the archived PR heads and required website build
- * are unchanged. It DOES NOT permit merge or WordPress deployment.
+ * --live fetches GitHub's public API (18 GETs; NOT CI).
+ * A success result requires unchanged archived PR heads, pinned CI, AND no
+ * divergent commits behind current main. This still does NOT authorize a merge,
+ * WordPress change, production deployment or a third-party provider action.
  */
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -28,6 +29,14 @@ function summarizeRun(payload){
  const runs=Array.isArray(v)?v:v?.workflow_runs??[];
  return runs.map(x=>({id:x.id,name:x.name,status:x.status,conclusion:x.conclusion,
    workflowId:x.workflow_id,head:x.head_sha}));
+}
+function summarizeComparison(payload){
+ const v=payload?.result??payload;
+ if(!v||!Number.isSafeInteger(v.behind_by)||v.behind_by<0||
+   !Number.isSafeInteger(v.ahead_by)||v.ahead_by<0||
+   !['identical','ahead','behind','diverged'].includes(v.status))
+   return null;
+ return {behind:v.behind_by,ahead:v.ahead_by,status:v.status};
 }
 export function inspectSnapshots(contract,snapshots){
  if(!Array.isArray(contract?.preparedPullRequests)||!snapshots||typeof snapshots!=='object')
@@ -51,21 +60,27 @@ export function inspectSnapshots(contract,snapshots){
   if(!matching.length)problems.push('PINNED_SOURCE_CI_NOT_VERIFIED');
   if(matching.some(x=>x.head!==undefined&&x.head!==expected.head))
    problems.push('SOURCE_CI_HEAD_MISMATCH');
+  const comparison=summarizeComparison(pair.comparison);
+  if(!comparison)problems.push('MAIN_COMPARISON_UNAVAILABLE');
+  else if(comparison.behind>0)problems.push('BRANCH_BEHIND_CURRENT_MAIN');
   checks.push({pr:expected.number,head:pull.head,
+   aheadOfMain:comparison?.ahead??null,behindMain:comparison?.behind??null,
    status:problems.length?'stale-or-unverified':'snapshot-matches',problems});
   findings.push(...problems.map(s=>expected.number+':'+s));
  }
  const unknown=Object.keys(snapshots).filter(x=>!contract.preparedPullRequests.some(p=>String(p.number)===x));
  if(unknown.length)findings.push('UNEXPECTED_SNAPSHOT_ITEMS');
- return {status:findings.length?'review-needed':'snapshot-matches',
+ const incomplete=findings.some(x=>/MAIN_COMPARISON_UNAVAILABLE|MALFORMED_RUNS|NO_LIVE_SNAPSHOT/.test(x));
+ return {status:incomplete?'inconclusive':findings.length?'review-needed':'snapshot-matches',
    findings,checks,releaseAuthorized:false,
-   scope:'Only six historic draft PR heads + pinned website CI run fields; no live site, actual human review, private restore, or current main conflict testing'};
+   scope:'Six archived PR heads + pinned CI + current main...head commit divergence only; no merge conflict resolution, fresh post-rebase tests, live site verification, private restore or deployment approval'};
 }
 function selfTest(){
  const all=Object.fromEntries(CONTRACT.preparedPullRequests.map(p=>[String(p.number),{
   pull:{number:p.number,state:'open',draft:true,merged:false,head:{sha:p.head},base:{ref:'main'}},
   runs:{workflow_runs:[{id:p.ciRun,name:EXPECTED_WORKFLOW,status:'completed',
-    conclusion:'success',workflow_id:EXPECTED_WORKFLOW_ID,head_sha:p.head}]}
+    conclusion:'success',workflow_id:EXPECTED_WORKFLOW_ID,head_sha:p.head}]},
+  comparison:{status:'ahead',behind_by:0,ahead_by:3}
  }]));
  const clean=inspectSnapshots(CONTRACT,all);
  assert.equal(clean.status,'snapshot-matches');
@@ -93,9 +108,21 @@ function selfTest(){
  assert.ok(inspectSnapshots(CONTRACT,noStatus).findings.includes('591:PR_NOT_OPEN_DRAFT'));
  const dubious=JSON.parse(JSON.stringify(all));dubious['625'].runs={};
  assert.ok(inspectSnapshots(CONTRACT,dubious).findings.includes('625:MALFORMED_RUNS'));
+ const advanced=JSON.parse(JSON.stringify(all));advanced['610'].comparison={status:'diverged',behind_by:12,ahead_by:7};
+ const drift=inspectSnapshots(CONTRACT,advanced);
+ assert.equal(drift.status,'review-needed');
+ assert.ok(drift.findings.includes('610:BRANCH_BEHIND_CURRENT_MAIN'));
+ assert.equal(drift.releaseAuthorized,false);
+ const missingCompare=JSON.parse(JSON.stringify(all));delete missingCompare['596'].comparison;
+ assert.equal(inspectSnapshots(CONTRACT,missingCompare).status,'inconclusive');
+ assert.ok(inspectSnapshots(CONTRACT,missingCompare).findings.includes('596:MAIN_COMPARISON_UNAVAILABLE'));
+ const missingCount=JSON.parse(JSON.stringify(all));missingCount['625'].comparison={status:'ahead',ahead_by:1};
+ assert.ok(inspectSnapshots(CONTRACT,missingCount).findings.includes('625:MAIN_COMPARISON_UNAVAILABLE'));
+ const alreadyBehind=JSON.parse(JSON.stringify(all));alreadyBehind['591'].comparison={status:'behind',behind_by:1,ahead_by:0};
+ assert.ok(inspectSnapshots(CONTRACT,alreadyBehind).findings.includes('591:BRANCH_BEHIND_CURRENT_MAIN'));
  const unknown=inspectSnapshots(CONTRACT,{});
- assert.equal(unknown.status,'review-needed');
- console.log('PASS: 13 read-only GitHub snapshot freshness / stale-state checks');
+ assert.equal(unknown.status,'inconclusive');
+ console.log('PASS: 17 read-only GitHub snapshot and main-divergence checks');
 }
 async function getJSON(path){
  const url=new URL('https://api.github.com/repos/'+OWNER+'/'+REPO+path);
@@ -114,7 +141,8 @@ async function live(){
   // not a newer unrelated successful workflow.
   const pull=await getJSON('/pulls/'+p.number);
   const runs=await getJSON('/actions/runs?head_sha='+encodeURIComponent(p.head)+'&per_page=100');
-  snapshots[String(p.number)]={pull,runs};
+  const comparison=await getJSON('/compare/main...'+encodeURIComponent(p.head));
+  snapshots[String(p.number)]={pull,runs,comparison};
  }
  return inspectSnapshots(CONTRACT,snapshots);
 }
