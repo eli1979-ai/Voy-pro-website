@@ -14,6 +14,27 @@ for(const locale of ['en','pt','he']){
   const staticPage=locale==='en'?'site/portugal/index.html':'site/'+locale+'/portugal/index.html';
   const html=fs.readFileSync(staticPage,'utf8');
 
+  // A Marvão route-card click only prefills the enquiry form.
+  // The generic tracker must not create booking_intent until a genuine
+  // checkout action; manual WhatsApp submission is checked below.
+  const routePickers=[...html.matchAll(/<a\b[^>]*\bdata-portugal-tour="([^"]+)"[^>]*>/g)]
+    .map(match=>({slug:match[1],tag:match[0]}));
+  assert.equal(routePickers.length,3,locale+': expected three Marvão route-picker actions');
+  for(const slug of ['express','explorer','megalithic']){
+    const matches=routePickers.filter(link=>link.slug===slug);
+    assert.equal(matches.length,1,locale+': missing or duplicate Marvão '+slug+' route-picker');
+    const anchor=matches[0].tag;
+    assert.match(anchor,/\bclass="[^"]*\bpartner-tour-cta\b[^"]*"/,
+      locale+' '+slug+': tour card CTA must remain a request-first picker');
+    assert.match(anchor,/\bhref="#request"/,
+      locale+' '+slug+': picker must open the local availability request form');
+    assert.match(anchor,/\bdata-track="tour_card_selected"/,
+      locale+' '+slug+': selection must not be attributed as booking intent');
+    assert.doesNotMatch(anchor,/\bdata-track="booking_cta"/,
+      locale+' '+slug+': picker must not open a booking-intent session');
+  }
+
+
   // Current-language accessibility: exactly one semantically current locale,
   // matching the visibly selected link, on each Marvão request-first page.
   const languageLinks=[...html.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/g)]

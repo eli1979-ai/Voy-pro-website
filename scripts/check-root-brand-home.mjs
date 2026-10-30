@@ -77,6 +77,26 @@ requireText(supportCard,'>support@voy-pro.com</a>','network support visible emai
 requireText(css,'.network-support-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))','network support two-column action layout missing');
 requireText(css,'.network-support-action:focus-visible','network support keyboard focus style missing');
 
+
+ // The network-wide 404 must help guests recover to either active destination,
+ // Manage Booking, or central support without attempting a booking or indexing.
+ const notFound=read('site/404.html');
+ requireText(notFound,'<meta content="noindex,nofollow" name="robots"/>','404 must remain noindex,nofollow');
+ requireText(notFound,'href="#main-content"','404 keyboard skip link missing');
+ requireText(notFound,'id="main-content"','404 main landmark missing');
+ for(const [href,label] of [
+   ['/budapest/','Budapest'],
+   ['/portugal/','Marvão'],
+   ['/manage/','Manage Booking'],
+   ['mailto:support@voy-pro.com','VOY PRO support']
+ ]){
+   const anchors=[...notFound.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>/g)]
+     .filter(match=>match[1]===href);
+   if(anchors.length!==1)failures.push('404 must expose exactly one '+label+' recovery link: '+href);
+ }
+ forbidText(notFound,'id="booking"','404 must not act as a booking form');
+ forbidText(notFound,'data-track="booking_cta"','404 must not claim booking intent');
+
 if(failures.length){
   console.error('VOY PRO root-brand guard failed.');
   for(const failure of failures)console.error('- '+failure);
