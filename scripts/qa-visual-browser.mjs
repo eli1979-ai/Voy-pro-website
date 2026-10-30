@@ -20,7 +20,7 @@ const server=createServer(async(req,res)=>{
     let path=decodeURIComponent(url.pathname);
     // Local-only simulated fallback for visual QA; this does NOT validate
     // Vercel's actual public 404 rewrite or response headers.
-    if(path==='/qa-not-found-visual-20261030/'){
+    if(/^\/(?:(?:he|hu|pt)\/)?qa-not-found-visual-20261030\/$/.test(path)){
       const fallback=await readFile(resolve(root,'404.html'));
       res.writeHead(404,{'Content-Type':'text/html; charset=utf-8',
         'Cache-Control':'no-store'});
@@ -1025,6 +1025,72 @@ try{
       check(pageErrors.length===0,name+' has no uncaught JavaScript errors');
       await page.screenshot({path:join(out,name+'.png'),fullPage:true});
       results.push('SCREENSHOT: '+name+'.png | '+viewport.width+'x'+viewport.height+' | local built 404 fixture');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
+
+  // The same built 404 must retain established destination language on
+  // locale-prefixed missing paths; the local fixture is not Vercel edge proof.
+  for(const cfg of [
+    {code:'he',heading:'העמוד לא נמצא.',budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he',dir:'rtl'},
+    {code:'hu',heading:'Ez az oldal nem található.',budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu',dir:'ltr'},
+    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/',dir:'ltr'}
+  ]){
+    const name='404-locale-'+cfg.code;
+    const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+'/'+cfg.code+'/qa-not-found-visual-20261030/',
+        {waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===404,name+' local fixture responds simulated HTTP 404');
+      const state=await page.evaluate(()=>{
+        const href=key=>document.querySelector('[data-404-'+key+']')?.getAttribute('href');
+        return {
+          lang:document.documentElement.lang,
+          dir:document.documentElement.dir||'ltr',
+          heading:document.querySelector('main.error-page h1')?.textContent,
+          robots:document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          links:{budapest:href('budapest'),portugal:href('portugal'),manage:href('manage'),
+            support:href('support')},
+          skip:document.querySelector('[data-404-skip]')?.getAttribute('href'),
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(state.lang===cfg.code,name+' locale recognized');
+      check(state.dir===cfg.dir,name+' direction preserves Hebrew RTL');
+      check(state.heading===cfg.heading,name+' localized visible recovery heading');
+      check(state.robots==='noindex,nofollow',name+' recovery is not indexed');
+      check(state.links.budapest===cfg.budapest,name+' Budapest locale destination');
+      check(state.links.portugal===cfg.portugal,name+' Marvão locale destination');
+      check(state.links.manage===cfg.manage,name+' secure Manage help locale');
+      check(state.links.support==='mailto:support@voy-pro.com',name+' central support unchanged');
+      check(state.skip==='#main-content',name+' main-content skip preserved');
+      check(state.overflow<=2,name+' no horizontal overflow at 390px');
+      for(const key of ['budapest','portugal','manage','support']){
+        const element=page.locator('[data-404-'+key+']');
+        await element.scrollIntoViewIfNeeded();
+        const visible=await element.evaluate(el=>{
+          const rects=[...el.getClientRects()].filter(rect=>rect.width>0&&rect.height>0);
+          return rects.length>0&&rects.every(rect=>{
+            const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+            const top=document.elementFromPoint(x,y);
+            return x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight&&
+              Boolean(top&&(top===el||el.contains(top)));
+          });
+        });
+        check(visible,name+' '+key+' link remains hit-testable');
+      }
+      check(errors.length===0,name+' no uncaught browser errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | 390x844 | local built localized 404 fixture');
     }catch(error){
       failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
     }finally{await page.close();}

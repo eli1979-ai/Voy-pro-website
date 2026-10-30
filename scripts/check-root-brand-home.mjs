@@ -97,6 +97,25 @@ requireText(css,'.network-support-action:focus-visible','network support keyboar
  forbidText(notFound,'id="booking"','404 must not act as a booking form');
  forbidText(notFound,'data-track="booking_cta"','404 must not claim booking intent');
 
+
+// The single network 404 must adapt its human-facing recovery to known
+// HE/HU/PT prefix URLs without changing robots, Vercel rules or booking flow.
+for(const marker of [
+  'data-404-skip','data-404-heading','data-404-intro',
+  'data-404-budapest','data-404-portugal','data-404-manage',
+  'data-404-help','data-404-support',
+  'const locale404=(location.pathname.match(/^\\/(he|hu|pt)\\//)',
+  "if(locale404==='he')",
+  "document.documentElement.dir='rtl'",
+  "'/he/budapest/'","'/he/portugal/'",
+  "'/hu/budapest/'","'/pt/portugal/'",
+  "'/manage/?lang=he'","'/manage/?lang=hu'",
+  "if(!copy)return;"
+]){
+  requireText(notFound,marker,'404 locale recovery marker missing: '+marker);
+}
+forbidText(notFound,'id="booking"','404 locale recovery must not introduce booking');
+
 if(failures.length){
   console.error('VOY PRO root-brand guard failed.');
   for(const failure of failures)console.error('- '+failure);
