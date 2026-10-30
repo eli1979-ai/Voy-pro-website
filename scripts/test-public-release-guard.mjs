@@ -37,6 +37,27 @@ try {
 
   attest();
   assert.deepEqual(assess(), [], 'verified and explicitly approved public fixture must pass');
+  // These values used to pass a string-only Production check. Even with an
+  // owner-approval fixture and an exactly matching runtime URL, fail closed.
+  for (const endpoint of [
+    'https://localhost/api/v1','https://api.localhost/api/v1',
+    'https://127.0.0.1/api/v1','https://192.168.1.10/api/v1',
+    'https://8.8.8.8/api/v1','https://[::1]/api/v1',
+    'https://service.local/api/v1','https://fbm.internal/api/v1',
+    'https://foo..com/api/v1','https://foo_bar.example.com/api/v1','https://-foo.example.com/api/v1','https://example-.com/api/v1',
+    'https://foo.com./api/v1','https://api.x/api/v1',`https://${'a'.repeat(64)}.example.com/api/v1`,`https://${'a'.repeat(250)}.example.com/api/v1`
+  ]) {
+    attest({public_api_base_url:endpoint});
+    write('assets/runtime-config.js',
+      "window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'"+endpoint+"',clientKey:'voy_bud_public_x123'};");
+    assert.ok(assess().some(reason=>reason.includes('canonical public HTTPS hostname')),
+      'Production release must reject unsafe host even when declared and runtime URLs match: '+endpoint);
+  }
+  attest();
+  write('assets/runtime-config.js',
+    "window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'https://fbm-production.example.com/api/v1',clientKey:'voy_bud_public_x123'};");
+  assert.deepEqual(assess(), [], 'restored canonical public hostname must pass the source guard');
+
   writeRootVercel(true);
   assert.ok(assess().some(reason=>reason.includes('must not globally declare X-Robots-Tag noindex')),
     'public release must reject the global Staging HTTP noindex header');
