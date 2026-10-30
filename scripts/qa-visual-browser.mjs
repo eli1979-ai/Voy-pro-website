@@ -18,6 +18,14 @@ const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,'http://127.0.0.1');
     let path=decodeURIComponent(url.pathname);
+    // Local-only simulated fallback for visual QA; this does NOT validate
+    // Vercel's actual public 404 rewrite or response headers.
+    if(path==='/qa-not-found-visual-20261030/'){
+      const fallback=await readFile(resolve(root,'404.html'));
+      res.writeHead(404,{'Content-Type':'text/html; charset=utf-8',
+        'Cache-Control':'no-store'});
+      return res.end(fallback);
+    }
     if(path.endsWith('/'))path+='index.html';
     const full=resolve(root,'.'+path);
     if(!full.startsWith(root+sep))throw Error('Outside build directory');
@@ -940,6 +948,135 @@ try{
     }catch(e){failures++;results.push('FAIL: '+name+' interaction error '+(e.stack||String(e)).slice(0,900));}
     finally{await page.close();}
   }
+
+  // Work #709 could inspect public 404 only at desktop width. Render the real
+  // built 404 markup through a TEST-SERVER fallback at 1363/390/320px. The
+  // simulated 404 status is NOT evidence of any Vercel edge HTTP behavior.
+  const missingPath='/qa-not-found-visual-20261030/';
+  const recoveries=[
+    '/budapest/','/portugal/','/manage/','mailto:support@voy-pro.com'
+  ];
+  for(const [size,viewport] of [
+    ['desktop',{width:1363,height:936}],
+    ['mobile',{width:390,height:844}],
+    ['narrow',{width:320,height:700}]
+  ]){
+    const name='404-recovery-'+size;
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const pageErrors=[];
+    page.on('pageerror',error=>pageErrors.push(error.message));
+    // Keep the entire synthetic browser fixture offline and avoid suppliers,
+    // analytics, WhatsApp and real website traffic.
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+missingPath,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===404,name+' local fixture responds HTTP 404 (NOT live edge proof)');
+      await page.waitForTimeout(250);
+      await page.evaluate(()=>document.querySelector('[data-consent-essential]')?.click());
+      const info=await page.evaluate(()=>{
+        const main=document.querySelector('main#main-content.error-page');
+        return {
+          hasHeading:Boolean(main?.querySelector('h1')?.textContent?.includes('That page')),
+          robots:document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          skip:Boolean(document.querySelector('a.skip-link[href="#main-content"]')),
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(info.hasHeading,name+' built 404 contains visible recovery heading and main landmark');
+      check(info.robots==='noindex,nofollow',name+' built 404 remains noindex,nofollow');
+      check(info.skip,name+' keyboard skip link points to recovery main');
+      check(info.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+info.overflow+'px)');
+      for(const href of recoveries){
+        const link=page.locator('main.error-page a[href="'+href+'"]');
+        check(await link.count()===1,name+' exactly one recovery link '+href);
+        if(await link.count()!==1)continue;
+        await link.scrollIntoViewIfNeeded();
+        const value=await link.evaluate(a=>{
+          // Inline mailto links can wrap into two text fragments at 320px.
+          // A getBoundingClientRect() union midpoint can land on the empty
+          // whitespace between lines, falsely reporting a blocked hit target.
+          // Assert EVERY actual painted/clickable fragment instead.
+          const fragments=[...a.getClientRects()].filter(r=>r.width>0&&r.height>0);
+          const samples=fragments.map(rect=>{
+            const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+            const top=document.elementFromPoint(x,y);
+            return {
+              insideViewport:x>=0&&x<=window.innerWidth&&y>=0&&y<=window.innerHeight,
+              hittable:Boolean(top&&(top===a||a.contains(top))),
+              top:top?.tagName||'none'
+            };
+          });
+          return {
+            visible:samples.length>0,
+            insideViewport:samples.length>0&&samples.every(s=>s.insideViewport),
+            hittable:samples.length>0&&samples.every(s=>s.hittable),
+            fragmentCount:samples.length,
+            samples
+          };
+        });
+        check(value.visible&&value.insideViewport&&value.hittable,
+          name+' recovery '+href+' stays visible and hit-testable (fragments='+
+          value.fragmentCount+', observations='+JSON.stringify(value.samples)+')');
+      }
+      check(pageErrors.length===0,name+' has no uncaught JavaScript errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | '+viewport.width+'x'+viewport.height+' | local built 404 fixture');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
+  // #712 — real local Chromium rendering of a tokenless Manage landing.
+  // Booking data is never accessed. This checks the safe fallback rather
+  // than adding a speculative public-booking lookup to the website.
+  for(const [lang,path,expected] of [
+    ['en','/manage/','Booking details cannot be opened from this link.'],
+    ['he','/manage/?lang=he','לא ניתן לפתוח את פרטי ההזמנה מהקישור הזה.'],
+    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.']
+  ]){
+    const name='manage-tokenless-'+lang;
+    const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>{
+      try{
+        if(new URL(route.request().url()).origin===base)return route.continue();
+      }catch{}
+      return route.abort();
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' existing public landing HTTP 200');
+      await page.waitForFunction(()=>document.getElementById('manage-box')?.textContent?.includes('support@voy-pro.com'),null,{timeout:5000});
+      const state=await page.evaluate(()=>{
+        const box=document.getElementById('manage-box');
+        return {
+          text:box?.textContent||'',
+          support:box?.querySelector('a[href="mailto:support@voy-pro.com"]')?.getAttribute('href'),
+          inputs:box?.querySelectorAll('input,form,button').length||0,
+          lang:document.documentElement.lang,
+          dir:document.documentElement.dir||'ltr',
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(state.lang===lang,name+' locale matches requested language');
+      check(state.text.includes(expected),name+' explains private Manage link or support');
+      check(state.support==='mailto:support@voy-pro.com',name+' support email is clickable');
+      check(state.inputs===0,name+' does not offer an unauthenticated lookup form');
+      check(state.overflow<=2,name+' no horizontal overflow at 390px');
+      check(state.dir===(lang==='he'?'rtl':'ltr'),name+' local direction is preserved');
+      check(errors.length===0,name+' no uncaught browser JavaScript errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | 390x844 | local built no-token Manage landing');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' browser recovery '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');
