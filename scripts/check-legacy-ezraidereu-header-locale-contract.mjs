@@ -68,7 +68,9 @@ export function inspectAdminMenus(contract,source){
  if(!Array.isArray(entries))return {status:'inconclusive',problems:['MISSING_MENU_ITEMS'],publicHeaderObserved:false};
  const homePaths=Object.fromEntries(LANGUAGE_KEYS.map(lang=>[lang,cleanPath(contract?.homes?.[lang])]));
  if(Object.values(homePaths).some(x=>!x))return {status:'inconclusive',problems:['INVALID_HOME_PATHS'],publicHeaderObserved:false};
- const allTourPaths=new Set(Object.values(graph.routes).flatMap(byLang=>Object.values(byLang).map(x=>x.path)));
+ const tourLocaleByPath=new Map(Object.values(graph.routes).flatMap(byLang=>
+  Object.entries(byLang).map(([language,entry])=>[entry.path,language])));
+ const allTourPaths=new Set(tourLocaleByPath.keys());
  const observations=[];
  for(const item of entries){
   if(!item||!Object.values(MAIN_MENUS).includes(Number(item.menus)))continue;
@@ -78,16 +80,26 @@ export function inspectAdminMenus(contract,source){
   if(!lang)continue;
   const href=cleanPath(item.url);
   const sourceLanguage=Object.keys(MAIN_MENUS).find(k=>MAIN_MENUS[k]===Number(item.menus));
-  const kind=href===homePaths[lang]?'static-home':allTourPaths.has(href)?'tour-path':'other-or-invalid';
+  const kind=href===homePaths[lang]?'static-home':allTourPaths.has(href)?
+   (tourLocaleByPath.get(href)===lang?'tour-path':'wrong-locale-tour'):'other-or-invalid';
   observations.push({menuId:Number(item.menus),sourceLanguage,targetLanguage:lang,kind,
    url:item.url});
  }
- const observed=new Set(observations.map(x=>x.sourceLanguage+'>'+x.targetLanguage));
+ const keys=observations.map(x=>x.sourceLanguage+'>'+x.targetLanguage);
+ const observed=new Set(keys);
  const expected=LANGUAGE_KEYS.flatMap(from=>LANGUAGE_KEYS.filter(to=>to!==from).map(to=>from+'>'+to));
  const missing=expected.filter(x=>!observed.has(x));
+ const duplicates=[...new Set(keys.filter((key,i)=>keys.indexOf(key)!==i))];
+ const invalid=observations.filter(x=>x.kind==='other-or-invalid'||x.kind==='wrong-locale-tour');
  const staticHome=observations.filter(x=>x.kind==='static-home');
- return {status:missing.length?'inconclusive':staticHome.length?'static-home-menu-risk':'no-static-home-items-detected',
-  staticHomeCount:staticHome.length,observations,missing,
+ const fixedTour=observations.filter(x=>x.kind==='tour-path');
+ const problems=[...missing.map(x=>'MISSING_LANGUAGE_SELECTOR:'+x),
+  ...duplicates.map(x=>'DUPLICATE_LANGUAGE_SELECTOR:'+x),
+  ...invalid.map(x=>'INVALID_LANGUAGE_TARGET:'+x.sourceLanguage+'>'+x.targetLanguage)];
+ return {status:problems.length?'inconclusive':staticHome.length?'static-home-menu-risk':
+   fixedTour.length?'fixed-tour-language-menu-risk':'no-static-home-items-detected',
+  staticHomeCount:staticHome.length,fixedTourCount:fixedTour.length,observations,missing,
+  duplicates,problems,
   publicHeaderObserved:false,
   caution:'Admin menu entries do not prove that the public PHP/Polylang header renders these exact menu items. Source/Work readback is required.'};
 }
@@ -134,10 +146,27 @@ function selfTest(){
  assert.equal(buildGraph(bad).status,'invalid');
  const wrongHost=inspectAdminMenus(manifest,fakeMenus.map(x=>({...x,url:x.url.replace('https://ezraidereu.com','https://example.com')})));
  assert.equal(wrongHost.staticHomeCount,0);
- assert.equal(wrongHost.status,'no-static-home-items-detected');
+ assert.equal(wrongHost.status,'inconclusive');
+ assert.ok(wrongHost.problems.some(x=>x.startsWith('INVALID_LANGUAGE_TARGET:')));
+ const wrongLocaleTour=inspectAdminMenus(manifest,fakeMenus.map((x,i)=>
+  i===0?{...x,url:'https://ezraidereu.com/budapest/tours/buda-castle-tour/'}:x));
+ assert.equal(wrongLocaleTour.status,'inconclusive');
+ assert.ok(wrongLocaleTour.observations.some(x=>x.kind==='wrong-locale-tour'));
+ const oneFixedTour=inspectAdminMenus(manifest,fakeMenus.map((x,i)=>
+  i===0?{...x,url:'https://ezraidereu.com/budapest/tours/budavari-tura/'}:x));
+ assert.equal(oneFixedTour.status,'static-home-menu-risk');
+ assert.equal(oneFixedTour.fixedTourCount,1);
+ const allFixedTours=inspectAdminMenus(manifest,fakeMenus.map(x=>({
+  ...x,url:'https://ezraidereu.com/budapest/tours/'+
+    (x.title==='EN'?'buda-castle-tour':x.title==='HU'?'budavari-tura':'סיור-לטירת-בודהה')+'/'
+ })));
+ assert.equal(allFixedTours.status,'fixed-tour-language-menu-risk');
+ const duplicateSelector=inspectAdminMenus(manifest,[...fakeMenus,fakeMenus[0]]);
+ assert.equal(duplicateSelector.status,'inconclusive');
+ assert.deepEqual(duplicateSelector.duplicates,['en>hu']);
  // "No risk detected" is deliberately not a proof of working live header.
  assert.equal(wrongHost.publicHeaderObserved,false);
- console.log('PASS: 42 verified same-tour language route pairs + 11 isolated edge/security cases');
+ console.log('PASS: 42 same-tour language routes + 15 isolated safety cases including invalid/duplicate menu targets');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else if(process.argv.includes('--menus')){
