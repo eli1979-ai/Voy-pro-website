@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-10-29",
+  "asOf": "2026-10-30",
   "project": "EZRaiderEU legacy release control",
   "sourceRepository": "eli1979-ai/Voy-pro-website",
   "applicationBoundary": {
@@ -36,30 +36,47 @@
     "ownerSuppliedGoogleBusinessProfile": "https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac",
     "registeredBusinessProperty": "Budapest District V cadastral parcel 24285: Városház utca 12–14 = Pilvax köz 4",
     "exactGuestEntrance": "unverified",
-    "backup": "2026-10-26 historical .wpress exists per owner; no current restoration test",
+    "backup": "30 Oct 607.33MB All-in-One WordPress backup in live WordPress, predates four HU translation-pack updates; content listing viewed but NO isolated restore. Import limited by post_max_size 64M; provider/staging unknown.",
     "directFbmBooking": "not authorized or activated for legacy WordPress",
     "livePluginPatching": "not performed",
-    "siteWpCoreVersion": "not independently established",
-    "premiumLicenseStatus": "unverified"
+    "siteWpCoreVersion": "7.1.3 confirmed from authenticated Work admin",
+    "premiumLicenseStatus": "Yoast Premium 21.0 active, no offered update, 'Activate your subscription'; official entitlement remains unverified",
+    "phpRuntimeVersion": "7.4.33 confirmed, unsupported upstream",
+    "hostControlPanel": "not available or independently identified; Installatron MU is a clue, not proven hosting provider",
+    "globalFooter": "separate global Header & Footer injection owns legacy red FareHarbor float and handlers; private patch NOT installed"
   },
   "preparedPullRequests": [
     {
       "number": 591,
-      "head": "8aca918a475a825cd2e1677264357834cce26461",
+      "head": "27fa0cf6893f263d7bc8946480b6e3c5850b275c",
       "role": "read-only server HTML and 33-content-link QA",
       "branch": "audit/ezraidereu-html-source-20261028",
-      "ciRun": 40750642954,
+      "ciRun": 41022612302,
       "target": "none",
-      "state": "draft-unmerged"
+      "state": "draft-unmerged",
+      "integrationSnapshot": {
+        "comparedTo": "main",
+        "status": "diverged",
+        "behindBy": 13,
+        "aheadBy": 12,
+        "requiresFreshIntegratedCIBeforeRelease": true
+      }
     },
     {
       "number": 596,
-      "head": "d299c032b27eec0b8ad94a35146143d3e9299cc3",
+      "head": "620f171eca0850a7cec5dfb1367967d2cd91bb6d",
       "role": "EN/HU/HE homepage ACF copy candidates",
       "branch": "docs/ezraidereu-homepage-acf-copy-20261028",
-      "ciRun": 40709964285,
+      "ciRun": 41027472432,
       "target": "budapest-wordpress-ACF",
-      "state": "draft-unmerged"
+      "state": "draft-unmerged",
+      "integrationSnapshot": {
+        "comparedTo": "main",
+        "status": "diverged",
+        "behindBy": 13,
+        "aheadBy": 8,
+        "requiresFreshIntegratedCIBeforeRelease": true
+      }
     },
     {
       "number": 598,
@@ -68,16 +85,30 @@
       "branch": "safety/ezraidereu-wpcode-map-no-guess-20261028",
       "ciRun": 40850615023,
       "target": "budapest-WPCode-488",
-      "state": "draft-unmerged"
+      "state": "draft-unmerged",
+      "integrationSnapshot": {
+        "comparedTo": "main",
+        "status": "diverged",
+        "behindBy": 13,
+        "aheadBy": 7,
+        "requiresFreshIntegratedCIBeforeRelease": true
+      }
     },
     {
       "number": 601,
-      "head": "ad3758cdedc13452d37ffe8405b11a933e213053",
+      "head": "dfeacf763c528a80c018d761597a11c038462782",
       "role": "archival owner-installed v6.2 footer source and diagnostic",
       "branch": "fix/ezraidereu-wpcode-488-footer-current-v6-20261028",
-      "ciRun": 40691355871,
+      "ciRun": 41030636975,
       "target": "documentation-only-do-not-reinstall",
-      "state": "draft-unmerged"
+      "state": "draft-unmerged",
+      "integrationSnapshot": {
+        "comparedTo": "main",
+        "status": "diverged",
+        "behindBy": 12,
+        "aheadBy": 9,
+        "requiresFreshIntegratedCIBeforeRelease": true
+      }
     },
     {
       "number": 610,
@@ -86,16 +117,30 @@
       "branch": "docs/ezraidereu-legacy-root-lisbon-safety-20261028",
       "ciRun": 40864724139,
       "target": "root-and-lisbon-separate-host",
-      "state": "draft-unmerged"
+      "state": "draft-unmerged",
+      "integrationSnapshot": {
+        "comparedTo": "main",
+        "status": "diverged",
+        "behindBy": 11,
+        "aheadBy": 14,
+        "requiresFreshIntegratedCIBeforeRelease": true
+      }
     },
     {
       "number": 625,
-      "head": "169e6ece38b7222d60666881fcaf45f5332368a9",
+      "head": "8f2d95db8269f1a7a2da214e5b70beea5975a202",
       "role": "plugin-version advisory triage and Yoast preflight",
       "branch": "audit/ezraidereu-wp-plugin-advisories-20261029",
-      "ciRun": 40850170868,
+      "ciRun": 41029606391,
       "target": "staging-security-planning",
-      "state": "draft-unmerged"
+      "state": "draft-unmerged",
+      "integrationSnapshot": {
+        "comparedTo": "main",
+        "status": "diverged",
+        "behindBy": 8,
+        "aheadBy": 11,
+        "requiresFreshIntegratedCIBeforeRelease": true
+      }
     }
   ],
   "workstreams": [
@@ -219,5 +264,5 @@
     "noVercelPreviewForDocsOnly": true,
     "rootAndLisbonMustReleaseSeparately": true
   },
-  "testEvidenceScope": "GitHub Actions runs validate repository build/launch/site QA, NOT legacy WordPress live browser behavior or the standalone legacy scripts. All dates/SHAs are a fixed 2026-10-29 snapshot requiring refresh on release. Root and Lisbon use distinct, separately approved release units even when candidate documentation shares PR #610. 29 Oct 2026: #610 head refreshed after correcting protocol-relative and unquoted links; 23 source + 13 candidate self-tests pass, GitHub CI #40864724139 succeeds."
+  "testEvidenceScope": "30 Oct 2026 live GitHub connector snapshot: six exact PR heads and their pinned website CI success; all six compare as DIVERGED and are 8–13 commits behind current main. Exact-head historical CI does not test integration with current main, authorize merge or WordPress release. 607MB WordPress backup exists but restoreTested=false; no host staging verified. Re-compare main and run exact integrated QA after ANY merge/rebase. No live production deployment."
 }
