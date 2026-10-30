@@ -90,7 +90,7 @@ requireText(css,'.network-support-action:focus-visible','network support keyboar
    ['/manage/','Manage Booking'],
    ['mailto:support@voy-pro.com','VOY PRO support']
  ]){
-   const anchors=[...notFound.matchAll(/<a\\b[^>]*href="([^"]+)"[^>]*>/g)]
+   const anchors=[...notFound.matchAll(/<a\b[^>]*href="([^"]+)"[^>]*>/g)]
      .filter(match=>match[1]===href);
    if(anchors.length!==1)failures.push('404 must expose exactly one '+label+' recovery link: '+href);
  }
