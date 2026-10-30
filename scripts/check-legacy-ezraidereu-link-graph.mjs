@@ -78,7 +78,7 @@ function hrefsOf(html){
 }
 function isFareHarborHref(href,base){
   try{
-    const host=new URL(href,base).hostname.toLowerCase();
+    const host=new URL(href,base).hostname.toLowerCase().replace(/\.+$/,'');
     return host==='fareharbor.com'||host.endsWith('.fareharbor.com');
   }catch{return false;}
 }
@@ -188,6 +188,8 @@ function selfTest(){
     {name:'entity-encoded FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&#46;com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
     {name:'named-period-encoded FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&period;com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
     {name:'unterminated-numeric-period FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&#46com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
+    {name:'numeric-period plus DNS trailing root dot',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&#46;com./embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
+    {name:'named-period plus subdomain root dot',list:mutate(390,x=>({...x,content:x.content+' <a href="https://booking.fareharbor&period;com./embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
   ];
   for(const t of tests){
     const bad=auditSnapshot(t.list);
@@ -209,7 +211,7 @@ function selfTest(){
   assert.equal(unexpected.status,'fail');
   assert.equal(unexpected.extras.length,1);
   assert.equal(unexpected.received,34);
-  console.log('PASS: 21 snapshot scenarios (clean, seventeen safety/link regressions, missing, duplicate, extra home) on 33 published items');
+  console.log('PASS: 23 snapshot scenarios (clean, nineteen safety/link regressions, missing, duplicate, extra home) on 33 published items');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else {
