@@ -30,6 +30,38 @@ for(const slug of slugs){
          !html.includes(language==='he'?'בית האופרה ההונגרי':language==='hu'?'Magyar Állami Operaház':'Hungarian State Opera'))
         failures.push(`${file}: original Opera itinerary stop may be missing`);
     }
+    if(slug==='citadella-advanced-ezraider-tour'){
+      // Safety-copy regression: the advanced route is only for guests who
+      // completed Buda AND a second suitable EZRaider tour problem-free.
+      // Operations must still verify eligibility; this is not direct checkout.
+      const safety={
+        en:{
+          heading:'Advanced-rider route',
+          prerequisite:'successful completion of the Buda tour plus another qualifying EZRaider tour without riding problems',
+          approval:'Final eligibility is confirmed by the operating team'
+        },
+        he:{
+          heading:'מסלול לרוכבים מתקדמים',
+          prerequisite:'השלמה מוצלחת של סיור בודה ועוד סיור EZRaider מתאים ללא בעיות רכיבה',
+          approval:'האישור הסופי ניתן על ידי צוות התפעול'
+        },
+        hu:{
+          heading:'Haladó útvonal',
+          prerequisite:'a Buda túra és még egy megfelelő EZRaider túra problémamentes teljesítése',
+          approval:'A végső jogosultságot az üzemeltető csapat'
+        }
+      }[language];
+      const safetyProof=html.match(new RegExp('<strong>'+safety.heading+'</strong><p>([^<]*)</p>'))?.[1]||'';
+      if(!safetyProof.includes(safety.prerequisite))
+        failures.push(file+': two successful qualifying tours must be visible before Citadella eligibility');
+      if(!safetyProof.includes(safety.approval))
+        failures.push(file+': Citadella eligibility must remain subject to local operating-team approval');
+      const main=html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1]||'';
+      if(!main.includes('https://wa.me/36300993099?text='))
+        failures.push(file+': Citadella must retain the Budapest contact-first eligibility enquiry');
+      if(/href="#booking"|data-track="booking_cta"/.test(main))
+        failures.push(file+': advanced Citadella must not silently become a direct booking checkout');
+    }
     const picker=html.match(/<span[^>]*class="language-picker"[^>]*>([\s\S]*?)<\/span>/)?.[1];
     if(!picker){failures.push(`${file}: missing language picker`);continue;}
     for(const [targetLang,targetPrefix] of languages){
