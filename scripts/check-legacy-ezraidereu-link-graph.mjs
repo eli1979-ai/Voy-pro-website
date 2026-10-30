@@ -48,8 +48,39 @@ function contentString(r){
   if(typeof r.content==='string')return r.content;
   return r.content?.raw??r.content?.rendered??'';
 }
+// Conservative HTML-attribute reader: classic WP content can use quoted or
+// unquoted hrefs. An entity-obfuscated booking link is still a real link.
+// No DOM, network access, or executable HTML is involved.
+function decodeHref(value){
+  const named={amp:'&',quot:'"',apos:"'",colon:':',sol:'/',tab:'\t',newline:'\n'};
+  return String(value).replace(/&(?:#(?:x[0-9a-f]+|[0-9]+)|amp|quot|apos|colon|sol|tab|newline);/gi,entity=>{
+    const code=entity.slice(1,-1);
+    if(code.startsWith('#')){
+      const hex=code[1]?.toLowerCase()==='x';
+      const number=Number.parseInt(code.slice(hex?2:1),hex?16:10);
+      return Number.isFinite(number)&&number>0&&number<=0x10ffff&&!(number>=0xd800&&number<=0xdfff)
+        ?String.fromCodePoint(number):entity;
+    }
+    return named[code.toLowerCase()]??entity;
+  });
+}
 function hrefsOf(html){
-  return [...html.matchAll(/<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gi)].map(m=>m[2].replace(/&amp;/gi,'&'));
+  const links=[];
+  // Recognize '>' inside quoted attributes rather than prematurely ending a tag.
+  const tags=/<a\b((?:"[^"]*"|'[^']*'|[^'">])*)>/gi;
+  for(const tag of html.matchAll(tags)){
+    const attrs=tag[1];
+    const href=attrs.match(/(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'`=<>]+))/i);
+    if(href)links.push(decodeHref(href[1]??href[2]??href[3]));
+    else if(/(?:^|\s)href\s*=/i.test(attrs))links.push('MALFORMED');
+  }
+  return links;
+}
+function isFareHarborHref(href,base){
+  try{
+    const host=new URL(href,base).hostname.toLowerCase();
+    return host==='fareharbor.com'||host.endsWith('.fareharbor.com');
+  }catch{return false;}
 }
 function fullyDecoded(value){
   let v=String(value).replace(/\+/g,' ');
@@ -77,15 +108,20 @@ export function auditRecord(r){
   if(html.length<100)errors.push('MISSING_BODY');
   const anchors=hrefsOf(html);
   for(const href of anchors){
-    if(/^(?:javascript|vbscript|data|file):/i.test(href.trim()))errors.push('UNSAFE_ANCHOR_SCHEME');
-    if(/^http:\/\//i.test(href.trim()))errors.push('INSECURE_HTTP_ANCHOR');
+    if(href==='MALFORMED')errors.push('MALFORMED_ANCHOR_HREF');
+    // Browsers ignore ASCII controls/whitespace in URL schemes. Check after
+    // entity-decoding so java&#x73;cript&colon; cannot bypass the audit.
+    const normalized=href.trim().replace(/[\u0000-\u0020]+/g,'');
+    if(/^(?:javascript|vbscript|data|file):/i.test(normalized))errors.push('UNSAFE_ANCHOR_SCHEME');
+    if(/^http:\/\//i.test(normalized))errors.push('INSECURE_HTTP_ANCHOR');
   }
   const local=anchors.map(x=>canonical(x,url)).filter(x=>x!==null);
   for(const ref of local)if(ref==='MALFORMED'||!expected.has(ref))errors.push('UNKNOWN_INTERNAL_LINK:'+ref);
   const mail=anchors.filter(x=>/^mailto:/i.test(x));
   if(!mail.some(x=>/^mailto:Voyprobud@gmail\.com(?:\?|$)/i.test(x)))errors.push('PUBLIC_BUDAPEST_EMAIL_MISSING');
   if(/voy\.pro\.eu@gmail\.com/i.test(html))errors.push('STALE_EMAIL');
-  if(/fareharbor\.com/i.test(html))errors.push('FAREHARBOR_IN_STORED_CONTENT');
+  if(/fareharbor\.com/i.test(html)||anchors.some(href=>isFareHarborHref(href,url)))
+    errors.push('FAREHARBOR_IN_STORED_CONTENT');
   const wa=anchors.filter(x=>/^https:\/\/wa\.me\/36300993099(?:[?#]|$)/i.test(x));
   if(wa.length!==1)errors.push('EXPECTED_ONE_CORRECT_WHATSAPP_LINK');
   if(wa.length===1 && !whatsappSourceMatches(wa[0],permalink))
@@ -143,6 +179,13 @@ function selfTest(){
     {name:'WhatsApp wrong source page',list:mutate(38,x=>({...x,content:x.content.replace(encodeURIComponent('Budapest source: '+origin+'/budapest/tours/buda-castle-tour/'),encodeURIComponent('Budapest source: '+origin+'/budapest/tours/night-tour/'))})),error:'WHATSAPP_SOURCE_ATTRIBUTION_MISMATCH'},
     {name:'unsafe JavaScript link',list:mutate(49,x=>({...x,content:x.content+' <a href="javascript:alert(1)">Unsafe</a>'})),error:'UNSAFE_ANCHOR_SCHEME'},
     {name:'insecure HTTP link',list:mutate(390,x=>({...x,content:x.content+' <a href="http://ezraidereu.com/budapest/tours/buda-castle-tour/">HTTP</a>'})),error:'INSECURE_HTTP_ANCHOR'},
+
+    {name:'unquoted unsafe scheme',list:mutate(49,x=>({...x,content:x.content+' <a href=javascript:alert(1)>Unsafe</a>'})),error:'UNSAFE_ANCHOR_SCHEME'},
+    {name:'entity-encoded unsafe scheme',list:mutate(49,x=>({...x,content:x.content+' <a href="java&#x73;cript&colon;alert(1)">Unsafe</a>'})),error:'UNSAFE_ANCHOR_SCHEME'},
+    {name:'unquoted insecure URL',list:mutate(390,x=>({...x,content:x.content+' <a href=http://ezraidereu.com/budapest/tours/buda-castle-tour/>HTTP</a>'})),error:'INSECURE_HTTP_ANCHOR'},
+    {name:'unquoted broken internal URL',list:mutate(43,x=>({...x,content:x.content+' <a href=/budapest/tours/missing-unquoted/>Broken</a>'})),error:'UNKNOWN_INTERNAL_LINK:/budapest/tours/missing-unquoted/'},
+    {name:'unquoted FareHarbor link',list:mutate(390,x=>({...x,content:x.content+' <a href=//fareharbor.com/embeds/book/ezraidereu/>Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
+    {name:'entity-encoded FareHarbor host',list:mutate(390,x=>({...x,content:x.content+' <a href="https://fareharbor&#46;com/embeds/book/">Book</a>'})),error:'FAREHARBOR_IN_STORED_CONTENT'},
   ];
   for(const t of tests){
     const bad=auditSnapshot(t.list);
@@ -164,7 +207,7 @@ function selfTest(){
   assert.equal(unexpected.status,'fail');
   assert.equal(unexpected.extras.length,1);
   assert.equal(unexpected.received,34);
-  console.log('PASS: 13 snapshot scenarios (clean, nine safety/link regressions, missing, duplicate, extra home) on 33 published items');
+  console.log('PASS: 19 snapshot scenarios (clean, fifteen safety/link regressions, missing, duplicate, extra home) on 33 published items');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else {
