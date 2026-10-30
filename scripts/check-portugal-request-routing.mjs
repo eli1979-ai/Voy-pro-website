@@ -13,6 +13,24 @@ assert.ok(handler.includes("https://wa.me/351935695004?text="),'Portuguese numbe
 for(const locale of ['en','pt','he']){
   const staticPage=locale==='en'?'site/portugal/index.html':'site/'+locale+'/portugal/index.html';
   const html=fs.readFileSync(staticPage,'utf8');
+
+  // Current-language accessibility: exactly one semantically current locale,
+  // matching the visibly selected link, on each Marvão request-first page.
+  const languageLinks=[...html.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/g)]
+    .map(match=>match[0]);
+  const selected=languageLinks.filter(link=>
+    /\bactive\b/.test((link.match(/\bclass="([^"]+)"/)||[])[1]||''));
+  const current=languageLinks.filter(link=>/\baria-current="page"/.test(link));
+  const expectedCurrent=locale==='en'?'/portugal/':'/'+locale+'/portugal/';
+  assert.equal(languageLinks.length,3,locale+': Marvão must offer EN/PT/HE links');
+  assert.equal(selected.length,1,locale+': exactly one visible current language');
+  assert.equal(current.length,1,locale+': exactly one ARIA current page language');
+  assert.equal(current[0],selected[0],locale+': active and ARIA current must agree');
+  assert.ok(current[0].includes('href="'+expectedCurrent+'"'),
+    locale+': current language must link to the exact local destination page');
+  assert.equal((html.match(/\baria-current="page"/g)||[]).length,1,
+    locale+': no extra current-page marker outside the language picker');
+
   // Marvão inquiries are not confirmed bookings: no localized headline may
   // imply a booking was completed by opening the WhatsApp request form.
   const requestHeading={
