@@ -21,7 +21,24 @@ const sitemapPaths=urls.map(raw=>{
   return parsed.pathname;
 });
 assert.equal(new Set(sitemapPaths).size,sitemapPaths.length,'Duplicate sitemap URLs');
-const extraPaths=['/manage/'];
+// Explicit, public, synthetic paths only. Never permit arbitrary query strings.
+const recoveryCases=[
+  {path:'/qa-not-found-717-20261030/',lang:'en',heading:'That page isn’t here.',direction:'ltr',
+    budapest:'/budapest/',portugal:'/portugal/',manage:'/manage/'},
+  {path:'/he/qa-not-found-visual-20261030/',lang:'he',heading:'העמוד לא נמצא.',direction:'rtl',
+    budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he'},
+  {path:'/hu/qa-not-found-visual-20261030/',lang:'hu',heading:'Ez az oldal nem található.',direction:'ltr',
+    budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu'},
+  {path:'/pt/qa-not-found-visual-20261030/',lang:'pt',heading:'Esta página não existe.',direction:'ltr',
+    budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/'}
+];
+const tokenlessManageCases=[
+  {path:'/manage/',search:'',lang:'en',copy:'Booking details cannot be opened from this link.',direction:'ltr'},
+  {path:'/manage/',search:'?lang=he',lang:'he',copy:'לא ניתן לפתוח את פרטי ההזמנה מהקישור הזה.',direction:'rtl'},
+  {path:'/manage/',search:'?lang=hu',lang:'hu',copy:'Ebből a linkből nem nyithatók meg a foglalási adatok.',direction:'ltr'}
+];
+const allowedManageQueries=new Set(['?lang=he','?lang=hu']);
+const extraPaths=['/manage/',...recoveryCases.map(item=>item.path)];
 const allPaths=new Set([...sitemapPaths,...extraPaths]);
 const highlights=[
   '/', '/budapest/', '/he/budapest/', '/hu/budapest/',
@@ -58,7 +75,10 @@ function allowedRequest(request){
   if(request.method()!=='GET'||!safeURL(request.url()))return false;
   const url=new URL(request.url());
   if(request.resourceType()==='document'){
-    return !url.search&&!url.hash&&allPaths.has(url.pathname);
+    return !url.hash&&(
+      (!url.search&&allPaths.has(url.pathname))||
+      (url.pathname==='/manage/'&&allowedManageQueries.has(url.search))
+    );
   }
   return url.pathname.startsWith('/assets/')&&
     /^(image|font|stylesheet|script|other)$/.test(request.resourceType());
@@ -245,8 +265,137 @@ async function inspect(target){
   console.log((row.ok?'PASS ':'FAIL ')+name+
     (row.issues.length?' — '+row.issues.join('; '):''));
 }
+
+// Existing weekly Chrome harness additionally verifies public HTTP evidence
+// missing from Work #718; no local 404 simulation or customer booking access.
+async function inspectPublicRecovery(spec){
+  const url=ORIGIN+spec.path+(spec.search||'');
+  const name=(spec.managePage?'manage-tokenless-':'404-edge-')+spec.lang+' @ 390';
+  const page=await (await context(390,844)).newPage();
+  const row={
+    name,url,ok:false,status:null,finalUrl:null,redirectPaths:[],
+    responseHeaders:{},lang:null,direction:null,heading:'',
+    horizontalOverflow:null,issues:[],advisories:[],pageErrors:[],screenshot:null
+  };
+  page.on('pageerror',error=>{
+    if(row.pageErrors.length<4)row.pageErrors.push(diagnostic(error));
+  });
+  try{
+    const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:18000});
+    row.status=response?.status()??null;
+    row.finalUrl=page.url();
+    const h=response?.headers()||{};
+    row.responseHeaders={
+      'content-type':h['content-type']||null,
+      'x-robots-tag':h['x-robots-tag']||null,
+      'cache-control':h['cache-control']||null,
+      'x-content-type-options':h['x-content-type-options']||null,
+      'x-frame-options':h['x-frame-options']||null
+    };
+    let previous=response?.request()?.redirectedFrom();
+    while(previous&&row.redirectPaths.length<5){
+      const previousUrl=new URL(previous.url());
+      row.redirectPaths.unshift(previousUrl.pathname);
+      previous=previous.redirectedFrom();
+    }
+    const expectedStatus=spec.managePage?200:404;
+    if(row.status!==expectedStatus)
+      row.issues.push('Real Vercel HTTP status '+row.status+' instead of '+expectedStatus);
+    if(row.redirectPaths.length)row.issues.push('Unexpected redirect chain '+row.redirectPaths.join(' → '));
+    if(page.url()!==url)row.issues.push('Unexpected public document final URL');
+    if(!String(h['content-type']||'').toLowerCase().includes('text/html'))
+      row.issues.push('Missing public text/html Content-Type');
+    const httpRobots=String(h['x-robots-tag']||'').toLowerCase().replace(/\s/g,'');
+    if(!httpRobots.includes('noindex')||!httpRobots.includes('nofollow'))
+      row.issues.push('Missing public HTTP noindex/nofollow header');
+    if(String(h['x-content-type-options']||'').toLowerCase()!=='nosniff')
+      row.issues.push('Missing public nosniff header');
+    if(spec.managePage&&!String(h['cache-control']||'').toLowerCase().includes('no-store'))
+      row.issues.push('Manage public HTTP cache policy missing no-store');
+
+    await page.waitForTimeout(250);
+    const consent=page.locator('[data-consent-essential]');
+    if(await consent.isVisible().catch(()=>false))await consent.click({timeout:2500});
+    if(spec.managePage){
+      await page.waitForFunction(
+        copy=>document.querySelector('#manage-box')?.textContent?.includes(copy),
+        spec.copy,{timeout:5000}).catch(()=>{});
+    }
+    const metrics=await page.evaluate(managePage=>{
+      const doc=document.documentElement,main=document.querySelector('main');
+      const link=key=>document.querySelector(managePage?'#manage-box a[href="mailto:support@voy-pro.com"]':'[data-404-'+key+']');
+      return {
+        lang:doc.lang,direction:getComputedStyle(doc).direction,
+        heading:document.querySelector('h1')?.textContent?.trim()||'',
+        copy:managePage?document.querySelector('#manage-box')?.textContent||'':'',
+        robots:document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+        mainCount:document.querySelectorAll('main').length,
+        overflow:Math.max(doc.scrollWidth,document.body.scrollWidth)-innerWidth,
+        links:managePage?{support:link('support')?.getAttribute('href')}:
+          Object.fromEntries(['budapest','portugal','manage','support'].
+            map(key=>[key,link(key)?.getAttribute('href')])),
+        formFields:managePage?main?.querySelectorAll('form,input,select,textarea').length:null
+      };
+    },Boolean(spec.managePage));
+    row.lang=metrics.lang;
+    row.direction=metrics.direction;
+    row.heading=metrics.heading;
+    row.horizontalOverflow=Math.max(0,metrics.overflow);
+    if(metrics.lang!==spec.lang)row.issues.push('Wrong document lang');
+    if(metrics.direction!==spec.direction)row.issues.push('Wrong document direction');
+    if(metrics.mainCount!==1)row.issues.push('Expected one main landmark');
+    if(metrics.robots!=='noindex,nofollow')row.issues.push('Missing HTML robots noindex,nofollow');
+    if(metrics.overflow>2)row.issues.push('Horizontal overflow '+metrics.overflow+'px at 390px');
+    if(spec.managePage){
+      if(!metrics.copy.includes(spec.copy))row.issues.push('Missing localized private-link fallback instructions');
+      if(metrics.formFields!==0)row.issues.push('Tokenless Manage unexpectedly exposes an input/form');
+    }else{
+      if(metrics.heading!==spec.heading)row.issues.push('Wrong localized recovery heading');
+      for(const key of ['budapest','portugal','manage']){
+        if(metrics.links[key]!==spec[key])row.issues.push('Wrong recovery '+key+' href');
+      }
+    }
+    if(metrics.links.support!=='mailto:support@voy-pro.com')
+      row.issues.push('Support mailto href missing or incorrect');
+    for(const key of spec.managePage?['support']:['budapest','portugal','manage','support']){
+      const link=page.locator(spec.managePage?
+        '#manage-box a[href="mailto:support@voy-pro.com"]':'[data-404-'+key+']');
+      if(await link.count()!==1){row.issues.push(key+' recovery link absent/duplicate');continue;}
+      await link.scrollIntoViewIfNeeded();
+      const hittable=await link.evaluate(element=>{
+        const pieces=[...element.getClientRects()].filter(rect=>rect.width>0&&rect.height>0);
+        return pieces.length>0&&pieces.every(rect=>{
+          const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+          const above=document.elementFromPoint(x,y);
+          return x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight&&
+            Boolean(above&&(above===element||element.contains(above)));
+        });
+      });
+      if(!hittable)row.issues.push(key+' recovery link not hit-testable at 390px');
+    }
+    if(row.pageErrors.length)row.issues.push('Uncaught page errors: '+row.pageErrors.join(' / '));
+    const filename=(spec.managePage?'manage-live-':'404-live-')+spec.lang+'-390.png';
+    await page.screenshot({path:join(OUTPUT,filename),fullPage:true,animations:'disabled',timeout:15000});
+    row.screenshot=filename;
+    row.ok=row.issues.length===0;
+  }catch(error){
+    row.issues.push('Public recovery browser or HTTP audit failed: '+diagnostic(error));
+  }finally{
+    await page.close().catch(()=>{});
+  }
+  if(!row.ok)failures.push(name+': '+row.issues.join('; '));
+  rows.push(row);
+  console.log((row.ok?'PASS ':'FAIL ')+name+
+    ' | real HTTP '+row.status+
+    ' | X-Robots-Tag '+String(row.responseHeaders['x-robots-tag']||'unknown')+
+    ' | Cache-Control '+String(row.responseHeaders['cache-control']||'unknown')+
+    (row.issues.length?' | '+row.issues.join('; '):''));
+}
+
 try{
   for(const target of targets)await inspect(target);
+  for(const item of recoveryCases)await inspectPublicRecovery(item);
+  for(const item of tokenlessManageCases)await inspectPublicRecovery({...item,managePage:true});
 }finally{
   for(const ctx of contexts.values())await ctx.close().catch(()=>{});
   await browser.close();
@@ -271,6 +420,7 @@ const markdown=[
   '**Passed:** '+summary.passed+'/'+summary.totalViews,
   '**Blocked requests:** '+blockedRequests+' (external services, all writes, and non-allowlisted paths intentionally denied).',
   '**First-party asset HTTP failures:** '+assetFailures,
+  '**Public recovery HTTP/mobile cases:** '+(recoveryCases.length+tokenlessManageCases.length)+' real 390px views with status, headers, locale, link hit-tests and screenshots; synthetic URLs contain no customer data.',
   '',
   '## Failed checks',
   ...(failures.length?failures.map(f=>'- '+f):['- None']),
