@@ -24,7 +24,39 @@ import assert from 'node:assert/strict';
 const KINDS=['red-floater-anchor','red-floater-label-handler','fareharbor-cta-rewriter'];
 const provider=/fareharbor(?:\.com|\/|\\\/|%2f)/i;
 function count(source,sub){return sub?source.split(sub).length-1:0;}
-export function inspectGlobalFooterRemoval(before,after,request,{syntaxCheck=true}={}){
+// Conservative guard against collateral removals. This is NOT a JS semantic
+// analyzer; review of the original private source remains mandatory.
+// Reject unexpected DOM selectors / external effects rather than pretending
+// a lexical signature proves deleting the full script is always harmless.
+function reviewRemovalSurface(kind,span,add){
+ if(kind==='red-floater-anchor'){
+  if(!/^\s*<a\b[^>]*>[\s\S]*<\/a\s*>\s*$/i.test(span)||
+      /<(?:script|iframe|form|style)\b|\bon[a-z]+\s*=/i.test(span))
+   add('RED_ANCHOR_CONTAINS_UNRELATED_ELEMENTS_OR_EVENTS');
+  return;
+ }
+ const match=span.match(/^\s*<script\b([^>]*)>([\s\S]*?)<\/script\s*>\s*$/i);
+ if(!match||/\bsrc\s*=/i.test(match[1])){
+  add('REMOVED_HANDLER_NOT_ONE_INLINE_SCRIPT:'+kind);return;
+ }
+ const js=match[2];
+ try{new Script(js)}catch{add('REMOVED_HANDLER_SYNTAX_ERROR:'+kind);}
+ // Never delete unrelated network, storage, navigation, telemetry or DOM
+ // mutation activity simply because the same script references FareHarbor.
+ if(/\b(?:fetch|eval|Function|XMLHttpRequest|WebSocket|Worker|setTimeout|setInterval|sendBeacon)\s*\(|\b(?:window|navigator|location|localStorage|sessionStorage|indexedDB)\s*\.|\b(?:removeChild|appendChild|insertBefore|dispatchEvent|submit|click)\s*\(|\bdocument\s*\.\s*(?:cookie|body|head|location)/i.test(js))
+   add('UNRELATED_EFFECT_IN_REMOVED_HANDLER:'+kind);
+ const allowed=kind==='red-floater-label-handler'
+   ?new Set(['.fh-fixed--bottom','.fh-button-true-flat-red'])
+   :new Set(['.hero__cta','.button-cta']);
+ const calls=[...js.matchAll(/\bquerySelector(?:All)?\s*\(/g)];
+ const selectorRefs=[...js.matchAll(/\bquerySelector(?:All)?\s*\(\s*(['"])(.*?)\1\s*\)/g)];
+ if(calls.length!==selectorRefs.length||selectorRefs.some(x=>!allowed.has(x[2]))||
+    /\b(?:getElementById|getElementsByClassName|getElementsByTagName)\s*\(|\bjQuery\s*\(|\$\s*\(/.test(js))
+   add('UNRELATED_OR_DYNAMIC_SELECTOR_IN_REMOVED_HANDLER:'+kind);
+ if(kind==='fareharbor-cta-rewriter'&&selectorRefs.length<2)
+   add('EXPECTED_TWO_CTA_SELECTORS_IN_REMOVED_HANDLER');
+}
+export function inspectGlobalFooterRemoval(before,after,request){
  const findings=[];
  const add=(code)=>{if(!findings.includes(code))findings.push(code);};
  if(typeof before!=='string'||typeof after!=='string'||!request||typeof request!=='object'||
@@ -59,6 +91,7 @@ export function inspectGlobalFooterRemoval(before,after,request,{syntaxCheck=tru
   if(r.kind==='fareharbor-cta-rewriter'&&
     (!/hero__cta/.test(t)||!/button-cta/.test(t)||!provider.test(t)))
     add('CTA_REWRITER_SIGNATURE_NOT_MATCHED');
+  reviewRemovalSurface(r.kind,t,add);
  }
  if(findings.length===0){
   // Source must be byte-for-byte identical outside these three approved spans.
@@ -73,14 +106,13 @@ export function inspectGlobalFooterRemoval(before,after,request,{syntaxCheck=tru
  if(provider.test(after))add('LEGACY_PROVIDER_REFERENCE_REMAINS_IN_AFTER');
  if(/fh-fixed--bottom|fh-button-true-flat-red/i.test(after))
    add('RED_FLOATER_SELECTOR_REMAINS_IN_AFTER');
- if(syntaxCheck){
-  // Parse HTML inline scripts as syntax only; never execute any visitor code.
-  // src imports (including jQuery) are skipped, preserved by byte-exact diff.
-  const scripts=[...after.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
-  for(const [,attrs,code] of scripts){
-   if(/\bsrc\s*=/i.test(attrs)||!code.trim())continue;
-   try{new Script(code)}catch{add('AFTER_INLINE_SCRIPT_SYNTAX_ERROR');break;}
-  }
+ // This syntax gate is mandatory. A fourth argument such as
+ // {syntaxCheck:false} must not disable verification in imported usage.
+ // Parse only; never execute visitor code or request external assets.
+ const scripts=[...after.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
+ for(const [,attrs,code] of scripts){
+  if(/\bsrc\s*=/i.test(attrs)||!code.trim())continue;
+  try{new Script(code)}catch{add('AFTER_INLINE_SCRIPT_SYNTAX_ERROR');break;}
  }
  return {status:findings.length?'blocked':'candidate-diff-structure-only',
    findings,removalsExpected:3,mayDeploy:false,
@@ -125,7 +157,38 @@ function selfTest(){
  bad(before,after+'<div class="fh-fixed--bottom"></div>',request,'RED_FLOATER_SELECTOR_REMAINS');
  bad(before+'<script>console.log("ezre-wa-float-v1")</script>',after,request,'WRONG_SURFACE_WPCODE_488');
  bad(before,after,{},'BAD_TARGET_OR_REMOVAL_SHAPE');
- console.log('PASS: 14 private-global-footer exact-diff guard scenarios; no live writes');
+ // Regression 1: former public API option could bypass mandatory JS syntax.
+ const bypass=inspectGlobalFooterRemoval(before,after+'<script>let = ;</script>',
+   request,{syntaxCheck:false});
+ assert.equal(bypass.status,'blocked');
+ assert.ok(bypass.findings.includes('AFTER_INLINE_SCRIPT_SYNTAX_ERROR'));
+ // Regression 2: accidental deletion of unrelated instrumentation in the
+ // same old FareHarbor override script used to be accepted as 'structure-only'.
+ const unrelated=rewrite.replace('document.querySelector(".hero__cta")',
+   'window.criticalAnalytics=true;document.querySelector(".hero__cta")');
+ const changed=clone(request);
+ changed.removals[2].text=unrelated;
+ bad(before.replace(rewrite,unrelated),after,changed,'UNRELATED_EFFECT_IN_REMOVED_HANDLER');
+ // Regression 3: deleting an additional non-provider DOM selector is unsafe.
+ const extra=rewrite.replace('document.querySelector(".hero__cta")',
+   'document.querySelector(".customer-login").textContent="x";document.querySelector(".hero__cta")');
+ const wrongSelector=clone(request);wrongSelector.removals[2].text=extra;
+ bad(before.replace(rewrite,extra),after,wrongSelector,'UNRELATED_OR_DYNAMIC_SELECTOR');
+ // Regression 4: dynamic querySelector(...) cannot be approved lexically.
+ const dynamic=rewrite.replace('document.querySelector(".hero__cta")',
+   'document.querySelector(selectorFromConfig)');
+ const dynamicRemoval=clone(request);dynamicRemoval.removals[2].text=dynamic;
+ bad(before.replace(rewrite,dynamic),after,dynamicRemoval,'UNRELATED_OR_DYNAMIC_SELECTOR');
+ // Regression 5: an unrelated event/script within a removed red anchor is not allowed.
+ const hidden=anchor.replace('BOOK NOW','<script>window.criticalAnalytics=true;</script>BOOK NOW');
+ const hiddenRemoval=clone(request);hiddenRemoval.removals[0].text=hidden;
+ bad(before.replace(anchor,hidden),after,hiddenRemoval,'RED_ANCHOR_CONTAINS_UNRELATED');
+ // Regression 6: deletion of a handler with malformed JS is not acceptable.
+ const invalid=rewrite.replace('document.querySelector(".hero__cta")',
+   'let = ;document.querySelector(".hero__cta")');
+ const invalidRemoval=clone(request);invalidRemoval.removals[2].text=invalid;
+ bad(before.replace(rewrite,invalid),after,invalidRemoval,'REMOVED_HANDLER_SYNTAX_ERROR');
+ console.log('PASS: 20 private-global-footer guard regression cases; no live writes');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
