@@ -115,6 +115,18 @@ A PR merge to the modern website would still publish only documentation and test
 **29 October follow-up:** The release contract now has **seven workstream records**, of which five are blocked actual releases and two are source-only/owner-installed checkpoints. The exact reviewed static workstream→PR→target→required-gates mappings reject scope swaps. A fake all-true evidence form yields `unverified-attestations-awaiting-review`, never a green release; the CLI exits with code 2. A valid planning document does not substitute for current GitHub CI or private host/provider evidence.
 
 
+## 30 October — corrected source-freshness gate for current `main` divergence
+
+Under `AGENTS.md` and `docs/DEVELOPMENT-COST-POLICY.md`, a reviewed change must pass all three required build/launch/site QA checks against the actual candidate. A previously successful isolated PR head is **not** proof that it has been integrated with subsequent `main` commits.
+
+**Reproduced false-green risk:** the first `check-legacy-ezraidereu-github-freshness.mjs` implementation only compared archived PR heads, state and pinned CI. It reported all six historical sources as `snapshot-matches` even though they were **7–12 commits behind current `main`** as of the read-only GitHub compare inspection.
+
+**Code correction:** the offline comparator now also requires a valid GitHub `main...head` commit comparison with numeric `behind_by` and `ahead_by`. Any `behind_by > 0` returns `review-needed` and the exact finding `BRANCH_BEHIND_CURRENT_MAIN`. Missing, malformed or HTTP-blocked comparison returns `inconclusive`, never a green status. The optional `--live` method uses **18** read-only public GETs (three per six PRs), without authentication and without changing GitHub workflows or requesting Vercel builds. Rate limits are explicitly inconclusive.
+
+**Validation:** 17/17 isolated synthetic freshness tests PASSED on the exact GitHub-fetched source. A separate fresh authenticated GitHub inspection of PR metadata, pinned workflow results and `main...branch` compare results returned `review-needed` for all six archived PRs, with head match true and behind counts **#591: 12, #596: 12, #598: 12, #601: 11, #610: 10, #625: 7**. The #630 coordination branch itself was also behind `main` by seven commits at the initial inspection. All counts are momentary and may change with new pushes.
+
+**Operational implication:** These are source-only candidate branches, not six independent WordPress deploys. Do not mass-rebase, merge, squash, publish the old theme, or create new Vercel Previews merely to turn a dashboard green. At a later authorized integration checkpoint, choose a genuinely releasable atomic source candidate, review its diff/conflict risk against fresh `main`, integrate/rebase only that candidate, then rerun the required exact-head GitHub build, launch and static QA. Real WordPress/php/ACF and release/backup gates remain separately blocked in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
+
 ## 29 October — fresh GitHub source evidence (read-only)
 
 A new zero-dependency, no-auth **public GitHub metadata checker** `scripts/check-legacy-ezraidereu-github-freshness.mjs` closes a source-freshness blind spot in this static release manifest. It compares each of the six prepared PRs' current **head SHA**, open/draft status, main base branch and **exact pinned existing website CI run** against the archive; it rejects changed heads, closed/merged PRs, wrong workflows, failed/stale source CI and missing results.
@@ -124,9 +136,9 @@ node scripts/check-legacy-ezraidereu-github-freshness.mjs --self-test
 node scripts/check-legacy-ezraidereu-github-freshness.mjs --live
 ```
 
-- `--self-test` runs **13/13** isolated pure-JS regression scenarios; no network request.
+- `--self-test` runs **17/17** isolated pure-JS regression scenarios; no network request.
 - `--live` makes public read-only GitHub API GET requests with timeouts, no token or repository/WordPress write; HTTP errors, rate limits and unexpected redirects produce **inconclusive**, not success. This is an optional operator command, **not** an Actions workflow or background monitor.
-- Using the **connected GitHub plugin** to supply a fresh independent current-data snapshot, the new inspector returned **6/6 `snapshot-matches`**, with `releaseAuthorized:false`, zero mismatches. All six were still draft and unmerged at this check. This does **not** guarantee they will remain unchanged after this check.
+- Using the **connected GitHub plugin** to supply a fresh independent current-data snapshot, the new inspector returned **6/6 `snapshot-matches` at that earlier inspection (before the added `main`-divergence check)**, with `releaseAuthorized:false`, zero mismatches. All six were still draft and unmerged at this check. This does **not** guarantee they will remain unchanged after this check.
 - A match confirms only the historic **repository** source QA and unchanged draft head metadata; it does not verify live WordPress ACF/PHP, the real browser DOM, backups, provider purchases, Google guest pin, protected host settings or any release approval. The workstream gate in this packet remains **blocked** for every actual production change.
 
 ### Confirmed WordPress connector limitations
