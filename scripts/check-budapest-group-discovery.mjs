@@ -7,6 +7,27 @@ const pages=[
   ['site/hu/budapest/index.html','/hu/budapest/group-tours/','/hu/budapest/corporate-events/'],
 ];
 const failures=[];
+
+// Budapest service landing page locale state: visual selected language must
+// also announce the current page to assistive technology on all 12 pages.
+// Keep the checks in this existing build-invoked service/discovery validator.
+for(const locale of ['', 'he/', 'hu/']){
+  for(const slug of ['with-kids','private-tours','group-tours','corporate-events']){
+    const file='site/'+locale+'budapest/'+slug+'/index.html';
+    const html=fs.readFileSync(file,'utf8');
+    const header=(html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)||[])[0]||'';
+    const links=[...header.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/gi)]
+      .map(match=>match[0]);
+    const active=links.filter(link=>/\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
+    const current=links.filter(link=>/\baria-current="page"/.test(link));
+    const expected='href="/'+locale+'budapest/'+slug+'/"';
+    if(links.length!==3||active.length!==1||current.length!==1||
+      active[0]!==current[0]||!active[0].includes(expected)||
+      (header.match(/\baria-current="page"/g)||[]).length!==1)
+      failures.push(file+': service page needs one active/current own-language link across EN/HE/HU');
+  }
+}
+
 for(const [file,groupHref,corporateHref] of pages){
   const html=fs.readFileSync(file,'utf8');
   const hub=(html.match(/<section class="section intent-hub"[\s\S]*?<\/section>/)||[])[0]||'';

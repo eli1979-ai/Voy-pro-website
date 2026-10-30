@@ -62,14 +62,18 @@ for(const [prefix,label] of [
   }
 }
 
-// New Budapest tour language switchers: assistive technology must know
-// which localized tour page is current. Keep this scoped to new tour pages;
-// existing tour/discovery pages have independent accessibility workstreams.
+// Every Budapest tour language switcher: assistive technology must know
+// which localized route is current. Keep the existing strict 3-language
+// and exact-own-link checks for both legacy and newly introduced tours.
 for(const locale of ['', 'he/', 'hu/']){
-  for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour']){
+  for(const slug of [
+    'buda-castle-ezraider-tour','margaret-island-ezraider-tour',
+    'buda-margaret-extended-tour','heroes-square-city-ezraider-tour',
+    'citadella-advanced-ezraider-tour'
+  ]){
     const file=locale+'budapest/tours/'+slug+'/index.html';
     const html=htmlMap.get(file);
-    if(!html){fail(file,'new tour language switch page missing');continue;}
+    if(!html){fail(file,'Budapest tour language switch page missing');continue;}
     const header=(html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)||[])[0]||'';
     const picker=(header.match(/<span\b[^>]*class="language-picker"[^>]*>[\s\S]*?<\/span>/i)||[])[0]||'';
     const links=[...picker.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/gi)].map(m=>m[0]);

@@ -39,6 +39,31 @@ for(const slug of slugs){
     }
   }
 }
+
+ // Every introduced city route must be discoverable on all three Budapest
+ // homepages. Heroes' Square is Request-to-Book, not a direct FBM checkout.
+ for(const [language,prefix] of languages){
+   const file=`site/${prefix}budapest/index.html`;
+   const html=fs.readFileSync(file,'utf8');
+   const href=`/${prefix}budapest/tours/heroes-square-city-ezraider-tour/`;
+   const cards=html.split('<article class="tour-choice-card').slice(1)
+     .map(part=>'<article class="tour-choice-card'+part.split('</article>')[0]+'</article>');
+   const cityCards=cards.filter(card=>card.includes(`href="${href}"`));
+   if(cityCards.length!==1){
+     failures.push(`${file}: exactly one discoverable Heroes' Square tour card required, got ${cityCards.length}`);
+     continue;
+   }
+   const card=cityCards[0];
+   if(!card.includes('data-tour-image="heroes"'))
+     failures.push(`${file}: Heroes' Square card lost first-party image`);
+   if(!card.includes('href="https://wa.me/36300993099"'))
+     failures.push(`${file}: Heroes' Square must remain a contact-first availability request`);
+   if(!card.includes(language==='hu'?'70 €':'€70'))
+     failures.push(`${file}: Heroes' Square card missing previously approved €70 from-price`);
+   if(card.includes('#booking'))
+     failures.push(`${file}: Heroes' Square must not silently enter a direct checkout`);
+ }
+
 if(failures.length){
   console.error('Budapest tour language-switch continuity guard failed.');
   for(const failure of failures)console.error('- '+failure);
