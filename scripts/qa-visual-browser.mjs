@@ -1029,6 +1029,54 @@ try{
       failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
     }finally{await page.close();}
   }
+
+  // #712 — real local Chromium rendering of a tokenless Manage landing.
+  // Booking data is never accessed. This checks the safe fallback rather
+  // than adding a speculative public-booking lookup to the website.
+  for(const [lang,path,expected] of [
+    ['en','/manage/','Booking details cannot be opened from this link.'],
+    ['he','/manage/?lang=he','לא ניתן לפתוח את פרטי ההזמנה מהקישור הזה.'],
+    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.']
+  ]){
+    const name='manage-tokenless-'+lang;
+    const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>{
+      try{
+        if(new URL(route.request().url()).origin===base)return route.continue();
+      }catch{}
+      return route.abort();
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' existing public landing HTTP 200');
+      await page.waitForFunction(()=>document.getElementById('manage-box')?.textContent?.includes('support@voy-pro.com'),null,{timeout:5000});
+      const state=await page.evaluate(()=>{
+        const box=document.getElementById('manage-box');
+        return {
+          text:box?.textContent||'',
+          support:box?.querySelector('a[href="mailto:support@voy-pro.com"]')?.getAttribute('href'),
+          inputs:box?.querySelectorAll('input,form,button').length||0,
+          lang:document.documentElement.lang,
+          dir:document.documentElement.dir||'ltr',
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(state.lang===lang,name+' locale matches requested language');
+      check(state.text.includes(expected),name+' explains private Manage link or support');
+      check(state.support==='mailto:support@voy-pro.com',name+' support email is clickable');
+      check(state.inputs===0,name+' does not offer an unauthenticated lookup form');
+      check(state.overflow<=2,name+' no horizontal overflow at 390px');
+      check(state.dir===(lang==='he'?'rtl':'ltr'),name+' local direction is preserved');
+      check(errors.length===0,name+' no uncaught browser JavaScript errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | 390x844 | local built no-token Manage landing');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' browser recovery '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');
