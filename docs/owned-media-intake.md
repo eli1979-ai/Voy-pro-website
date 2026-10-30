@@ -9,10 +9,10 @@ The owner has supplied a shared Drive collection named `Media for Website Voy PR
 | Folder | Total files | JPEG photos | MP4 videos |
 | --- | ---: | ---: | ---: |
 | Budapest | 65 | 64 | 1 |
-| Marvão | 47 | 45 | 2 |
-| **Total** | **112** | **109** | **3** |
+| Marvão | 71 | 64 | 7 |
+| **Total** | **136** | **128** | **8** |
 
-The 13 photos below were **visually inspected** (not just classified from filenames). Each video was inspected from multiple frames across its duration using original stored file bytes and FFprobe. Remaining photos were inventoried by filename, MIME type and file size but not individually visually graded. Do not describe the *whole* folder as reviewed or any photo as definitely depicting an itinerary based on GPS/time alone.
+The 13 photos in the original intake were **visually inspected** (not just classified from filenames). After the owner's upload completion, **all 19 newly arriving Marvão JPEGs** were additionally opened, EXIF-orientation-corrected and reviewed in a labeled visual contact sheet; all seven Marvão videos were downloaded and FFprobed, then reviewed from multiple frames across their duration. The single Budapest video and original two Marvão videos were reviewed in the earlier pass. Remaining photos were inventoried by filename, MIME type and file size but not individually visually graded. Do not describe the *whole* folder as reviewed or any photo as definitely depicting an itinerary based on GPS/time alone.
 
 ## Photo short list: candidate, not approved
 
@@ -34,6 +34,27 @@ The 13 photos below were **visually inspected** (not just classified from filena
 
 **Do not replace heroes blindly.** Existing source assets: `site/assets/images/budapest/` includes `img12.jpg`, `img14.jpg`, selected `IMG-20261006-WA00*.jpg` (Citadella) and family photos; `site/assets/images/portugal/marvao-01.jpg` through `marvao-04.jpg` are already used on the Marvão landing. Preserve current routes/copies and image credits until an explicit side-by-side crop and quality comparison is documented.
 
+## New Marvão upload — 24 files added after initial intake
+
+**Recount after owner declared upload complete (2026-10-30):** Marvão increased **47 → 71 files**: **45 → 64 JPEGs (+19)** and **2 → 7 MP4s (+5)**. Budapest remains **65 files (64 JPEG, 1 MP4)**. This corrects the earlier historical count, rather than treating an in-progress Drive upload as complete.
+
+All 19 newly added Marvão photos were read as actual pixels (including EXIF rotation), not judged by filename alone. The older 4 image assets currently published on Marvão EN/HE/PT use sunny/high-contrast group, heritage architecture, rider group and countryside views. **Do not replace the existing Marvão lead and tour-card imagery blindly** with this overcast, predominantly portrait new set. Good use is secondary authentic trail/action content with an explicit route/people gate:
+
+| New source filename | What was actually visible | Editorial classification |
+| --- | --- | --- |
+| Marvão/`20250313_111359.jpg` | Three helmeted riders traveling along a rural road, horizontal frame, cloudy weather | **Candidate:** secondary outdoor-riding image; not an Express/castle-tour attestation |
+| Marvão/`20250313_111834.jpg` | EZRaider equipment and guests stopped next to a stone wall and outdoor water trough; landscape | **Candidate:** secondary trail rest-stop photograph, after guest consent and location check |
+| Marvão/`20250313_112215.jpg` | Riders and guests along the roadside with EZRaider, vertical | **HOLD:** recognizable people, route identity and consent unverified |
+| Marvão/`20250313_114328.jpg` | Front of an EZRaider on a narrow, wooded rural track; portrait with strong leading lines | **Strong secondary candidate:** countryside/off-road gallery; do not crop into a wide hero |
+| Marvão/`20250313_114424.jpg` | Multiple EZRaiders arranged along a shaded narrow unpaved path, vertical | **Candidate:** illustrating nature/off-road travel; confirm actual booked route |
+| Marvão/`20250312_085101.jpg` through `20250312_090206.jpg` | Industrial/fleet preparation outside a facility, vehicles and people; 3 separate views | **Hold from customer-facing hero:** operations context, not a scenic tour highlight |
+| Marvão/`20250313_111355.jpg` and `20250313_111356.jpg` | Rear views of riders on a paved rural lane, portrait | Secondary only; similar framing, select at most one |
+| Marvão/`20250313_111851.jpg`, `111853.jpg`, `111855.jpg` | Guests examining a stone outdoor water feature; several close-up recognizable faces | **HOLD:** not a strong standalone ride experience photo; people consent and claimed interpretation unverified |
+
+**Not in new images:** no unequivocal Marvão castle/village exterior or megalithic monument clearly documented in the newly arrived images. Do not repurpose woodland or roadside footage as the historic castle/Express route. Current three published Marvão options are *Vila de Marvão Express* (village/castle), *Marvão Explorer* (village/castle and surroundings), and *Megalithic Route* (rural/off-road and historical points). Nature footage may suit only a **verified** outdoor section of the latter, never imply a specific place not recorded.
+
+**Existing displayed-photo baseline:** `marvao-01.jpg` is a sunny group with EZRaiders, `marvao-02.jpg` a traditional railway/heritage facade, `marvao-03.webp` riders with EZRaiders outside a facility, `marvao-04.jpg` a landscape landmark. Existing four images are small, optimized derivatives (roughly 45–73 KB). Any new derivatives must be resized, appropriately cropped and optimized, not uploaded at 3–6 MB originals. Keep published image attribution accurate to the true photographer/rights holder; source ownership alone does not establish consent from recognizable guests.
+
 ## Video clips — actually inspected, route-specific decision
 
 | Original file | Duration / original size | Frames show | Editorial decision |
@@ -41,8 +62,13 @@ The 13 photos below were **visually inspected** (not just classified from filena
 | Budapest/`20260829_110902.mp4` | 51.21 seconds; 66.86 MB | Portrait-view city/treelined road ride with an adult and two children on an EZRaider | **HOLD**: identifiable minors, explicit permission/safety review, and no proven one-to-one tour identification; do not use as blanket Budapest tour clip |
 | Marvão/`20250313_121101.mp4` | 24.60 seconds; 37.99 MB | Portrait-view riders traveling on a broad unpaved rural road | **Secondary candidate** for countryside/off-road experience; slow action, fewer changing viewpoints |
 | Marvão/`20250313_125407.mp4` | 60.67 seconds; 93.39 MB | Portrait-view riders on a leafy narrow hillside trail in natural scenery | **Preferred pilot candidate** for a **verified Marvão countryside/off-road itinerary only**, **not** proof of the historic village/castle itinerary |
+| Marvão/`20250313_111253.mp4` | 21.2 seconds; 32.69 MB | Portrait-view distant riders on a fairly straight narrow paved countryside lane | **Lower priority:** weak scenic/experience variety, no confirmed tour |
+| Marvão/`20250313_111406.mp4` | 27.3 seconds; 41.88 MB | Portrait-view rider passes foreground on a narrow rural road | **Candidate excerpt** for a general riding montage, subject to consent |
+| Marvão/`20250313_111619.mp4` | 13.7 seconds; 21.24 MB | Portrait-view rider passing foreground near stone wall and trees | **Candidate excerpt** for riding action, subject to consent |
+| Marvão/`20250313_114655.mp4` | 50.9 seconds; 78.18 MB | Portrait-view outdoor riding on winding dirt track among trees and stone walls | **Candidate:** scenery / off-road presentation if exact tour verified |
+| Marvão/`20250313_124920.mp4` | 30.6 seconds; 46.69 MB | Portrait-view riders on a narrow green, tree-lined country lane | **Candidate** generic nature ride, route unverified |
 
-Original videos are high-bitrate HEVC and must **not** be copied directly into a customer page; phone video metadata/rotation must be respected. A **nonpublished working preview** was prepared from 21 seconds of the Marvão woodland source as muted/silent H.264, 720×1280, ~4.65 MB, with a separate still poster. It remains outside this repository. No viewer tracking, audio claims or face consent is implied.
+Original videos are high-bitrate HEVC and must **not** be copied directly into a customer page; phone video metadata/rotation must be respected. A **nonpublished working preview** was prepared from 21 seconds of the Marvão woodland source as muted/silent H.264, 720×1280, ~4.65 MB, with a separate still poster. A second **private local-only** 14.33-second montage from four original Marvão clips was made without soundtrack, at 480×854 portrait / ~0.83 MB for review, with a separate poster. Neither preview was uploaded to GitHub, embedded into the site, or approved as an accurate itinerary-specific promotion. They remain outside this repository. No viewer tracking, audio claims or face consent is implied.
 
 ## Where the video module could go
 
