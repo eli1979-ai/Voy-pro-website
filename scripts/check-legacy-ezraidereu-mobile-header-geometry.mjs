@@ -11,6 +11,25 @@ import {readFileSync} from 'node:fs';
 const ORIGIN='https://ezraidereu.com';
 const REFERENCE=['/budapest/tours/buda-castle-tour/','/budapest/tours/citadella-tour/'];
 const LANGS=['en','hu','he'];
+const REVIEWED_CSS=`@media (max-width: 667px) {
+  body.single-tours .page-top.page-top--home {
+    position: relative;
+    top: auto;
+    height: auto;
+  }
+  body.single-tours .page-content--subpage {
+    padding-block-start: 16px;
+  }
+}`;
+const CANDIDATE_CSS=new URL('../docs/legacy-wordpress/ezraidereu-mobile-header-preview-candidate-20261030.css',import.meta.url);
+// Work #723 preview-only CSS is immutable until a new scoped visual review.
+// Skip only the first header comment; extra declarations MUST fail the gate.
+export function auditCssCandidate(source){
+ if(typeof source!=='string')return {status:'fail',problems:['CSS_NOT_TEXT'],mayPublishAutomatically:false};
+ const actual=source.replace(/^\s*\/\*[\s\S]*?\*\/\s*/,'').trim();
+ const problems=actual===REVIEWED_CSS?[]:['REVIEWED_WORK_CSS_DRIFT'];
+ return {status:problems.length?'fail':'pass',problems,mayPublishAutomatically:false};
+}
 const TOUR_PATHS=Object.freeze({
  en:{buda:'/budapest/tours/buda-castle-tour/',citadella:'/budapest/tours/citadella-tour/'},
  hu:{buda:'/budapest/tours/budavari-tura/',citadella:'/budapest/tours/citadella-tura/'},
@@ -136,9 +155,20 @@ function selfTest(){
  assert.ok(Math.abs(overlapY-19.719)<0.001);
  assert.ok(Math.abs(afterTitle.y-edge(afterLogo,'y')-56.281)<0.001);
  assert.equal(auditMeasurements(clean).mayPublishAutomatically,false);
- console.log('PASS: 19 fail-closed tests including parent-header clearance regression and genuine Work preview geometry');
+ const candidate=readFileSync(CANDIDATE_CSS,'utf8');
+ assert.equal(auditCssCandidate(candidate).status,'pass');
+ assert.equal(auditCssCandidate(candidate.replace('max-width: 667px','max-width: 1024px')).status,'fail');
+ assert.equal(auditCssCandidate(candidate.replace('body.single-tours','body.page')).status,'fail');
+ assert.equal(auditCssCandidate(candidate+'\nbody { display: none; }').status,'fail');
+ assert.equal(auditCssCandidate(null).status,'fail');
+ console.log('PASS: 24 fail-closed geometry, CSS integrity and Work preview tests');
 }
 if(process.argv.includes('--self-test'))selfTest();
+else if(process.argv.includes('--verify-candidate-css')){
+ const report=auditCssCandidate(readFileSync(CANDIDATE_CSS,'utf8'));
+ console.log(JSON.stringify(report,null,2));
+ process.exitCode=report.status==='pass'?0:1;
+}
 else if(process.argv.includes('--input')){
  const file=process.argv[process.argv.indexOf('--input')+1];
  if(!file){console.error('Missing input JSON path');process.exitCode=2}
