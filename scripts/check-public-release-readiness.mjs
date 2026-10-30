@@ -8,6 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {validPublicApiUrl} from './public-api-url-policy.mjs';
 
 export function assessPublicRelease(siteDir = path.resolve('site'), attestationFile = path.resolve('launch/production-environment.json'), deploymentConfigFile = path.resolve('vercel.json')) {
   const failures = [];
@@ -109,15 +110,8 @@ export function assessPublicRelease(siteDir = path.resolve('site'), attestationF
   if (declaredApi !== apiRoot) {
     failures.push('Runtime public API base URL must exactly match the verified Production API');
   }
-  try {
-    const url = new URL(declaredApi);
-    if (url.protocol !== 'https:' || url.username || url.password ||
-        url.search || url.hash || url.pathname !== '/api/v1' ||
-        /staging|(^|[-.])stg([-.]|$)/i.test(url.hostname)) {
-      failures.push('Production API must be a canonical HTTPS /api/v1 URL not associated with staging');
-    }
-  } catch {
-    failures.push('Production API base URL is missing or invalid');
+  if (!validPublicApiUrl(declaredApi)) {
+    failures.push('Production API must use a canonical public HTTPS hostname and /api/v1 path (not staging, localhost, IP or internal-only)');
   }
 
   return failures;

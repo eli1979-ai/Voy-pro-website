@@ -327,6 +327,95 @@ for(const [pagePath,localizedHorizon] of [
   assert.ok(b.locations[0].startsWith('https://wa.me/36300993099?text='));
   assert.ok(!statusOf(b).includes('הפנייה התקבלה'));
 }
+// Very long multibyte contact details can exceed WhatsApp's reliable
+// percent-encoded URL size even though native field maxlengths are valid.
+// Fallback must be an *explicit, blank* local WhatsApp link with a warning,
+// never a truncated prefilled URL or an automatic redirect to a broken URL.
+for(const [path,language] of [
+  ['/budapest/tours/heroes-square-city-ezraider-tour/','en'],
+  ['/he/budapest/tours/citadella-advanced-ezraider-tour/','he'],
+  ['/hu/budapest/tours/buda-margaret-extended-tour/','hu']
+]){
+  const veryLongName='🚀'.repeat(100); // 200 UTF-16 units, within maxlength 200
+  const longEmail='a'.repeat(60)+'@'+Array(5).fill('b'.repeat(35)).join('.')+'.com';
+  const huge=b=>{
+    b.set('requested_guide_language',language);
+    b.set('contact_name',veryLongName);
+    b.set('contact_email',longEmail);
+    b.set('contact_phone','+'+'1'.repeat(39));
+  };
+  const disabled=browser(async()=>({status:404}),path);
+  huge(disabled);
+  await disabled.submit();
+  assert.equal(disabled.requests.length,1,path+': 404 still attempts one relay POST');
+  assert.equal(disabled.locations.length,0,path+': overlong 404 must not auto-open unusable WhatsApp URL');
+  assert.equal(disabled.statuses.manual?.href,'https://wa.me/36300993099',
+    path+': overlong 404 offers the correct blank team WhatsApp link');
+  assert.ok((disabled.statuses.manual?.textContent||'').length>15,
+    path+': blank WhatsApp fallback has a descriptive action');
+  assert.ok(statusOf(disabled).length>80&&!statusOf(disabled).includes(veryLongName),
+    path+': long-link warning must be visible without reproducing PII');
+  const warning=language==='en'?'This prefilled WhatsApp enquiry is too long':
+    language==='he'?'הפנייה ארוכה מדי לקישור WhatsApp':
+      'Az előre kitöltött WhatsApp-üzenet túl hosszú';
+  const disabledReason=language==='en'?'Secure enquiry intake is disabled':
+    language==='he'?'קליטת הפניות המאובטחת אינה פעילה':
+      'A biztonságos kérések fogadása nem aktív';
+  const unknownReason=language==='en'?'English alternative not answered':
+    language==='he'?'לא נבחרה תשובה לגבי אנגלית':
+      'Az angol alternatívára nem érkezett válasz';
+  const uncertainReason=language==='en'?'Request delivery could not be verified':
+    language==='he'?'לא ניתן לאמת שהפנייה נמסרה':
+      'Nem sikerült ellenőrizni a kézbesítést';
+  const limitedReason=language==='en'?'Too many enquiries were sent':
+    language==='he'?'נשלחו יותר מדי בקשות':
+      'Túl sok kérés érkezett';
+  const conflictReason=language==='en'?'This enquiry ID belongs':
+    language==='he'?'מספר הפנייה כבר קשור':
+      'Ez a kérésazonosító más adatokhoz tartozik';
+  const assertReasons=(b,reason,step)=>{
+    const status=statusOf(b);
+    assert.ok(status.includes(reason),path+': '+step+' delivery/consent reason hidden');
+    assert.ok(status.includes(warning),path+': '+step+' missing long-link warning');
+    assert.ok(!status.includes(veryLongName),path+': '+step+' leaked customer name into feedback');
+  };
+  assertReasons(disabled,disabledReason,'404 disabled relay');
+  const unknown=browser(async()=>({status:404}),path,Date,{explicitNo:false});
+  huge(unknown);
+  unknown.set('requested_guide_language','es');
+  await unknown.submit();
+  assert.equal(unknown.requests.length,0,path+': unanswered English alternative still forbids POST');
+  assert.equal(unknown.uuidCount,0,path+': unanswered English alternative has no CRM id');
+  assert.equal(unknown.locations.length,0,path+': unknown consent must never auto-navigate');
+  assert.equal(unknown.statuses.manual?.href,'https://wa.me/36300993099',
+    path+': overlong unknown-consent fallback is an explicit blank message');
+  assertReasons(unknown,unknownReason,'unknown language consent');
+  const uncertain=browser(async()=>({status:503}),path);
+  huge(uncertain);
+  await uncertain.submit();
+  assert.equal(uncertain.requests.length,1,path+': uncertain fallback keeps single original POST');
+  assert.equal(uncertain.locations.length,0,path+': uncertain 503 never auto-opens WhatsApp');
+  assert.equal(uncertain.statuses.manual?.href,'https://wa.me/36300993099',
+    path+': uncertain overlong manual link cannot silently discard encoded text');
+  assertReasons(uncertain,uncertainReason,'503 uncertain receipt');
+  const limited=browser(async()=>({status:429}),path);
+  huge(limited);
+  await limited.submit();
+  assert.equal(limited.requests.length,1,path+': 429 only sends one relay request');
+  assert.equal(limited.locations.length,0,path+': 429 never automatically opens WhatsApp');
+  assert.equal(limited.statuses.manual?.href,'https://wa.me/36300993099',
+    path+': 429 links only to the blank team chat when message is too long');
+  assertReasons(limited,limitedReason,'429 rate limit');
+  const conflicting=browser(async()=>({status:409}),path);
+  huge(conflicting);
+  await conflicting.submit();
+  assert.equal(conflicting.requests.length,1,path+': 409 makes exactly one conflicting request');
+  assert.equal(conflicting.created.get('button[type="submit"]').disabled,true,
+    path+': oversized link does not unlock a conflicting request');
+  assert.equal(conflicting.statuses.manual?.href,'https://wa.me/36300993099',
+    path+': conflict uses blank chat instead of a broken encoded URL');
+  assertReasons(conflicting,conflictReason,'409 idempotency conflict');
+}
 // Transient 503 may have accepted the upstream CRM write.
 // No automatic WhatsApp; retry exact same payload including same UUID.
 {

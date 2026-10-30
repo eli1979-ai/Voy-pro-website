@@ -152,6 +152,40 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
               null,{timeout:2000}).catch(()=>{});
             check(await opener.evaluate(el=>document.activeElement===el),
               name+' closing review returns focus to opener');
+            // The carousel's visual before/after copies are aria-hidden,
+            // but their expanded review buttons can be clicked by pointer.
+            // Test the real native dialog in Chrome, not only our VM fixture.
+            const duplicate=carousel.locator('.vp-review-group--before .vp-review-expand').first();
+            check(await duplicate.evaluate(el=>
+              el.tabIndex===-1&&el.closest('.vp-review-group')?.getAttribute('aria-hidden')==='true'),
+              name+' infinite-scroll duplicate is excluded from the accessible tab order');
+            const rightControl=carousel.locator('[data-vp-reviews-right]');
+            const pauseControl=carousel.locator('[data-vp-reviews-pause]');
+            check(await pauseControl.isHidden(),
+              name+' reduced-motion mode hides unnecessary auto-scroll Resume control');
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            // Native dialog close events (and focus restoration) can follow
+            // Escape asynchronously; assert the eventual accessible focus
+            // destination instead of racing the browser's close callback.
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-right]'),
+              null,{timeout:3000}).catch(()=>{});
+            check(await rightControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible manual arrow with reduced motion');
+            await page.emulateMedia({reducedMotion:'no-preference'});
+            await page.waitForFunction(()=>
+              document.querySelector('[data-vp-reviews-pause]')?.hidden===false,
+              null,{timeout:3000});
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-pause]'),
+              null,{timeout:3000}).catch(()=>{});
+            check(await pauseControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible Pause/Resume control in normal motion');
           }
         }
       }
@@ -302,6 +336,21 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(await route.inputValue()===code,name+' '+code+' preselects the correct route');
       }
       const initialStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      // Clicking a tour card must dispatch a real form change. A previously
+      // visible missing-fields warning must clear without a WhatsApp handoff.
+      await route.selectOption('');
+      const missingPrevented=await requestForm.evaluate(el=>
+        !el.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+      const missingStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      check(missingPrevented&&missingStatus!==initialStatus,
+        name+' missing route shows a validation warning before changing a tour card');
+      const beforeRouteClickUrl=page.url();
+      await page.locator('[data-portugal-tour="explorer"]').click();
+      check(await route.inputValue()==='explorer'&&
+        await requestForm.locator('[data-portugal-request-status]').innerText()===initialStatus,
+        name+' tour card updates select and clears obsolete form warning');
+      check(page.url().split('#')[0]===beforeRouteClickUrl.split('#')[0],
+        name+' tour-card correction stays on the same request page');
       await route.selectOption('express');
       await date.fill('2000-01-01');
       await language.selectOption('en');
@@ -474,6 +523,34 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(await menu.getAttribute('aria-expanded')==='false',name+' menu resets aria-expanded');
         check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
           name+' Escape returns focus to original menu button');
+        // A real keyboard Enter on a menu link should close the modal and
+        // return focus even if another handler cancels navigation. Cancelling
+        // the link is confined to this browser fixture; website code never
+        // calls preventDefault or changes the link destination.
+        if(['home-mobile','budapest-he-mobile','budapest-hu-narrow','marvao-pt-mobile'].includes(name)){
+          await menu.click();
+          const link=page.locator('#mobile-nav-sheet a[href]').first();
+          const originalHref=await link.getAttribute('href');
+          await link.evaluate(a=>{
+            a.addEventListener('click',event=>{
+              event.preventDefault();
+              window.__voyNavQALinkActivated=true;
+            },{once:true});
+          });
+          await link.focus();
+          await page.keyboard.press('Enter');
+          check(await page.evaluate(()=>window.__voyNavQALinkActivated===true),
+            name+' keyboard Enter activates a real mobile navigation link');
+          check(await page.locator('#mobile-nav-sheet').isHidden()&&
+            await menu.getAttribute('aria-expanded')==='false',
+            name+' keyboard link closes mobile dialog and resets ARIA');
+          check(await page.evaluate(()=>!document.body.classList.contains('nav-open')),
+            name+' keyboard link releases the body scroll lock');
+          check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
+            name+' keyboard link restores visible menu-button focus');
+          check(await link.getAttribute('href')===originalHref,
+            name+' keyboard link does not rewrite its destination');
+        }
       }
     }
     if(guide){
@@ -592,6 +669,75 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Marvão floating and mobile-menu WhatsApp links must reflect the most
+      // recent PUBLIC request selections. The browser uses the locally built
+      // artifact; external WhatsApp, FBM and tracking requests are blocked.
+      if(name.startsWith('marvao-')){
+        const form=page.locator('#request [data-portugal-request-form]');
+        await form.locator('select[name="route"]').selectOption('explorer');
+        // Never freeze a public request test to a calendar date that will
+        // expire. The live picker itself sets min using Lisbon's local day;
+        // use its bound as the source of truth, independent of runner zone.
+        const dateInput=form.locator('input[name="date"]');
+        const lisbonMinimum=await dateInput.getAttribute('min');
+        check(/^\d{4}-\d{2}-\d{2}$/.test(lisbonMinimum||''),
+          name+' Marvão test reads a valid Lisbon-local date minimum');
+        const chosenDate=new Date(Date.parse(lisbonMinimum+'T12:00:00Z')+
+          3*24*60*60*1000).toISOString().slice(0,10);
+        check(chosenDate>=lisbonMinimum,
+          name+' selected future request date is not earlier than Lisbon minimum');
+        await dateInput.fill(chosenDate);
+        await form.locator('select[name="people"]').selectOption('4');
+        await form.locator('select[name="guide_language"]').selectOption('pt');
+        await form.locator('input[name="full_name"]').fill('Private Browser Name');
+        await form.locator('textarea[name="notes"]').fill('Private Browser Notes');
+        const floating=page.locator('a.whatsapp[data-wa]');
+        const floatingUrl=await floating.evaluate(link=>{
+          link.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+          return link.href;
+        });
+        const floated=new URL(floatingUrl);
+        const message=floated.searchParams.get('text')||'';
+        const peopleLabel=name.includes('-he-')?'משתתפים: 4':
+          name.includes('-pt-')?'Pessoas: 4':'People: 4';
+        // The customer message is localized: never mistake a formatted date
+        // or a translated guide-language name for dropped form values.
+        const dateLocale=name.includes('-he-')?'he-IL':
+          name.includes('-pt-')?'pt-PT':'en-GB';
+        const formattedDate=new Intl.DateTimeFormat(dateLocale,{
+          day:'numeric',month:'short',year:'numeric',timeZone:'UTC'
+        }).format(new Date(chosenDate+'T12:00:00Z'));
+        const languageLabel=name.includes('-he-')?'פורטוגזית':
+          name.includes('-pt-')?'Português':'Portuguese';
+        check(floated.hostname==='wa.me'&&floated.pathname==='/351935695004',
+          name+' floating WhatsApp keeps the local Marvão number');
+        check(message.includes('Marvão Explorer Tour')&&
+          message.includes(formattedDate)&&message.includes(peopleLabel)&&
+          message.includes(languageLabel),
+          name+' floating WhatsApp carries current localized route, date, party and guide language');
+        check(!message.includes('Private Browser Name')&&
+          !message.includes('Private Browser Notes')&&
+          !message.includes('2000-01-01'),
+          name+' floating WhatsApp excludes private fields and outdated dates');
+        if(name.includes('-pt-')){
+          check(['Passeio:','Data preferida:','Pessoas:','Idioma do guia:'].every(x=>message.includes(x)),
+            name+' floating WhatsApp keeps Portuguese field labels');
+        }
+        const toggle=page.locator('.nav-menu-toggle');
+        if(await toggle.isVisible()){
+          await toggle.click();
+          const navUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+          const mobileMessage=navUrl?new URL(navUrl).searchParams.get('text')||'':'';
+          check(mobileMessage.includes('Marvão Explorer Tour')&&
+            mobileMessage.includes(formattedDate)&&mobileMessage.includes(peopleLabel)&&
+            mobileMessage.includes(languageLabel),
+            name+' mobile menu WhatsApp recomputes localized Marvão tour choices');
+          check(!mobileMessage.includes('Private Browser Name')&&
+            !mobileMessage.includes('Private Browser Notes'),
+            name+' mobile menu WhatsApp excludes personal details');
+          await page.keyboard.press('Escape');
+        }
+      }
       // Browser regression: a WhatsApp link created on load must reflect the
       // latest tour and party selections when the customer opens the menu.
       // Values are changed in local DOM only; no availability/booking/API call.

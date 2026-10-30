@@ -8,6 +8,8 @@ const assert=(ok,message)=>{if(!ok)failures.push(message);};
 const manifest=JSON.parse(fs.readFileSync('site/assets/budapest-approved-reviews.json','utf8'));
 const script=fs.readFileSync('site/assets/budapest-review-ticker.js','utf8');
 const css=fs.readFileSync('site/assets/budapest-review-ticker.css','utf8');
+assertStrict.ok(css.includes('.vp-reviews-pause[hidden]{display:none!important}'),
+  'reduced-motion Pause control must be actually hidden even with author display:flex');
 const locales=[
   ['site/budapest/index.html','en'],
   ['site/he/budapest/index.html','he'],
@@ -78,7 +80,7 @@ for(const [page,locale] of locales){
     leftButton.includes('aria-hidden="true"')&&
     rightButton.includes('aria-hidden="true"'),
     'left and right arrows must point in opposite directions in SVG markup without CSS: '+page);
-  assert(html.includes('/assets/budapest-review-ticker.js?v=20261023r7')&&
+  assert(html.includes('/assets/budapest-review-ticker.js?v=20261029r1')&&
     html.includes('/assets/budapest-review-ticker.css?v=20261023r6'),
     'every localized page must load current versioned review JavaScript and CSS: '+page);
   assert(!html.includes('data-vp-reviews-left')===false&&
@@ -119,13 +121,17 @@ function node(tag){
     classList:{states:new Set(),toggle(k){if(this.states.has(k)){this.states.delete(k);return false;}this.states.add(k);return true;},add(k){this.states.add(k);},remove(k){this.states.delete(k);},contains(k){return this.states.has(k);}},
     offsetWidth:1200,clientWidth:500,scrollLeft:0,
     setAttribute(k,v){this.attrs[k]=v;},
+    focus(){this.focused=true;},
+    showModal(){this.open=true;},
+    close(){this.open=false;this.events.close?.();},
     append(...els){this.children.push(...els);},
+    appendChild(el){this.children.push(el);return el;},
     replaceChildren(...els){this.children=[...els];},
     addEventListener(k,fn,options){this.events[k]=fn;this.eventOptions[k]=options;},
     get lastChild(){return this.children[this.children.length-1];}
   };
 }
-async function simulate(payload,lang='en',reducedMotion=false){
+async function simulate(payload,lang='en',reducedMotion=false,initialVisibility='visible'){
   const track=node('div'),viewport=node('div'),pause=node('button'),root=node('section');
   root.hidden=true;
   const left=node('button'),right=node('button');
@@ -135,7 +141,9 @@ async function simulate(payload,lang='en',reducedMotion=false){
   // Emulate a pointer hovering over the resumed button AND keyboard focus
   // remaining inside the carousel: neither condition may prevent Resume.
   root.matches=()=>true;
-  const doc={documentElement:{lang},visibilityState:'visible',
+  const visibilityListeners={};
+  const doc={documentElement:{lang},visibilityState:initialVisibility,body:node('body'),
+    addEventListener(type,listener){visibilityListeners[type]=listener;},
     querySelector:(s)=>s==='[data-vp-reviews-root]'?root:null,
     createElement:node
   };
@@ -157,7 +165,11 @@ async function simulate(payload,lang='en',reducedMotion=false){
   vm.runInNewContext(script,context,{timeout:1500});
   // Let both promise continuations complete.
   for(let i=0;i<6;i++)await Promise.resolve();
-  return{root,track,pause,viewport,left,right,frames,
+  return{root,track,pause,viewport,left,right,frames,body:doc.body,
+    changeVisibility(next){
+      doc.visibilityState=next;
+      visibilityListeners.visibilitychange?.();
+    },
     changeMotion(next){
       assertStrict.equal(typeof motionListener,'function','OS motion listener must be registered');
       media.matches=next;
@@ -195,6 +207,88 @@ if(manifest.status==='awaiting_verified_approval'){
 }
 const approved=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample});
 assert(approved.root.hidden===false,'approved 20-item list must activate the ticker');
+
+// Native review-dialog focus: the middle group is accessible, but the
+// two endless-scroll replicas are aria-hidden even though their buttons
+// intentionally remain pointer-clickable. Closing a replica's modal must
+// never return keyboard focus to an accessibility-hidden subtree.
+for(const language of ['en','he','hu']){
+  const state=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  const expandIn=groupIndex=>{
+    const group=state.track.children[groupIndex];
+    const card=group.children[0];
+    const button=card.children[2].children[0].lastChild;
+    assertStrict.equal(button.tagName,'button');
+    button.closest=selector=>
+      selector==='.vp-review-group[aria-hidden="true"]'&&group.attrs['aria-hidden']==='true'
+        ?group:null;
+    return button;
+  };
+  const original=expandIn(1);
+  original.events.click();
+  const dialog=state.body.lastChild;
+  assertStrict.equal(dialog?.open,true,language+' original review modal opens');
+  dialog.close();
+  assertStrict.equal(original.focused,true,
+    language+' original review modal returns focus to original accessible button');
+  for(const groupIndex of [0,2]){
+    const clone=expandIn(groupIndex);
+    state.pause.focused=false;
+    clone.events.click();
+    assertStrict.equal(dialog.open,true,language+' duplicate review modal opens');
+    dialog.close();
+    assertStrict.equal(state.pause.focused,true,
+      language+' duplicate modal restores focus to visible Pause/Resume control');
+    assertStrict.equal(Boolean(clone.focused),false,
+      language+' duplicate modal must not focus an aria-hidden button');
+  }
+  const reduced=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language,true);
+  const group=reduced.track.children[0];
+  const clone=group.children[0].children[2].children[0].lastChild;
+  clone.closest=selector=>selector==='.vp-review-group[aria-hidden="true"]'?group:null;
+  assertStrict.equal(reduced.pause.hidden,true);
+  clone.events.click();
+  const dialogReduced=reduced.body.lastChild;
+  assertStrict.equal(dialogReduced?.open,true,language+' reduced-motion duplicate modal opens');
+  dialogReduced.close();
+  assertStrict.equal(reduced.right.focused,true,
+    language+' reduced-motion dialog focuses visible manual scroll control');
+  assertStrict.equal(Boolean(clone.focused),false,
+    language+' reduced-motion dialog never focuses accessibility-hidden clone');
+}
+
+// Keyboard focus on a review quote, expansion button or source link must
+// pause the moving strip. Merely focusing outside review cards (including
+// the distinct Resume control) must never cancel a user's choice to resume.
+for(const language of ['en','he','hu']){
+  const keyboard=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  assert(typeof keyboard.viewport.events.focusin==='function',
+    language+' review viewport must listen for keyboard focus');
+  keyboard.viewport.events.focusin({target:{closest:()=>null}});
+  assert(!keyboard.root.classList.states.has('is-paused'),
+    language+' non-card focus must not pause reviews');
+  const start=keyboard.viewport.scrollLeft;
+  keyboard.viewport.events.focusin({target:{closest:selector=>
+    selector==='.vp-review-card'?keyboard.track.children[1].children[0]:null}});
+  assert(keyboard.root.classList.states.has('is-paused'),
+    language+' review-card keyboard focus must pause automatic scrolling');
+  assert(keyboard.pause.attrs['aria-pressed']==='true',
+    language+' focus-triggered pause must expose the pressed state');
+  assert(keyboard.pause.textContent===({en:'Resume reviews',he:'המשך גלילת ביקורות',hu:'Értékelések folytatása'}[language]),
+    language+' pause control must show the localized Resume label');
+  const initialFrame=keyboard.frames[0];
+  initialFrame?.(1000);
+  keyboard.frames.at(-1)?.(1070);
+  assert(keyboard.viewport.scrollLeft===start,
+    language+' queued animation frames must not advance while a review has keyboard focus');
+  keyboard.pause.events.click?.();
+  assert(!keyboard.root.classList.states.has('is-paused'),
+    language+' explicit Resume must still restart scrolling after keyboard focus pause');
+  const resumed=keyboard.viewport.scrollLeft;
+  keyboard.frames.at(-1)?.(1140);
+  assert(keyboard.viewport.scrollLeft>resumed,
+    language+' explicit Resume must advance the review ribbon normally');
+}
 
 // Respect the user's OS accessibility setting without burning animation
 // frames for a strip that must never scroll automatically. Manual navigation
@@ -254,6 +348,49 @@ for(const language of ['en','he','hu']){
   liveMotion.changeMotion(true);
   assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true,
     language+' switching to reduced motion again must re-pause');
+}
+
+// A background tab must not queue animation frames. Returning must create
+// one fresh loop, without silently clearing an explicit Pause.
+for(const language of ['en','he','hu']){
+  const active=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
+  assertStrict.equal(active.frames.length,1,language+' initially schedules exactly one frame');
+  const initial=active.viewport.scrollLeft;
+  active.changeVisibility('hidden');
+  active.frames[0](1000);
+  assertStrict.equal(active.frames.length,1,language+' hidden tab must stop scheduling frames');
+  assertStrict.equal(active.viewport.scrollLeft,initial,language+' hidden tab must not move carousel');
+  active.changeVisibility('visible');
+  assertStrict.equal(active.frames.length,2,language+' restoring visibility schedules one replacement frame');
+  active.frames[1](2000);
+  active.frames[2](2040);
+  assert(active.viewport.scrollLeft>initial,language+' restored tab must resume carousel motion');
+  active.pause.events.click();
+  const pausedAt=active.viewport.scrollLeft;
+  assert(active.root.classList.states.has('is-paused'),language+' explicit Pause must work');
+  const previousCount=active.frames.length;
+  active.changeVisibility('hidden');
+  active.changeVisibility('visible');
+  assertStrict.equal(active.frames.length,previousCount+1,
+    language+' visibility restoration creates one new animation loop');
+  active.frames.at(-1)(3000);
+  active.frames.at(-1)(3040);
+  assertStrict.equal(active.viewport.scrollLeft,pausedAt,
+    language+' tab restoration must preserve the explicit Pause state');
+  const initiallyHidden=await simulate(
+    {schema_version:1,expected_count:20,status:'approved',reviews:sample},
+    language,false,'hidden');
+  assertStrict.equal(initiallyHidden.frames.length,0,
+    language+' initially hidden page must request no animation frames');
+  initiallyHidden.changeVisibility('visible');
+  assertStrict.equal(initiallyHidden.frames.length,1,
+    language+' initially hidden page schedules exactly one frame when shown');
+  const reducedHidden=await simulate(
+    {schema_version:1,expected_count:20,status:'approved',reviews:sample},
+    language,true,'hidden');
+  reducedHidden.changeVisibility('visible');
+  assertStrict.equal(reducedHidden.frames.length,0,
+    language+' reduced-motion preference must prevent frames even after tab returns');
 }
 
 assert(approved.track.children[1]?.children?.length===20,'all 20 authentic review slots must display in the visible middle group');

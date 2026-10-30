@@ -5,9 +5,19 @@
   const buttons=[...player.querySelectorAll('[data-ez-video]')];
   const stage=player.querySelector('[data-ez-video-screen]');
   const watch=player.querySelector('[data-ez-watch]');
-  if(!stage||!watch||!buttons.length)return;
+  const play=stage?.querySelector('[data-ez-play]');
+  const playLabel=play?.querySelector('[data-ez-play-label]');
+  // Without a first-party Play control, never silently load a third party.
+  if(!stage||!watch||!buttons.length||!play||!playLabel)return;
   let selected=buttons[0];
+  let started=false;
 
+  const updatePreview=()=>{
+    const id=selected.dataset.ezVideo;
+    if(!allowed.has(id))return;
+    watch.href='https://www.youtube.com/watch?v='+id;
+    playLabel.textContent=selected.dataset.ezVideoTitle||selected.textContent.trim();
+  };
   const render=()=>{
     const id=selected.dataset.ezVideo;
     if(!allowed.has(id))return;
@@ -18,9 +28,18 @@
     frame.allowFullscreen=true;
     frame.loading='eager';
     frame.referrerPolicy='strict-origin-when-cross-origin';
+    frame.tabIndex=0;
     stage.replaceChildren(frame);
-    watch.href='https://www.youtube.com/watch?v='+id;
+    return frame;
   };
+  play.addEventListener('click',()=>{
+    // Only explicit user interaction may create a YouTube iframe.
+    started=true;
+    const frame=render();
+    // The activated button was removed: keep keyboard users at the player.
+    // Do not steal focus when a visitor switches clips with a selector button.
+    frame?.focus({preventScroll:true});
+  });
   for(const button of buttons){
     button.addEventListener('click',()=>{
       if(!allowed.has(button.dataset.ezVideo))return;
@@ -30,10 +49,12 @@
         other.setAttribute('aria-pressed',String(active));
         other.classList.toggle('is-active',active);
       }
-      render();
+      updatePreview();
+      // Once playback has been requested, switching clips stays seamless.
+      if(started)render();
     });
   }
-  // Muted inline autoplay is supported by modern browsers; browser/user
-  // preferences can still block playback, leaving the native player controls.
-  render();
+  // Leave the accessible, first-party poster visible until Play is pressed.
+  // Even selecting another clip does not contact YouTube in advance.
+  updatePreview();
 })();

@@ -14,8 +14,24 @@ const attrs=tag=>Object.fromEntries([...tag.matchAll(/([:\w-]+)\s*=\s*"([^"]*)"/
 const htmlFiles=walk(site).filter(p=>p.endsWith('.html'));
 const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
+
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
+
+// Accessible descriptions must match the Hebrew-language Budapest pages.
+// Empty alt is legal for purely decorative images; meaningful descriptions
+// must not silently regress to English as these pages evolve.
+for(const [file,html] of htmlMap){
+  if(!file.startsWith('he/budapest/'))continue;
+  const images=[...html.matchAll(/<img\b[^>]*>/gi)].map(m=>m[0]);
+  for(const [index,tag] of images.entries()){
+    const alt=attrs(tag).alt;
+    if(alt===undefined)fail(file,'Hebrew image '+(index+1)+' is missing alt');
+    else if(alt.trim()&&!/[\u0590-\u05ff]/.test(alt))
+      fail(file,'Hebrew image '+(index+1)+' has non-Hebrew alt description');
+  }
+}
+
 
 // Core tour pages only show three hand-picked alternatives. Ensure guests can
 // reach the full live catalog (including newer routes) in their own language.
@@ -43,6 +59,31 @@ for(const [prefix,label] of [
       fail(file,'full-catalog secondary link must preserve locale and label');
     if(action.includes('data-track="booking_cta"')||action.includes('href="#booking"'))
       fail(file,'all-tours link must not replace the booking CTA');
+  }
+}
+
+// Every Budapest tour language switcher: assistive technology must know
+// which localized route is current. Keep the existing strict 3-language
+// and exact-own-link checks for both legacy and newly introduced tours.
+for(const locale of ['', 'he/', 'hu/']){
+  for(const slug of [
+    'buda-castle-ezraider-tour','margaret-island-ezraider-tour',
+    'buda-margaret-extended-tour','heroes-square-city-ezraider-tour',
+    'citadella-advanced-ezraider-tour'
+  ]){
+    const file=locale+'budapest/tours/'+slug+'/index.html';
+    const html=htmlMap.get(file);
+    if(!html){fail(file,'Budapest tour language switch page missing');continue;}
+    const header=(html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)||[])[0]||'';
+    const picker=(header.match(/<span\b[^>]*class="language-picker"[^>]*>[\s\S]*?<\/span>/i)||[])[0]||'';
+    const links=[...picker.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/gi)].map(m=>m[0]);
+    const active=links.filter(link=>/class="[^"]*\bactive\b/.test(link));
+    const current=links.filter(link=>/\baria-current="page"/.test(link));
+    const expectedHref='/'+file.replace(/index\.html$/,'');
+    if(links.length!==3||active.length!==1||current.length!==1||active[0]!==current[0]||
+      !active[0].includes('href="'+expectedHref+'"')||
+      (header.match(/\baria-current="page"/g)||[]).length!==1)
+      fail(file,'one current page must match the active locale link in the 3-language tour selector');
   }
 }
 
@@ -322,6 +363,18 @@ try{
 }catch(error){
   fail('scripts/budapest-review-counts.mjs',
     'Budapest weekly count-update simulation: '+String(error.stderr||error.message||error).slice(0,1500));
+}
+
+// The vehicle guide must not contact YouTube before the visitor presses Play.
+// Exercise actual video-controller JS in a local VM; no third-party requests.
+try{
+  const result=execFileSync(process.execPath,['scripts/check-ezraider-video-opt-in.mjs'],{
+    encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:10000
+  });
+  console.log(result.trim());
+}catch(error){
+  fail('assets/ezraider-guide.js',
+    'EZRaider optional video loading regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');

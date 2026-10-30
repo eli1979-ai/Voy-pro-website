@@ -43,6 +43,27 @@ for(const [path,link,origin] of links){
 }
 for(const locale of ['','he/','hu/','pt/']){
  const html=fs.readFileSync('site/'+locale+'ezraider/index.html','utf8');
+
+ // The active locale must be announced to assistive technologies, including
+ // when ezraider-context.js preserves origin-aware from/return_to parameters.
+ // Do not infer current language from the caller's locale or query string.
+ const guideLanguageLinks=[...html.matchAll(/<a\b[^>]*\bdata-ez-language\b[^>]*>/g)].map(m=>m[0]);
+ const activeGuideLinks=guideLanguageLinks.filter(tag=>
+   /\bactive\b/.test((tag.match(/\bclass="([^"]*)"/)||[])[1]||''));
+ const currentGuideLinks=guideLanguageLinks.filter(tag=>/\baria-current="page"/.test(tag));
+ const ownLang=locale?locale.slice(0,-1):'en';
+ const ownHref='/'+locale+'ezraider/?from=home';
+ assert.equal(guideLanguageLinks.length,4,locale+': expected EN/HE/HU/PT guide locale choices');
+ assert.equal(activeGuideLinks.length,1,locale+': exactly one visible selected guide language');
+ assert.equal(currentGuideLinks.length,1,locale+': exactly one ARIA current guide page');
+ assert.equal(activeGuideLinks[0],currentGuideLinks[0],
+   locale+': visual and screen-reader active language must agree');
+ assert.ok(currentGuideLinks[0].includes('hreflang="'+ownLang+'"')&&
+   currentGuideLinks[0].includes('href="'+ownHref+'"'),
+   locale+': active guide locale must point to its own context-aware guide URL');
+ assert.equal((html.match(/\baria-current="page"/g)||[]).length,1,
+   locale+': unexpected additional page-current annotation');
+
  assert.ok(html.includes('rel="canonical" href="https://voy-pro.com/'+locale+'ezraider/"'));
  assert.ok(html.includes('id="choose-destination"')&&html.includes('data-ez-context="back"'));
  assert.ok(!html.includes('data-ez-context="booking"')&&html.includes('src="/assets/ezraider-context.js"'),
@@ -69,19 +90,51 @@ assert.ok(homepageCss.includes('.tour-picker#destinations .destination-card--bud
 const redirects=JSON.parse(fs.readFileSync('vercel.json','utf8')).redirects;
 assert.equal(redirects.filter(r=>r.source.includes('/budapest/ezraider/')).length,3);
 assert.ok(siteJs.includes("vehicleGuideSource==='marvao-pt'"));
-function run(search,lang='en',languageTarget='/he/ezraider/?from=home'){
+function run(search,lang='en',languageTarget='/he/ezraider/?from=home',withMobileClone=false){
  const actions={};
  const make=name=>({attributes:{'data-ez-context':name,href:'#choose-destination'},textContent:'Initial',setAttribute(k,v){this.attributes[k]=v},getAttribute(k){return this.attributes[k]}});
  for(const key of ['back','booking','family','contact'])actions[key]=make(key);
  const language=make('lang');language.attributes.href=languageTarget;
+ const mobileLanguage=make('lang');mobileLanguage.attributes.href=languageTarget;
  const status={textContent:''};
  const body={dataset:{intent:'vehicle'}};
- const document={body,documentElement:{lang},querySelectorAll(sel){if(sel==='[data-ez-context]')return Object.values(actions);if(sel==='[data-ez-language]')return [language];return []},querySelector(sel){return sel==='[data-ez-context-status]'?status:null}};
+ const document={body,documentElement:{lang},querySelectorAll(sel){if(sel==='[data-ez-context]')return Object.values(actions);if(sel==='[data-ez-language]')return withMobileClone?[language,mobileLanguage]:[language];return []},querySelector(sel){return sel==='[data-ez-context-status]'?status:null}};
  const location={origin:'https://voy-pro.com',search};
  vm.runInNewContext(js,{document,location,URL,URLSearchParams},{timeout:1000});
- return {actions,language,status,body};
+ return {actions,language,mobileLanguage,status,body};
 }
 const h=(r,k)=>r.actions[k].attributes.href;
+
+// The mobile nav clones desktop language links before the deferred context
+// script runs. Both copies must inherit the exact verified origin/return link.
+for(const [origin,locale,target,expected] of [
+ ['/he/budapest/tours/heroes-square-city-ezraider-tour/','he','/hu/ezraider/?from=home',
+  '/hu/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fheroes-square-city-ezraider-tour%2F'],
+ ['/hu/budapest/with-kids/','hu','/ezraider/?from=home',
+  '/ezraider/?from=budapest&return_to=%2Fhu%2Fbudapest%2Fwith-kids%2F'],
+ ['/pt/portugal/','pt','/he/ezraider/?from=home',
+  '/he/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F'],
+ ['/','en','/pt/ezraider/?from=home',
+  '/pt/ezraider/?from=home&return_to=%2F']
+]){
+ const source=origin==='/pt/portugal/'?'marvao-pt':origin==='/'?'home':'budapest';
+ const actual=run('?from='+source+'&return_to='+encodeURIComponent(origin),locale,target,true);
+ assert.equal(actual.language.attributes.href,expected,
+   locale+' desktop language switch must retain verified origin '+origin);
+ assert.equal(actual.mobileLanguage.attributes.href,expected,
+   locale+' mobile cloned language switch must retain verified origin '+origin);
+ assert.equal(h(actual,'back'),origin,
+   locale+' context must preserve the exact originating page');
+}
+for(const malicious of ['//evil.example','/budapest/%2Fsecret/','/budapest/../portugal/']){
+ const actual=run('?from=budapest&return_to='+encodeURIComponent(malicious),
+   'he','/hu/ezraider/?from=home',true);
+ for(const item of [actual.language,actual.mobileLanguage])
+   assert.equal(item.attributes.href,'/hu/ezraider/?from=budapest',
+     'unverified return URLs must not propagate into either language switch');
+}
+
+
 for(const [source,back,booking,contact] of [
  ['budapest','/he/budapest/','/he/budapest/#booking','https://wa.me/36300993099'],
  ['marvao','/he/portugal/','/he/portugal/#request','https://wa.me/351935695004'],
@@ -101,6 +154,15 @@ for(const input of ['', '?from=https://evil.example','?from=%2F%2Fevil.example',
 }
 assert.equal(h(run('?from=budapest','hu'),'booking'),'/hu/budapest/#booking');
 assert.equal(h(run('?from=marvao','hu'),'booking'),'/portugal/#request');
+// Hungarian destination context must spell the proper place name Marvão
+// correctly, without changing the branch's booking/return destinations.
+const huMarvao=run('?from=marvao','hu');
+assert.equal(h(huMarvao,'back'),'/portugal/');
+assert.equal(huMarvao.actions.back.textContent,'Vissza Marvão oldalára');
+assert.equal(huMarvao.status.textContent,'Folytatás a helyi csapattal Marvão városában.');
+assert.ok(!huMarvao.actions.back.textContent.includes('ãó')&&
+  !huMarvao.status.textContent.includes('ãó'),
+  'Hungarian labels must not distort the canonical Marvão spelling');
 
 // Every new and group/private/corporate guide must return to its exact page, including
 // after switching guide language. The branch booking must stay in Budapest.

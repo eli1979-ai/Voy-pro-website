@@ -99,7 +99,12 @@
     fullReviewDialog.lang=locale;
     fullReviewDialog.dir=locale==='he'?'rtl':'ltr';
     fullReviewDialog.replaceChildren(header,info,quote,link);
-    returnFocus=opener;
+    // The two infinite-scroll copies are pointer-clickable but deliberately
+    // aria-hidden. On closing their modal, never focus a button inside an
+    // accessibility-hidden group. Keep focus on the original opener for real
+    // cards; otherwise use a visible, accessible carousel control.
+    const fromDuplicate=Boolean(opener?.closest?.('.vp-review-group[aria-hidden="true"]'));
+    returnFocus=fromDuplicate?(pause.hidden?right:pause):opener;
     fullReviewDialog.showModal();
     closeButton.focus();
     pauseForReading();
@@ -200,6 +205,12 @@
     };
     viewport.scrollLeft=groupWidth();
     viewport.addEventListener('scroll',normalize,{passive:true});
+    // A keyboard reader must not chase a moving review quote or source link.
+    // Limit this to actual cards: focusing the Resume control must never
+    // silently cancel the explicit request to continue scrolling.
+    viewport.addEventListener('focusin',event=>{
+      if(event.target?.closest?.('.vp-review-card'))pauseForReading();
+    });
     const moveManually=(delta)=>{
       pauseForReading();
       viewport.scrollLeft+=delta;
@@ -306,7 +317,7 @@
     // middle group continuously to avoid blank space at the end of a cycle.
     let lastFrame=null,animationToken=0;
     const advance=(timestamp,token)=>{
-      if(reduced||token!==animationToken)return;
+      if(reduced||token!==animationToken||document.visibilityState==='hidden')return;
       if(lastFrame!==null){
         const elapsed=Math.max(0,Math.min(80,timestamp-lastFrame));
         // Resume must actually restart motion even while the pointer hovers
@@ -323,11 +334,19 @@
       window.requestAnimationFrame?.(time=>advance(time,token));
     };
     const startAutoScroll=()=>{
-      if(reduced)return;
+      if(reduced||document.visibilityState==='hidden')return;
       lastFrame=null;
       const token=++animationToken;
       window.requestAnimationFrame?.(time=>advance(time,token));
     };
+    // Stop scheduling animation frames while the tab is hidden.
+    // Visibility restoration starts one fresh loop but never cancels Pause.
+    document.addEventListener?.('visibilitychange',()=>{
+      if(document.visibilityState==='hidden'){
+        animationToken++;
+        lastFrame=null;
+      }else startAutoScroll();
+    });
     motionQuery?.addEventListener?.('change',event=>{
       const nextReduced=Boolean(event.matches);
       if(nextReduced===reduced)return;
