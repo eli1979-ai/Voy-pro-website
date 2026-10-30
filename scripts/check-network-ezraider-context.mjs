@@ -69,19 +69,51 @@ assert.ok(homepageCss.includes('.tour-picker#destinations .destination-card--bud
 const redirects=JSON.parse(fs.readFileSync('vercel.json','utf8')).redirects;
 assert.equal(redirects.filter(r=>r.source.includes('/budapest/ezraider/')).length,3);
 assert.ok(siteJs.includes("vehicleGuideSource==='marvao-pt'"));
-function run(search,lang='en',languageTarget='/he/ezraider/?from=home'){
+function run(search,lang='en',languageTarget='/he/ezraider/?from=home',withMobileClone=false){
  const actions={};
  const make=name=>({attributes:{'data-ez-context':name,href:'#choose-destination'},textContent:'Initial',setAttribute(k,v){this.attributes[k]=v},getAttribute(k){return this.attributes[k]}});
  for(const key of ['back','booking','family','contact'])actions[key]=make(key);
  const language=make('lang');language.attributes.href=languageTarget;
+ const mobileLanguage=make('lang');mobileLanguage.attributes.href=languageTarget;
  const status={textContent:''};
  const body={dataset:{intent:'vehicle'}};
- const document={body,documentElement:{lang},querySelectorAll(sel){if(sel==='[data-ez-context]')return Object.values(actions);if(sel==='[data-ez-language]')return [language];return []},querySelector(sel){return sel==='[data-ez-context-status]'?status:null}};
+ const document={body,documentElement:{lang},querySelectorAll(sel){if(sel==='[data-ez-context]')return Object.values(actions);if(sel==='[data-ez-language]')return withMobileClone?[language,mobileLanguage]:[language];return []},querySelector(sel){return sel==='[data-ez-context-status]'?status:null}};
  const location={origin:'https://voy-pro.com',search};
  vm.runInNewContext(js,{document,location,URL,URLSearchParams},{timeout:1000});
- return {actions,language,status,body};
+ return {actions,language,mobileLanguage,status,body};
 }
 const h=(r,k)=>r.actions[k].attributes.href;
+
+// The mobile nav clones desktop language links before the deferred context
+// script runs. Both copies must inherit the exact verified origin/return link.
+for(const [origin,locale,target,expected] of [
+ ['/he/budapest/tours/heroes-square-city-ezraider-tour/','he','/hu/ezraider/?from=home',
+  '/hu/ezraider/?from=budapest&return_to=%2Fhe%2Fbudapest%2Ftours%2Fheroes-square-city-ezraider-tour%2F'],
+ ['/hu/budapest/with-kids/','hu','/ezraider/?from=home',
+  '/ezraider/?from=budapest&return_to=%2Fhu%2Fbudapest%2Fwith-kids%2F'],
+ ['/pt/portugal/','pt','/he/ezraider/?from=home',
+  '/he/ezraider/?from=marvao-pt&return_to=%2Fpt%2Fportugal%2F'],
+ ['/','en','/pt/ezraider/?from=home',
+  '/pt/ezraider/?from=home&return_to=%2F']
+]){
+ const source=origin==='/pt/portugal/'?'marvao-pt':origin==='/'?'home':'budapest';
+ const actual=run('?from='+source+'&return_to='+encodeURIComponent(origin),locale,target,true);
+ assert.equal(actual.language.attributes.href,expected,
+   locale+' desktop language switch must retain verified origin '+origin);
+ assert.equal(actual.mobileLanguage.attributes.href,expected,
+   locale+' mobile cloned language switch must retain verified origin '+origin);
+ assert.equal(h(actual,'back'),origin,
+   locale+' context must preserve the exact originating page');
+}
+for(const malicious of ['//evil.example','/budapest/%2Fsecret/','/budapest/../portugal/']){
+ const actual=run('?from=budapest&return_to='+encodeURIComponent(malicious),
+   'he','/hu/ezraider/?from=home',true);
+ for(const item of [actual.language,actual.mobileLanguage])
+   assert.equal(item.attributes.href,'/hu/ezraider/?from=budapest',
+     'unverified return URLs must not propagate into either language switch');
+}
+
+
 for(const [source,back,booking,contact] of [
  ['budapest','/he/budapest/','/he/budapest/#booking','https://wa.me/36300993099'],
  ['marvao','/he/portugal/','/he/portugal/#request','https://wa.me/351935695004'],

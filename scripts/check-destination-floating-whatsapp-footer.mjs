@@ -29,6 +29,15 @@ check(js.includes("if(!(isBudapestPage||isPortugalPage)||!document.querySelector
 // Recompute the WhatsApp URL when opening and activating the navigation link.
 const mobileNav=js.slice(js.indexOf('function enhanceMobileNavigation()'),js.indexOf("document.querySelectorAll('a.brand')"));
 check(mobileNav.includes("const mobileWa=sheet.querySelector('[data-mobile-nav-wa]');"),'Mobile navigation WhatsApp link missing');
+const marvaoNavStart=mobileNav.indexOf('}else if(isPortugalPage){');
+const marvaoNavEnd=mobileNav.indexOf('}else{',marvaoNavStart);
+const marvaoMobileNav=marvaoNavStart>=0&&marvaoNavEnd>marvaoNavStart
+  ?mobileNav.slice(marvaoNavStart,marvaoNavEnd):'';
+check(marvaoMobileNav.includes('data-mobile-nav-wa href="https://wa.me/351935695004"'),
+  'Marvão mobile menu initial WhatsApp link must use +351, not the Budapest number');
+check(!marvaoMobileNav.includes('data-mobile-nav-wa href="https://wa.me/36300993099"'),
+  'Marvão mobile menu may not seed a Budapest WhatsApp link even before refresh');
+
 check(mobileNav.includes("const refreshMobileWhatsApp=()=>{mobileWa.href=whatsAppUrl();};"),'Mobile nav must derive fresh WhatsApp URL from current form selections');
 check(mobileNav.includes("mobileWa.addEventListener('pointerdown',refreshMobileWhatsApp);"),'Mobile nav pointer activation uses stale tour context');
 check(/mobileWa\.addEventListener\('click',\(\)=>\{\s*refreshMobileWhatsApp\(\);\s*track\('whatsapp_clicked'/.test(mobileNav),'Mobile nav click must refresh WhatsApp before tracking');
