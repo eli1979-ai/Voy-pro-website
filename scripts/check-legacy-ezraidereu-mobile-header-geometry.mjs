@@ -110,8 +110,21 @@ function selfTest(){
  assert.equal(auditMeasurements(malformed).status,'inconclusive');
  const nullRow=dup();nullRow.measurements[4]=null;
  assert.equal(auditMeasurements(nullRow).status,'inconclusive');
+ // Genuine Work #723 Citadella HU 320px bounding rectangles: pre-fix vs
+ // unpublished Customizer Preview. Regression of the overlap algorithm only.
+ const beforeLogo={x:10,y:40.266,width:80,height:59.453};
+ const beforeTitle={x:35,y:80,width:235,height:28.797};
+ const afterLogo={x:10,y:10.266,width:80,height:59.453};
+ const afterTitle={x:35,y:126,width:235,height:28.797};
+ assert.equal(overlaps(beforeLogo,beforeTitle),true);
+ assert.equal(overlaps(afterLogo,afterTitle),false);
+ const overlapX=Math.min(edge(beforeLogo,'x'),edge(beforeTitle,'x'))-Math.max(beforeLogo.x,beforeTitle.x);
+ const overlapY=Math.min(edge(beforeLogo,'y'),edge(beforeTitle,'y'))-Math.max(beforeLogo.y,beforeTitle.y);
+ assert.ok(Math.abs(overlapX-55)<0.001);
+ assert.ok(Math.abs(overlapY-19.719)<0.001);
+ assert.ok(Math.abs(afterTitle.y-edge(afterLogo,'y')-56.281)<0.001);
  assert.equal(auditMeasurements(clean).mayPublishAutomatically,false);
- console.log('PASS: 17 fail-closed mobile geometry, RTL, URL and locale-tour coverage checks');
+ console.log('PASS: 18 fail-closed tests including genuine Work preview geometry regression');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else if(process.argv.includes('--input')){
