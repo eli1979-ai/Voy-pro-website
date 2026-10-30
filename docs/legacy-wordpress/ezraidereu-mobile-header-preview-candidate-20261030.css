@@ -1,0 +1,12 @@
+/* EZRaiderEU mobile H1/logo: preview-tested 2026-10-30, Work #723.
+ * Source-only candidate. NOT deployed to WordPress. Release gates #604. */
+@media (max-width: 667px) {
+  body.single-tours .page-top.page-top--home {
+    position: relative;
+    top: auto;
+    height: auto;
+  }
+  body.single-tours .page-content--subpage {
+    padding-block-start: 16px;
+  }
+}
