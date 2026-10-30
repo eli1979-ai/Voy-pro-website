@@ -6,7 +6,7 @@ export function validPublicApiUrl(value){
   try{
     if(typeof value!=='string'||!value)return false;
     const url=new URL(value);
-    const host=url.hostname.replace(/^\\[|\\]$/g,'');
+    const host=url.hostname.replace(/^\[|\]$/g,'');
     // A dot alone does not establish a DNS hostname: reject empty labels,
     // underscores, leading/trailing hyphens, trailing dots and overlong names.
     // URL.hostname is canonical ASCII/punycode. This is syntax only: no DNS lookup.
