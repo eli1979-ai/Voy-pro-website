@@ -83,3 +83,31 @@ The full export validator now also **rejects extra homepage/unknown records** an
 **Regression suite:** the isolated JavaScript harness exercising the *exact GitHub-fetched script and manifest* reports **13/13 scenarios passed**: the previous nine cases plus wrong WhatsApp source, unsafe JavaScript href, insecure HTTP href, and an otherwise individually valid **extra** home page. The previous expected count of nine tests is superseded. The exact GitHub Actions build/launch/site QA remains a separate check and does **not** automatically execute the standalone link-graph selftest.
 
 **Scope caution:** a WordPress attachment/media path, theme-generated footer/nav, ACF homepage sections, a third-party iframe or a redirect can still be broken in the live browser while all stored-content checks pass. This tool does not confirm public network response, bot visibility, booking availability, provider pricing, or whether a Google Maps pin is correct. Changes requiring owner access/approval remain deferred to [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
+
+## 30 October — authentic WordPress menu-source diagnosis and 42-route header contract
+
+Fresh authenticated **read-only WordPress** `menus.list` and `menu-items.list` returned six menus. Main-language menus: EN **#2**, HU **#14**, HE **#15**. Their six custom language links are static **HOME** destinations:
+
+| Source menu | Target language | Stored destination |
+|---|---|---|
+| EN #2 | HU | `/budapest/fooldal/` |
+| EN #2 | HE | `/budapest/בית/` |
+| HU #14 | EN | `/budapest/` |
+| HU #14 | HE | `/budapest/בית/` |
+| HE #15 | EN | `/budapest/` |
+| HE #15 | HU | `/budapest/fooldal/` |
+
+Static home-menu links are fine on home pages but would lose tour identity **if reused in a tour-detail header**. The already-completed [Work public audit #678](https://github.com/eli1979-ai/Voy-pro-website/issues/678#issuecomment-6517158453) independently observed a HE Buda detail → EN header switch redirecting to the EN homepage. This is consistent with the stored links but **does not prove the PHP header renders these menus**. The true output may be a custom PHP/Polylang layer; inspect via [read-only Work admin #685](https://github.com/eli1979-ai/Voy-pro-website/issues/685), already handed off by the owner.
+
+**New source-only helper:** `scripts/check-legacy-ezraidereu-header-locale-contract.mjs` derives all **7 families × 3 source locales × 2 other target locales = 42 same-family route pairs** from the approved 21-post language manifest. Optional `--menus /private/sanitized-menu-items.json` scans authentic WordPress menu data for static-home language items. It always returns `publicHeaderObserved:false`: admin menu state must never be misrepresented as observed PHP header behavior.
+
+```sh
+node scripts/check-legacy-ezraidereu-header-locale-contract.mjs --self-test
+node scripts/check-legacy-ezraidereu-header-locale-contract.mjs --menus /private/sanitized-menu-items.json
+```
+
+**Evidence:** 42/42 ordered same-tour route pairs validated; 11/11 synthetic edge/security/menu scenarios PASS on exact GitHub-fetched JS and manifest. The separate read-only real-site scan of **45 WordPress menu items** reported `static-home-menu-risk` for **all six** cross-language main-menu links, with no missing expected language pair. This is a diagnosis, **not** a proven PHP root cause, WordPress source fix, or live browser test.
+
+**Acceptance for later source patch:** Work #685 first determines whether the actual header uses the WordPress navigation items, theme PHP, or Polylang translation functions. Preserve real home-page language URLs when on a home page; on a tour detail, select the translated post belonging to the same family, using actual verified post identity. Verify EN↔HU↔HE on Buda and another tour in isolated staging, after a current successful full-site restore and separately authorized release. Do not hardcode homepage URLs into detail-page language buttons and do not guess legacy Hebrew slugs.
+
+**Media clue for missing HE/HU cards:** existing WordPress attachment IDs 265 `budaivar.png`, 266 `citadella.png`, 267 `hosoktere.png`, 268 `margitsziget.png`, 269 `nighttour.png`, 270 `offroad.png`, 264 `allbudapest.png` are present. Image availability does **not** verify actual per-locale ACF field values or PHP fallback behavior; Work #685 will inspect them. No media, menu, theme, PHP, WPCode, bookings or Production changes were performed.
