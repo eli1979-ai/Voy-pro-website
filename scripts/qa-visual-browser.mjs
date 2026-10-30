@@ -629,6 +629,7 @@ try{
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
     ['budapest-en-desktop','/budapest/',desktop,{booking:true,localWhatsApp:budapest}],
+    ['budapest-hu-desktop-whatsapp-repro','/hu/budapest/',{width:1363,height:936},{booking:true,localWhatsApp:budapest}],
     ['budapest-en-mobile','/budapest/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-tablet','/budapest/',{width:1024,height:800},{booking:true,localWhatsApp:budapest}],
     ['budapest-he-mobile','/he/budapest/',mobile,{fullPage:true,booking:true,localWhatsApp:budapest}],
@@ -672,6 +673,47 @@ try{
       // Marvão floating and mobile-menu WhatsApp links must reflect the most
       // recent PUBLIC request selections. The browser uses the locally built
       // artifact; external WhatsApp, FBM and tracking requests are blocked.
+
+      // Work #692 / P2 #705 public repro: at 1363×936, a wide fixed
+      // WhatsApp button masked part of the HU private-tour availability CTA.
+      // Align the real CTA near the floating action to test actual geometry,
+      // not just static CSS strings. All third-party requests remain blocked.
+      if(name==='budapest-hu-desktop-whatsapp-repro'){
+        await page.evaluate(()=>{
+          document.querySelector('[data-consent-essential]')?.click();
+          const cta=document.querySelector('a[href="/hu/budapest/private-tours/#booking"]');
+          if(!cta)return;
+          const targetBottom=window.innerHeight-25;
+          window.scrollBy(0,cta.getBoundingClientRect().bottom-targetBottom);
+        });
+        const overlap=await page.evaluate(()=>{
+          const cta=document.querySelector('a[href="/hu/budapest/private-tours/#booking"]');
+          const wa=document.querySelector('a.whatsapp.compact-booking-whatsapp');
+          if(!cta||!wa)return null;
+          const a=cta.getBoundingClientRect(),b=wa.getBoundingClientRect();
+          const horizontal=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left));
+          const vertical=Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+          const cx=(a.left+a.right)/2,cy=(a.top+a.bottom)/2;
+          const hit=document.elementFromPoint(cx,cy);
+          return {
+            horizontal,vertical,width:b.width,height:b.height,
+            targetClickable:Boolean(hit&&(hit===cta||cta.contains(hit))),
+            accessible:(wa.getAttribute('aria-label')||'').includes('WhatsApp'),
+            href:wa.getAttribute('href')||'',
+            labelHidden:getComputedStyle(wa.querySelector('.compact-booking-whatsapp-label')).display==='none'
+          };
+        });
+        check(Boolean(overlap),name+' HU private CTA and floating WhatsApp are present');
+        check((overlap?.vertical||0)>0,name+' QA aligns both controls within the same vertical screen region');
+        check(overlap?.horizontal===0,name+' no WhatsApp/private CTA overlap at 1363px');
+        check(overlap?.targetClickable===true,name+' the private-tour CTA remains the actual hit target');
+        check(overlap?.width>=44&&overlap?.width<=60&&overlap?.height>=44,
+          name+' WhatsApp retains a usable icon hit target');
+        check(overlap?.accessible&&overlap?.labelHidden&&
+          overlap?.href.startsWith('https://wa.me/36300993099'),
+          name+' accessible HU WhatsApp stays functional without its wide visual label');
+      }
+
       if(name.startsWith('marvao-')){
         const form=page.locator('#request [data-portugal-request-form]');
         await form.locator('select[name="route"]').selectOption('explorer');

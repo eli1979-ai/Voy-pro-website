@@ -773,6 +773,17 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 /* v1.48.84 — mobile sticky booking: compact accessible WhatsApp, clear of checkout. */
 .compact-booking-whatsapp {display:inline-flex;align-items:center;justify-content:center;gap:8px}
 .compact-booking-whatsapp svg{display:block;width:21px;height:21px;fill:currentColor;flex:none}
+/* P2 #705: on Budapest destination hubs, preserve a 52px accessible
+   WhatsApp target without masking tour-card actions at desktop widths.
+   Mobile already uses this icon-only treatment; other pages are untouched. */
+@media(min-width:801px){
+  body[data-page$="/budapest/"] .compact-booking-whatsapp{
+    box-sizing:border-box;width:52px;height:52px;min-width:52px;min-height:52px;
+    padding:0;border-radius:50%;
+  }
+  body[data-page$="/budapest/"] .compact-booking-whatsapp svg{width:25px;height:25px}
+  body[data-page$="/budapest/"] .compact-booking-whatsapp .compact-booking-whatsapp-label{display:none}
+}
 @media(max-width:800px){
   .compact-booking-whatsapp{
     box-sizing:border-box;width:52px;height:52px;min-width:52px;min-height:52px;
