@@ -996,17 +996,31 @@ try{
         if(await link.count()!==1)continue;
         await link.scrollIntoViewIfNeeded();
         const value=await link.evaluate(a=>{
-          const rect=a.getBoundingClientRect();
-          const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
-          const top=document.elementFromPoint(x,y);
+          // Inline mailto links can wrap into two text fragments at 320px.
+          // A getBoundingClientRect() union midpoint can land on the empty
+          // whitespace between lines, falsely reporting a blocked hit target.
+          // Assert EVERY actual painted/clickable fragment instead.
+          const fragments=[...a.getClientRects()].filter(r=>r.width>0&&r.height>0);
+          const samples=fragments.map(rect=>{
+            const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+            const top=document.elementFromPoint(x,y);
+            return {
+              insideViewport:x>=0&&x<=window.innerWidth&&y>=0&&y<=window.innerHeight,
+              hittable:Boolean(top&&(top===a||a.contains(top))),
+              top:top?.tagName||'none'
+            };
+          });
           return {
-            visible:rect.width>0&&rect.height>0,
-            insideViewport:x>=0&&x<=window.innerWidth&&y>=0&&y<=window.innerHeight,
-            hittable:Boolean(top&&(top===a||a.contains(top)))
+            visible:samples.length>0,
+            insideViewport:samples.length>0&&samples.every(s=>s.insideViewport),
+            hittable:samples.length>0&&samples.every(s=>s.hittable),
+            fragmentCount:samples.length,
+            samples
           };
         });
         check(value.visible&&value.insideViewport&&value.hittable,
-          name+' recovery '+href+' stays visible and hit-testable');
+          name+' recovery '+href+' stays visible and hit-testable (fragments='+
+          value.fragmentCount+', observations='+JSON.stringify(value.samples)+')');
       }
       check(pageErrors.length===0,name+' has no uncaught JavaScript errors');
       await page.screenshot({path:join(out,name+'.png'),fullPage:true});
