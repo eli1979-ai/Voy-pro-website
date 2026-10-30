@@ -154,6 +154,29 @@ function selfTest(){
  assert.ok(Math.abs(overlapX-55)<0.001);
  assert.ok(Math.abs(overlapY-19.719)<0.001);
  assert.ok(Math.abs(afterTitle.y-edge(afterLogo,'y')-56.281)<0.001);
+ // Full-gate test on Work's measured Citadella HU 320px rectangles.
+ // Complete EN/HU/HE coverage is synthetic; only this HU row is real.
+ // Header is the enclosing .page-top element, not a branding-only bar.
+ const measuredBefore=dup();
+ measuredBefore.measurements[2]={
+  ...measuredBefore.measurements[2],
+  header:{x:0,y:30,width:320,height:110},
+  logo:beforeLogo,
+  title:beforeTitle,
+  menu:{x:245,y:45,width:50,height:50}
+ };
+ assert.equal(auditMeasurements(measuredBefore).status,'fail');
+ assert.ok(auditMeasurements(measuredBefore).problems.includes('row2:LOGO_OVERLAPS_TITLE'));
+ const measuredAfter=dup();
+ measuredAfter.measurements[2]={
+  ...measuredAfter.measurements[2],
+  header:{x:0,y:0,width:320,height:200},
+  logo:afterLogo,
+  title:afterTitle,
+  menu:{x:245,y:15,width:50,height:50}
+ };
+ assert.equal(auditMeasurements(measuredAfter).status,'pass',
+  'a parent header containing H1 must not invalidate real collision-free geometry');
  assert.equal(auditMeasurements(clean).mayPublishAutomatically,false);
  const candidate=readFileSync(CANDIDATE_CSS,'utf8');
  assert.equal(auditCssCandidate(candidate).status,'pass');
@@ -161,7 +184,7 @@ function selfTest(){
  assert.equal(auditCssCandidate(candidate.replace('body.single-tours','body.page')).status,'fail');
  assert.equal(auditCssCandidate(candidate+'\nbody { display: none; }').status,'fail');
  assert.equal(auditCssCandidate(null).status,'fail');
- console.log('PASS: 24 fail-closed geometry, CSS integrity and Work preview tests');
+ console.log('PASS: 26 fail-closed geometry, CSS integrity and Work preview tests');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else if(process.argv.includes('--verify-candidate-css')){
