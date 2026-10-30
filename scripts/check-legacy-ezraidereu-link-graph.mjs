@@ -124,6 +124,18 @@ export function auditRecord(r){
     errors.push('FAREHARBOR_IN_STORED_CONTENT');
   const wa=anchors.filter(x=>/^https:\/\/wa\.me\/36300993099(?:[?#]|$)/i.test(x));
   if(wa.length!==1)errors.push('EXPECTED_ONE_CORRECT_WHATSAPP_LINK');
+  // One valid link must not conceal another live booking/contact link
+  // with a stale number or a different WhatsApp endpoint.
+  const whatsappDestinations=anchors.filter(href=>{
+    try{
+      const target=new URL(href,url);
+      const host=target.hostname.toLowerCase().replace(/\.+$/,'');
+      return host==='wa.me'||host==='www.wa.me'||
+        ((host==='api.whatsapp.com'||host==='web.whatsapp.com')&&
+          /^\/send(?:\/|$)/i.test(target.pathname));
+    }catch{return false}
+  });
+  if(whatsappDestinations.length!==wa.length)errors.push('UNEXPECTED_WHATSAPP_DESTINATION');
   if(wa.length===1 && !whatsappSourceMatches(wa[0],permalink))
     errors.push('WHATSAPP_SOURCE_ATTRIBUTION_MISMATCH');
   if(item?.type==='tour'){
@@ -177,6 +189,9 @@ function selfTest(){
     {name:'missing long copy',list:mutate(45,x=>({...x,content:x.content.replace('<!--more-->','')})),error:'TOUR_LONG_COPY_MARKER_MISSING'},
     {name:'unexpected WhatsApp number',list:mutate(44,x=>({...x,content:x.content.replace('wa.me/36300993099','wa.me/36000000000')})),error:'EXPECTED_ONE_CORRECT_WHATSAPP_LINK'},
     {name:'WhatsApp wrong source page',list:mutate(38,x=>({...x,content:x.content.replace(encodeURIComponent('Budapest source: '+origin+'/budapest/tours/buda-castle-tour/'),encodeURIComponent('Budapest source: '+origin+'/budapest/tours/night-tour/'))})),error:'WHATSAPP_SOURCE_ATTRIBUTION_MISMATCH'},
+    {name:'extra WhatsApp wrong number',list:mutate(49,x=>({...x,content:x.content+' <a href="https://wa.me/36000000000">Wrong extra booking contact</a>'})),error:'UNEXPECTED_WHATSAPP_DESTINATION'},
+    {name:'extra legacy api WhatsApp send',list:mutate(49,x=>({...x,content:x.content+' <a href="https://api.whatsapp.com/send?phone=36000000000">Wrong extra contact</a>'})),error:'UNEXPECTED_WHATSAPP_DESTINATION'},
+    {name:'additional insecure wa.me link',list:mutate(49,x=>({...x,content:x.content+' <a href="http://wa.me/36300993099?text=bad">Wrong scheme</a>'})),error:'UNEXPECTED_WHATSAPP_DESTINATION'},
     {name:'unsafe JavaScript link',list:mutate(49,x=>({...x,content:x.content+' <a href="javascript:alert(1)">Unsafe</a>'})),error:'UNSAFE_ANCHOR_SCHEME'},
     {name:'insecure HTTP link',list:mutate(390,x=>({...x,content:x.content+' <a href="http://ezraidereu.com/budapest/tours/buda-castle-tour/">HTTP</a>'})),error:'INSECURE_HTTP_ANCHOR'},
 
@@ -196,6 +211,9 @@ function selfTest(){
     assert.equal(bad.status,'fail',t.name);
     assert.ok(bad.problems.some(x=>x.errors.includes(t.error)),t.name+' missing '+t.error);
   }
+  const externalLookalike=mutate(49,x=>({...x,content:x.content+
+    ' <a href="https://wa.me.evil.example/36000000000">Unrelated external URL</a>'}));
+  assert.equal(auditSnapshot(externalLookalike).status,'pass','lookalike must not trigger WhatsApp host guard');
   const missing=auditSnapshot(records.slice(1));
   assert.equal(missing.status,'fail');
   assert.equal(missing.missing.length,1);
@@ -211,7 +229,7 @@ function selfTest(){
   assert.equal(unexpected.status,'fail');
   assert.equal(unexpected.extras.length,1);
   assert.equal(unexpected.received,34);
-  console.log('PASS: 23 snapshot scenarios (clean, nineteen safety/link regressions, missing, duplicate, extra home) on 33 published items');
+  console.log('PASS: 27 snapshot scenarios (clean, 22 safety/link regressions, one false-positive guard, missing, duplicate, extra home) on 33 published items');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else {
