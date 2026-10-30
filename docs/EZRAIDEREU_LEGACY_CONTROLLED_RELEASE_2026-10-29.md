@@ -1,3 +1,7 @@
+# EZRaiderEU legacy — controlled release package
+
+**Prepared 29 October 2026. No production change.** This document is a source-only coordination layer over six independently prepared draft PRs. It is **not** a WordPress backup, updated template, verified Google embed, provider integration or deployment. **No owner action requested now**; preserve all owner-required work in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
+
 ## 30 October current release-readiness checkpoint — supersedes earlier assumptions
 
 **Source access:** Authenticated [Work admin #685](https://github.com/eli1979-ai/Voy-pro-website/issues/685#issuecomment-6518143822) actually inspected the private classic PHP home template, ACF field groups, and installed WPCode #488 v6.2. Earlier sections referring to PHP/ACF as *still unavailable* describe the older connector-only state and are now superseded. Full source and exact 21 field-coordinate mapping remain **private in Work**, not in this public repository. A distinct global Header & Footer injector, **not #488**, owns the legacy red FareHarbor float and provider-override handlers; deletion remains **uninstalled**.
@@ -7,10 +11,6 @@
 **Source metadata freshness:** All six current reviewed PR heads were repinned on 30 October with successful *individual* website CI runs. GitHub `main...head` comparisons for #591/#596/#598/#601/#610/#625 respectively show **13 / 13 / 13 / 12 / 11 / 8 commits behind `main`**. Therefore a HEAD/CI match only verifies the old branch version, not merge/readiness against current main. `scripts/check-legacy-ezraidereu-github-freshness.mjs` now correctly flags the divergence as `review-needed`. This snapshot remains timestamped; rerun before release.
 
 **Protected boundaries:** no automated branch merges, mass rebases, live WordPress content edits, WPCode replacements, restore/import, plugin/core/PHP upgrades, host plan purchases or provider/checkout changes. General component-update permission already exists but does not waive the recovery, host-control, explicit release and customer-data gates.
-
-# EZRaiderEU legacy — controlled release package
-
-**Prepared 29 October 2026. No production change.** This document is a source-only coordination layer over six independently prepared draft PRs. It is **not** a WordPress backup, updated template, verified Google embed, provider integration or deployment. **No owner action requested now**; preserve all owner-required work in [#604](https://github.com/eli1979-ai/Voy-pro-website/issues/604).
 
 ## Scope and exact boundaries
 
