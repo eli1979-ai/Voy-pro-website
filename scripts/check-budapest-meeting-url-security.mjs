@@ -127,9 +127,31 @@ else{
    failures.push('Other businesses CID must not be accepted');
  if(render('/budapest/',{address:meeting.address,maps_url:''})!=='')
    failures.push('Invalid FBM Google Maps URL must still fail closed');
- const portugal=render('/portugal/',null);
- if(!portugal.includes('https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac'))
-   failures.push('Marvão business map route changed unexpectedly');
+ // Regression coverage for each canonical Marvão locale. The renderer
+ // writes section.innerHTML, so inspect its actual injected child markup.
+ const marvaoBusinessMapsUrl='https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac';
+ const marvaoEmbed='https://www.google.com/maps?q='+
+   encodeURIComponent('Pombais Experience & Villas, Marvão, Portugal')+
+   '&amp;z=16&amp;output=embed';
+ for(const path of ['/portugal/','/he/portugal/','/pt/portugal/']){
+   const portugal=render(path,null);
+   if(!portugal.includes('class="meeting-point-copy"'))
+     failures.push(path+' Marvão meeting point is missing');
+   if(!portugal.includes('class="btn secondary meeting-point-button" href="'+marvaoBusinessMapsUrl+'"'))
+     failures.push(path+' Marvão Google Maps action must open the approved venue');
+   if(portugal.split(marvaoBusinessMapsUrl).length-1!==1)
+     failures.push(path+' Marvão Google Maps URL must appear exactly once');
+   if(!portugal.includes('src="'+marvaoEmbed+'"'))
+     failures.push(path+' Marvão iframe must show the Pombais venue at the approved zoom');
+   if(!portugal.includes('title="Pombais Experience &amp; Villas — Exact meeting point"'))
+     failures.push(path+' Marvão map iframe must have an accessible venue title');
+   if(!portugal.includes('<div class="meeting-point-address"><b>Pombais Experience &amp; Villas</b><strong>Marvão, Portugal</strong></div>'))
+     failures.push(path+' Marvão meeting venue and address changed unexpectedly');
+   if(portugal.includes(businessUrl)||portugal.includes('0xbfcd8e3fb5a649b5'))
+     failures.push(path+' incorrectly points visitors to the Budapest Google Business');
+ }
+ if(render('/marvao/',null)!=='')
+   failures.push('Noncanonical /marvao/ must not inject an unsupported meeting point');
 }
 
 const css=fs.readFileSync('site/assets/site.css','utf8');
