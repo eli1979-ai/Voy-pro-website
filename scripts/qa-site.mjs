@@ -62,6 +62,27 @@ for(const [prefix,label] of [
   }
 }
 
+// New Budapest tour language switchers: assistive technology must know
+// which localized tour page is current. Keep this scoped to new tour pages;
+// existing tour/discovery pages have independent accessibility workstreams.
+for(const locale of ['', 'he/', 'hu/']){
+  for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour']){
+    const file=locale+'budapest/tours/'+slug+'/index.html';
+    const html=htmlMap.get(file);
+    if(!html){fail(file,'new tour language switch page missing');continue;}
+    const header=(html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)||[])[0]||'';
+    const picker=(header.match(/<span\b[^>]*class="language-picker"[^>]*>[\s\S]*?<\/span>/i)||[])[0]||'';
+    const links=[...picker.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/gi)].map(m=>m[0]);
+    const active=links.filter(link=>/class="[^"]*\bactive\b/.test(link));
+    const current=links.filter(link=>/\baria-current="page"/.test(link));
+    const expectedHref='/'+file.replace(/index\.html$/,'');
+    if(links.length!==3||active.length!==1||current.length!==1||active[0]!==current[0]||
+      !active[0].includes('href="'+expectedHref+'"')||
+      (header.match(/\baria-current="page"/g)||[]).length!==1)
+      fail(file,'one current page must match the active locale link in the 3-language tour selector');
+  }
+}
+
 const release=JSON.parse(read(path.join(site,'release.json')));
 const sitemap=read(path.join(site,'sitemap.xml'));
 // XML Sitemap schema permits only <url> elements and whitespace inside <urlset>.
