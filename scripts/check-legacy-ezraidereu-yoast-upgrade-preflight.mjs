@@ -7,8 +7,8 @@
  * node scripts/check-legacy-ezraidereu-yoast-upgrade-preflight.mjs --self-test
  * node scripts/check-legacy-ezraidereu-yoast-upgrade-preflight.mjs --input /private/preflight.json
  *
- * Example JSON fields: wordpressVersion, phpVersion, targetFreeVersion,
- * targetPremiumVersion, vendorPackageConfirmed, restorableBackupConfirmed,
+ * Example JSON fields: wordpressVersion, phpVersion, installedFreeVersion,
+ * targetFreeVersion, targetPremiumVersion, vendorPackageConfirmed, restorableBackupConfirmed,
  * isolatedStagingVerified, siteOwnerApproved.
  */
 import assert from 'node:assert/strict';
@@ -32,8 +32,10 @@ export function assessUpgrade(input){
    'This guard covers exactly Yoast Premium 28.8; for other targets re-verify the official version-specific requirements.'],
   ['WORDPRESS_CORE_MIN_7_0',atLeast(input.wordpressVersion,'7.0'),
    'Yoast Premium 28.8 changelog states minimum WordPress 7.0; actual core version must be verified.'],
-  ['YOAST_FREE_MIN_28_8',atLeast(input.targetFreeVersion,'28.8'),
-   'Yoast Premium 28.8 requires target free Yoast SEO >=28.8.'],
+  ['YOAST_FREE_TARGET_MIN_28_8',atLeast(input.targetFreeVersion,'28.8'),
+   'The intended free Yoast target is >=28.8; a future intended version is not proof it is already installed.'],
+  ['YOAST_FREE_INSTALLED_MIN_28_8',atLeast(input.installedFreeVersion,'28.8'),
+   'The free Yoast SEO version actually installed in the isolated target must be >=28.8 before activating Premium 28.8.'],
   ['PHP_MIN_7_4_GENERAL',atLeast(input.phpVersion,'7.4'),
    'Vendor general requirements say PHP >=7.4; target-specific PHP requirements still require validation.'],
   ['OFFICIAL_VENDOR_PACKAGE',input.vendorPackageConfirmed===true,
@@ -54,20 +56,23 @@ export function assessUpgrade(input){
  return {
   purpose:'Planning checklist only. Never auto-update or deploy from this result.',
   candidate:target??null,
-  state:blocked.length?'blocked':'ready-for-separate-human-release-review',
+  state:blocked.length?'blocked':'self-attested-requires-independent-review',
   blockers:blocked,
   satisfied:findings.length-blocked.length,
   totalChecks:findings.length,
   checks:findings,
-  mayDeployAutomatically:false
+  mayDeployAutomatically:false,
+  independentEvidenceVerified:false,
+  warning:'The JSON consists only of operator attestations. Even all true does not verify restore, package/license, owner approval, actual installed plugin state, CI or WordPress browser QA.'
  };
 }
 function selfTest(){
- const base={wordpressVersion:'7.0',phpVersion:'8.2',targetFreeVersion:'28.8',
+ const base={wordpressVersion:'7.0',phpVersion:'8.2',installedFreeVersion:'28.8',targetFreeVersion:'28.8',
   targetPremiumVersion:'28.8',vendorPackageConfirmed:true,restorableBackupConfirmed:true,
   isolatedStagingVerified:true,siteOwnerApproved:true};
  const good=assessUpgrade(base);
- assert.equal(good.state,'ready-for-separate-human-release-review');
+ assert.equal(good.state,'self-attested-requires-independent-review');
+ assert.equal(good.independentEvidenceVerified,false);
  assert.equal(good.mayDeployAutomatically,false);
  assert.equal(good.blockers.length,0);
  const test=(patch,code,expected)=>{
@@ -77,20 +82,26 @@ function selfTest(){
  };
  test({wordpressVersion:null},'WORDPRESS_CORE_MIN_7_0','unknown');
  test({wordpressVersion:'6.9'},'WORDPRESS_CORE_MIN_7_0','blocked');
- test({targetFreeVersion:'28.7'},'YOAST_FREE_MIN_28_8','blocked');
+ test({targetFreeVersion:'28.7'},'YOAST_FREE_TARGET_MIN_28_8','blocked');
+ test({installedFreeVersion:'28.7'},'YOAST_FREE_INSTALLED_MIN_28_8','blocked');
+ test({installedFreeVersion:null},'YOAST_FREE_INSTALLED_MIN_28_8','unknown');
  test({targetPremiumVersion:'27.6.1'},'TARGET_PREMIUM_28_8_ONLY','blocked');
  test({phpVersion:'7.3'},'PHP_MIN_7_4_GENERAL','blocked');
  test({vendorPackageConfirmed:false},'OFFICIAL_VENDOR_PACKAGE','blocked');
  test({restorableBackupConfirmed:false},'RESTORE_TESTED','blocked');
  test({isolatedStagingVerified:false},'ISOLATED_STAGING_VERIFIED','blocked');
  test({siteOwnerApproved:false},'OWNER_RELEASE_APPROVAL','blocked');
- const actual=assessUpgrade({wordpressVersion:null,phpVersion:null,targetFreeVersion:'28.8',
+ const actual=assessUpgrade({wordpressVersion:'7.1.3',phpVersion:'7.4.33',
+  installedFreeVersion:'28.7',targetFreeVersion:'28.8',
   targetPremiumVersion:'28.8',vendorPackageConfirmed:false,
   restorableBackupConfirmed:false,isolatedStagingVerified:false,siteOwnerApproved:false});
  assert.equal(actual.state,'blocked');
- assert.equal(actual.blockers.length,6);
+ assert.equal(actual.blockers.length,5);
+ assert.ok(actual.blockers.some(x=>x.code==='YOAST_FREE_INSTALLED_MIN_28_8'));
+ assert.equal(actual.checks.find(x=>x.code==='WORDPRESS_CORE_MIN_7_0').result,'satisfied');
+ assert.equal(actual.checks.find(x=>x.code==='PHP_MIN_7_4_GENERAL').result,'satisfied');
  assert.equal(actual.mayDeployAutomatically,false);
- console.log('PASS: 11 conservative Yoast Premium compatibility/release-gate scenarios');
+ console.log('PASS: 13 conservative Yoast Premium compatibility/release-gate scenarios');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
@@ -99,6 +110,6 @@ else{
  else{
   const outcome=assessUpgrade(JSON.parse(readFileSync(process.argv[pos+1],'utf8')));
   console.log(JSON.stringify(outcome,null,2));
-  process.exitCode=outcome.state==='blocked'?2:0;
+  process.exitCode=2; // Attestations are not independent release clearance, even with all flags true.
  }
 }
