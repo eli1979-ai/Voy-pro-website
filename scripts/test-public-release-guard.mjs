@@ -43,7 +43,9 @@ try {
     'https://localhost/api/v1','https://api.localhost/api/v1',
     'https://127.0.0.1/api/v1','https://192.168.1.10/api/v1',
     'https://8.8.8.8/api/v1','https://[::1]/api/v1',
-    'https://service.local/api/v1','https://fbm.internal/api/v1'
+    'https://service.local/api/v1','https://fbm.internal/api/v1',
+    'https://foo..com/api/v1','https://foo_bar.example.com/api/v1','https://-foo.example.com/api/v1','https://example-.com/api/v1',
+    'https://foo.com./api/v1','https://api.x/api/v1',`https://${'a'.repeat(64)}.example.com/api/v1`,`https://${'a'.repeat(250)}.example.com/api/v1`
   ]) {
     attest({public_api_base_url:endpoint});
     write('assets/runtime-config.js',
