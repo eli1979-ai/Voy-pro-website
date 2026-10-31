@@ -1139,3 +1139,14 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{display
 .portugal-owner-video-figure figcaption{margin-top:10px;font-size:13px;line-height:1.5;color:var(--muted)}
 @media(max-width:800px){.portugal-owner-video-layout{grid-template-columns:minmax(0,1fr)}.portugal-owner-video-figure{max-width:min(100%,350px)}}
 @media(max-width:390px){.portugal-owner-video-figure{max-width:min(100%,300px)}}
+
+/* Geographic context for the Buda-only landmark-relative schematic. */
+.route-buda-landmark-labels text{
+  fill:#607d8d;
+  font:800 2.7px/1 Arial,sans-serif;
+  letter-spacing:.1px;
+}
+.route-picture-panel>.route-schematic-note{
+  display:block;
+  margin:10px 2px 0;
+}
