@@ -116,6 +116,24 @@ for(const marker of [
 }
 forbidText(notFound,'id="booking"','404 locale recovery must not introduce booking');
 
+
+// Mobile screenshot-based section rhythm is scoped to landing content, not checkout.
+const mobileRhythm=css.slice(css.indexOf('/* Mobile screenshot-based landing-page section rhythm, 31 Oct 2026.'));
+requireText(mobileRhythm,'@media(max-width:800px)','Landing spacing must remain mobile-only');
+requireText(mobileRhythm,'body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section:not(.booking)',
+  'Landing spacing must cover home, Budapest and Marvão, excluding booking');
+requireText(mobileRhythm,'padding-block:24px','Mobile landing sections need compact vertical rhythm');
+requireText(mobileRhythm,'.section .content-card','Informational cards must be compact');
+requireText(mobileRhythm,'padding:16px','Informational cards need reduced padding');
+requireText(mobileRhythm,'.intent-hub-card','Budapest planning cards need compact spacing');
+requireText(mobileRhythm,'padding:15px','Budapest planning cards need reduced padding');
+for(const path of ['site/budapest/index.html','site/he/budapest/index.html',
+  'site/hu/budapest/index.html','site/portugal/index.html',
+  'site/he/portugal/index.html','site/pt/portugal/index.html']){
+  const landing=read(path);
+  if(!landing.includes('class="section '))failures.push(path+': landing layout missing');
+}
+
 if(failures.length){
   console.error('VOY PRO root-brand guard failed.');
   for(const failure of failures)console.error('- '+failure);
