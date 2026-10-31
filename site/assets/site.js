@@ -3010,22 +3010,22 @@
     en:{
       meeting:'MEETING POINT',budapestTitle:'Start in central Budapest.',budapestBody:'Please arrive about 15 minutes before departure for check-in, equipment fitting and riding instructions.',budapestName:'VOY PRO Budapest',
       portugalTitle:'Start your Marvão experience here.',portugalBody:'Use the Google Maps pin for the exact meeting point before departure. The local experience is operated by Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
-      maps:'Open in Google Maps',exactPin:'Exact meeting point',pictures:'ROUTE IN PICTURES',schematic:'ROUTE SCHEMATIC',schematicNote:'Illustrative route — the exact sequence can vary.'
+      maps:'Open in Google Maps',exactPin:'Exact meeting point',pictures:'ROUTE IN PICTURES',schematic:'ROUTE SCHEMATIC',schematicNote:'Illustrative route — the exact sequence can vary.',landmarkRelativeNote:'Landmarks are positioned relatively; this is not a GPS trail.',landmarkSides:{buda:'BUDA',pest:'PEST',danube:'DANUBE'},photoIllustrationNote:'Photos of stops 1–4 show the Budapest riding experience; they are not verified photos of those exact stops.',illustrativeBudapestPhoto:'Illustrative EZRaider ride in Budapest'
     },
     he:{
       meeting:'נקודת מפגש',budapestTitle:'מתחילים במרכז בודפשט.',budapestBody:'נא להגיע כ־15 דקות לפני היציאה לצ׳ק-אין, התאמת ציוד ותדריך רכיבה.',budapestName:'VOY PRO Budapest',
       portugalTitle:'מתחילים את חוויית מרבאו כאן.',portugalBody:'לפני היציאה השתמשו בסימון המדויק ב-Google Maps. החוויה המקומית מופעלת על ידי Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
-      maps:'פתיחה ב-Google Maps',exactPin:'נקודת המפגש המדויקת',pictures:'המסלול בתמונות',schematic:'תרשים המסלול',schematicNote:'המחשה בלבד — סדר המסלול בפועל עשוי להשתנות.'
+      maps:'פתיחה ב-Google Maps',exactPin:'נקודת המפגש המדויקת',pictures:'המסלול בתמונות',schematic:'תרשים המסלול',schematicNote:'המחשה בלבד — סדר המסלול בפועל עשוי להשתנות.',landmarkRelativeNote:'מיקום האתרים יחסי בלבד; התרשים אינו מסלול GPS.',landmarkSides:{buda:'בודה',pest:'פשט',danube:'דנובה'},photoIllustrationNote:'התמונות בנקודות 1–4 ממחישות רכיבה בבודפשט, ואינן מאומתות כתמונות שצולמו בנקודות אלה.',illustrativeBudapestPhoto:'צילום המחשה של רכיבת EZRaider בבודפשט'
     },
     hu:{
       meeting:'TALÁLKOZÁSI PONT',budapestTitle:'Indulás Budapest belvárosából.',budapestBody:'Kérjük, érkezz körülbelül 15 perccel indulás előtt a bejelentkezéshez, felszereléshez és a vezetési oktatáshoz.',budapestName:'VOY PRO Budapest',
       portugalTitle:'Itt kezdődik a marvãói élmény.',portugalBody:'Indulás előtt használd a Google Maps pontos találkozási pontját. A helyi élményt a Pombais Experience & Villas üzemelteti.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
-      maps:'Megnyitás a Google Térképen',exactPin:'Pontos találkozási pont',pictures:'AZ ÚTVONAL KÉPEKBEN',schematic:'ÚTVONALVÁZLAT',schematicNote:'Szemléltető útvonal — a pontos sorrend változhat.'
+      maps:'Megnyitás a Google Térképen',exactPin:'Pontos találkozási pont',pictures:'AZ ÚTVONAL KÉPEKBEN',schematic:'ÚTVONALVÁZLAT',schematicNote:'Szemléltető útvonal — a pontos sorrend változhat.',landmarkRelativeNote:'A helyszínek egymáshoz viszonyított elhelyezkedése látható; nem GPS-nyomvonal.',landmarkSides:{buda:'BUDA',pest:'PEST',danube:'DUNA'},photoIllustrationNote:'Az 1–4. pont képei budapesti EZRaider-élményképek, nem hitelesített felvételek az adott megállókról.',illustrativeBudapestPhoto:'Illusztratív EZRaider-kép Budapesten'
     },
     pt:{
       meeting:'PONTO DE ENCONTRO',budapestTitle:'Partida no centro de Budapeste.',budapestBody:'Chegue cerca de 15 minutos antes da partida para check-in, ajuste do equipamento e instruções de condução.',budapestName:'VOY PRO Budapest',
       portugalTitle:'A sua experiência em Marvão começa aqui.',portugalBody:'Antes da partida, utilize o ponto exato no Google Maps. A experiência local é operada pela Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Marvão, Portugal',
-      maps:'Abrir no Google Maps',exactPin:'Ponto de encontro exato',pictures:'PERCURSO EM IMAGENS',schematic:'ESQUEMA DO PERCURSO',schematicNote:'Esquema ilustrativo — a ordem exata pode variar.'
+      maps:'Abrir no Google Maps',exactPin:'Ponto de encontro exato',pictures:'PERCURSO EM IMAGENS',schematic:'ESQUEMA DO PERCURSO',schematicNote:'Esquema ilustrativo — a ordem exata pode variar.',landmarkRelativeNote:'Posições relativas, não um percurso GPS.',landmarkSides:{buda:'BUDA',pest:'PESTE',danube:'DANÚBIO'},photoIllustrationNote:'As fotografias dos pontos 1 a 4 são ilustrativas e não confirmam paragens específicas.',illustrativeBudapestPhoto:'Imagem ilustrativa de EZRaider em Budapeste'
     }
   };
 
@@ -3120,7 +3120,14 @@
     document.querySelector('main')?.appendChild(section);
   }
 
-  function routeVisualCoords(count){
+  function routeVisualCoords(count,kind='generic'){
+    // Budapest Buda tour: landmark-relative visual placement, NOT a GPS track.
+    // The two broad-area nodes (7 viewpoint, 8 riverside return) are illustrative.
+    // Elizabeth Bridge, Gellért Hill, Buda Castle, Clark Ádám Square, Matthias
+    // Church and Fisherman's Bastion positions are grounded in mapped landmarks.
+    if(kind==='buda'&&count===8){
+      return [[66,35],[55,44],[40,26],[50,20],[31,10],[38,8],[27,17],[62,37]];
+    }
     const ys=[39,29,35,23,31,19,25,14,20,12];
     return Array.from({length:count},(_,i)=>{
       const x=count===1?50:7+(86*i/(count-1));
@@ -3128,33 +3135,35 @@
     });
   }
 
-  function buildRouteSchematic(stops,copy){
-    const coords=routeVisualCoords(stops.length);
+  function buildRouteSchematic(stops,copy,kind='generic'){
+    const geoBuda=kind==='buda'&&stops.length===8;
+    const coords=routeVisualCoords(stops.length,kind);
     const points=coords.map(([x,y])=>`${x},${y}`).join(' ');
     const nodes=coords.map(([x,y],i)=>`<g><circle cx="${x}" cy="${y}" r="3.2"></circle><text x="${x}" y="${y+.95}" text-anchor="middle">${i+1}</text></g>`).join('');
     return `<div class="route-schematic-panel">
       <div class="route-visual-label">${escapeHTML(copy.schematic)}</div>
       <div class="route-schematic-canvas" aria-hidden="true">
         <svg viewBox="0 0 100 52" preserveAspectRatio="none" focusable="false">
-          <path class="route-river-shape" d="M48 -8 C38 9 60 17 48 31 C39 41 54 48 50 60"></path>
+          <path class="route-river-shape" d="${geoBuda?'M72 -8 C68 8 78 24 72 36 C68 47 76 56 73 62':'M48 -8 C38 9 60 17 48 31 C39 41 54 48 50 60'}"></path>
+          ${geoBuda?'<g class="route-buda-landmark-labels"><text x="13" y="48">${escapeHTML(copy.landmarkSides.buda)}</text><text x="87" y="48">${escapeHTML(copy.landmarkSides.pest)}</text><text x="78" y="12">${escapeHTML(copy.landmarkSides.danube)}</text></g>':''}
           <polyline class="route-schematic-line" points="${points}"></polyline>
           <g class="route-schematic-nodes">${nodes}</g>
         </svg>
       </div>
       <div class="route-schematic-legend">${stops.map((name,i)=>`<span><b>${i+1}</b>${escapeHTML(name)}</span>`).join('')}</div>
-      <small class="route-schematic-note">${escapeHTML(copy.schematicNote)}</small>
+      <small class="route-schematic-note">${escapeHTML(copy.schematicNote)}${geoBuda?' '+escapeHTML(copy.landmarkRelativeNote):''}</small>
     </div>`;
   }
 
-  function buildRoutePictures(stops,images,copy,maxCards=6){
+  function buildRoutePictures(stops,images,copy,maxCards=6,kind='generic'){
     const visible=stops.slice(0,Math.min(maxCards,stops.length));
-    return `<div class="route-picture-panel"><div class="route-visual-label">${escapeHTML(copy.pictures)}</div><div class="route-photo-strip">${visible.map((name,i)=>`<figure class="route-photo-card"><img src="${escapeHTML(images[i%images.length])}" alt="${escapeHTML(name)}" loading="lazy" decoding="async"/><figcaption><span>${String(i+1).padStart(2,'0')}</span><b>${escapeHTML(name)}</b></figcaption></figure>`).join('')}</div></div>`;
+    return `<div class="route-picture-panel"><div class="route-visual-label">${escapeHTML(copy.pictures)}</div><div class="route-photo-strip">${visible.map((name,i)=>`<figure class="route-photo-card"><img src="${escapeHTML(images[i%images.length])}" alt="${escapeHTML(kind==='buda'&&i<4?copy.illustrativeBudapestPhoto:name)}" loading="lazy" decoding="async"/><figcaption><span>${String(i+1).padStart(2,'0')}</span><b>${escapeHTML(name)}</b></figcaption></figure>`).join('')}</div>${kind==='buda'?'<small class="route-schematic-note">'+escapeHTML(copy.photoIllustrationNote)+'</small>':''}</div>`;
   }
 
   function injectTourRouteVisuals(){
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
     const budapestImages={
-      buda:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg','/assets/images/budapest/img13.jpg','/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img14.jpg'],
+      buda:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg','/assets/images/budapest/img13.jpg','/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img16.jpg'],
       margaret:['/assets/images/budapest/img02.jpg','/assets/images/budapest/img14.jpg','/assets/images/budapest/img15.jpg','/assets/images/budapest/img16.jpg','/assets/images/budapest/img14.jpg','/assets/images/budapest/img02.jpg'],
       extended:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg','/assets/images/budapest/img13.jpg','/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img02.jpg']
     };
@@ -3166,7 +3175,7 @@
         const visual=document.createElement('div');
         visual.className='route-visual-restored';
         visual.dataset.routeVisual='';
-        visual.innerHTML=buildRoutePictures(stops,budapestImages[intent],copy,6)+buildRouteSchematic(stops,copy);
+        visual.innerHTML=buildRoutePictures(stops,budapestImages[intent],copy,6,intent)+buildRouteSchematic(stops,copy,intent);
         routeSection.querySelector('.route-itinerary-lede')?.insertAdjacentElement('afterend',visual);
       }
     }
