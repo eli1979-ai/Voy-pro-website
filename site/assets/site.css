@@ -1240,3 +1240,45 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
   body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section h2{margin-block:4px 10px}
   body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .proof{gap:12px;padding:18px}
 }
+
+/* 2026-11-01 mobile sticky WhatsApp docking
+   Keep WhatsApp visible but inside the fixed booking bar's reserved trailing
+   icon slot instead of covering the next section, a map, or a form field.
+   The original destination-specific anchor and runtime href remain untouched.
+   CSS is mobile-only, and only on pages with the compact sticky WA class. */
+@media(max-width:800px){
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]):has(.compact-booking-whatsapp) .mobilebook{
+    gap:6px;
+    padding-inline-end:60px;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]):has(.compact-booking-whatsapp) .mobilebook .mobile-price-copy{
+    flex:0 1 92px;
+    min-width:55px;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]):has(.compact-booking-whatsapp) .mobilebook>.btn{
+    flex:1 1 auto;
+    min-width:0;
+    min-height:44px;
+    padding:8px 6px;
+    white-space:normal;
+    text-align:center;
+    line-height:1.2;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .compact-booking-whatsapp{
+    box-sizing:border-box;
+    width:44px;height:44px;min-width:44px;min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;
+    position:fixed;
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));
+    right:calc(18px + env(safe-area-inset-right,0px));
+    left:auto;
+    padding:0;
+    border-radius:50%;
+    box-shadow:0 0 0 1px rgba(255,255,255,.22);
+    z-index:30;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]).rtl .compact-booking-whatsapp{
+    right:auto;
+    left:calc(18px + env(safe-area-inset-left,0px));
+  }
+}
