@@ -312,4 +312,44 @@ assert.ok(mobileHE.includes('href="/he/portugal/#request"'),'Hebrew Marvão mobi
 const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
 for(const route of ['/ezraider/','/he/ezraider/','/hu/ezraider/','/pt/ezraider/'])assert.ok(sitemap.includes('https://voy-pro.com'+route));
 assert.ok(!sitemap.includes('/budapest/ezraider/'));
+
+// Every existing EZRaider referral must have the approved image treatment,
+// including non-landing Budapest pages and all three Marvão languages.
+const referralImage='/assets/images/ezraider/owner-photo-20261031.webp';
+const referralCss=fs.readFileSync('site/assets/site.css','utf8');
+assert.ok(fs.statSync('site'+referralImage).size>1000,'Approved image must remain first-party and present');
+assert.ok(referralCss.includes(':not(:has(> .ez-vehicle-bridge-product))::after')&&
+  referralCss.includes('.tour-vehicle-guide-link a::before')&&
+  referralCss.split(referralImage).length>=3,
+  'Both full-bridge and compact vehicle-guide links must show the approved photo');
+let referralCount=0,fullBridgeCount=0,compactCount=0;
+function auditVehicleReferrals(dir){
+ for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+  const path=dir+'/'+entry.name;
+  if(entry.isDirectory()){auditVehicleReferrals(path);continue;}
+  if(entry.name!=='index.html'||/\/(?:he\/|hu\/|pt\/)?ezraider\//.test(path))continue;
+  const html=fs.readFileSync(path,'utf8');
+  const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"[^>]*>/g;
+  const sectionPattern=/<section\b[^>]*class="[^"]*\bez-vehicle-bridge\b[^"]*"[^>]*>[\s\S]*?<\/section>/g;
+  const compactPattern=/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g;
+  const bridges=[...html.matchAll(sectionPattern)].map(m=>m[0]);
+  const compact=[...html.matchAll(compactPattern)].map(m=>m[0]);
+  const all=[...html.matchAll(linkPattern)].length;
+  const covered=[...bridges,...compact].reduce((n,part)=>n+[...part.matchAll(linkPattern)].length,0);
+  assert.equal(all,covered,path+': unstyled direct vehicle-guide link found');
+  for(const block of bridges){
+   assert.equal([...block.matchAll(linkPattern)].length,1,path+': expected one contextual guide link per bridge');
+   if(block.includes('ez-vehicle-bridge-product'))assert.ok(block.includes(referralImage),path+': landing image changed');
+  }
+  referralCount+=all;fullBridgeCount+=bridges.length;compactCount+=compact.length;
+ }
+}
+auditVehicleReferrals('site');
+assert.ok(referralCount>=31,'Unexpected loss of existing EZRaider guide referrals');
+for(const lang of ['','he/','pt/']){
+ const html=fs.readFileSync('site/'+lang+'portugal/index.html','utf8');
+ assert.ok(html.includes('class="section ez-vehicle-bridge"'),lang+'Marvão must retain guide bridge');
+}
+console.log('EZRaider image treatment verified for '+referralCount+' referrals ('+fullBridgeCount+' bridges, '+compactCount+' compact links).');
+
 console.log('Network EZRaider context and legacy redirect QA OK.');

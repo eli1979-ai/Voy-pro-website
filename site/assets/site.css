@@ -1153,3 +1153,38 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
   display:block;
   margin:10px 2px 0;
 }
+
+/* Owner-requested visible vehicle photo: dedicated media position, never over copy. */
+.ez-vehicle-bridge .proof>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:0 14px;align-items:center}
+.ez-vehicle-bridge .proof>div:first-child .ez-vehicle-bridge-product{position:static;inset:auto;opacity:1;width:150px;height:auto;max-height:none;grid-column:2;grid-row:1 / span 3;justify-self:end;align-self:center;object-fit:contain;border:0;box-shadow:none;pointer-events:none;user-select:none;z-index:auto}
+.ez-vehicle-bridge .proof>div:first-child>:not(.ez-vehicle-bridge-product){grid-column:1;min-width:0}
+.ez-vehicle-bridge .proof>div:first-child>p{line-height:1.6}
+@media(max-width:800px){.ez-vehicle-bridge .proof>div:first-child{grid-template-columns:minmax(0,1fr) 125px;gap:0 8px}.ez-vehicle-bridge .proof>div:first-child .ez-vehicle-bridge-product{width:125px;max-height:none}}
+@media(max-width:390px){.ez-vehicle-bridge .proof>div:first-child{grid-template-columns:minmax(0,1fr) 105px}.ez-vehicle-bridge .proof>div:first-child .ez-vehicle-bridge-product{width:105px}}
+
+/* Shared EZRaider guide referrals: show the approved owner vehicle photo in
+   EVERY existing bridge, including Marvão EN/HE/PT and Budapest tour pages.
+   The four landing bridges already have semantic <img> elements in this PR;
+   use a decorative CSS fallback only where the photo markup is absent. */
+.ez-vehicle-bridge .proof>div:first-child:not(:has(> .ez-vehicle-bridge-product))::after{
+  content:"";display:block;grid-column:2;grid-row:1 / span 3;
+  width:150px;max-width:100%;aspect-ratio:130 / 132;
+  align-self:center;justify-self:end;pointer-events:none;
+  background:url('/assets/images/ezraider/owner-photo-20261031.webp') center / contain no-repeat;
+}
+@media(max-width:800px){
+  .ez-vehicle-bridge .proof>div:first-child:not(:has(> .ez-vehicle-bridge-product))::after{width:125px}
+}
+@media(max-width:390px){
+  .ez-vehicle-bridge .proof>div:first-child:not(:has(> .ez-vehicle-bridge-product))::after{width:105px}
+}
+/* Some Budapest pages link to the same guide below their primary hero CTA
+   instead of using a full bridge. Decorate that existing link in-place. */
+.tour-vehicle-guide-link a{display:inline-flex;align-items:center;gap:8px;max-width:100%}
+.tour-vehicle-guide-link a::before{
+  content:"";display:inline-block;width:42px;height:42px;flex:0 0 42px;
+  background:url('/assets/images/ezraider/owner-photo-20261031.webp') center / contain no-repeat;
+}
+@media(max-width:390px){
+  .tour-vehicle-guide-link a::before{width:36px;height:36px;flex-basis:36px}
+}
