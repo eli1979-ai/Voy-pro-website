@@ -12,7 +12,7 @@ const out=resolve('visual-qa-output');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8','.json':'application/json',
   '.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg',
-  '.jpeg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon',
+  '.jpeg':'image/jpeg','.webp':'image/webp','.mp4':'video/mp4','.ico':'image/x-icon',
   '.woff2':'font/woff2','.woff':'font/woff'};
 const server=createServer(async(req,res)=>{
   try{
@@ -1205,7 +1205,7 @@ try{
           await page.waitForFunction(()=>{
             const v=document.querySelector('.portugal-owner-video video');
             return !!v&&v.currentTime>0.05&&!v.paused&&!v.error;
-          },{timeout:12000});
+          },undefined,{timeout:12000});
           const playback=await video.evaluate(v=>({
             time:v.currentTime,duration:v.duration,error:v.error?.message||'',
             width:v.videoWidth,height:v.videoHeight
