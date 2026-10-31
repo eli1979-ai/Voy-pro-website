@@ -1049,3 +1049,8 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
     align-items:stretch;
   }
 }
+
+/* Parent homepage hero: two service facts, not duplicate destination buttons. */
+body[data-page="/"] .hero .facts.network-benefits{display:flex;flex-wrap:wrap;gap:12px 22px;margin-block:16px 22px;align-items:center}
+body[data-page="/"] .hero .facts.network-benefits>span{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#dce6eb;font-size:13px;font-weight:750;white-space:normal;cursor:default}
+body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border:1px solid rgba(115,216,162,.45);border-radius:50%;background:rgba(39,137,81,.18);color:#81efac;font-size:12px;line-height:1;font-weight:900}
