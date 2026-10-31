@@ -150,7 +150,7 @@ try{
               stickyOverlap:!!stickyOverlap,dockInvalid,stickyButtonClipped,
               stickyBar:stickyBar?{height:Math.round(stickyBar.height),
                 top:Math.round(stickyBar.top)}:null,
-              whatsappVisible:whatsappButtons.length,
+              whatsappVisible:whatsappEntries.length,
               headerHorizontal:hb?{left:Math.round(hb.left),right:Math.round(hb.right)}:null,
               menu:menu&&getComputedStyle(menu).display!=='none'?{left:Math.round(m.left),right:Math.round(m.right),height:Math.round(m.height)}:null,
               overflowCandidates:root.scrollWidth>vw+2?[...body.querySelectorAll('*')].filter(el=>{
@@ -237,5 +237,6 @@ const summary=[
 ].join('\n');
 await writeFile(join(out,'report.md'),summary);
 await writeFile(join(out,'results.json'),JSON.stringify({pages:urls.length,widths,errors,rows},null,2));
+if(errors.length){for(const item of errors.slice(0,16))process.stdout.write('MOBILE QA FAIL '+item.width+'px '+item.path+': '+item.reason+'\n');}
 process.stdout.write('Mobile sweep: '+rows.length+' page-width cases, '+errors.length+' failures\n');
 if(errors.length)process.exitCode=1;
