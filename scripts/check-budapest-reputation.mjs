@@ -41,8 +41,8 @@ for(const file of pages){
 
 for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-kids/index.html','site/hu/budapest/with-kids/index.html']){
   const html=fs.readFileSync(file,'utf8');
-  if(!googleForms.some(v=>html.includes(v))||!html.includes(trip)||!html.includes('#1')||!html.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(html)||!gygForms.some(v=>html.includes(v))){
-    failures.push(file+': family reputation proof is incomplete');
+  if(!googleForms.some(v=>html.includes(v))||!html.includes(trip)||!html.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(html)||!gygForms.some(v=>html.includes(v))){
+    failures.push(file+': family canonical review proof is incomplete');
   }
   if(!html.includes('data-review-source="getyourguide"')||!gygForms.some(v=>html.includes(v))){
     failures.push(file+': family external GetYourGuide source card is missing or stale');
@@ -55,6 +55,42 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
   }
 }
 
+
+// Review surface is consistent across all 42 Budapest destination pages: exactly
+// one top 3-platform summary and one closing linkable 3-platform summary followed
+// by the same 20-approved-reviews ticker. Marvão is a separate operator and must
+// never inherit Budapest's ratings.
+for(const file of pages){
+ const s=fs.readFileSync(file,'utf8');
+ const itemCount=(s.match(/<div class="trust-item">/g)||[]).length;
+ const sourceCount=(s.match(/class="review-source-card" data-review-source="/g)||[]).length;
+ const tickerCount=(s.match(/<section class="vp-reviews" data-vp-reviews-root hidden/g)||[]).length;
+ const bottomCount=(s.match(/<section class="section budapest-review-sources/g)||[]).length;
+ if(itemCount!==3||sourceCount!==3||tickerCount!==1||bottomCount!==1){
+  failures.push(file+': expected 3 opening sources + 3 linked closing sources + 1 ticker, got '+[itemCount,sourceCount,bottomCount,tickerCount].join('/'));
+ }
+ if((s.match(/<script src="\/assets\/budapest-review-ticker.js/g)||[]).length!==1||
+    !s.includes('/assets/budapest-review-ticker.css')||
+    !s.includes('/assets/budapest-review-sources-compact.css')){
+  failures.push(file+': review renderer/styles must appear exactly once');
+ }
+ const top=s.indexOf('<section class="trust">'),bottom=s.indexOf('<section class="section budapest-review-sources'),
+   ticker=s.indexOf('<section class="vp-reviews"');
+ if(top<0||bottom<=top||ticker<=bottom||ticker>s.indexOf('</main>'))failures.push(file+': review summary ordering incorrect');
+ if(s.includes('four-review-sources')||s.includes('family-trust-grid')||s.includes('Tripadvisor ranking')||
+    /<section class="section"><div class="wrap proof"><div><strong>5[.,]0/.test(s)){
+  failures.push(file+': duplicate legacy rating card or four-column summary remains');
+ }
+ for(const source of ['google_maps','tripadvisor','getyourguide'])
+  if((s.match(new RegExp('data-review-source="'+source+'"','g'))||[]).length!==1)
+   failures.push(file+': missing/duplicated audited '+source+' link');
+}
+for(const locale of ['','he/','pt/']){
+ const p='site/'+locale+'portugal/index.html',s=fs.readFileSync(p,'utf8');
+ if(s.includes('budapest-review-ticker.js')||s.includes('budapest-review-sources'))
+  failures.push(p+': Budapest ratings must not be attributed to Marvão');
+}
+
 if(failures.length){
   console.error('Budapest reputation snapshot check failed.');
   for(const failure of failures)console.error('- '+failure);
@@ -64,4 +100,4 @@ if(failures.length){
 console.log('Budapest reputation snapshot OK: Google '+snapshot.google.rating+'.0 / '+snapshot.google.review_count+
   '; Tripadvisor '+snapshot.tripadvisor.rating+'.0 / '+trip+
   '; GetYourGuide '+snapshot.getyourguide.rating+'.0 / '+gyg+
-  '; family pages surface #1 + Travelers’ Choice 2026.');
+  '; family pages use canonical three-source ratings and Travelers’ Choice 2026.');
