@@ -41,10 +41,13 @@ for(const file of pages){
 
 for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-kids/index.html','site/hu/budapest/with-kids/index.html']){
   const html=fs.readFileSync(file,'utf8');
-  if(!googleForms.some(v=>html.includes(v))||!html.includes(trip)||!html.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(html)||!gygForms.some(v=>html.includes(v))){
+  // Canonical source strip uses count-only spans; read the visible text as the
+  // user sees it (same convention as the broad snapshot check above).
+  const visible=html.replace(/<span data-review-count="(?:google|tripadvisor|getyourguide)">([^<]+)<\/span>/g,'$1');
+  if(!googleForms.some(v=>visible.includes(v))||!visible.includes(trip)||!visible.includes('Travelers’ Choice 2026')||!/trust-source">GetYourGuide/.test(visible)||!gygForms.some(v=>visible.includes(v))){
     failures.push(file+': family canonical review proof is incomplete');
   }
-  if(!html.includes('data-review-source="getyourguide"')||!gygForms.some(v=>html.includes(v))){
+  if(!html.includes('data-review-source="getyourguide"')||!gygForms.some(v=>visible.includes(v))){
     failures.push(file+': family external GetYourGuide source card is missing or stale');
   }
   if(!html.includes('"@type":"FAQPage"')){
