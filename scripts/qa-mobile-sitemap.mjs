@@ -106,12 +106,29 @@ try{
             const bookingBar=document.querySelector('.mobilebook');
             const stickyBar=visibleRect(bookingBar);
             const bookButton=stickyBar?visibleRect(bookingBar.querySelector('a.btn')):null;
-            const whatsappButtons=[...document.querySelectorAll('a.whatsapp')]
-              .map(visibleRect).filter(Boolean);
+            const whatsappEntries=[...document.querySelectorAll('a.whatsapp')]
+              .map(el=>({el,rect:visibleRect(el)})).filter(item=>item.rect);
             const intersects=(a,b)=>!!a&&!!b&&
               Math.min(a.right,b.right)-Math.max(a.left,b.left)>2&&
               Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2;
-            const stickyOverlap=stickyBar&&whatsappButtons.some(r=>intersects(stickyBar,r));
+            // A dedicated 44px WhatsApp control is intentionally docked WITHIN
+            // a reserved region of the bottom booking bar. That is safe only
+            // when it neither covers the booking CTA nor the price copy.
+            // All other WhatsApp/bar intersections remain hard failures.
+            const docked=whatsappEntries.find(item=>
+              item.el.classList.contains('compact-booking-whatsapp'));
+            const dockRect=docked?.rect||null;
+            const priceRect=stickyBar?visibleRect(bookingBar.querySelector('.mobile-price-copy')):null;
+            const insideBar=(r)=>!!stickyBar&&!!r&&
+              r.left>=stickyBar.left+2&&r.right<=stickyBar.right-2&&
+              r.top>=stickyBar.top+2&&r.bottom<=stickyBar.bottom-2;
+            const dockedSafe=insideBar(dockRect)&&
+              dockRect.width>=44&&dockRect.height>=44&&
+              !intersects(dockRect,bookButton)&&!intersects(dockRect,priceRect);
+            const stickyOverlap=!!stickyBar&&whatsappEntries.some(item=>
+              intersects(stickyBar,item.rect)&&
+              !(item===docked&&dockedSafe));
+            const dockInvalid=!!stickyBar&&whatsappEntries.length>0&&!dockedSafe;
             const stickyButtonClipped=!!bookButton&&(
               bookButton.left< -2||bookButton.right>vw+2||
               bookButton.top< -2||bookButton.bottom>innerHeight+2);
@@ -130,7 +147,7 @@ try{
               headerExists:!!header,footerExists:!!footer,
               language,effectiveDirection,mainCount,h1Count,skipTarget:!!skipTarget,
               skipHref,skipVisibleText:!!skip?.textContent.trim(),
-              stickyOverlap:!!stickyOverlap,stickyButtonClipped,
+              stickyOverlap:!!stickyOverlap,dockInvalid,stickyButtonClipped,
               stickyBar:stickyBar?{height:Math.round(stickyBar.height),
                 top:Math.round(stickyBar.top)}:null,
               whatsappVisible:whatsappButtons.length,
@@ -169,7 +186,9 @@ try{
           if(metrics.headerHorizontal&&(metrics.headerHorizontal.left< -2||metrics.headerHorizontal.right>width+2))
             issues.push('Header outside viewport');
           if(metrics.stickyOverlap)
-            issues.push('Floating WhatsApp overlaps mobile booking CTA bar');
+            issues.push('WhatsApp overlaps booking bar without a collision-free dock');
+          if(metrics.dockInvalid)
+            issues.push('Mobile WhatsApp must dock inside the booking bar without covering price or booking button');
           if(metrics.stickyButtonClipped)
             issues.push('Mobile booking CTA partly outside viewport');
           issue=issues.join('; ');
