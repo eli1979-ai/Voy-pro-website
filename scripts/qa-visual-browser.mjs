@@ -18,6 +18,14 @@ const server=createServer(async(req,res)=>{
   try{
     const url=new URL(req.url,'http://127.0.0.1');
     let path=decodeURIComponent(url.pathname);
+    // Local-only simulated fallback for visual QA; this does NOT validate
+    // Vercel's actual public 404 rewrite or response headers.
+    if(/^\/(?:(?:he|hu|pt)\/)?qa-not-found-visual-20261030\/$/.test(path)){
+      const fallback=await readFile(resolve(root,'404.html'));
+      res.writeHead(404,{'Content-Type':'text/html; charset=utf-8',
+        'Cache-Control':'no-store'});
+      return res.end(fallback);
+    }
     if(path.endsWith('/'))path+='index.html';
     const full=resolve(root,'.'+path);
     if(!full.startsWith(root+sep))throw Error('Outside build directory');
@@ -152,6 +160,40 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
               null,{timeout:2000}).catch(()=>{});
             check(await opener.evaluate(el=>document.activeElement===el),
               name+' closing review returns focus to opener');
+            // The carousel's visual before/after copies are aria-hidden,
+            // but their expanded review buttons can be clicked by pointer.
+            // Test the real native dialog in Chrome, not only our VM fixture.
+            const duplicate=carousel.locator('.vp-review-group--before .vp-review-expand').first();
+            check(await duplicate.evaluate(el=>
+              el.tabIndex===-1&&el.closest('.vp-review-group')?.getAttribute('aria-hidden')==='true'),
+              name+' infinite-scroll duplicate is excluded from the accessible tab order');
+            const rightControl=carousel.locator('[data-vp-reviews-right]');
+            const pauseControl=carousel.locator('[data-vp-reviews-pause]');
+            check(await pauseControl.isHidden(),
+              name+' reduced-motion mode hides unnecessary auto-scroll Resume control');
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            // Native dialog close events (and focus restoration) can follow
+            // Escape asynchronously; assert the eventual accessible focus
+            // destination instead of racing the browser's close callback.
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-right]'),
+              null,{timeout:3000}).catch(()=>{});
+            check(await rightControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible manual arrow with reduced motion');
+            await page.emulateMedia({reducedMotion:'no-preference'});
+            await page.waitForFunction(()=>
+              document.querySelector('[data-vp-reviews-pause]')?.hidden===false,
+              null,{timeout:3000});
+            await duplicate.evaluate(el=>el.click());
+            await modal.waitFor({state:'visible',timeout:4000});
+            await page.keyboard.press('Escape');
+            await page.waitForFunction(()=>
+              document.activeElement===document.querySelector('[data-vp-reviews-pause]'),
+              null,{timeout:3000}).catch(()=>{});
+            check(await pauseControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible Pause/Resume control in normal motion');
           }
         }
       }
@@ -302,6 +344,21 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(await route.inputValue()===code,name+' '+code+' preselects the correct route');
       }
       const initialStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      // Clicking a tour card must dispatch a real form change. A previously
+      // visible missing-fields warning must clear without a WhatsApp handoff.
+      await route.selectOption('');
+      const missingPrevented=await requestForm.evaluate(el=>
+        !el.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+      const missingStatus=await requestForm.locator('[data-portugal-request-status]').innerText();
+      check(missingPrevented&&missingStatus!==initialStatus,
+        name+' missing route shows a validation warning before changing a tour card');
+      const beforeRouteClickUrl=page.url();
+      await page.locator('[data-portugal-tour="explorer"]').click();
+      check(await route.inputValue()==='explorer'&&
+        await requestForm.locator('[data-portugal-request-status]').innerText()===initialStatus,
+        name+' tour card updates select and clears obsolete form warning');
+      check(page.url().split('#')[0]===beforeRouteClickUrl.split('#')[0],
+        name+' tour-card correction stays on the same request page');
       await route.selectOption('express');
       await date.fill('2000-01-01');
       await language.selectOption('en');
@@ -474,6 +531,34 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(await menu.getAttribute('aria-expanded')==='false',name+' menu resets aria-expanded');
         check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
           name+' Escape returns focus to original menu button');
+        // A real keyboard Enter on a menu link should close the modal and
+        // return focus even if another handler cancels navigation. Cancelling
+        // the link is confined to this browser fixture; website code never
+        // calls preventDefault or changes the link destination.
+        if(['home-mobile','budapest-he-mobile','budapest-hu-narrow','marvao-pt-mobile'].includes(name)){
+          await menu.click();
+          const link=page.locator('#mobile-nav-sheet a[href]').first();
+          const originalHref=await link.getAttribute('href');
+          await link.evaluate(a=>{
+            a.addEventListener('click',event=>{
+              event.preventDefault();
+              window.__voyNavQALinkActivated=true;
+            },{once:true});
+          });
+          await link.focus();
+          await page.keyboard.press('Enter');
+          check(await page.evaluate(()=>window.__voyNavQALinkActivated===true),
+            name+' keyboard Enter activates a real mobile navigation link');
+          check(await page.locator('#mobile-nav-sheet').isHidden()&&
+            await menu.getAttribute('aria-expanded')==='false',
+            name+' keyboard link closes mobile dialog and resets ARIA');
+          check(await page.evaluate(()=>!document.body.classList.contains('nav-open')),
+            name+' keyboard link releases the body scroll lock');
+          check(await page.evaluate(()=>document.activeElement===document.querySelector('.nav-menu-toggle')),
+            name+' keyboard link restores visible menu-button focus');
+          check(await link.getAttribute('href')===originalHref,
+            name+' keyboard link does not rewrite its destination');
+        }
       }
     }
     if(guide){
@@ -552,6 +637,7 @@ try{
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
     ['budapest-en-desktop','/budapest/',desktop,{booking:true,localWhatsApp:budapest}],
+    ['budapest-hu-desktop-whatsapp-repro','/hu/budapest/',{width:1363,height:936},{booking:true,localWhatsApp:budapest}],
     ['budapest-en-mobile','/budapest/',mobile,{booking:true,localWhatsApp:budapest}],
     ['budapest-en-tablet','/budapest/',{width:1024,height:800},{booking:true,localWhatsApp:budapest}],
     ['budapest-he-mobile','/he/budapest/',mobile,{fullPage:true,booking:true,localWhatsApp:budapest}],
@@ -592,6 +678,116 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      // Marvão floating and mobile-menu WhatsApp links must reflect the most
+      // recent PUBLIC request selections. The browser uses the locally built
+      // artifact; external WhatsApp, FBM and tracking requests are blocked.
+
+      // Work #692 / P2 #705 public repro: at 1363×936, a wide fixed
+      // WhatsApp button masked part of the HU private-tour availability CTA.
+      // Align the real CTA near the floating action to test actual geometry,
+      // not just static CSS strings. All third-party requests remain blocked.
+      if(name==='budapest-hu-desktop-whatsapp-repro'){
+        await page.evaluate(()=>{
+          document.querySelector('[data-consent-essential]')?.click();
+          const cta=document.querySelector('a[href="/hu/budapest/private-tours/#booking"]');
+          if(!cta)return;
+          const targetBottom=window.innerHeight-25;
+          window.scrollBy(0,cta.getBoundingClientRect().bottom-targetBottom);
+        });
+        const overlap=await page.evaluate(()=>{
+          const cta=document.querySelector('a[href="/hu/budapest/private-tours/#booking"]');
+          const wa=document.querySelector('a.whatsapp.compact-booking-whatsapp');
+          if(!cta||!wa)return null;
+          const a=cta.getBoundingClientRect(),b=wa.getBoundingClientRect();
+          const horizontal=Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left));
+          const vertical=Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+          const cx=(a.left+a.right)/2,cy=(a.top+a.bottom)/2;
+          const hit=document.elementFromPoint(cx,cy);
+          return {
+            horizontal,vertical,width:b.width,height:b.height,
+            targetClickable:Boolean(hit&&(hit===cta||cta.contains(hit))),
+            accessible:(wa.getAttribute('aria-label')||'').includes('WhatsApp'),
+            href:wa.getAttribute('href')||'',
+            labelHidden:getComputedStyle(wa.querySelector('.compact-booking-whatsapp-label')).display==='none'
+          };
+        });
+        check(Boolean(overlap),name+' HU private CTA and floating WhatsApp are present');
+        check((overlap?.vertical||0)>0,name+' QA aligns both controls within the same vertical screen region');
+        check(overlap?.horizontal===0,name+' no WhatsApp/private CTA overlap at 1363px');
+        check(overlap?.targetClickable===true,name+' the private-tour CTA remains the actual hit target');
+        check(overlap?.width>=44&&overlap?.width<=60&&overlap?.height>=44,
+          name+' WhatsApp retains a usable icon hit target');
+        check(overlap?.accessible&&overlap?.labelHidden&&
+          overlap?.href.startsWith('https://wa.me/36300993099'),
+          name+' accessible HU WhatsApp stays functional without its wide visual label');
+      }
+
+      if(name.startsWith('marvao-')){
+        const form=page.locator('#request [data-portugal-request-form]');
+        await form.locator('select[name="route"]').selectOption('explorer');
+        // Never freeze a public request test to a calendar date that will
+        // expire. The live picker itself sets min using Lisbon's local day;
+        // use its bound as the source of truth, independent of runner zone.
+        const dateInput=form.locator('input[name="date"]');
+        const lisbonMinimum=await dateInput.getAttribute('min');
+        check(/^\d{4}-\d{2}-\d{2}$/.test(lisbonMinimum||''),
+          name+' Marvão test reads a valid Lisbon-local date minimum');
+        const chosenDate=new Date(Date.parse(lisbonMinimum+'T12:00:00Z')+
+          3*24*60*60*1000).toISOString().slice(0,10);
+        check(chosenDate>=lisbonMinimum,
+          name+' selected future request date is not earlier than Lisbon minimum');
+        await dateInput.fill(chosenDate);
+        await form.locator('select[name="people"]').selectOption('4');
+        await form.locator('select[name="guide_language"]').selectOption('pt');
+        await form.locator('input[name="full_name"]').fill('Private Browser Name');
+        await form.locator('textarea[name="notes"]').fill('Private Browser Notes');
+        const floating=page.locator('a.whatsapp[data-wa]');
+        const floatingUrl=await floating.evaluate(link=>{
+          link.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));
+          return link.href;
+        });
+        const floated=new URL(floatingUrl);
+        const message=floated.searchParams.get('text')||'';
+        const peopleLabel=name.includes('-he-')?'משתתפים: 4':
+          name.includes('-pt-')?'Pessoas: 4':'People: 4';
+        // The customer message is localized: never mistake a formatted date
+        // or a translated guide-language name for dropped form values.
+        const dateLocale=name.includes('-he-')?'he-IL':
+          name.includes('-pt-')?'pt-PT':'en-GB';
+        const formattedDate=new Intl.DateTimeFormat(dateLocale,{
+          day:'numeric',month:'short',year:'numeric',timeZone:'UTC'
+        }).format(new Date(chosenDate+'T12:00:00Z'));
+        const languageLabel=name.includes('-he-')?'פורטוגזית':
+          name.includes('-pt-')?'Português':'Portuguese';
+        check(floated.hostname==='wa.me'&&floated.pathname==='/351935695004',
+          name+' floating WhatsApp keeps the local Marvão number');
+        check(message.includes('Marvão Explorer Tour')&&
+          message.includes(formattedDate)&&message.includes(peopleLabel)&&
+          message.includes(languageLabel),
+          name+' floating WhatsApp carries current localized route, date, party and guide language');
+        check(!message.includes('Private Browser Name')&&
+          !message.includes('Private Browser Notes')&&
+          !message.includes('2000-01-01'),
+          name+' floating WhatsApp excludes private fields and outdated dates');
+        if(name.includes('-pt-')){
+          check(['Passeio:','Data preferida:','Pessoas:','Idioma do guia:'].every(x=>message.includes(x)),
+            name+' floating WhatsApp keeps Portuguese field labels');
+        }
+        const toggle=page.locator('.nav-menu-toggle');
+        if(await toggle.isVisible()){
+          await toggle.click();
+          const navUrl=await page.locator('#mobile-nav-sheet [data-mobile-nav-wa]').getAttribute('href');
+          const mobileMessage=navUrl?new URL(navUrl).searchParams.get('text')||'':'';
+          check(mobileMessage.includes('Marvão Explorer Tour')&&
+            mobileMessage.includes(formattedDate)&&mobileMessage.includes(peopleLabel)&&
+            mobileMessage.includes(languageLabel),
+            name+' mobile menu WhatsApp recomputes localized Marvão tour choices');
+          check(!mobileMessage.includes('Private Browser Name')&&
+            !mobileMessage.includes('Private Browser Notes'),
+            name+' mobile menu WhatsApp excludes personal details');
+          await page.keyboard.press('Escape');
+        }
+      }
       // Browser regression: a WhatsApp link created on load must reflect the
       // latest tour and party selections when the customer opens the menu.
       // Values are changed in local DOM only; no availability/booking/API call.
@@ -752,6 +948,201 @@ try{
     }catch(e){failures++;results.push('FAIL: '+name+' interaction error '+(e.stack||String(e)).slice(0,900));}
     finally{await page.close();}
   }
+
+  // Work #709 could inspect public 404 only at desktop width. Render the real
+  // built 404 markup through a TEST-SERVER fallback at 1363/390/320px. The
+  // simulated 404 status is NOT evidence of any Vercel edge HTTP behavior.
+  const missingPath='/qa-not-found-visual-20261030/';
+  const recoveries=[
+    '/budapest/','/portugal/','/manage/','mailto:support@voy-pro.com'
+  ];
+  for(const [size,viewport] of [
+    ['desktop',{width:1363,height:936}],
+    ['mobile',{width:390,height:844}],
+    ['narrow',{width:320,height:700}]
+  ]){
+    const name='404-recovery-'+size;
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const pageErrors=[];
+    page.on('pageerror',error=>pageErrors.push(error.message));
+    // Keep the entire synthetic browser fixture offline and avoid suppliers,
+    // analytics, WhatsApp and real website traffic.
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+missingPath,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===404,name+' local fixture responds HTTP 404 (NOT live edge proof)');
+      await page.waitForTimeout(250);
+      await page.evaluate(()=>document.querySelector('[data-consent-essential]')?.click());
+      const info=await page.evaluate(()=>{
+        const main=document.querySelector('main#main-content.error-page');
+        return {
+          hasHeading:Boolean(main?.querySelector('h1')?.textContent?.includes('That page')),
+          robots:document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          skip:Boolean(document.querySelector('a.skip-link[href="#main-content"]')),
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(info.hasHeading,name+' built 404 contains visible recovery heading and main landmark');
+      check(info.robots==='noindex,nofollow',name+' built 404 remains noindex,nofollow');
+      check(info.skip,name+' keyboard skip link points to recovery main');
+      check(info.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+info.overflow+'px)');
+      for(const href of recoveries){
+        const link=page.locator('main.error-page a[href="'+href+'"]');
+        check(await link.count()===1,name+' exactly one recovery link '+href);
+        if(await link.count()!==1)continue;
+        await link.scrollIntoViewIfNeeded();
+        const value=await link.evaluate(a=>{
+          // Inline mailto links can wrap into two text fragments at 320px.
+          // A getBoundingClientRect() union midpoint can land on the empty
+          // whitespace between lines, falsely reporting a blocked hit target.
+          // Assert EVERY actual painted/clickable fragment instead.
+          const fragments=[...a.getClientRects()].filter(r=>r.width>0&&r.height>0);
+          const samples=fragments.map(rect=>{
+            const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+            const top=document.elementFromPoint(x,y);
+            return {
+              insideViewport:x>=0&&x<=window.innerWidth&&y>=0&&y<=window.innerHeight,
+              hittable:Boolean(top&&(top===a||a.contains(top))),
+              top:top?.tagName||'none'
+            };
+          });
+          return {
+            visible:samples.length>0,
+            insideViewport:samples.length>0&&samples.every(s=>s.insideViewport),
+            hittable:samples.length>0&&samples.every(s=>s.hittable),
+            fragmentCount:samples.length,
+            samples
+          };
+        });
+        check(value.visible&&value.insideViewport&&value.hittable,
+          name+' recovery '+href+' stays visible and hit-testable (fragments='+
+          value.fragmentCount+', observations='+JSON.stringify(value.samples)+')');
+      }
+      check(pageErrors.length===0,name+' has no uncaught JavaScript errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | '+viewport.width+'x'+viewport.height+' | local built 404 fixture');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
+
+  // The same built 404 must retain established destination language on
+  // locale-prefixed missing paths; the local fixture is not Vercel edge proof.
+  for(const cfg of [
+    {code:'he',heading:'העמוד לא נמצא.',budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he',dir:'rtl'},
+    {code:'hu',heading:'Ez az oldal nem található.',budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu',dir:'ltr'},
+    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/',dir:'ltr'}
+  ]){
+    const name='404-locale-'+cfg.code;
+    const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+'/'+cfg.code+'/qa-not-found-visual-20261030/',
+        {waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===404,name+' local fixture responds simulated HTTP 404');
+      const state=await page.evaluate(()=>{
+        const href=key=>document.querySelector('[data-404-'+key+']')?.getAttribute('href');
+        return {
+          lang:document.documentElement.lang,
+          dir:document.documentElement.dir||'ltr',
+          heading:document.querySelector('main.error-page h1')?.textContent,
+          robots:document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          links:{budapest:href('budapest'),portugal:href('portugal'),manage:href('manage'),
+            support:href('support')},
+          skip:document.querySelector('[data-404-skip]')?.getAttribute('href'),
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(state.lang===cfg.code,name+' locale recognized');
+      check(state.dir===cfg.dir,name+' direction preserves Hebrew RTL');
+      check(state.heading===cfg.heading,name+' localized visible recovery heading');
+      check(state.robots==='noindex,nofollow',name+' recovery is not indexed');
+      check(state.links.budapest===cfg.budapest,name+' Budapest locale destination');
+      check(state.links.portugal===cfg.portugal,name+' Marvão locale destination');
+      check(state.links.manage===cfg.manage,name+' secure Manage help locale');
+      check(state.links.support==='mailto:support@voy-pro.com',name+' central support unchanged');
+      check(state.skip==='#main-content',name+' main-content skip preserved');
+      check(state.overflow<=2,name+' no horizontal overflow at 390px');
+      for(const key of ['budapest','portugal','manage','support']){
+        const element=page.locator('[data-404-'+key+']');
+        await element.scrollIntoViewIfNeeded();
+        const visible=await element.evaluate(el=>{
+          const rects=[...el.getClientRects()].filter(rect=>rect.width>0&&rect.height>0);
+          return rects.length>0&&rects.every(rect=>{
+            const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+            const top=document.elementFromPoint(x,y);
+            return x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight&&
+              Boolean(top&&(top===el||el.contains(top)));
+          });
+        });
+        check(visible,name+' '+key+' link remains hit-testable');
+      }
+      check(errors.length===0,name+' no uncaught browser errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | 390x844 | local built localized 404 fixture');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' visual fixture '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
+  // #712 — real local Chromium rendering of a tokenless Manage landing.
+  // Booking data is never accessed. This checks the safe fallback rather
+  // than adding a speculative public-booking lookup to the website.
+  for(const [lang,path,expected] of [
+    ['en','/manage/','Booking details cannot be opened from this link.'],
+    ['he','/manage/?lang=he','לא ניתן לפתוח את פרטי ההזמנה מהקישור הזה.'],
+    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.']
+  ]){
+    const name='manage-tokenless-'+lang;
+    const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(error.message));
+    await page.route('**/*',route=>{
+      try{
+        if(new URL(route.request().url()).origin===base)return route.continue();
+      }catch{}
+      return route.abort();
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' existing public landing HTTP 200');
+      await page.waitForFunction(()=>document.getElementById('manage-box')?.textContent?.includes('support@voy-pro.com'),null,{timeout:5000});
+      const state=await page.evaluate(()=>{
+        const box=document.getElementById('manage-box');
+        return {
+          text:box?.textContent||'',
+          support:box?.querySelector('a[href="mailto:support@voy-pro.com"]')?.getAttribute('href'),
+          inputs:box?.querySelectorAll('input,form,button').length||0,
+          lang:document.documentElement.lang,
+          dir:document.documentElement.dir||'ltr',
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        };
+      });
+      check(state.lang===lang,name+' locale matches requested language');
+      check(state.text.includes(expected),name+' explains private Manage link or support');
+      check(state.support==='mailto:support@voy-pro.com',name+' support email is clickable');
+      check(state.inputs===0,name+' does not offer an unauthenticated lookup form');
+      check(state.overflow<=2,name+' no horizontal overflow at 390px');
+      check(state.dir===(lang==='he'?'rtl':'ltr'),name+' local direction is preserved');
+      check(errors.length===0,name+' no uncaught browser JavaScript errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:true});
+      results.push('SCREENSHOT: '+name+'.png | 390x844 | local built no-token Manage landing');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' browser recovery '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');

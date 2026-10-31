@@ -12,6 +12,13 @@
           event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
       // Preserve independent behavior of actual links and controls.
       if (event.target?.closest?.('a, button, input, select, textarea, [role="button"], [role="link"]')) return;
+      // A text drag touching this card may end in a click; do not navigate.
+      // A selection elsewhere on the page must not disable destination cards.
+      const selection = document.getSelection?.();
+      if (selection?.toString().trim() &&
+          (card.contains(selection.anchorNode) ||
+           card.contains(selection.focusNode) ||
+           selection.containsNode?.(card, true))) return;
       destinationLink.click();
     });
   }

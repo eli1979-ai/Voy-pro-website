@@ -4,7 +4,64 @@
 <meta content="#0d151d" name="theme-color"/><meta content="noindex,nofollow" name="robots"/>
 <title>Page Not Found | VOY PRO</title><meta content="The page you requested could not be found." name="description"/>
 <link href="/assets/site.css" rel="stylesheet"/></head>
-<body data-page="/404/"><a class="skip-link" href="#main-content">Skip to main content</a>
+<body data-page="/404/"><a class="skip-link" href="#main-content" data-404-skip>Skip to main content</a>
 <header><div class="wrap nav"><a class="brand" href="/">VOY<span>PRO</span></a></div></header>
-<main class="error-page" id="main-content"><div class="panel"><div class="eyebrow" style="color:#0d4d7c">404</div><h1>That page isn’t here.</h1><p>Continue to the Budapest experiences or contact the local team if you need help.</p><p><a class="btn" href="/budapest/">Explore Budapest tours</a></p></div></main>
+<main class="error-page" id="main-content"><div class="panel"><div class="eyebrow" style="color:#0d4d7c">404</div><h1 data-404-heading>That page isn’t here.</h1><p data-404-intro>Choose a destination, manage an existing booking, or contact VOY PRO support.</p><p><a class="btn" href="/budapest/" data-404-budapest>Explore Budapest tours</a></p><p><a class="btn secondary" href="/portugal/" data-404-portugal>Explore Marvão tours</a></p><p><a class="btn secondary" href="/manage/" data-404-manage>Manage an existing booking</a></p><p><span data-404-help>Need help? </span><a href="mailto:support@voy-pro.com" data-404-support>Email VOY PRO support</a>.</p></div></main>
+<script>
+/* Network recovery stays English by default; localize only established
+   first-path language prefixes, without touching booking or 404 routing. */
+(function(){
+  const locale404=(location.pathname.match(/^\/(he|hu|pt)\//)||[])[1];
+  const translations={
+    he:{
+      title:'העמוד לא נמצא | VOY PRO',description:'העמוד המבוקש לא נמצא.',
+      skip:'דלגו לתוכן הראשי',heading:'העמוד לא נמצא.',
+      intro:'אפשר לבחור יעד, להשתמש בקישור האישי לניהול הזמנה או לפנות לתמיכה.',
+      budapest:['/he/budapest/','לסיורים בבודפשט'],
+      portugal:['/he/portugal/','לסיורים במרבאו'],
+      manage:['/manage/?lang=he','עזרה בניהול הזמנה'],
+      help:'צריכים עזרה? ',support:'שלחו דוא״ל לתמיכת VOY PRO'
+    },
+    hu:{
+      title:'Az oldal nem található | VOY PRO',description:'A keresett oldal nem található.',
+      skip:'Ugrás a fő tartalomhoz',heading:'Ez az oldal nem található.',
+      intro:'Válassz úti célt, használd a foglaláskezelő személyes linkedet, vagy kérj segítséget.',
+      budapest:['/hu/budapest/','Budapesti túrák'],
+      portugal:['/portugal/','Marvão túrák (angolul)'],
+      manage:['/manage/?lang=hu','Segítség a foglalás kezeléséhez'],
+      help:'Segítségre van szükséged? ',support:'Írj e-mailt a VOY PRO-nak'
+    },
+    pt:{
+      title:'Página não encontrada | VOY PRO',description:'A página solicitada não foi encontrada.',
+      skip:'Ir para o conteúdo principal',heading:'Esta página não existe.',
+      intro:'Escolha um destino, use o seu link privado de reserva ou contacte o apoio.',
+      budapest:['/budapest/','Passeios em Budapeste (em inglês)'],
+      portugal:['/pt/portugal/','Explorar passeios em Marvão'],
+      manage:['/manage/','Ajuda para reservas (em inglês)'],
+      help:'Precisa de ajuda? ',support:'Enviar e-mail ao apoio VOY PRO'
+    }
+  };
+  const copy=translations[locale404];
+  if(!copy)return;
+  document.documentElement.lang=locale404;
+  if(locale404==='he'){
+    document.documentElement.dir='rtl';
+    document.documentElement.classList.add('rtl');
+    document.body.classList.add('rtl');
+  }
+  document.title=copy.title;
+  const description=document.querySelector('meta[name="description"]');
+  if(description)description.content=copy.description;
+  const setText=(key,value)=>{
+    const el=document.querySelector('[data-404-'+key+']');
+    if(el)el.textContent=value;
+  };
+  const setLink=(key,link)=>{
+    const el=document.querySelector('[data-404-'+key+']');
+    if(el){el.href=link[0];el.textContent=link[1];}
+  };
+  for(const key of ['skip','heading','intro','help','support'])setText(key,copy[key]);
+  for(const key of ['budapest','portugal','manage'])setLink(key,copy[key]);
+})();
+</script>
 <script src="/assets/runtime-config.js"></script><script src="/assets/site.js"></script></body></html>

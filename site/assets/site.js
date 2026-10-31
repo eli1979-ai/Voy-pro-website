@@ -354,6 +354,30 @@
     return `<div class="quote-breakdown">${rows}${totalRow}${note}</div>`;
   }
   function currentRequestDetails(){
+    if(isPortugalPage){
+      // A guest may use the floating or mobile-nav WhatsApp button after
+      // filling part of the Marvão request form. Carry only public tour choices
+      // into that explicit handoff; never copy their name, notes or attribution.
+      const requestForm=document.querySelector('[data-portugal-request-form]');
+      if(!requestForm)return {};
+      const selected=new FormData(requestForm);
+      const route=String(selected.get('route')||'').trim();
+      const date=String(selected.get('date')||'').trim();
+      const people=String(selected.get('people')||'').trim();
+      const guide=String(selected.get('guide_language')||'').trim().toLowerCase();
+      const names={express:'Vila de Marvão Express Tour',
+        explorer:'Marvão Explorer Tour',
+        megalithic:(locale==='pt'||locale==='he')?'Rota Megalítica':'Megalithic Route'};
+      const dateMs=/^\d{4}-\d{2}-\d{2}$/.test(date)?Date.parse(date+'T12:00:00Z'):NaN;
+      const dateValid=Number.isFinite(dateMs)&&new Date(dateMs).toISOString().slice(0,10)===date&&
+        date>=portugalDate(0);
+      return {
+        experience_title:names[route]||null,
+        date:dateValid?date:null,
+        people:['2','3','4'].includes(people)?people:null,
+        guide_language:['en','pt'].includes(guide)?guide:null
+      };
+    }
     const form=document.querySelector('#availability-form');
     if(!form) return {};
     const data=new FormData(form);
@@ -382,14 +406,23 @@
     const lines=[context==='booking_confirmation'?bookingConfirmed:context==='private_flexible'?privateFlexible:context==='extended'?extended:context==='group'?groupRequest:context==='corporate'?corporateRequest:generic];
     const detailLines=[];
     if(details.booking_reference)detailLines.push(t(`Booking reference: ${details.booking_reference}`,`מספר הזמנה: ${details.booking_reference}`));
-    if(details.experience_title)detailLines.push(t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
+    if(details.experience_title)detailLines.push(whatsappPortugal&&locale==='pt'
+      ?`Passeio: ${details.experience_title}`
+      :t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
     const confirmedBooking=context==='booking_confirmation';
-    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`):t(`Preferred date: ${confirmationDateLabel(details.date)}`,`תאריך מועדף: ${confirmationDateLabel(details.date)}`));
+    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`)
+      :whatsappPortugal&&locale==='pt'?`Data preferida: ${confirmationDateLabel(details.date)}`
+      :t(`Preferred date: ${confirmationDateLabel(details.date)}`,`תאריך מועדף: ${confirmationDateLabel(details.date)}`));
     if(details.requested_time)detailLines.push(confirmedBooking?(locale==='he'?`שעה: ${details.requested_time}`:locale==='hu'?`Időpont: ${details.requested_time}`:`Time: ${details.requested_time}`):t(`Preferred time: ${confirmationTimeLabel(details.requested_time)}`,`שעה מועדפת: ${confirmationTimeLabel(details.requested_time)}`));
     if(details.riders)detailLines.push(t(`Independent riders: ${details.riders}`,`רוכבים עצמאיים: ${details.riders}`));
+    if(whatsappPortugal&&details.people)detailLines.push(locale==='he'
+      ?`משתתפים: ${details.people}`:locale==='pt'
+        ?`Pessoas: ${details.people}`:`People: ${details.people}`);
     if(Number(details.children||0)>0)detailLines.push(t(`Child passengers: ${details.children}`,`נוסעים ילדים: ${details.children}`));
     if(Number(details.babies||0)>0)detailLines.push(t(`Baby passengers: ${details.babies}`,`נוסעים פעוטות: ${details.babies}`));
-    if(details.guide_language)detailLines.push(t(`Requested guiding language: ${guideLanguageLabel(details.guide_language)}`,`שפת הדרכה מבוקשת: ${guideLanguageLabel(details.guide_language)}`));
+    if(details.guide_language)detailLines.push(whatsappPortugal&&locale==='pt'
+      ?`Idioma do guia: ${guideLanguageLabel(details.guide_language)}`
+      :t(`Requested guiding language: ${guideLanguageLabel(details.guide_language)}`,`שפת הדרכה מבוקשת: ${guideLanguageLabel(details.guide_language)}`));
     if(details.is_private)detailLines.push(t('Private tour: yes','סיור פרטי: כן'));
     if(Array.isArray(details.extras)&&details.extras.length){
       const extrasText=details.extras.map(item=>`${item.name} ×${Number(item.quantity||0)}`).join(', ');
@@ -449,7 +482,12 @@
     dateInput?.addEventListener?.('focus',syncPortugalRequestDateMin);
     document.querySelectorAll('[data-portugal-tour]').forEach(a=>a.addEventListener('click',()=>{
       const route=String(a.dataset.portugalTour||'');
-      if(routeSelect&&routeNames[route])routeSelect.value=route;
+      if(routeSelect&&routeNames[route]){
+        routeSelect.value=route;
+        // A tour-card choice is a genuine form edit: notify the existing
+        // input/change flow so obsolete validation is cleared immediately.
+        routeSelect.dispatchEvent(new Event('change',{bubbles:true}));
+      }
     }));
     form.addEventListener('submit',e=>{
       e.preventDefault();
@@ -567,7 +605,7 @@
       const tours=locale==='he'?'סיורים':locale==='pt'?'Passeios':'Tours';
       const request=locale==='he'?'בקשת זמינות':locale==='pt'?'Pedir disponibilidade':'Request availability';
       const budapest=locale==='he'?'בודפשט':locale==='pt'?'Budapeste':'Budapest';
-      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${heading}</b><a href="${portugalHome}#tours">${tours}</a><a href="${portugalHome}#request">${request}</a><a href="${budapestHome}">${budapest}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">WhatsApp · VOY PRO</a><a href="${portugalHome}#request" class="btn">${request}</a></div>`;
+      sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${heading}</b><a href="${portugalHome}#tours">${tours}</a><a href="${portugalHome}#request">${request}</a><a href="${budapestHome}">${budapest}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/351935695004">WhatsApp · VOY PRO</a><a href="${portugalHome}#request" class="btn">${request}</a></div>`;
     }else{
       sheet.innerHTML=`<div class="mobile-nav-card"><button type="button" class="mobile-nav-close" aria-label="${closeMenuLabel}">×</button><b>${t('Explore Budapest','לגלות את בודפשט')}</b><a href="${localeBudapestCore('tours/buda-castle-ezraider-tour/')}">${t('Buda Castle Tour','סיור בודה')}</a><a href="${localeBudapestCore('tours/margaret-island-ezraider-tour/')}">${t('Margaret Island','אי מרגיט')}</a><a href="${localeBudapestCore('tours/heroes-square-city-ezraider-tour/')}">${locale==='hu'?'Hősök tere':t('Heroes’ Square','כיכר הגיבורים')}</a><a href="${localeBudapestCore('tours/citadella-advanced-ezraider-tour/')}">${locale==='hu'?'Citadella – haladó túra':t('Citadella Advanced','סיטדלה – סיור מתקדם')}</a><a href="${localeBudapestCore('tours/buda-margaret-extended-tour/')}">${t('Extended Tour','הסיור הארוך')}</a><a href="${localeBudapestCore('private-tours/')}">${t('Private Tours','סיורים פרטיים')}</a><a href="${locale==='he'?'/he/budapest/with-kids/':locale==='hu'?'/hu/budapest/with-kids/':'/budapest/with-kids/'}">${t('Budapest with Kids','בודפשט עם ילדים')}</a><a href="${locale==='he'?'/he/portugal/':locale==='hu'?'/portugal/':'/portugal/'}">${t('Portugal · Marvão','פורטוגל · מרבאו')}</a><div class="mobile-language-row" data-mobile-language-row></div><a class="btn secondary" data-mobile-nav-wa href="https://wa.me/36300993099">${t('Ask us on WhatsApp','פנייה ב-WhatsApp')}</a><a href="${localeBudapestBooking()}" class="btn">${t('Check availability','בדיקת זמינות')}</a></div>`;
     }
@@ -601,7 +639,10 @@
     };
     desktopNav?.addEventListener?.('change',closeOnDesktop);
     if(desktopNav?.matches)close();
-    btn.onclick=()=>{if(mobileWa)mobileWa.href=whatsAppUrl();sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',close));
+    btn.onclick=()=>{if(mobileWa)mobileWa.href=whatsAppUrl();sheet.hidden=false;btn.setAttribute('aria-expanded','true');document.body.classList.add('nav-open');sheet.querySelector('.mobile-nav-close').focus()};sheet.querySelector('.mobile-nav-close').onclick=()=>{close();btn.focus()};sheet.addEventListener('click',e=>{if(e.target===sheet){close();btn.focus()}});sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){close();btn.focus();return}if(e.key==='Tab'){const focusable=[...sheet.querySelectorAll('button,a[href]')];if(!focusable.length)return;const first=focusable[0],last=focusable[focusable.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});// A same-document link can close the sheet without leaving the page;
+    // return keyboard focus to its visible opener instead of a hidden link.
+    // Do not prevent default navigation or change any destination.
+    sheet.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{close();btn.focus({preventScroll:true})}));
   }
   document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});
 
@@ -1637,7 +1678,34 @@
     const savedAtValid=typeof savedAt==='number'&&Number.isSafeInteger(savedAt)&&savedAt>0;
     const age=savedAtValid?Date.now()-savedAt:NaN;
     if(!savedAtValid||age<0||age>RECOVERY_TTL_MS){delStore('voy_recovery_state');return null;}
-    if(!state.experience_id||!state.date||!state.composition)return null;
+    // A saved v1 party is not a booking. Discard malformed snapshots before
+    // displaying a restore button that would inevitably fail after clicking.
+    const party=state?.composition;
+    const date=state?.date;
+    const parsedDate=typeof date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(date)
+      ?Date.parse(date+'T12:00:00Z'):NaN;
+    const validDate=Number.isFinite(parsedDate)&&
+      new Date(parsedDate).toISOString().slice(0,10)===date&&
+      // A selection from yesterday may still be within the storage TTL,
+      // but its past departure cannot be restored. Hide that stale action
+      // before the guest clicks it; do not touch current form choices.
+      date>=budapestDate(0);
+    const validParty=party&&typeof party==='object'&&!Array.isArray(party)&&
+      ['riders_16_plus','child_passengers_3_15','baby_passengers_1_2'].every(key=>
+        Number.isSafeInteger(party[key])&&party[key]>=0)&&
+      party.riders_16_plus>=1&&
+      (party.request_15yo_independent_assessment===undefined||
+        typeof party.request_15yo_independent_assessment==='boolean');
+    const language=state?.guide_language;
+    const validLanguage=language===null||
+      (typeof language==='string'&&/^[a-z]{2,8}$/.test(language));
+    if(state.version!==1||typeof state.experience_id!=='string'||
+      !state.experience_id.trim()||state.experience_id.length>128||
+      !validDate||!validParty||typeof state.is_private!=='boolean'||
+      !validLanguage){
+      delStore('voy_recovery_state');
+      return null;
+    }
     return state;
   }
   function saveSelectionRecovery(experience,date,composition,isPrivate,guideLanguage){
@@ -1709,7 +1777,10 @@
       // unsupported, or now-unavailable choices BEFORE mutating the live form.
       const valid=experience&&experience.bookingEnabled!==false&&
         select&&hasOption(select,experience.id)&&date&&language&&
-        guideLanguagesForProduct(experience).includes(code)&&
+        // A v1 snapshot with no selected guide language may still restore
+        // the party and date. Keep language unset; the normal booking search
+        // requires an explicit choice before any availability lookup.
+        (!code||guideLanguagesForProduct(experience).includes(code))&&
         validDate&&counts.riders_16_plus>=1&&
         choices.every(([field,value])=>Number.isSafeInteger(value)&&
           value>=0&&hasOption(field,value))&&
@@ -1736,7 +1807,11 @@
       adults.dispatchEvent(new Event('change',{bubbles:true}));
       setSelectedTourHint(experience);
       const status=document.querySelector('#availability-status');
-      if(status)status.textContent=t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.');
+      if(status)status.textContent=code
+        ?t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.')
+        :locale==='hu'?'A választás visszaállítva. Válaszd ki az idegenvezetés nyelvét, mielőtt elérhetőséget keresel.'
+        :locale==='he'?'הבחירה שוחזרה. בחרו שפת הדרכה לפני בדיקת הזמינות.'
+        :'Selection restored. Choose your guide language before checking availability.';
       track('selection_recovery_restored',{experience_id:experience.id,date:iso,is_private:Boolean(state.is_private),guide_language:code});
       patchSession({stage:'selection_recovery_restored',experience_id:experience.id,selected_date:iso,is_private:Boolean(state.is_private),guide_language:code});
       shell.hidden=true;form.scrollIntoView({behavior:'smooth',block:'center'});

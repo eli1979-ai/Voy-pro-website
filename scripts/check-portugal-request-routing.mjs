@@ -13,6 +13,55 @@ assert.ok(handler.includes("https://wa.me/351935695004?text="),'Portuguese numbe
 for(const locale of ['en','pt','he']){
   const staticPage=locale==='en'?'site/portugal/index.html':'site/'+locale+'/portugal/index.html';
   const html=fs.readFileSync(staticPage,'utf8');
+
+  // A Marvão route-card click only prefills the enquiry form.
+  // The generic tracker must not create booking_intent until a genuine
+  // checkout action; manual WhatsApp submission is checked below.
+  const routePickers=[...html.matchAll(/<a\b[^>]*\bdata-portugal-tour="([^"]+)"[^>]*>/g)]
+    .map(match=>({slug:match[1],tag:match[0]}));
+  assert.equal(routePickers.length,3,locale+': expected three Marvão route-picker actions');
+  for(const slug of ['express','explorer','megalithic']){
+    const matches=routePickers.filter(link=>link.slug===slug);
+    assert.equal(matches.length,1,locale+': missing or duplicate Marvão '+slug+' route-picker');
+    const anchor=matches[0].tag;
+    assert.match(anchor,/\bclass="[^"]*\bpartner-tour-cta\b[^"]*"/,
+      locale+' '+slug+': tour card CTA must remain a request-first picker');
+    assert.match(anchor,/\bhref="#request"/,
+      locale+' '+slug+': picker must open the local availability request form');
+    assert.match(anchor,/\bdata-track="tour_card_selected"/,
+      locale+' '+slug+': selection must not be attributed as booking intent');
+    assert.doesNotMatch(anchor,/\bdata-track="booking_cta"/,
+      locale+' '+slug+': picker must not open a booking-intent session');
+  }
+
+
+  // Current-language accessibility: exactly one semantically current locale,
+  // matching the visibly selected link, on each Marvão request-first page.
+  const languageLinks=[...html.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/g)]
+    .map(match=>match[0]);
+  const selected=languageLinks.filter(link=>
+    /\bactive\b/.test((link.match(/\bclass="([^"]+)"/)||[])[1]||''));
+  const current=languageLinks.filter(link=>/\baria-current="page"/.test(link));
+  const expectedCurrent=locale==='en'?'/portugal/':'/'+locale+'/portugal/';
+  assert.equal(languageLinks.length,3,locale+': Marvão must offer EN/PT/HE links');
+  assert.equal(selected.length,1,locale+': exactly one visible current language');
+  assert.equal(current.length,1,locale+': exactly one ARIA current page language');
+  assert.equal(current[0],selected[0],locale+': active and ARIA current must agree');
+  assert.ok(current[0].includes('href="'+expectedCurrent+'"'),
+    locale+': current language must link to the exact local destination page');
+  assert.equal((html.match(/\baria-current="page"/g)||[]).length,1,
+    locale+': no extra current-page marker outside the language picker');
+
+  // Marvão inquiries are not confirmed bookings: no localized headline may
+  // imply a booking was completed by opening the WhatsApp request form.
+  const requestHeading={
+    en:'Request availability through VOY PRO',
+    pt:'Peça disponibilidade à VOY PRO',
+    he:'בקשת זמינות דרך VOY PRO'
+  }[locale];
+  assert.ok(html.includes('<h3>'+requestHeading+'</h3>'),
+    locale+': request-first Marvão assurance heading must be truthful and localized');
+
   const labels={
     en:{cta:'Continue to WhatsApp',send:'Tap Send in WhatsApp',confirmation:'not booked until our team confirms'},
     pt:{cta:'Continuar no WhatsApp',send:'Toque em Enviar no WhatsApp',confirmation:'só fica reservado após a nossa confirmação'},
@@ -34,7 +83,15 @@ for(const locale of ['en','pt','he']){
   const sessionCalls=[];
   const initialStatus='The customer must press Send in WhatsApp; this is not a confirmed booking.';
   const status={textContent:initialStatus};
-  const routeSelect={value:''};
+  const routeLinks=Object.fromEntries(['express','explorer','megalithic'].map(route=>[
+    route,{dataset:{portugalTour:route},onClick:null,
+      addEventListener(event,fn){if(event==='click')this.onClick=fn;}}
+  ]));
+  const routeSelect={value:'',dispatchEvent(event){
+    assert.equal(event.type,'change');
+    assert.equal(event.bubbles,true,'card-originated form change must bubble');
+    for(const fn of changeListeners)fn(event);
+  }};
   let dateFocusCount=0;
   const dateInput={min:'',focus(){
     dateFocusCount++;
@@ -59,12 +116,13 @@ for(const locale of ['en','pt','he']){
     isPortugalPage:true,locale,location,page:pathname,
     document:{
       querySelector(selector){return selector==='[data-portugal-request-form]'?form:null},
-      querySelectorAll(){return []}
+      querySelectorAll(selector){return selector==='[data-portugal-tour]'?Object.values(routeLinks):[]}
     },
     FormData:class {constructor(target){assert.equal(target,form)}get(key){return values[key]}},
     portugalDate:()=> '2026-10-09',
     confirmationDateLabel:x=>x,
     guideLanguageLabel:x=>x,
+    Event:class{constructor(type,options={}){this.type=type;this.bubbles=Boolean(options.bubbles)}},
     // Simulate an analytics server that never answers. The manual guest
     // WhatsApp request must still navigate within the SAME submit turn.
     createSession:(stage,metadata)=>{sessionCalls.push({stage,metadata});return new Promise(()=>{});},
@@ -78,6 +136,20 @@ for(const locale of ['en','pt','he']){
   location.href='';
   submitListeners[0]({preventDefault(){}});
   assert.ok(status.textContent!==initialStatus,locale+': missing-field error not announced');
+  assert.ok(routeLinks.explorer.onClick,locale+': route CTA click handler not registered');
+  routeLinks.explorer.onClick();
+  assert.equal(routeSelect.value,'explorer',
+    locale+': tour card must prefill the selected route');
+  assert.equal(status.textContent,initialStatus,
+    locale+': tour card must dispatch form change and clear stale validation');
+  assert.equal(location.href,'',locale+': selecting a tour card must not open WhatsApp');
+  assert.equal(trackEvents.length,0,locale+': selecting a tour card must not track enquiry submission');
+  assert.equal(sessionCalls.length,0,locale+': selecting a tour card must not open a request session');
+  for(const code of ['express','megalithic']){
+    assert.ok(routeLinks[code].onClick,locale+' '+code+': missing CTA handler');
+    routeLinks[code].onClick();
+    assert.equal(routeSelect.value,code,locale+' '+code+': tour CTA route not selected');
+  }
   changeListeners[0]();
   assert.equal(status.textContent,initialStatus,
     locale+': correcting a required select should restore the original sending guidance');

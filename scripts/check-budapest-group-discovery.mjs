@@ -7,6 +7,27 @@ const pages=[
   ['site/hu/budapest/index.html','/hu/budapest/group-tours/','/hu/budapest/corporate-events/'],
 ];
 const failures=[];
+
+// Budapest service landing page locale state: visual selected language must
+// also announce the current page to assistive technology on all 12 pages.
+// Keep the checks in this existing build-invoked service/discovery validator.
+for(const locale of ['', 'he/', 'hu/']){
+  for(const slug of ['with-kids','private-tours','group-tours','corporate-events']){
+    const file='site/'+locale+'budapest/'+slug+'/index.html';
+    const html=fs.readFileSync(file,'utf8');
+    const header=(html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)||[])[0]||'';
+    const links=[...header.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/gi)]
+      .map(match=>match[0]);
+    const active=links.filter(link=>/\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
+    const current=links.filter(link=>/\baria-current="page"/.test(link));
+    const expected='href="/'+locale+'budapest/'+slug+'/"';
+    if(links.length!==3||active.length!==1||current.length!==1||
+      active[0]!==current[0]||!active[0].includes(expected)||
+      (header.match(/\baria-current="page"/g)||[]).length!==1)
+      failures.push(file+': service page needs one active/current own-language link across EN/HE/HU');
+  }
+}
+
 for(const [file,groupHref,corporateHref] of pages){
   const html=fs.readFileSync(file,'utf8');
   const hub=(html.match(/<section class="section intent-hub"[\s\S]*?<\/section>/)||[])[0]||'';
@@ -41,10 +62,19 @@ for(const marker of [
 for(const vid of videos){
   if(!videoJs.includes(vid))failures.push('EZRaider approved video ID missing from player: '+vid);
 }
-// The on-load behavior must actually mount an autoplay, muted iframe without a click.
+// The existing first-party poster must remain until Play is explicitly
+// pressed; choosing a different clip before that cannot contact YouTube.
 try {
   const created=[];
-  const stage={replaceChildren(frame){this.child=frame;}};
+  const previewLabel={textContent:'Video 0'};
+  const play={events:{},
+    addEventListener(type,listener){this.events[type]=listener;},
+    querySelector(selector){return selector==='[data-ez-play-label]'?previewLabel:null;}
+  };
+  const stage={child:play,
+    querySelector(selector){return selector==='[data-ez-play]'?play:null;},
+    replaceChildren(frame){this.child=frame;}
+  };
   const link={href:''};
   const buttons=videos.map((id,i)=>({
     dataset:{ezVideo:id,ezVideoTitle:'Video '+i},
@@ -56,17 +86,40 @@ try {
     querySelector:(selector)=>selector==='[data-ez-video-screen]'?stage:selector==='[data-ez-watch]'?link:null};
   const context={document:{
     querySelector:(selector)=>selector==='[data-ez-video-player]'?player:null,
-    createElement:(tag)=>{const el={tag};created.push(el);return el;}
+    createElement:(tag)=>{
+      const el={tag,focusCount:0,focusedAfterInsertion:false,preventScroll:false,
+        focus(options){
+          this.focusCount++;
+          this.focusedAfterInsertion=stage.child===this;
+          this.preventScroll=options?.preventScroll===true;
+        }};
+      created.push(el);return el;
+    }
   },Set};
   vm.runInNewContext(videoJs,context,{timeout:1000});
-  if(created.length!==1||stage.child?.tag!=='iframe')failures.push('EZRaider player did not autoplay-load the first iframe');
-  if(!stage.child?.src?.includes('embed/'+videos[0]+'?autoplay=1&mute=1&playsinline=1'))
-    failures.push('EZRaider player did not autoplay the first video silently');
-  if(!stage.child?.allow?.includes('autoplay'))failures.push('EZRaider iframe lacks autoplay permission');
+  if(created.length!==0||stage.child!==play)
+    failures.push('EZRaider created a YouTube iframe before explicit Play');
+  if(link.href!=='https://www.youtube.com/watch?v='+videos[0])
+    failures.push('EZRaider initial official video link was lost');
   buttons[1].events.click?.();
-  if(stage.child?.src?.indexOf('embed/'+videos[1])<0||created.length!==2)
-    failures.push('Switching EZRaider clips did not reload muted autoplay');
-} catch(error){failures.push('EZRaider autoplay player runtime failed: '+error.message);}
+  if(created.length!==0||previewLabel.textContent!=='Video 1'||
+    link.href!=='https://www.youtube.com/watch?v='+videos[1])
+    failures.push('EZRaider selection must update preview and link without loading media');
+  play.events.click?.();
+  if(created.length!==1||stage.child?.tag!=='iframe'||
+    !stage.child?.src?.includes('embed/'+videos[1]+'?autoplay=1&mute=1&playsinline=1'))
+    failures.push('Explicit Play did not load the selected muted YouTube clip');
+  if(!stage.child?.allow?.includes('autoplay'))
+    failures.push('Explicitly played EZRaider iframe lacks autoplay permission');
+  if(created[0]?.tabIndex!==0||created[0]?.focusCount!==1||
+    !created[0]?.focusedAfterInsertion||!created[0]?.preventScroll)
+    failures.push('Explicit Play must transfer focus to the new titled iframe after insertion');
+  buttons[0].events.click?.();
+  if(stage.child?.src?.indexOf('embed/'+videos[0])<0||created.length!==2)
+    failures.push('Switching already-playing EZRaider clips did not replace the iframe');
+  if(created[1]?.focusCount!==0)
+    failures.push('Clip switch must retain keyboard focus on the selected video control');
+} catch(error){failures.push('EZRaider opt-in video player runtime failed: '+error.message);}
 
 if(videoJs.includes(disallowedVideo))failures.push('Unlicensed urban riding video remains in allowed player IDs');
 if(videoJs.includes("document.write")||videoJs.includes("eval("))failures.push('EZRaider player uses unsafe dynamic execution');
@@ -95,7 +148,7 @@ for(const {locale,prefix,home} of vehicleFiles){
     failures.push(path+': video must be first and precede the hero text');
   if(html.includes('family-child-seat-closeup.jpg')||html.includes('class="ez-seat-tour-photo"'))
     failures.push(path+': confusing child-on-seat photograph must be removed');
-  if(!html.includes('automatically')&&locale==='en')failures.push(path+': muted autoplay explanation missing');
+  if(!html.includes('Choose a video and press Play to load it.')&&locale==='en')failures.push(path+': explicit Play instructions missing');
   if(hero.includes('<figure class="ez-hero-visual">')||html.includes('class="section ez-video-section"'))
     failures.push(path+': redundant old static photo or standalone video section remains');
   if((html.match(/data-ez-video-player/g)||[]).length!==1)
