@@ -1050,6 +1050,84 @@ body[data-page="/"] .network-support-address{display:inline-block;margin-top:10p
   }
 }
 
+/* Parent homepage hero: two service facts, not duplicate destination buttons. */
+body[data-page="/"] .hero .facts.network-benefits{display:flex;flex-wrap:wrap;gap:12px 22px;margin-block:16px 22px;align-items:center}
+body[data-page="/"] .hero .facts.network-benefits>span{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#dce6eb;font-size:13px;font-weight:750;white-space:normal;cursor:default}
+body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border:1px solid rgba(115,216,162,.45);border-radius:50%;background:rgba(39,137,81,.18);color:#81efac;font-size:12px;line-height:1;font-weight:900}
+
+/* Compact Budapest hero facts on mobile: informational labels, not tappable CTAs.
+   Order: price+rating, training+guide, full-width independent-rider policy. */
+@media(max-width:800px){
+  body[data-page$="/budapest/"] .hero .facts.budapest-hero-facts{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin-block:16px 22px;
+  }
+  body[data-page$="/budapest/"] .hero .facts.budapest-hero-facts>span{
+    min-width:0;
+    display:flex;
+    align-items:center;
+    padding:8px 10px;
+    border:0;
+    border-radius:10px;
+    background:rgba(255,255,255,.045);
+    color:#e3eaee;
+    font-size:12px;
+    line-height:1.35;
+    font-weight:750;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    cursor:default;
+    box-shadow:none;
+  }
+  body[data-page$="/budapest/"] .hero .facts.budapest-hero-facts [data-home-live-price]{
+    min-inline-size:0;
+    justify-content:flex-start;
+    text-align:start;
+    background:rgba(42,145,213,.15);
+  }
+  body[data-page$="/budapest/"] .hero .facts.budapest-hero-facts [data-runtime-rider-policy]{
+    grid-column:1 / -1;
+    min-block-size:0;
+  }
+  /* The 2:3 portrait includes unused sky on narrow screens; use a
+     controlled, lower-biased 5:6 crop without changing the source image. */
+  body[data-page$="/budapest/"] .hero-card[data-media-slot="hero"] .hero-photo-frame{
+    aspect-ratio:5 / 6;
+    min-height:0;
+    overflow:hidden;
+  }
+  body[data-page$="/budapest/"] .hero-card[data-media-slot="hero"] .hero-photo-frame img{
+    display:block;
+    width:100%;
+    height:100%!important;
+    min-height:0!important;
+    aspect-ratio:auto!important;
+    object-fit:cover!important;
+    object-position:center 85%!important;
+  }
+}
+
+/* EZRaider bridge: lightweight existing first-party photo, no animation/player. */
+.ez-vehicle-bridge .ez-vehicle-bridge-thumb{
+  display:block;
+  width:clamp(88px,25%,118px);
+  height:auto;
+  aspect-ratio:4 / 3;
+  object-fit:cover;
+  object-position:center 72%;
+  float:inline-end;
+  margin-inline-start:14px;
+  margin-block-end:8px;
+  border-radius:14px;
+  box-shadow:0 5px 16px rgba(16,42,62,.14);
+}
+.ez-vehicle-bridge .proof>div:first-child::after{content:"";display:table;clear:both}
+@media(max-width:380px){
+  .ez-vehicle-bridge .ez-vehicle-bridge-thumb{width:94px;margin-inline-start:10px}
+}
+
 /* Marvão first-party countryside video: voluntary playback, stable mobile geometry. */
 .portugal-owner-video{background:#fff}
 .portugal-owner-video-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,360px);gap:clamp(20px,4vw,48px);align-items:center}
