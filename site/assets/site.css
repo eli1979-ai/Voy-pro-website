@@ -1109,23 +1109,26 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{display
   }
 }
 
-/* EZRaider bridge: lightweight existing first-party photo, no animation/player. */
-.ez-vehicle-bridge .ez-vehicle-bridge-thumb{
-  display:block;
-  width:clamp(88px,25%,118px);
-  height:auto;
-  aspect-ratio:4 / 3;
-  object-fit:cover;
-  object-position:center 72%;
-  float:inline-end;
-  margin-inline-start:14px;
-  margin-block-end:8px;
-  border-radius:14px;
-  box-shadow:0 5px 16px rgba(16,42,62,.14);
+/* Owner-requested EZRaider mini-product watermark: absolutely positioned,
+   decorative, no intrinsic layout height or external image request. */
+.ez-vehicle-bridge .proof>div:first-child{position:relative;min-width:0;isolation:isolate}
+.ez-vehicle-bridge .ez-vehicle-bridge-art{
+  display:block;position:absolute;inset-inline-end:4px;inset-block-end:4px;
+  width:clamp(110px,32%,190px);height:auto;max-height:154px;
+  object-fit:contain;opacity:.16;pointer-events:none;user-select:none;z-index:0;
 }
-.ez-vehicle-bridge .proof>div:first-child::after{content:"";display:table;clear:both}
-@media(max-width:380px){
-  .ez-vehicle-bridge .ez-vehicle-bridge-thumb{width:94px;margin-inline-start:10px}
+.ez-vehicle-bridge .proof>div:first-child>:not(.ez-vehicle-bridge-art){position:relative;z-index:1}
+@media(max-width:480px){
+  .ez-vehicle-bridge .ez-vehicle-bridge-art{width:135px;max-height:125px;opacity:.12;inset-block-end:10px}
+}
+/* Exact vector check centered in a circular informational icon, independent
+   of Android font metrics/baselines. */
+body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{
+  display:grid;place-items:center;inline-size:20px;block-size:20px;min-inline-size:20px;
+  padding:0;line-height:0;
+}
+body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
+  display:block;inline-size:15px;block-size:15px;flex:none;
 }
 
 /* Marvão first-party countryside video: voluntary playback, stable mobile geometry. */
