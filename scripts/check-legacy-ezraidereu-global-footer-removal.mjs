@@ -24,6 +24,21 @@ import assert from 'node:assert/strict';
 const KINDS=['red-floater-anchor','red-floater-label-handler','fareharbor-cta-rewriter'];
 const provider=/fareharbor(?:\.com|\/|\\\/|%2f)/i;
 function count(source,sub){return sub?source.split(sub).length-1:0;}
+// Keep executable classic JS syntax checking, but never feed inert JSON-LD,
+// import maps or template/script data into vm.Script. Inline ES modules use a
+// different JS grammar: block for manual review instead of falsely approving.
+const CLASSIC_SCRIPT_TYPES=new Set([
+ 'text/javascript','application/javascript','text/ecmascript',
+ 'application/ecmascript','application/x-javascript',
+ 'text/jscript','text/x-javascript'
+]);
+function inlineScriptKind(attrs){
+ const m=attrs.match(/(?:^|\s)type\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+ if(!m)return 'classic';
+ const type=(m[1]??m[2]??m[3]).trim().toLowerCase().split(';',1)[0].trim();
+ if(type==='module')return 'module';
+ return CLASSIC_SCRIPT_TYPES.has(type)?'classic':'inert';
+}
 // Conservative guard against collateral removals. This is NOT a JS semantic
 // analyzer; review of the original private source remains mandatory.
 // Reject unexpected DOM selectors / external effects rather than pretending
@@ -112,6 +127,9 @@ export function inspectGlobalFooterRemoval(before,after,request){
  const scripts=[...after.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
  for(const [,attrs,code] of scripts){
   if(/\bsrc\s*=/i.test(attrs)||!code.trim())continue;
+  const kind=inlineScriptKind(attrs);
+  if(kind==='module'){add('AFTER_INLINE_MODULE_REQUIRES_MANUAL_REVIEW');continue;}
+  if(kind==='inert')continue;
   try{new Script(code)}catch{add('AFTER_INLINE_SCRIPT_SYNTAX_ERROR');break;}
  }
  return {status:findings.length?'blocked':'candidate-diff-structure-only',
@@ -188,7 +206,22 @@ function selfTest(){
    'let = ;document.querySelector(".hero__cta")');
  const invalidRemoval=clone(request);invalidRemoval.removals[2].text=invalid;
  bad(before.replace(rewrite,invalid),after,invalidRemoval,'REMOVED_HANDLER_SYNTAX_ERROR');
- console.log('PASS: 20 private-global-footer guard regression cases; no live writes');
+ // JSON-LD and importmaps are data, not executable classic scripts. They
+ // must survive exactly unchanged without triggering vm.Script false failures.
+ const ld='<script type="application/ld+json">{"@context":"https://schema.org"}</script>';
+ const importMap='<script type="importmap">{"imports":{"x":"/x.js"}}</script>';
+ const inert='<script type="text/plain">this is not JavaScript, let = ;</script>';
+ const preserved=ld+importMap+inert;
+ assert.equal(inspectGlobalFooterRemoval(before+preserved,after+preserved,request).status,'candidate-diff-structure-only');
+ const typedJs='<script type="text/javascript">let = ;</script>';
+ bad(before+typedJs,after+typedJs,request,'AFTER_INLINE_SCRIPT_SYNTAX_ERROR');
+ const typedJsQuote="<script type='application/javascript'>let = ;</script>";
+ bad(before+typedJsQuote,after+typedJsQuote,request,'AFTER_INLINE_SCRIPT_SYNTAX_ERROR');
+ const moduleCode='<script type="module">import item from "./module.js";</script>';
+ bad(before+moduleCode,after+moduleCode,request,'AFTER_INLINE_MODULE_REQUIRES_MANUAL_REVIEW');
+ const sneakyData='<script data-type="application/ld+json">let = ;</script>';
+ bad(before+sneakyData,after+sneakyData,request,'AFTER_INLINE_SCRIPT_SYNTAX_ERROR');
+ console.log('PASS: 26 private-global-footer guard regression assertions; no live writes');
 }
 if(process.argv.includes('--self-test'))selfTest();
 else{
