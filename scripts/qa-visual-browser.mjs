@@ -1143,6 +1143,86 @@ try{
     }finally{await page.close();}
   }
 
+
+  // Owner-supplied first-party media pilot: verify real, lazy H.264 playback.
+  // All network traffic is restricted to this temporary built-site fixture.
+  for(const [lang,path,viewport] of [
+    ['en','/portugal/',{width:1365,height:900}],
+    ['pt','/pt/portugal/',{width:390,height:844}],
+    ['he','/he/portugal/',{width:320,height:700}]
+  ]){
+    const name='marvao-first-party-video-'+lang;
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[],videoRequests=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    page.on('request',request=>{
+      try{
+        const u=new URL(request.url());
+        if(u.pathname==='/assets/media/marvao/marvao-countryside-ride-15s.mp4')
+          videoRequests.push(u.pathname);
+      }catch{}
+    });
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' local page loads');
+      const video=page.locator('.portugal-owner-video video');
+      const count=await video.count();
+      check(count===1,name+' exactly one route-neutral countryside video');
+      if(count===1){
+        const state=await video.evaluate(node=>({
+          preload:node.preload,autoplay:node.autoplay,controls:node.controls,
+          playsInline:node.playsInline,paused:node.paused,
+          src:node.querySelector('source')?.getAttribute('src'),
+          poster:node.getAttribute('poster'),
+          describedBy:node.getAttribute('aria-describedby'),
+          hasDescription:!!document.getElementById(node.getAttribute('aria-describedby')||''),
+          overflow:document.documentElement.scrollWidth-window.innerWidth
+        }));
+        check(state.preload==='none'&&!state.autoplay&&state.paused&&
+          state.controls&&state.playsInline,name+' playback requires an explicit action');
+        check(state.src==='/assets/media/marvao/marvao-countryside-ride-15s.mp4'&&
+          state.poster==='/assets/media/marvao/marvao-countryside-poster.webp',
+          name+' uses only first-party optimized assets');
+        check(state.hasDescription,name+' linked accessible video description');
+        check(state.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px');
+        const poster=await page.request.get(base+state.poster);
+        check(poster.status()===200&&
+          (poster.headers()['content-type']||'').includes('image/webp'),
+          name+' local WebP poster loads with correct format');
+        check(videoRequests.length===0,name+' no video bytes requested before play');
+        // Manual gesture simulated in offline Chrome; never opens external URLs.
+        const started=await video.evaluate(async node=>{
+          try{await node.play();return true;}
+          catch{return false;}
+        });
+        check(started,name+' native H.264 play() succeeds');
+        if(started){
+          await page.waitForFunction(()=>{
+            const v=document.querySelector('.portugal-owner-video video');
+            return !!v&&v.currentTime>0.05&&!v.paused&&!v.error;
+          },{timeout:12000});
+          const playback=await video.evaluate(v=>({
+            time:v.currentTime,duration:v.duration,error:v.error?.message||'',
+            width:v.videoWidth,height:v.videoHeight
+          }));
+          check(playback.time>0.05&&playback.duration>14&&playback.duration<16&&
+            playback.width===540&&playback.height===960&&!playback.error,
+            name+' actual frames advance with expected silent 15s portrait video');
+          await video.evaluate(v=>v.pause());
+        }
+        check(videoRequests.length>=1,name+' video fetch begins only after play');
+      }
+      check(errors.length===0,name+' no uncaught browser errors');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' real video playback '+String(error).slice(0,700));
+    }finally{await page.close();}
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');
