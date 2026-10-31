@@ -352,4 +352,62 @@ for(const lang of ['','he/','pt/']){
 }
 console.log('EZRaider image treatment verified for '+referralCount+' referrals ('+fullBridgeCount+' bridges, '+compactCount+' compact links).');
 
+
+// Page-wide vehicle-guide uniformity contract, 31 Oct 2026.
+// Only root/network, Budapest/Marvão landings and family pages use the
+// photo-backed wide bridge. Every other Budapest page uses a single compact
+// guide link in the hero, including Margaret Island, in all three locales.
+// Preserve origin-specific from/return_to and never link Marvão as Budapest.
+const expectedWide=new Set([
+ 'site/index.html',
+ 'site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html',
+ 'site/portugal/index.html','site/he/portugal/index.html','site/pt/portugal/index.html',
+ 'site/budapest/with-kids/index.html',
+ 'site/he/budapest/with-kids/index.html',
+ 'site/hu/budapest/with-kids/index.html'
+]);
+function allIndexPages(dir){
+ return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>
+  e.isDirectory()?allIndexPages(dir+'/'+e.name):e.name==='index.html'?[dir+'/'+e.name]:[]);
+}
+const expectedBudapestPages=['site/budapest','site/he/budapest','site/hu/budapest'].flatMap(allIndexPages);
+const expectedVehiclePages=[...expectedWide].filter(f=>!f.includes('/budapest/')).concat(expectedBudapestPages);
+assert.equal(expectedVehiclePages.length,46,'Unexpected number of active destination pages: check newly added routes');
+let wideRefs=0,compactRefs=0;
+for(const file of expectedVehiclePages){
+ const html=fs.readFileSync(file,'utf8');
+ const origin='/'+file.slice(5).replace(/index[.]html$/,'');
+ const locale=file.startsWith('site/he/')?'he/':file.startsWith('site/hu/')?'hu/':file.startsWith('site/pt/')?'pt/':'';
+ const from=file.startsWith('site/pt/portugal/')?'marvao-pt':
+   file.includes('/portugal/')?'marvao':file==='site/index.html'?'home':'budapest';
+ const expectedHref='/'+locale+'ezraider/?from='+from+'&amp;return_to='+encodeURIComponent(origin);
+ const wide=[...html.matchAll(/<section\b[^>]*\bez-vehicle-bridge\b[^>]*>[\s\S]*?<\/section>/g)];
+ const small=[...html.matchAll(/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g)];
+ const allLinks=[...html.matchAll(/href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"/g)];
+ assert.equal(allLinks.length,1,file+': must have exactly one route-specific EZRaider referral');
+ assert.ok(html.includes('href="'+expectedHref+'"'),file+': EZRaider referral must return to originating page');
+ if(expectedWide.has(file)){
+   assert.equal(wide.length,1,file+': needs the canonical full-width vehicle guide');
+   assert.equal(small.length,0,file+': wide page must not have an extra mini CTA');
+   assert.ok(wide[0][0].includes('class="ez-vehicle-bridge-art ez-vehicle-bridge-product"') &&
+     wide[0][0].includes('src="'+referralImage+'"'),file+': canonical full referral image missing');
+   assert.ok(wide[0][0].includes('child-seat')||wide[0][0].includes('כיסאות ילדים')||
+     wide[0][0].includes('gyermekülés')||wide[0][0].includes('cadeiras para crianças'),
+     file+': canonical wide guide must mention child seats');
+   assert.ok(!/local passenger rules may differ|regras para passageiros são confirmad|האפשרויות לנוסעים כפופים/.test(wide[0][0]),
+     file+': obsolete Marvão passenger differences remain in guide card');
+   wideRefs++;
+ }else{
+   assert.equal(wide.length,0,file+': tour/detail must not include a wide referral');
+   assert.equal(small.length,1,file+': tour/detail needs one mini referral in hero');
+   const firstHero=html.match(/<section class="hero">[\s\S]*?<\/section>/)?.[0]||'';
+   assert.ok(firstHero.includes(small[0][0])&&small[0][0].includes('data-ez-tour-guide') &&
+     small[0][0].includes('href="'+expectedHref+'"'),file+': mini guide missing from hero/incorrect origin');
+   compactRefs++;
+ }
+}
+assert.equal(wideRefs,10,'Expected exactly ten wide referrals across landings and families');
+assert.equal(compactRefs,36,'Expected exactly 36 mini guide links across Budapest details');
+console.log('Uniform EZRaider referrals OK: '+wideRefs+' wide, '+compactRefs+' compact, '+expectedVehiclePages.length+' pages.');
+
 console.log('Network EZRaider context and legacy redirect QA OK.');
