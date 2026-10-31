@@ -1036,7 +1036,7 @@ try{
   for(const cfg of [
     {code:'he',heading:'העמוד לא נמצא.',budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he',dir:'rtl'},
     {code:'hu',heading:'Ez az oldal nem található.',budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu',dir:'ltr'},
-    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/',dir:'ltr'}
+    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt',dir:'ltr'}
   ]){
     const name='404-locale-'+cfg.code;
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});
@@ -1102,7 +1102,8 @@ try{
   for(const [lang,path,expected] of [
     ['en','/manage/','Booking details cannot be opened from this link.'],
     ['he','/manage/?lang=he','לא ניתן לפתוח את פרטי ההזמנה מהקישור הזה.'],
-    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.']
+    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.'],
+    ['pt','/manage/?lang=pt','Não é possível abrir os detalhes da reserva a partir deste link.']
   ]){
     const name='manage-tokenless-'+lang;
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
@@ -1130,9 +1131,11 @@ try{
         };
       });
       check(state.lang===lang,name+' locale matches requested language');
+      if(lang==='pt')check(await page.locator('[data-manage-home]').getAttribute('href')==='/',name+' global brand link remains network homepage');
       check(state.text.includes(expected),name+' explains private Manage link or support');
       check(state.support==='mailto:support@voy-pro.com',name+' support email is clickable');
       check(state.inputs===0,name+' does not offer an unauthenticated lookup form');
+      if(lang==='pt'){check(await page.locator('footer a[href="/manage/?lang=pt"]').count()===1,name+' local service navigation points to Portuguese help');check(await page.locator('footer a[href="/pt/portugal/"]').count()>=1,name+' Marvão Portuguese link remains reachable in footer');}
       check(state.overflow<=2,name+' no horizontal overflow at 390px');
       check(state.dir===(lang==='he'?'rtl':'ltr'),name+' local direction is preserved');
       check(errors.length===0,name+' no uncaught browser JavaScript errors');
