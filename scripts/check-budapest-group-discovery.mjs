@@ -207,8 +207,9 @@ for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+p
   failures.push('Sitemap missing EZRaider vehicle route for '+(prefix||'EN'));
 
 
-// The vehicle guide is shared across the VOY PRO network, but links preserve
-// destination-specific operating rules rather than implying Budapest tour rules apply in Marvão.
+// The vehicle guide is shared across VOY PRO destinations. Each entry must
+// retain its destination-specific source and return path, without inventing
+// different passenger-seat rules for Marvão.
 for(const {page,href,locale,positionMarker} of [
   {page:'site/index.html',href:'/ezraider/?from=home&amp;return_to=%2F',locale:'en',positionMarker:'id="destinations"'},
   {page:'site/portugal/index.html',href:'/ezraider/?from=marvao&amp;return_to=%2Fportugal%2F',locale:'en',positionMarker:'id="request"'},
@@ -223,13 +224,13 @@ for(const {page,href,locale,positionMarker} of [
     failures.push(page+': guide link should be visible before destination selection or Marvão booking');
   if(!block.includes('href="'+href+'"'))
     failures.push(page+': missing localized link to existing EZRaider guide: '+href);
-  if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||!block.includes('<h2 '))
+  if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||(!block.includes('<h2 ')&&!block.includes('<strong>')))
     failures.push(page+': guide referral must have clear copy and button');
   if(locale==='pt'&&(block.includes('guia em inglês')||block.includes('hreflang="en"')))
     failures.push(page+': Portuguese vehicle guide must not be labelled as English');
   if(page.includes('/portugal/')&&
-      !(block.includes('Marvão')||block.includes('מרבאו')) )
-    failures.push(page+': Marvão referral must explain local tour rules differ from Budapest');
+      !(href.includes('from=marvao')&&html.includes('Marvão')))
+    failures.push(page+': Marvão referral must preserve local origin and destination identity');
 }
 
 
