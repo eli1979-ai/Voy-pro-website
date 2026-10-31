@@ -1188,3 +1188,42 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
 @media(max-width:390px){
   .tour-vehicle-guide-link a::before{width:36px;height:36px;flex-basis:36px}
 }
+
+
+/* Mobile screenshot-based landing-page section rhythm, 31 Oct 2026.
+   Reduce stacked blank margins on the homepage, Budapest and Marvão landing
+   pages only. Booking forms, payment controls, tour detail pages, legal pages,
+   desktop layout and sticky CTA clearance keep their existing spacing. */
+@media(max-width:800px){
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section:not(.booking){
+    padding-block:24px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section h2{
+    margin-block:4px 10px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-grid{
+    gap:10px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-card{
+    padding:16px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-card h3{
+    margin:0 0 8px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-card p{
+    margin:0;
+    line-height:1.55;
+  }
+  body[data-page$="/budapest/"] .intent-hub-grid{gap:10px}
+  body[data-page$="/budapest/"] .intent-hub-card{
+    padding:15px;
+    min-height:0;
+  }
+  body[data-page$="/budapest/"] .intent-hub-card p{
+    margin:0 0 10px;
+    line-height:1.5;
+  }
+  body[data-page$="/budapest/"] .intent-hub .intent-bridge-head{
+    margin-bottom:14px;
+  }
+}
