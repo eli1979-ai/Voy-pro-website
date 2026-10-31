@@ -134,6 +134,20 @@ for(const path of ['site/budapest/index.html','site/he/budapest/index.html',
   if(!landing.includes('class="section '))failures.push(path+': landing layout missing');
 }
 
+
+// Mobile page density regressions: all Budapest/Marvão detail pages share
+// the compact visual rhythm, while booking fields remain untouched.
+const density=css.slice(css.indexOf('/* 31 Oct screenshot follow-up: tighten mobile spacing on every customer-facing tour page.'));
+for(const prefix of ['[data-page="/"','[data-page^="/budapest/"','[data-page^="/he/budapest/"',
+'[data-page^="/hu/budapest/"','[data-page^="/portugal/"','[data-page^="/he/portugal/"','[data-page^="/pt/portugal/"']){
+ requireText(density,prefix,'Missing scoped mobile density for '+prefix);
+}
+requireText(density,'@media(max-width:800px)','Mobile density must be breakpoint-scoped');
+requireText(density,'.section:not(.booking){padding-block:20px}','Section spacing must be 20px on mobile');
+requireText(density,'.section.booking{padding-block:24px}','Booking section exterior spacing must remain readable');
+requireText(density,'.section .content-card{padding:16px}','Tour detail cards must be compact');
+requireText(density,'.section .proof{gap:12px;padding:18px}','Promo bridges must remain compact');
+
 if(failures.length){
   console.error('VOY PRO root-brand guard failed.');
   for(const failure of failures)console.error('- '+failure);

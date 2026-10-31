@@ -1227,3 +1227,16 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
     margin-bottom:14px;
   }
 }
+
+/* 31 Oct screenshot follow-up: tighten mobile spacing on every customer-facing tour page.
+   Keep legal, EZRaider reference, manage-booking and checkout internals intact. */
+@media(max-width:800px){
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section:not(.booking){padding-block:20px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section.booking{padding-block:24px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-grid{gap:10px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-card{padding:16px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-card h3{margin:0 0 8px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-card p{margin:0;line-height:1.55}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section h2{margin-block:4px 10px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .proof{gap:12px;padding:18px}
+}
