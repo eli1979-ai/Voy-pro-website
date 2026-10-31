@@ -327,11 +327,11 @@ function auditVehicleReferrals(dir){
  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
   const path=dir+'/'+entry.name;
   if(entry.isDirectory()){auditVehicleReferrals(path);continue;}
-  if(entry.name!=='index.html'||/\\/(?:he\\/|hu\\/|pt\\/)?ezraider\\//.test(path))continue;
+  if(entry.name!=='index.html'||/\/(?:he\/|hu\/|pt\/)?ezraider\//.test(path))continue;
   const html=fs.readFileSync(path,'utf8');
-  const linkPattern=/<a\\b[^>]*href="\\/(?:he\\/|hu\\/|pt\\/)?ezraider\\/\\?[^\"]*"[^>]*>/g;
-  const sectionPattern=/<section\\b[^>]*class="[^"]*\\bez-vehicle-bridge\\b[^"]*"[^>]*>[\\s\\S]*?<\\/section>/g;
-  const compactPattern=/<p\\b[^>]*class="[^"]*\\btour-vehicle-guide-link\\b[^"]*"[^>]*>[\\s\\S]*?<\\/p>/g;
+  const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"[^>]*>/g;
+  const sectionPattern=/<section\b[^>]*class="[^"]*\bez-vehicle-bridge\b[^"]*"[^>]*>[\s\S]*?<\/section>/g;
+  const compactPattern=/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g;
   const bridges=[...html.matchAll(sectionPattern)].map(m=>m[0]);
   const compact=[...html.matchAll(compactPattern)].map(m=>m[0]);
   const all=[...html.matchAll(linkPattern)].length;
