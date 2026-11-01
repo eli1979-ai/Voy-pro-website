@@ -1159,37 +1159,16 @@ try{
       check(reduced.paused&&Math.abs(reducedAfter.left-reduced.left)<=2,
         name+' OS reduced-motion preference stops automatic movement');
       check(await pause.isVisible(),name+' reduced-motion still offers a visible manual control');
-      // Two owner-approved Budapest image candidates stay separate from the
-      // six pre-existing gallery photos and are credited in all three locales.
-      const owned=page.locator('.photo-gallery-owned .photo-gallery-owned-card');
-      check(await owned.count()===2,name+' two credited original Budapest photo cards');
+      // Until the next curated media batch, keep only the six original photos.
+      check(await page.locator('.photo-gallery-owned').count()===0,
+        name+' temporary owner photo cards absent');
       check(await page.locator('.photo-gallery-grid .photo-tile').count()===6,
-        name+' six existing Budapest gallery pictures remain');
+        name+' six original Budapest gallery photos preserved');
       const gallerySources=await page.locator('.photo-gallery-grid .photo-tile img')
         .evaluateAll(nodes=>nodes.map(node=>node.getAttribute('src')));
       check(gallerySources.length===6&&gallerySources.every(src=>
         /^\/assets\/images\/budapest\/img\d+\.jpg$/.test(src)),
-        name+' all six original Budapest gallery photos are first-party local assets');
-      if(await owned.count()===2){
-        const imgs=owned.locator('img');
-        for(let ix=0;ix<2;ix++){
-          // Trigger native lazy loading before waiting for decode; offscreen
-          // loading=lazy images may otherwise never start a network fetch.
-          await imgs.nth(ix).scrollIntoViewIfNeeded({timeout:5000});
-          await imgs.nth(ix).evaluate(async img=>{await img.decode();});
-        }
-        const photos=await owned.evaluateAll(cards=>cards.map(card=>({
-          src:card.querySelector('img')?.getAttribute('src'),
-          w:card.querySelector('img')?.naturalWidth,h:card.querySelector('img')?.naturalHeight,
-          alt:card.querySelector('img')?.alt,credit:card.querySelector('figcaption small')?.textContent
-        })));
-        check(photos[0].src==='/assets/images/budapest/budapest-owner-parliament-900.webp'&&
-          photos[0].w===900&&photos[0].h===1200&&photos[1].src==='/assets/images/budapest/budapest-owner-park-1200.webp'&&
-          photos[1].w===1200&&photos[1].h===900,
-          name+' decoded original Parliament and park WebP images match approved derivatives');
-        check(photos.every(photo=>photo.alt?.length>=22&&photo.credit?.includes('VOY PRO')),
-          name+' owner photo alt and VOY PRO credit present in this locale');
-      }
+        name+' original Budapest images remain same-origin');
       check(errors.length===0,name+' no browser script errors');
       await page.screenshot({path:join(out,name+'.png'),fullPage:false});
       results.push('SCREENSHOT: '+name+'.png | 1365x900 | normal motion then OS reduced motion');
@@ -1249,24 +1228,16 @@ try{
   }
 
 
-  // Owner-supplied first-party media pilot: verify real, lazy H.264 playback.
-  // All network traffic is restricted to this temporary built-site fixture.
+  // Media rollback: original Marvão partner gallery and booking CTAs remain.
   for(const [lang,path,viewport] of [
     ['en','/portugal/',{width:1365,height:900}],
     ['pt','/pt/portugal/',{width:390,height:844}],
     ['he','/he/portugal/',{width:320,height:700}]
   ]){
-    const name='marvao-first-party-video-'+lang;
+    const name='marvao-media-rollback-'+lang;
     const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
-    const errors=[],videoRequests=[];
+    const errors=[];
     page.on('pageerror',error=>errors.push(String(error)));
-    page.on('request',request=>{
-      try{
-        const u=new URL(request.url());
-        if(u.pathname==='/assets/media/marvao/marvao-countryside-ride-15s.mp4')
-          videoRequests.push(u.pathname);
-      }catch{}
-    });
     await page.route('**/*',route=>{
       try{return new URL(route.request().url()).origin===base
         ?route.continue():route.abort();}
@@ -1274,132 +1245,22 @@ try{
     });
     try{
       const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
-      check(response?.status()===200,name+' local page loads');
-      // #727 owner-authorized photo must decode at native 4:3, remain
-      // separate from four Pombais route-neutral gallery images, and carry
-      // its own VOY PRO credit in every locale without an external request.
-      const ownerPhoto=page.locator('figure.portugal-owner-photo:not(.portugal-owner-photo--trail)');
-      check(await ownerPhoto.count()===1,name+' exactly one separate owner photo feature');
+      check(response?.status()===200,name+' page HTTP 200');
       check(await page.locator('.portugal-gallery-grid figure').count()===4,
-        name+' original four gallery photos preserved');
-      if(await ownerPhoto.count()===1){
-        const image=ownerPhoto.locator('img');
-        await image.scrollIntoViewIfNeeded();
-        await image.evaluate(async node=>{await node.decode();});
-        const photo=await image.evaluate(node=>({
-          src:node.getAttribute('src'),alt:node.alt,width:node.naturalWidth,
-          height:node.naturalHeight,loaded:node.complete,
-          viewportOverflow:document.documentElement.scrollWidth-window.innerWidth,
-          rendered:node.getBoundingClientRect().width,
-          title:node.closest('figure')?.querySelector('figcaption strong')?.textContent,
-          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent
-        }));
-        check(photo.src==='/assets/images/portugal/marvao-streamside-fleet-1200.webp'&&
-          photo.loaded&&photo.width===1200&&photo.height===900&&photo.rendered>150,
-          name+' first-party 1200x900 WebP decodes and displays');
-        check(photo.alt?.length>30&&photo.title?.length>10&&
-          photo.credit?.includes('VOY PRO')&&photo.viewportOverflow<=2,
-          name+' localized alt/title, independent owner credit, no overflow');
-        await page.screenshot({path:join(out,name+'-owner-photo.png'),
-          fullPage:false,animations:'disabled'});
-      }
-      const trailPhoto=page.locator('figure.portugal-owner-photo--trail');
-      check(await trailPhoto.count()===1,name+' one additional approved Marvão trail photo');
-      if(await trailPhoto.count()===1){
-        const trailImage=trailPhoto.locator('img');
-        await trailImage.scrollIntoViewIfNeeded();
-        await trailImage.evaluate(async node=>{await node.decode();});
-        const trail=await trailImage.evaluate(node=>({src:node.getAttribute('src'),
-          width:node.naturalWidth,height:node.naturalHeight,alt:node.alt,
-          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent,
-          overflow:document.documentElement.scrollWidth-innerWidth}));
-        check(trail.src==='/assets/images/portugal/marvao-owner-trail-900.webp'&&
-          trail.width===900&&trail.height===1200&&trail.alt.length>=25&&
-          trail.credit?.includes('VOY PRO')&&trail.overflow<=2,
-          name+' owner-approved portrait trail WebP decodes with own credit, no overflow');
-      }
-      const video=page.locator('.portugal-owner-video video');
-      const count=await video.count();
-      check(count===1,name+' exactly one route-neutral countryside video');
-      // #727 / #753: exercise the *new* localized hero jump, not just its
-      // static HTML. Navigation must never start streaming the MP4.
-      const jump=page.locator('.portugal-hero-video-link a[href="#marvao-riding-video"]');
-      const target=page.locator('section.portugal-owner-video#marvao-riding-video');
-      const jumpCount=await jump.count(),targetCount=await target.count();
-      check(jumpCount===1&&targetCount===1,name+' one accessible hero-to-video anchor and target');
+        name+' original four partner photos retained');
+      check(await page.locator('.portugal-owner-photo').count()===0,
+        name+' temporary owner-photo features removed');
+      check(await page.locator('.portugal-owner-video').count()===0&&
+        await page.locator('.portugal-hero-video-link').count()===0,
+        name+' former video and video CTA removed');
       check(await page.locator('.portugal-hero .hero-actions a[href="#tours"]').count()===1&&
         await page.locator('.portugal-hero .hero-actions a[href="#request"]').count()===1,
-        name+' original tour and request CTAs preserved');
-      if(jumpCount===1&&targetCount===1){
-        const essential=page.locator('[data-consent-essential]');
-        if(await essential.isVisible().catch(()=>false))await essential.click();
-        await jump.focus();
-        check(await jump.evaluate(el=>el===document.activeElement),
-          name+' video link is keyboard focusable');
-        await page.keyboard.press('Enter');
-        await page.waitForFunction(()=>location.hash==='#marvao-riding-video',
-          undefined,{timeout:4000});
-        await page.waitForTimeout(120);
-        const landed=await target.evaluate(el=>({
-          top:el.getBoundingClientRect().top,
-          scrollY:window.scrollY,
-          marginTop:parseFloat(getComputedStyle(el).scrollMarginTop)||0
-        }));
-        check(landed.scrollY>200&&landed.top>=-3&&landed.top<viewport.height&&
-          landed.marginTop>=80,
-          name+' keyboard jump reveals full video section below sticky header');
-        check(videoRequests.length===0&&await video.evaluate(el=>el.paused),
-          name+' hero jump never auto-fetches or plays video');
-        await page.screenshot({path:join(out,name+'-hero-jump.png'),
-          fullPage:false,animations:'disabled'});
-      }
-      if(count===1){
-        const state=await video.evaluate(node=>({
-          preload:node.preload,autoplay:node.autoplay,controls:node.controls,
-          playsInline:node.playsInline,paused:node.paused,
-          src:node.querySelector('source')?.getAttribute('src'),
-          poster:node.getAttribute('poster'),
-          describedBy:node.getAttribute('aria-describedby'),
-          hasDescription:!!document.getElementById(node.getAttribute('aria-describedby')||''),
-          overflow:document.documentElement.scrollWidth-window.innerWidth
-        }));
-        check(state.preload==='none'&&!state.autoplay&&state.paused&&
-          state.controls&&state.playsInline,name+' playback requires an explicit action');
-        check(state.src==='/assets/media/marvao/marvao-countryside-ride-15s.mp4'&&
-          state.poster==='/assets/media/marvao/marvao-countryside-poster.webp',
-          name+' uses only first-party optimized assets');
-        check(state.hasDescription,name+' linked accessible video description');
-        check(state.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px');
-        const poster=await page.request.get(base+state.poster);
-        check(poster.status()===200&&
-          (poster.headers()['content-type']||'').includes('image/webp'),
-          name+' local WebP poster loads with correct format');
-        check(videoRequests.length===0,name+' no video bytes requested before play');
-        // Manual gesture simulated in offline Chrome; never opens external URLs.
-        const started=await video.evaluate(async node=>{
-          try{await node.play();return true;}
-          catch{return false;}
-        });
-        check(started,name+' native H.264 play() succeeds');
-        if(started){
-          await page.waitForFunction(()=>{
-            const v=document.querySelector('.portugal-owner-video video');
-            return !!v&&v.currentTime>0.05&&!v.paused&&!v.error;
-          },undefined,{timeout:12000});
-          const playback=await video.evaluate(v=>({
-            time:v.currentTime,duration:v.duration,error:v.error?.message||'',
-            width:v.videoWidth,height:v.videoHeight
-          }));
-          check(playback.time>0.05&&playback.duration>14&&playback.duration<16&&
-            playback.width===540&&playback.height===960&&!playback.error,
-            name+' actual frames advance with expected silent 15s portrait video');
-          await video.evaluate(v=>v.pause());
-        }
-        check(videoRequests.length>=1,name+' video fetch begins only after play');
-      }
-      check(errors.length===0,name+' no uncaught browser errors');
+        name+' tour and availability CTAs preserved');
+      check(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=2,
+        name+' no horizontal overflow');
+      check(errors.length===0,name+' no page errors');
     }catch(error){
-      failures++;results.push('FAIL: '+name+' real video playback '+String(error).slice(0,700));
+      failures++;results.push('FAIL: '+name+' '+String(error).slice(0,700));
     }finally{await page.close();}
   }
 
