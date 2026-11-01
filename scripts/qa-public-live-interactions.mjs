@@ -45,7 +45,7 @@ function firstPartyAsset(req,u){
       u.pathname==='/assets/budapest-approved-reviews.json')
   );
 }
-async function launch(path,{width=390,fixture=false,reducedMotion='reduce'}={}){
+async function launch(path,{width=390,fixture=false,reducedMotion='reduce',deferConsent=false}={}){
   check(allowedDocuments.has(path),'Test attempted unapproved public route: '+path);
   const context=await browser.newContext({
     viewport:{width,height:844},deviceScaleFactor:1,reducedMotion,
@@ -80,7 +80,7 @@ async function launch(path,{width=390,fixture=false,reducedMotion='reduce'}={}){
   const response=await page.goto(ORIGIN+path,{waitUntil:'domcontentloaded',timeout:20000});
   check(response?.status()===200,'Live '+path+' HTTP status != 200');
   const consent=page.locator('[data-consent-essential]');
-  if(await consent.isVisible().catch(()=>false))await consent.click({timeout:2200});
+  if(!deferConsent&&await consent.isVisible().catch(()=>false))await consent.click({timeout:2200});
   return {page,context,outbounds};
 }
 async function scenario(name,path,opts,verify){
@@ -105,6 +105,48 @@ async function scenario(name,path,opts,verify){
     await session?.context.close().catch(()=>{});
   }
 }
+// Read-only #747 diagnostic: show the outbound third-party request that the
+// current owner-requested autoplay initiates before a visitor chooses consent.
+// The harness aborts that request. No video response, cookie behavior or legal
+// compliance is inferred from this test; an approved consent design can replace it.
+await scenario('EZRaider pre-consent YouTube outbound audit','/ezraider/',
+  {width:390,deferConsent:true},async(page,ok,result,outbounds)=>{
+    const frame=page.locator('[data-ez-video-screen] iframe');
+    await frame.waitFor({state:'attached',timeout:9000});
+    const state=await frame.evaluate(el=>({
+      src:el.src,policy:el.referrerPolicy,loading:el.loading
+    }));
+    const url=new URL(state.src);
+    ok(url.origin==='https://www.youtube-nocookie.com'&&
+      url.pathname==='/embed/1i2IQSShkQ8',
+      'only the approved privacy-enhanced manufacturer iframe is selected');
+    ok(url.searchParams.get('autoplay')==='1'&&
+      url.searchParams.get('mute')==='1'&&
+      url.searchParams.get('playsinline')==='1',
+      'existing autoplay remains muted and mobile-inline');
+    ok(state.policy==='strict-origin-when-cross-origin',
+      'current YouTube-compatible referrer policy preserved');
+    ok(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===null,
+      'no visitor consent choice stored when video element appears');
+    await page.waitForTimeout(300);
+    const requestSeen=outbounds.some(req=>
+      req.method==='GET'&&req.host==='www.youtube-nocookie.com'&&
+      req.path==='/embed/1i2IQSShkQ8');
+    ok(requestSeen,'pre-choice third-party YouTube GET attempted and blocked by QA');
+    ok(!outbounds.some(req=>req.method!=='GET'),
+      'no third-party POST/write attempted');
+    result.notes.push('OBSERVED RISK: YouTube GET attempted before any consent choice; blocked by this QA harness. This is not a vendor-storage or legal-compliance test.');
+    const essential=page.locator('[data-consent-essential]');
+    await essential.waitFor({state:'visible',timeout:5000});
+    await essential.click();
+    const chosen=await page.evaluate(()=>{
+      const c=JSON.parse(localStorage.getItem('voy_consent_v1')||'null');
+      return c&&c.decided===true&&c.analytics===false&&c.marketing===false;
+    });
+    ok(chosen,'essential-only choice remains possible after blocked vendor request');
+    ok(await frame.count()===1,'existing player structure remains intact');
+  });
+
 // Check the *deployed* consent UI after a visitor has explicitly chosen
 // essential-only storage. Closing reopened settings must not change consent
 // or leak events to analytics; outbound writes remain blocked by launch().
