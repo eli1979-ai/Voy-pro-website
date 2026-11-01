@@ -1282,3 +1282,11 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
     left:calc(18px + env(safe-area-inset-left,0px));
   }
 }
+
+/* Marvão owned footage: an accessible, low-priority hero jump link.
+   Native media remains opt-in with no fetch before pressing Play. */
+.portugal-hero .portugal-hero-video-link{margin:13px 0 0;font-size:14px;line-height:1.5}
+.portugal-hero .portugal-hero-video-link a{color:#d4f5fd;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+.portugal-hero .portugal-hero-video-link a:hover{color:#fff}
+.portugal-hero .portugal-hero-video-link a:focus-visible{outline:3px solid #90e9f4;outline-offset:4px;border-radius:2px}
+.portugal-owner-video#marvao-riding-video{scroll-margin-top:96px}
