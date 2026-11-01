@@ -30,7 +30,7 @@ const recoveryCases=[
   {path:'/hu/qa-not-found-visual-20261030/',lang:'hu',heading:'Ez az oldal nem található.',direction:'ltr',
     budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu'},
   {path:'/pt/qa-not-found-visual-20261030/',lang:'pt',heading:'Esta página não existe.',direction:'ltr',
-    budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/'}
+    budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt'}
 ];
 const tokenlessManageCases=[
   {path:'/manage/',search:'',lang:'en',copy:'Booking details cannot be opened from this link.',direction:'ltr'},
