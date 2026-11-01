@@ -10,8 +10,6 @@ import {chromium} from 'playwright';
 const ORIGIN='https://voy-pro.com';
 const HOSTS=new Set(['voy-pro.com','www.voy-pro.com']);
 const OUTPUT=resolve('visual-qa-output/public-live');
-const MARVAO_POSTER='/assets/media/marvao/marvao-countryside-poster.webp';
-const MARVAO_VIDEO='/assets/media/marvao/marvao-countryside-ride-15s.mp4';
 
 const xml=await readFile('site/sitemap.xml','utf8');
 const urls=[...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map(match=>match[1]);
@@ -83,10 +81,8 @@ function allowedRequest(request){
       (url.pathname==='/manage/'&&allowedManageQueries.has(url.search))
     );
   }
-  // The one approved first-party H.264 is the only media request
-  // permitted by this anonymous, GET-only public browser test.
-  if(request.resourceType()==='media')
-    return url.pathname===MARVAO_VIDEO&&!url.search;
+  // No first-party videos are exposed during the media replacement pause.
+  if(request.resourceType()==='media')return false;
   return url.pathname.startsWith('/assets/')&&
     /^(image|font|stylesheet|script|other)$/.test(request.resourceType());
 }
@@ -273,112 +269,6 @@ async function inspect(target){
     (row.issues.length?' — '+row.issues.join('; '):''));
 }
 
-// Independent public-domain media verification, separate from the already-green
-// local MP4 playback fixture. No YouTube, payment, FBM or third-party request.
-// This checks server MIME, actual decoding and a manual play() action; it cannot
-// establish iOS Safari compatibility.
-async function inspectPublicMarvaoVideo(spec){
-  const name='marvao-public-video-'+spec.lang+' @ '+spec.width;
-  const page=await (await context(spec.width,spec.height)).newPage();
-  const row={name,url:ORIGIN+spec.path,ok:false,status:null,issues:[],
-    advisories:[],pageErrors:[],videoRequests:0,videoResponses:[],posterStatus:null,
-    playback:null,screenshot:null};
-  page.on('pageerror',error=>{
-    if(row.pageErrors.length<4)row.pageErrors.push(diagnostic(error));
-  });
-  page.on('request',req=>{
-    if(safeURL(req.url())&&new URL(req.url()).pathname===MARVAO_VIDEO)
-      row.videoRequests++;
-  });
-  page.on('response',response=>{
-    if(safeURL(response.url())&&new URL(response.url()).pathname===MARVAO_VIDEO)
-      row.videoResponses.push({
-        status:response.status(),
-        type:response.headers()['content-type']||''
-      });
-  });
-  try{
-    const response=await page.goto(row.url,{waitUntil:'domcontentloaded',timeout:18000});
-    row.status=response?.status()??null;
-    if(row.status!==200)row.issues.push('Public Marvão page must return HTTP 200');
-    const videos=page.locator('.portugal-owner-video video');
-    if(await videos.count()!==1){
-      row.issues.push('Expected one first-party Marvão video');
-    }else{
-      const video=videos.first();
-      const state=await video.evaluate(el=>({
-        preload:el.preload,autoplay:el.autoplay,paused:el.paused,
-        controls:el.controls,playsInline:el.playsInline,
-        src:el.querySelector('source')?.getAttribute('src'),
-        type:el.querySelector('source')?.getAttribute('type'),
-        poster:el.getAttribute('poster'),
-        describedBy:el.getAttribute('aria-describedby'),
-        description:document.getElementById(el.getAttribute('aria-describedby')||'')?.textContent||'',
-        dir:getComputedStyle(document.documentElement).direction,
-        overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth
-      }));
-      if(state.preload!=='none'||state.autoplay||!state.paused||!state.controls||!state.playsInline)
-        row.issues.push('Video must have controls and stay paused/unloaded before gesture');
-      if(state.src!==MARVAO_VIDEO||state.type!=='video/mp4'||state.poster!==MARVAO_POSTER)
-        row.issues.push('Video/poster source differs from approved first-party assets');
-      if(!state.describedBy||!state.description.trim())
-        row.issues.push('Video missing accessible localized description');
-      if(state.dir!==(spec.lang==='he'?'rtl':'ltr'))
-        row.issues.push('Wrong Marvão page direction');
-      if(state.overflow>2)row.issues.push('Horizontal overflow '+state.overflow+'px');
-      // Media request listener is installed before page navigation: preload=none
-      // must not download the MP4 before a visitor initiates playback.
-      if(row.videoRequests!==0)
-        row.issues.push('MP4 requested before explicit Play');
-      const poster=await page.request.get(ORIGIN+MARVAO_POSTER,{timeout:18000});
-      row.posterStatus=poster.status();
-      if(row.posterStatus!==200||
-        !String(poster.headers()['content-type']||'').toLowerCase().includes('image/webp'))
-        row.issues.push('Public WebP poster HTTP/MIME mismatch');
-      const playStarted=await video.evaluate(async el=>{
-        try{await el.play();return true;}catch{return false;}
-      });
-      if(!playStarted){
-        row.issues.push('Chrome cannot begin public H.264 playback by explicit play()');
-      }else{
-        await page.waitForFunction(()=>{
-          const el=document.querySelector('.portugal-owner-video video');
-          return !!el&&el.currentTime>0.05&&!el.paused&&!el.error;
-        },undefined,{timeout:15000});
-        row.playback=await video.evaluate(el=>({
-          currentTime:el.currentTime,duration:el.duration,
-          width:el.videoWidth,height:el.videoHeight,
-          error:el.error?.message||''
-        }));
-        if(!(row.playback.currentTime>0.05&&row.playback.duration>14&&
-          row.playback.duration<16&&row.playback.width===540&&
-          row.playback.height===960&&!row.playback.error))
-          row.issues.push('Unexpected MP4 frame advancement/duration/dimensions');
-        await video.evaluate(el=>el.pause());
-        const shot='marvao-public-video-'+spec.lang+'-'+spec.width+'.png';
-        await video.screenshot({path:join(OUTPUT,shot),timeout:10000});
-        row.screenshot=shot;
-      }
-      if(row.videoRequests===0||!row.videoResponses.some(r=>
-        (r.status===200||r.status===206)&&
-        r.type.toLowerCase().includes('video/mp4')))
-        row.issues.push('Public MP4 HTTP 200/206 and video/mp4 MIME not confirmed');
-    }
-    if(row.pageErrors.length)row.advisories.push('Page errors: '+row.pageErrors.join(' / '));
-  }catch(error){
-    row.issues.push('Public Marvão playback failed: '+diagnostic(error));
-  }finally{
-    await page.close().catch(()=>{});
-  }
-  row.ok=row.issues.length===0;
-  rows.push(row);
-  if(!row.ok)failures.push(name+': '+row.issues.join('; '));
-  console.log((row.ok?'PASS ':'FAIL ')+name+
-    ' | first-party MP4 GETs '+row.videoRequests+
-    ' | poster HTTP '+row.posterStatus+
-    (row.issues.length?' | '+row.issues.join('; '):''));
-}
-
 // Existing weekly Chrome harness additionally verifies public HTTP evidence
 // missing from Work #718; no local 404 simulation or customer booking access.
 async function inspectPublicRecovery(spec){
@@ -507,12 +397,6 @@ async function inspectPublicRecovery(spec){
 
 try{
   for(const target of targets)await inspect(target);
-  // Three locales/viewport shapes, with real public MP4 decoding.
-  for(const spec of [
-    {lang:'en',path:'/portugal/',width:1440,height:900},
-    {lang:'pt',path:'/pt/portugal/',width:390,height:844},
-    {lang:'he',path:'/he/portugal/',width:320,height:700}
-  ])await inspectPublicMarvaoVideo(spec);
   for(const item of recoveryCases)await inspectPublicRecovery(item);
   for(const item of tokenlessManageCases)await inspectPublicRecovery({...item,managePage:true});
 }finally{
