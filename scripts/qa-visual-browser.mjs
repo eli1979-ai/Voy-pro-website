@@ -1096,6 +1096,108 @@ try{
     }finally{await page.close();}
   }
 
+  // Budapest review-ribbon desktop regression: older builds could render
+  // the complete approved reviews but appear motionless on large screens.
+  // Verify actual animation frames and explicit Pause/Resume in normal motion,
+  // plus the accessibility no-autoplay contract under reduced motion.
+  // Each locale is rendered from its own built page: no public network or FBM.
+  for(const [lang,path] of [
+    ['en','/budapest/'],
+    ['he','/he/budapest/'],
+    ['hu','/hu/budapest/']
+  ]){
+    const name='budapest-desktop-review-motion-'+lang;
+    const page=await browser.newPage({
+      viewport:{width:1365,height:900},deviceScaleFactor:1,
+      reducedMotion:'no-preference'
+    });
+    const errors=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' local Budapest page available');
+      const ribbon=page.locator('[data-vp-reviews-root]');
+      await ribbon.waitFor({state:'visible',timeout:8000});
+      check(await ribbon.locator('.vp-review-card').count()===60,
+        name+' all 20 approved reviews in three continuous groups');
+      const viewport=ribbon.locator('[data-vp-reviews-viewport]');
+      const pause=ribbon.locator('[data-vp-reviews-pause]');
+      const state=()=>viewport.evaluate(el=>({
+        left:el.scrollLeft,paused:el.closest('[data-vp-reviews-root]')?.classList.contains('is-paused'),
+        width:el.scrollWidth,client:el.clientWidth,visibility:document.visibilityState
+      }));
+      const initial=await state();
+      check(initial.width>initial.client*2&&initial.visibility==='visible',
+        name+' wide desktop track can scroll in visible tab');
+      await page.waitForTimeout(800);
+      const moving=await state();
+      check(moving.left-initial.left>=12&&!moving.paused,
+        name+' desktop ticker actually advances automatically without user input');
+      // Exercise the rendered button rather than mutating the class directly.
+      await pause.click();
+      const halted=await state();
+      await page.waitForTimeout(320);
+      const afterPause=await state();
+      check(halted.paused&&Math.abs(afterPause.left-halted.left)<=2,
+        name+' Pause stops desktop ribbon without drifting');
+      await pause.click();
+      const resumed=await state();
+      await page.waitForTimeout(640);
+      const afterResume=await state();
+      check(!afterResume.paused&&afterResume.left-resumed.left>=10,
+        name+' Resume restarts visible motion without hover/focus deadlock');
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.waitForTimeout(100);
+      const reduced=await state();
+      await page.waitForTimeout(320);
+      const reducedAfter=await state();
+      check(reduced.paused&&Math.abs(reducedAfter.left-reduced.left)<=2,
+        name+' OS reduced-motion preference stops automatic movement');
+      check(await pause.isVisible(),name+' reduced-motion still offers a visible manual control');
+      // Two owner-approved Budapest image candidates stay separate from the
+      // six pre-existing gallery photos and are credited in all three locales.
+      const owned=page.locator('.photo-gallery-owned .photo-gallery-owned-card');
+      check(await owned.count()===2,name+' two credited original Budapest photo cards');
+      check(await page.locator('.photo-gallery-grid .photo-tile').count()===6,
+        name+' six existing Budapest gallery pictures remain');
+      const gallerySources=await page.locator('.photo-gallery-grid .photo-tile img')
+        .evaluateAll(nodes=>nodes.map(node=>node.getAttribute('src')));
+      check(gallerySources.length===6&&gallerySources.every(src=>
+        /^\/assets\/images\/budapest\/img\d+\.jpg$/.test(src)),
+        name+' all six original Budapest gallery photos are first-party local assets');
+      if(await owned.count()===2){
+        const imgs=owned.locator('img');
+        for(let ix=0;ix<2;ix++){
+          // Trigger native lazy loading before waiting for decode; offscreen
+          // loading=lazy images may otherwise never start a network fetch.
+          await imgs.nth(ix).scrollIntoViewIfNeeded({timeout:5000});
+          await imgs.nth(ix).evaluate(async img=>{await img.decode();});
+        }
+        const photos=await owned.evaluateAll(cards=>cards.map(card=>({
+          src:card.querySelector('img')?.getAttribute('src'),
+          w:card.querySelector('img')?.naturalWidth,h:card.querySelector('img')?.naturalHeight,
+          alt:card.querySelector('img')?.alt,credit:card.querySelector('figcaption small')?.textContent
+        })));
+        check(photos[0].src==='/assets/images/budapest/budapest-owner-parliament-900.webp'&&
+          photos[0].w===900&&photos[0].h===1200&&photos[1].src==='/assets/images/budapest/budapest-owner-park-1200.webp'&&
+          photos[1].w===1200&&photos[1].h===900,
+          name+' decoded original Parliament and park WebP images match approved derivatives');
+        check(photos.every(photo=>photo.alt?.length>=22&&photo.credit?.includes('VOY PRO')),
+          name+' owner photo alt and VOY PRO credit present in this locale');
+      }
+      check(errors.length===0,name+' no browser script errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:false});
+      results.push('SCREENSHOT: '+name+'.png | 1365x900 | normal motion then OS reduced motion');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' desktop motion '+String(error).slice(0,850));
+    }finally{await page.close();}
+  }
+
   // #712 — real local Chromium rendering of a tokenless Manage landing.
   // Booking data is never accessed. This checks the safe fallback rather
   // than adding a speculative public-booking lookup to the website.
@@ -1173,9 +1275,84 @@ try{
     try{
       const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
       check(response?.status()===200,name+' local page loads');
+      // #727 owner-authorized photo must decode at native 4:3, remain
+      // separate from four Pombais route-neutral gallery images, and carry
+      // its own VOY PRO credit in every locale without an external request.
+      const ownerPhoto=page.locator('figure.portugal-owner-photo:not(.portugal-owner-photo--trail)');
+      check(await ownerPhoto.count()===1,name+' exactly one separate owner photo feature');
+      check(await page.locator('.portugal-gallery-grid figure').count()===4,
+        name+' original four gallery photos preserved');
+      if(await ownerPhoto.count()===1){
+        const image=ownerPhoto.locator('img');
+        await image.scrollIntoViewIfNeeded();
+        await image.evaluate(async node=>{await node.decode();});
+        const photo=await image.evaluate(node=>({
+          src:node.getAttribute('src'),alt:node.alt,width:node.naturalWidth,
+          height:node.naturalHeight,loaded:node.complete,
+          viewportOverflow:document.documentElement.scrollWidth-window.innerWidth,
+          rendered:node.getBoundingClientRect().width,
+          title:node.closest('figure')?.querySelector('figcaption strong')?.textContent,
+          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent
+        }));
+        check(photo.src==='/assets/images/portugal/marvao-streamside-fleet-1200.webp'&&
+          photo.loaded&&photo.width===1200&&photo.height===900&&photo.rendered>150,
+          name+' first-party 1200x900 WebP decodes and displays');
+        check(photo.alt?.length>30&&photo.title?.length>10&&
+          photo.credit?.includes('VOY PRO')&&photo.viewportOverflow<=2,
+          name+' localized alt/title, independent owner credit, no overflow');
+        await page.screenshot({path:join(out,name+'-owner-photo.png'),
+          fullPage:false,animations:'disabled'});
+      }
+      const trailPhoto=page.locator('figure.portugal-owner-photo--trail');
+      check(await trailPhoto.count()===1,name+' one additional approved Marvão trail photo');
+      if(await trailPhoto.count()===1){
+        const trailImage=trailPhoto.locator('img');
+        await trailImage.scrollIntoViewIfNeeded();
+        await trailImage.evaluate(async node=>{await node.decode();});
+        const trail=await trailImage.evaluate(node=>({src:node.getAttribute('src'),
+          width:node.naturalWidth,height:node.naturalHeight,alt:node.alt,
+          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent,
+          overflow:document.documentElement.scrollWidth-innerWidth}));
+        check(trail.src==='/assets/images/portugal/marvao-owner-trail-900.webp'&&
+          trail.width===900&&trail.height===1200&&trail.alt.length>=25&&
+          trail.credit?.includes('VOY PRO')&&trail.overflow<=2,
+          name+' owner-approved portrait trail WebP decodes with own credit, no overflow');
+      }
       const video=page.locator('.portugal-owner-video video');
       const count=await video.count();
       check(count===1,name+' exactly one route-neutral countryside video');
+      // #727 / #753: exercise the *new* localized hero jump, not just its
+      // static HTML. Navigation must never start streaming the MP4.
+      const jump=page.locator('.portugal-hero-video-link a[href="#marvao-riding-video"]');
+      const target=page.locator('section.portugal-owner-video#marvao-riding-video');
+      const jumpCount=await jump.count(),targetCount=await target.count();
+      check(jumpCount===1&&targetCount===1,name+' one accessible hero-to-video anchor and target');
+      check(await page.locator('.portugal-hero .hero-actions a[href="#tours"]').count()===1&&
+        await page.locator('.portugal-hero .hero-actions a[href="#request"]').count()===1,
+        name+' original tour and request CTAs preserved');
+      if(jumpCount===1&&targetCount===1){
+        const essential=page.locator('[data-consent-essential]');
+        if(await essential.isVisible().catch(()=>false))await essential.click();
+        await jump.focus();
+        check(await jump.evaluate(el=>el===document.activeElement),
+          name+' video link is keyboard focusable');
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(()=>location.hash==='#marvao-riding-video',
+          undefined,{timeout:4000});
+        await page.waitForTimeout(120);
+        const landed=await target.evaluate(el=>({
+          top:el.getBoundingClientRect().top,
+          scrollY:window.scrollY,
+          marginTop:parseFloat(getComputedStyle(el).scrollMarginTop)||0
+        }));
+        check(landed.scrollY>200&&landed.top>=-3&&landed.top<viewport.height&&
+          landed.marginTop>=80,
+          name+' keyboard jump reveals full video section below sticky header');
+        check(videoRequests.length===0&&await video.evaluate(el=>el.paused),
+          name+' hero jump never auto-fetches or plays video');
+        await page.screenshot({path:join(out,name+'-hero-jump.png'),
+          fullPage:false,animations:'disabled'});
+      }
       if(count===1){
         const state=await video.evaluate(node=>({
           preload:node.preload,autoplay:node.autoplay,controls:node.controls,
