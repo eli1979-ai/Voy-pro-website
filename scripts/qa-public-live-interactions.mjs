@@ -344,6 +344,53 @@ for(const [locale,path] of [
     ok(await pause.getAttribute('aria-pressed')==='false','resume updates aria state');
   });
 }
+// Prevent the exact desktop regression reported by the owner: a ribbon
+// which renders and responds to arrows but never auto-scrolls on wide screens.
+// These checks use the DEPLOYED public site, with vendor/API calls blocked.
+// Normal motion must advance; OS reduced-motion must pause by default and
+// allow an explicit opt-in via the visible Resume button.
+for(const [locale,path] of [
+  ['EN','/budapest/'],['HE','/he/budapest/'],['HU','/hu/budapest/']
+]){
+  await scenario('desktop review motion '+locale,path,
+    {width:1440,reducedMotion:'no-preference'},async(page,ok)=>{
+      const root=page.locator('[data-vp-reviews-root]');
+      await page.waitForFunction(()=>
+        document.querySelectorAll('[data-vp-reviews-root] .vp-review-card').length===60,
+        null,{timeout:6500});
+      const viewport=root.locator('[data-vp-reviews-viewport]');
+      const pause=root.locator('[data-vp-reviews-pause]');
+      ok(await pause.isVisible(),'desktop auto-scroll exposes Pause/Resume');
+      const initial=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(1100);
+      const moving=await viewport.evaluate(el=>el.scrollLeft);
+      ok(moving>initial+12,'desktop approved reviews move without clicking');
+      await pause.click();
+      ok(await pause.getAttribute('aria-pressed')==='true','desktop Pause works');
+      const stopped=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(320);
+      ok(Math.abs((await viewport.evaluate(el=>el.scrollLeft))-stopped)<3,
+        'desktop Pause actually freezes scrolling');
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.waitForFunction(()=>
+        document.querySelector('[data-vp-reviews-root]')?.classList.contains('is-paused')===true,
+        null,{timeout:3000});
+      ok(await pause.isVisible(),'reduced-motion mode still offers an opt-in Resume');
+      const reducedAt=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(300);
+      ok(Math.abs((await viewport.evaluate(el=>el.scrollLeft))-reducedAt)<3,
+        'OS reduced-motion stops ticker by default');
+      await pause.click();
+      ok(await pause.getAttribute('aria-pressed')==='false',
+        'explicit user Resume overrides reduced-motion pause');
+      const optInAt=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(850);
+      ok((await viewport.evaluate(el=>el.scrollLeft))>optInAt+10,
+        'desktop review ribbon moves again after explicit Resume');
+      await pause.click();
+    });
+}
+
 // Map verification uses the public deployed site.js, with an in-browser FBM
 // fixture for the destination config. No third-party map iframe is loaded.
 await scenario('Budapest exact business map rendered using API fixture',
