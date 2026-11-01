@@ -97,27 +97,24 @@ try {
     }
   },Set};
   vm.runInNewContext(videoJs,context,{timeout:1000});
-  if(created.length!==0||stage.child!==play)
-    failures.push('EZRaider created a YouTube iframe before explicit Play');
+  if(created.length!==1||stage.child?.tag!=='iframe'||
+     !stage.child?.src?.includes('embed/'+videos[0]+'?autoplay=1&mute=1&playsinline=1'))
+    failures.push('EZRaider guide must start the approved first clip muted on page open');
   if(link.href!=='https://www.youtube.com/watch?v='+videos[0])
     failures.push('EZRaider initial official video link was lost');
-  buttons[1].events.click?.();
-  if(created.length!==0||previewLabel.textContent!=='Video 1'||
-    link.href!=='https://www.youtube.com/watch?v='+videos[1])
-    failures.push('EZRaider selection must update preview and link without loading media');
-  play.events.click?.();
-  if(created.length!==1||stage.child?.tag!=='iframe'||
-    !stage.child?.src?.includes('embed/'+videos[1]+'?autoplay=1&mute=1&playsinline=1'))
-    failures.push('Explicit Play did not load the selected muted YouTube clip');
   if(!stage.child?.allow?.includes('autoplay'))
-    failures.push('Explicitly played EZRaider iframe lacks autoplay permission');
-  if(created[0]?.tabIndex!==0||created[0]?.focusCount!==1||
-    !created[0]?.focusedAfterInsertion||!created[0]?.preventScroll)
-    failures.push('Explicit Play must transfer focus to the new titled iframe after insertion');
+    failures.push('Autoplay iframe lacks explicit browser autoplay permission');
+  if(created[0]?.tabIndex!==0||created[0]?.focusCount!==0)
+    failures.push('EZRaider autoplay must remain keyboard reachable without stealing page focus');
+  buttons[1].events.click?.();
+  if(created.length!==2||previewLabel.textContent!=='Video 1'||
+    link.href!=='https://www.youtube.com/watch?v='+videos[1]||
+    !stage.child?.src?.includes('embed/'+videos[1]+'?autoplay=1&mute=1'))
+    failures.push('EZRaider selection must switch seamlessly to the selected muted clip');
   buttons[0].events.click?.();
-  if(stage.child?.src?.indexOf('embed/'+videos[0])<0||created.length!==2)
+  if(stage.child?.src?.indexOf('embed/'+videos[0])<0||created.length!==3)
     failures.push('Switching already-playing EZRaider clips did not replace the iframe');
-  if(created[1]?.focusCount!==0)
+  if(created[1]?.focusCount!==0||created[2]?.focusCount!==0)
     failures.push('Clip switch must retain keyboard focus on the selected video control');
 } catch(error){failures.push('EZRaider opt-in video player runtime failed: '+error.message);}
 
@@ -148,7 +145,7 @@ for(const {locale,prefix,home} of vehicleFiles){
     failures.push(path+': video must be first and precede the hero text');
   if(html.includes('family-child-seat-closeup.jpg')||html.includes('class="ez-seat-tour-photo"'))
     failures.push(path+': confusing child-on-seat photograph must be removed');
-  if(!html.includes('Choose a video and press Play to load it.')&&locale==='en')failures.push(path+': explicit Play instructions missing');
+  if(!html.includes('The YouTube video loads automatically and starts muted.')&&locale==='en')failures.push(path+': muted autoplay instructions missing');
   if(hero.includes('<figure class="ez-hero-visual">')||html.includes('class="section ez-video-section"'))
     failures.push(path+': redundant old static photo or standalone video section remains');
   if((html.match(/data-ez-video-player/g)||[]).length!==1)
