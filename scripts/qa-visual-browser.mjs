@@ -1165,6 +1165,11 @@ try{
       check(await owned.count()===2,name+' two credited original Budapest photo cards');
       check(await page.locator('.photo-gallery-grid .photo-tile').count()===6,
         name+' six existing Budapest gallery pictures remain');
+      const gallerySources=await page.locator('.photo-gallery-grid .photo-tile img')
+        .evaluateAll(nodes=>nodes.map(node=>node.getAttribute('src')));
+      check(gallerySources.length===6&&gallerySources.every(src=>
+        /^\/assets\/images\/budapest\/img\d+\.jpg$/.test(src)),
+        name+' all six original Budapest gallery photos are first-party local assets');
       if(await owned.count()===2){
         const imgs=owned.locator('img');
         for(let ix=0;ix<2;ix++){
