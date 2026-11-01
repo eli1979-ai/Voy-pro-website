@@ -1300,3 +1300,15 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
 .portugal-gallery .portugal-owner-photo figcaption span{font-size:clamp(.9rem,1.4vw,1rem);line-height:1.65}
 .portugal-gallery .portugal-owner-photo figcaption small{color:#45636b;font-size:.78rem;font-weight:700}
 @media(max-width:700px){.portugal-gallery .portugal-owner-photo{grid-template-columns:1fr;gap:14px;margin-top:22px;padding:12px;border-radius:16px}}
+
+/* #727 — approved first-party owner photos, separate from partner-credited media. */
+.portugal-gallery .portugal-owner-photo--trail{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);background:#f0f4ef}
+.portugal-gallery .portugal-owner-photo--trail>img{aspect-ratio:3/4;max-height:520px;object-fit:contain;background:#e0e8df}
+.photo-gallery-owned{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:22px}
+.photo-gallery-owned-card{margin:0;min-width:0;padding:14px;border:1px solid #dae5e7;border-radius:18px;background:#f4f8f8;overflow:hidden}
+.photo-gallery-owned-card>img{display:block;width:100%;height:340px;object-fit:contain;background:#e7eeee;border-radius:12px}
+.photo-gallery-owned-card figcaption{display:flex;flex-direction:column;gap:7px;padding:13px 3px 2px;line-height:1.55;color:#274651}
+.photo-gallery-owned-card figcaption strong{font-size:1.05rem;color:#0b3947}
+.photo-gallery-owned-card figcaption span{font-size:.9rem}
+.photo-gallery-owned-card figcaption small{font-size:.75rem;color:#4d6971;font-weight:700}
+@media(max-width:700px){.portugal-gallery .portugal-owner-photo--trail{grid-template-columns:1fr}.portugal-gallery .portugal-owner-photo--trail>img{max-height:520px}.photo-gallery-owned{grid-template-columns:1fr;gap:14px}.photo-gallery-owned-card>img{height:auto;max-height:460px;object-fit:contain}}

@@ -1159,6 +1159,27 @@ try{
       check(reduced.paused&&Math.abs(reducedAfter.left-reduced.left)<=2,
         name+' OS reduced-motion preference stops automatic movement');
       check(await pause.isVisible(),name+' reduced-motion still offers a visible manual control');
+      // Two owner-approved Budapest image candidates stay separate from the
+      // six pre-existing gallery photos and are credited in all three locales.
+      const owned=page.locator('.photo-gallery-owned .photo-gallery-owned-card');
+      check(await owned.count()===2,name+' two credited original Budapest photo cards');
+      check(await page.locator('.photo-gallery-grid .photo-tile').count()===6,
+        name+' six existing Budapest gallery pictures remain');
+      if(await owned.count()===2){
+        const imgs=owned.locator('img');
+        for(let ix=0;ix<2;ix++)await imgs.nth(ix).evaluate(async img=>{await img.decode();});
+        const photos=await owned.evaluateAll(cards=>cards.map(card=>({
+          src:card.querySelector('img')?.getAttribute('src'),
+          w:card.querySelector('img')?.naturalWidth,h:card.querySelector('img')?.naturalHeight,
+          alt:card.querySelector('img')?.alt,credit:card.querySelector('figcaption small')?.textContent
+        })));
+        check(photos[0].src==='/assets/images/budapest/budapest-owner-parliament-900.webp'&&
+          photos[0].w===900&&photos[0].h===1200&&photos[1].src==='/assets/images/budapest/budapest-owner-park-1200.webp'&&
+          photos[1].w===1200&&photos[1].h===900,
+          name+' decoded original Parliament and park WebP images match approved derivatives');
+        check(photos.every(photo=>photo.alt?.length>=22&&photo.credit?.includes('VOY PRO')),
+          name+' owner photo alt and VOY PRO credit present in this locale');
+      }
       check(errors.length===0,name+' no browser script errors');
       await page.screenshot({path:join(out,name+'.png'),fullPage:false});
       results.push('SCREENSHOT: '+name+'.png | 1365x900 | normal motion then OS reduced motion');
@@ -1247,7 +1268,7 @@ try{
       // #727 owner-authorized photo must decode at native 4:3, remain
       // separate from four Pombais route-neutral gallery images, and carry
       // its own VOY PRO credit in every locale without an external request.
-      const ownerPhoto=page.locator('figure.portugal-owner-photo');
+      const ownerPhoto=page.locator('figure.portugal-owner-photo:not(.portugal-owner-photo--trail)');
       check(await ownerPhoto.count()===1,name+' exactly one separate owner photo feature');
       check(await page.locator('.portugal-gallery-grid figure').count()===4,
         name+' original four gallery photos preserved');
@@ -1271,6 +1292,21 @@ try{
           name+' localized alt/title, independent owner credit, no overflow');
         await page.screenshot({path:join(out,name+'-owner-photo.png'),
           fullPage:false,animations:'disabled'});
+      }
+      const trailPhoto=page.locator('figure.portugal-owner-photo--trail');
+      check(await trailPhoto.count()===1,name+' one additional approved Marvão trail photo');
+      if(await trailPhoto.count()===1){
+        const trailImage=trailPhoto.locator('img');
+        await trailImage.scrollIntoViewIfNeeded();
+        await trailImage.evaluate(async node=>{await node.decode();});
+        const trail=await trailImage.evaluate(node=>({src:node.getAttribute('src'),
+          width:node.naturalWidth,height:node.naturalHeight,alt:node.alt,
+          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent,
+          overflow:document.documentElement.scrollWidth-innerWidth}));
+        check(trail.src==='/assets/images/portugal/marvao-owner-trail-900.webp'&&
+          trail.width===900&&trail.height===1200&&trail.alt.length>=25&&
+          trail.credit?.includes('VOY PRO')&&trail.overflow<=2,
+          name+' owner-approved portrait trail WebP decodes with own credit, no overflow');
       }
       const video=page.locator('.portugal-owner-video video');
       const count=await video.count();
