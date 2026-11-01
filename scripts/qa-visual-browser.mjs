@@ -169,8 +169,8 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
               name+' infinite-scroll duplicate is excluded from the accessible tab order');
             const rightControl=carousel.locator('[data-vp-reviews-right]');
             const pauseControl=carousel.locator('[data-vp-reviews-pause]');
-            check(await pauseControl.isHidden(),
-              name+' reduced-motion mode hides unnecessary auto-scroll Resume control');
+            check(await pauseControl.isVisible(),
+              name+' reduced-motion mode keeps an explicit opt-in Resume control available');
             await duplicate.evaluate(el=>el.click());
             await modal.waitFor({state:'visible',timeout:4000});
             await page.keyboard.press('Escape');
@@ -178,10 +178,10 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
             // Escape asynchronously; assert the eventual accessible focus
             // destination instead of racing the browser's close callback.
             await page.waitForFunction(()=>
-              document.activeElement===document.querySelector('[data-vp-reviews-right]'),
+              document.activeElement===document.querySelector('[data-vp-reviews-pause]'),
               null,{timeout:3000}).catch(()=>{});
-            check(await rightControl.evaluate(el=>document.activeElement===el),
-              name+' duplicate review close focuses visible manual arrow with reduced motion');
+            check(await pauseControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible reduced-motion Resume control');
             await page.emulateMedia({reducedMotion:'no-preference'});
             await page.waitForFunction(()=>
               document.querySelector('[data-vp-reviews-pause]')?.hidden===false,
