@@ -1290,3 +1290,13 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
 .portugal-hero .portugal-hero-video-link a:hover{color:#fff}
 .portugal-hero .portugal-hero-video-link a:focus-visible{outline:3px solid #90e9f4;outline-offset:4px;border-radius:2px}
 .portugal-owner-video#marvao-riding-video{scroll-margin-top:96px}
+
+/* Owner-approved Marvão photo: a 4:3 editorial feature, NOT a fifth route card.
+   The four existing Pombais gallery images retain their separate credit. */
+.portugal-gallery .portugal-owner-photo{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:clamp(16px,3.5vw,38px);align-items:center;margin:26px 0 0;padding:clamp(13px,2vw,22px);background:#edf5f2;border:1px solid #d6e5e0;border-radius:20px;overflow:hidden}
+.portugal-gallery .portugal-owner-photo>img{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
+.portugal-gallery .portugal-owner-photo figcaption{display:flex;flex-direction:column;gap:12px;min-width:0;color:#1e3b42}
+.portugal-gallery .portugal-owner-photo figcaption strong{font-size:clamp(1.1rem,2vw,1.45rem);line-height:1.28;color:#0b3947}
+.portugal-gallery .portugal-owner-photo figcaption span{font-size:clamp(.9rem,1.4vw,1rem);line-height:1.65}
+.portugal-gallery .portugal-owner-photo figcaption small{color:#45636b;font-size:.78rem;font-weight:700}
+@media(max-width:700px){.portugal-gallery .portugal-owner-photo{grid-template-columns:1fr;gap:14px;margin-top:22px;padding:12px;border-radius:16px}}
