@@ -287,6 +287,7 @@
       moveManually(event.deltaY);
       event.preventDefault?.();
     },{passive:false});
+    let userMotionOverride=false;
     pause.addEventListener('click',()=>{
       if(!root.classList.contains('is-paused')){
         pauseForReading();
@@ -301,6 +302,9 @@
       pause.textContent=t.pause;
       viewport.scrollLeft+=10;
       normalize();
+      // An OS reduced-motion setting blocks automatic movement by default,
+      // but an explicit click on Resume is a specific user opt-in.
+      if(reduced&&!userMotionOverride){userMotionOverride=true;startAutoScroll();}
     });
     pause.textContent=t.pause;
     pause.setAttribute('aria-pressed','false');
@@ -311,13 +315,15 @@
     let reduced=Boolean(motionQuery?.matches);
     if(reduced){
       pauseForReading();
-      pause.hidden=true;
+      // Desktop visitors who prefer reduced motion must not be stranded with
+      // a static ticker and an invisible Resume button.
+      pause.hidden=false;
     }
     // Time-based speed, independent of locale / row width. Rebase into the
     // middle group continuously to avoid blank space at the end of a cycle.
     let lastFrame=null,animationToken=0;
     const advance=(timestamp,token)=>{
-      if(reduced||token!==animationToken||document.visibilityState==='hidden')return;
+      if((reduced&&!userMotionOverride)||token!==animationToken||document.visibilityState==='hidden')return;
       if(lastFrame!==null){
         const elapsed=Math.max(0,Math.min(80,timestamp-lastFrame));
         // Resume must actually restart motion even while the pointer hovers
@@ -334,7 +340,7 @@
       window.requestAnimationFrame?.(time=>advance(time,token));
     };
     const startAutoScroll=()=>{
-      if(reduced||document.visibilityState==='hidden')return;
+      if((reduced&&!userMotionOverride)||document.visibilityState==='hidden')return;
       lastFrame=null;
       const token=++animationToken;
       window.requestAnimationFrame?.(time=>advance(time,token));
@@ -353,8 +359,9 @@
       reduced=nextReduced;
       if(reduced){
         animationToken++; // invalidate the old callback, even if it is queued
+        userMotionOverride=false;
         pauseForReading();
-        pause.hidden=true;
+        pause.hidden=false;
       }else{
         // The preference changed, not the guest's intent: keep the strip
         // paused until they explicitly press Resume.
