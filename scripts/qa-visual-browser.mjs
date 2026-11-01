@@ -1096,6 +1096,77 @@ try{
     }finally{await page.close();}
   }
 
+  // Budapest review-ribbon desktop regression: older builds could render
+  // the complete approved reviews but appear motionless on large screens.
+  // Verify actual animation frames and explicit Pause/Resume in normal motion,
+  // plus the accessibility no-autoplay contract under reduced motion.
+  // Each locale is rendered from its own built page: no public network or FBM.
+  for(const [lang,path] of [
+    ['en','/budapest/'],
+    ['he','/he/budapest/'],
+    ['hu','/hu/budapest/']
+  ]){
+    const name='budapest-desktop-review-motion-'+lang;
+    const page=await browser.newPage({
+      viewport:{width:1365,height:900},deviceScaleFactor:1,
+      reducedMotion:'no-preference'
+    });
+    const errors=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' local Budapest page available');
+      const ribbon=page.locator('[data-vp-reviews-root]');
+      await ribbon.waitFor({state:'visible',timeout:8000});
+      check(await ribbon.locator('.vp-review-card').count()===60,
+        name+' all 20 approved reviews in three continuous groups');
+      const viewport=ribbon.locator('[data-vp-reviews-viewport]');
+      const pause=ribbon.locator('[data-vp-reviews-pause]');
+      const state=()=>viewport.evaluate(el=>({
+        left:el.scrollLeft,paused:el.closest('[data-vp-reviews-root]')?.classList.contains('is-paused'),
+        width:el.scrollWidth,client:el.clientWidth,visibility:document.visibilityState
+      }));
+      const initial=await state();
+      check(initial.width>initial.client*2&&initial.visibility==='visible',
+        name+' wide desktop track can scroll in visible tab');
+      await page.waitForTimeout(800);
+      const moving=await state();
+      check(moving.left-initial.left>=12&&!moving.paused,
+        name+' desktop ticker actually advances automatically without user input');
+      // Exercise the rendered button rather than mutating the class directly.
+      await pause.click();
+      const halted=await state();
+      await page.waitForTimeout(320);
+      const afterPause=await state();
+      check(halted.paused&&Math.abs(afterPause.left-halted.left)<=2,
+        name+' Pause stops desktop ribbon without drifting');
+      await pause.click();
+      const resumed=await state();
+      await page.waitForTimeout(640);
+      const afterResume=await state();
+      check(!afterResume.paused&&afterResume.left-resumed.left>=10,
+        name+' Resume restarts visible motion without hover/focus deadlock');
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.waitForTimeout(100);
+      const reduced=await state();
+      await page.waitForTimeout(320);
+      const reducedAfter=await state();
+      check(reduced.paused&&Math.abs(reducedAfter.left-reduced.left)<=2,
+        name+' OS reduced-motion preference stops automatic movement');
+      check(await pause.isVisible(),name+' reduced-motion still offers a visible manual control');
+      check(errors.length===0,name+' no browser script errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:false});
+      results.push('SCREENSHOT: '+name+'.png | 1365x900 | normal motion then OS reduced motion');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' desktop motion '+String(error).slice(0,850));
+    }finally{await page.close();}
+  }
+
   // #712 — real local Chromium rendering of a tokenless Manage landing.
   // Booking data is never accessed. This checks the safe fallback rather
   // than adding a speculative public-booking lookup to the website.
