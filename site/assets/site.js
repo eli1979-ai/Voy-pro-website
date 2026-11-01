@@ -1479,10 +1479,21 @@
       const card=link.closest('[data-tour-card]'); if(!card)return;
       const p=productByAliases(card.dataset.experienceSlugs);
       if(!p||p.bookingEnabled===false)return; // Keep the route-page fallback link when not live.
-      const select=document.querySelector('select[name="experience"]'); if(!select)return;
+      const select=document.querySelector('select[name="experience"]');
+      const booking=document.querySelector('#booking');
+      // Only intercept the route-page link when the live bookable product is
+      // really a selectable option in this booking form. Otherwise preserve
+      // the standard tour detail / availability page as a safe fallback.
+      if(!select||!booking||!Array.from(select.options).some(option=>
+        option.value===p.id&&!option.disabled))return;
       e.preventDefault(); select.disabled=false; select.value=p.id; select.dispatchEvent(new Event('change',{bubbles:true}));
       setSelectedTourHint(p);
-      document.querySelector('#booking')?.scrollIntoView({behavior:'smooth',block:'start'});
+      booking.scrollIntoView({behavior:'smooth',block:'start'});
+      // Screen-reader and keyboard users must arrive at the booking context
+      // rather than remaining focused on an off-screen tour card.
+      const heading=booking.querySelector('h2')||select;
+      if(heading!==select)heading.tabIndex=-1;
+      heading.focus({preventScroll:true});
       track('tour_card_selected',{experience_id:p.id,experience_slug:p.slug,source:'tour_picker'});
       patchSession({stage:'booking_intent',experience_id:p.id,page});
     }));
