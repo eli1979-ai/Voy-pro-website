@@ -92,7 +92,7 @@ if(selectBegin<0||selectEnd<0){
       vm.runInNewContext(snippet,{
         document,productByAliases:()=>product,
         setSelectedTourHint:p=>hints.push(p.id),
-        track:(name)=>tracked.push(name),patchSession:()=>{},
+        track:(name)=>tracked.push(name),patchSession:()=>{},page:'budapest',
         Event:class {constructor(type){this.type=type;}},
         Array
       },{timeout:1000,filename:'tour-card-selector.js'});
