@@ -1173,6 +1173,34 @@ try{
     try{
       const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
       check(response?.status()===200,name+' local page loads');
+      // #727 owner-authorized photo must decode at native 4:3, remain
+      // separate from four Pombais route-neutral gallery images, and carry
+      // its own VOY PRO credit in every locale without an external request.
+      const ownerPhoto=page.locator('figure.portugal-owner-photo');
+      check(await ownerPhoto.count()===1,name+' exactly one separate owner photo feature');
+      check(await page.locator('.portugal-gallery-grid figure').count()===4,
+        name+' original four gallery photos preserved');
+      if(await ownerPhoto.count()===1){
+        const image=ownerPhoto.locator('img');
+        await image.scrollIntoViewIfNeeded();
+        await image.evaluate(async node=>{await node.decode();});
+        const photo=await image.evaluate(node=>({
+          src:node.getAttribute('src'),alt:node.alt,width:node.naturalWidth,
+          height:node.naturalHeight,loaded:node.complete,
+          viewportOverflow:document.documentElement.scrollWidth-window.innerWidth,
+          rendered:node.getBoundingClientRect().width,
+          title:node.closest('figure')?.querySelector('figcaption strong')?.textContent,
+          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent
+        }));
+        check(photo.src==='/assets/images/portugal/marvao-streamside-fleet-1200.webp'&&
+          photo.loaded&&photo.width===1200&&photo.height===900&&photo.rendered>150,
+          name+' first-party 1200x900 WebP decodes and displays');
+        check(photo.alt?.length>30&&photo.title?.length>10&&
+          photo.credit?.includes('VOY PRO')&&photo.viewportOverflow<=2,
+          name+' localized alt/title, independent owner credit, no overflow');
+        await page.screenshot({path:join(out,name+'-owner-photo.png'),
+          fullPage:false,animations:'disabled'});
+      }
       const video=page.locator('.portugal-owner-video video');
       const count=await video.count();
       check(count===1,name+' exactly one route-neutral countryside video');
