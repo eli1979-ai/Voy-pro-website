@@ -1176,6 +1176,38 @@ try{
       const video=page.locator('.portugal-owner-video video');
       const count=await video.count();
       check(count===1,name+' exactly one route-neutral countryside video');
+      // #727 / #753: exercise the *new* localized hero jump, not just its
+      // static HTML. Navigation must never start streaming the MP4.
+      const jump=page.locator('.portugal-hero-video-link a[href="#marvao-riding-video"]');
+      const target=page.locator('section.portugal-owner-video#marvao-riding-video');
+      const jumpCount=await jump.count(),targetCount=await target.count();
+      check(jumpCount===1&&targetCount===1,name+' one accessible hero-to-video anchor and target');
+      check(await page.locator('.portugal-hero .hero-actions a[href="#tours"]').count()===1&&
+        await page.locator('.portugal-hero .hero-actions a[href="#request"]').count()===1,
+        name+' original tour and request CTAs preserved');
+      if(jumpCount===1&&targetCount===1){
+        const essential=page.locator('[data-consent-essential]');
+        if(await essential.isVisible().catch(()=>false))await essential.click();
+        await jump.focus();
+        check(await jump.evaluate(el=>el===document.activeElement),
+          name+' video link is keyboard focusable');
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(()=>location.hash==='#marvao-riding-video',
+          undefined,{timeout:4000});
+        await page.waitForTimeout(120);
+        const landed=await target.evaluate(el=>({
+          top:el.getBoundingClientRect().top,
+          scrollY:window.scrollY,
+          marginTop:parseFloat(getComputedStyle(el).scrollMarginTop)||0
+        }));
+        check(landed.scrollY>200&&landed.top>=-3&&landed.top<viewport.height&&
+          landed.marginTop>=80,
+          name+' keyboard jump reveals full video section below sticky header');
+        check(videoRequests.length===0&&await video.evaluate(el=>el.paused),
+          name+' hero jump never auto-fetches or plays video');
+        await page.screenshot({path:join(out,name+'-hero-jump.png'),
+          fullPage:false,animations:'disabled'});
+      }
       if(count===1){
         const state=await video.evaluate(node=>({
           preload:node.preload,autoplay:node.autoplay,controls:node.controls,
