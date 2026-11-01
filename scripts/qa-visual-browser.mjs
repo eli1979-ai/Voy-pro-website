@@ -1167,7 +1167,12 @@ try{
         name+' six existing Budapest gallery pictures remain');
       if(await owned.count()===2){
         const imgs=owned.locator('img');
-        for(let ix=0;ix<2;ix++)await imgs.nth(ix).evaluate(async img=>{await img.decode();});
+        for(let ix=0;ix<2;ix++){
+          // Trigger native lazy loading before waiting for decode; offscreen
+          // loading=lazy images may otherwise never start a network fetch.
+          await imgs.nth(ix).scrollIntoViewIfNeeded({timeout:5000});
+          await imgs.nth(ix).evaluate(async img=>{await img.decode();});
+        }
         const photos=await owned.evaluateAll(cards=>cards.map(card=>({
           src:card.querySelector('img')?.getAttribute('src'),
           w:card.querySelector('img')?.naturalWidth,h:card.querySelector('img')?.naturalHeight,
