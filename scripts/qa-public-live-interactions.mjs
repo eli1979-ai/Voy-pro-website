@@ -147,6 +147,75 @@ await scenario('EZRaider pre-consent YouTube outbound audit','/ezraider/',
     ok(await frame.count()===1,'existing player structure remains intact');
   });
 
+// Owner-approved media public-release smoke. This exercises actual domain GET
+// responses and native image decoding from the deployed site, not just a local
+// build. Chrome blocks all third-party requests and all writes as above.
+for(const [locale,path,width,branch] of [
+  ['EN','/budapest/',1365,'budapest'],
+  ['HE','/he/budapest/',390,'budapest'],
+  ['HU','/hu/budapest/',390,'budapest'],
+  ['EN','/portugal/',1365,'marvao'],
+  ['PT','/pt/portugal/',390,'marvao'],
+  ['HE','/he/portugal/',320,'marvao']
+]){
+  await scenario('approved owner media live '+branch+' '+locale,path,
+    {width},async(page,ok,result)=>{
+      const owned=branch==='budapest'
+        ?page.locator('.photo-gallery-owned .photo-gallery-owned-card')
+        :page.locator('figure.portugal-owner-photo');
+      ok(await owned.count()===2,'both approved owner photos appear in the expected branch section');
+      const expected=branch==='budapest'
+        ?[
+          ['/assets/images/budapest/budapest-owner-parliament-900.webp',900,1200],
+          ['/assets/images/budapest/budapest-owner-park-1200.webp',1200,900]
+        ]
+        :[
+          ['/assets/images/portugal/marvao-streamside-fleet-1200.webp',1200,900],
+          ['/assets/images/portugal/marvao-owner-trail-900.webp',900,1200]
+        ];
+      const imgs=owned.locator('img');
+      for(let i=0;i<expected.length;i++){
+        const img=imgs.nth(i);
+        await img.scrollIntoViewIfNeeded({timeout:5000});
+        await img.evaluate(async node=>{await node.decode();});
+        const photo=await img.evaluate(node=>({
+          src:node.getAttribute('src'),
+          complete:node.complete,width:node.naturalWidth,height:node.naturalHeight,
+          alt:node.alt,rendered:node.getBoundingClientRect().width,
+          credit:node.closest('figure')?.querySelector('figcaption small')?.textContent,
+          overflow:document.documentElement.scrollWidth-innerWidth
+        }));
+        const [src,width,height]=expected[i];
+        ok(photo.src===src&&photo.complete&&photo.width===width&&
+          photo.height===height&&photo.rendered>60,
+          'deployed approved first-party WebP '+(i+1)+' actually loads and decodes');
+        ok(photo.alt.length>=20&&photo.credit?.includes('VOY PRO')&&photo.overflow<=2,
+          'photo '+(i+1)+' has accessible alt, owner credit and no horizontal overflow');
+      }
+      if(branch==='budapest'){
+        const gallery=page.locator('.photo-gallery-grid .photo-tile img');
+        ok(await gallery.count()===6,'original six Budapest gallery items retained');
+        for(let i=0;i<6;i++){
+          const img=gallery.nth(i);
+          ok(/^\/assets\/images\/budapest\/img\d+\.jpg$/.test(await img.getAttribute('src')),
+            'existing Budapest gallery '+(i+1)+' resolves to same-origin file');
+          await img.scrollIntoViewIfNeeded({timeout:5000});
+          await img.evaluate(async node=>{await node.decode();});
+          ok(await img.evaluate(node=>node.complete&&node.naturalWidth>0),
+            'deployed Budapest gallery '+(i+1)+' is a decoded real image');
+        }
+      }else{
+        ok(await page.locator('.portugal-gallery-grid figure').count()===4,
+          'original four partner-credited Marvão images preserved');
+      }
+      result.notes.push('Only first-party GET image requests were permitted; all writes and unrelated hosts blocked.');
+      if(locale==='EN')await page.screenshot({
+        path:join(OUT,'approved-owner-media-live-'+branch+'.png'),
+        animations:'disabled'
+      });
+    });
+}
+
 // Check the *deployed* consent UI after a visitor has explicitly chosen
 // essential-only storage. Closing reopened settings must not change consent
 // or leak events to analytics; outbound writes remain blocked by launch().
