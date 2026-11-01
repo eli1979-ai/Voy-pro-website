@@ -94,6 +94,18 @@ for(const locale of ['','he/','pt/']){
   failures.push(p+': Budapest ratings must not be attributed to Marvão');
 }
 
+
+// Budapest hub booking CTA must follow tour-planning links BEFORE the closing ratings.
+for(const locale of ['', 'he/', 'hu/']){
+ const path='site/'+locale+'budapest/index.html';
+ const html=fs.readFileSync(path,'utf8');
+ const plan=html.match(/<section class="section budapest-seo-links">[\s\S]*?<\/section>/)?.[0]||'';
+ const reviews=html.match(/<section class="section budapest-review-sources">[\s\S]*?<\/section>/)?.[0]||'';
+ const cta=/<div class="review-source-actions"><a class="btn" data-track="booking_cta" href="\/(?:he\/|hu\/)?budapest\/#booking">[^<]+<\/a><\/div>/;
+ if(!cta.test(plan)||reviews.includes('review-source-actions'))failures.push(path+': availability CTA must follow planner links, ahead of closing ratings');
+ if((html.match(/<div class="review-source-actions">/g)||[]).length!==1)failures.push(path+': duplicate or missing booking CTA');
+}
+
 if(failures.length){
   console.error('Budapest reputation snapshot check failed.');
   for(const failure of failures)console.error('- '+failure);

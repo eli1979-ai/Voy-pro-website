@@ -45,9 +45,9 @@ const validatePage=(record,html,locale,filename)=>{
   const sourceGrid=html.indexOf('class="review-source-grid"');
   const sourceCta=html.indexOf('class="review-source-actions"');
   const ticker=html.indexOf('data-vp-reviews-root hidden');
-  if(!(trust>=0&&bridge>trust&&tour>bridge&&seo>tour&&sources>seo&&
-       sourceGrid>sources&&sourceCta>sourceGrid&&ticker>sourceCta))
-    fail(filename+': section sequence or consolidated source CTA is invalid');
+  if(!(trust>=0&&bridge>trust&&tour>bridge&&seo>tour&&
+       sourceCta>seo&&sourceCta<sources&&sourceGrid>sources&&ticker>sourceGrid))
+    fail(filename+': planning availability CTA must appear BEFORE closing review sources');
   if((html.match(/class="wrap proof"/g)||[]).length!==1)
     fail(filename+': duplicated mid-page ratings proof block must stay removed');
   if((html.match(/class="review-source-grid"/g)||[]).length!==1||
@@ -73,8 +73,10 @@ const validatePage=(record,html,locale,filename)=>{
     if(!new RegExp('class="review-source-card" data-review-source="'+source+'" href="https://').test(sourceBlock))
       fail(filename+': external review source link missing: '+source);
   }
-  if(!/class="review-source-actions"><a class="btn" data-track="booking_cta"/.test(sourceBlock))
-    fail(filename+': consolidated review CTA must preserve booking attribution');
+  const planningBlock=html.slice(seo,sources);
+  if(!/class="review-source-actions"><a class="btn" data-track="booking_cta" href="\/(?:he\/|hu\/)?budapest\/#booking"/.test(planningBlock)||
+      sourceBlock.includes('class="review-source-actions"'))
+    fail(filename+': booking attribution must remain on the planner CTA, not the review source strip');
 };
 const updatePage=(html,record,locale,file)=>{
   let result=html;
