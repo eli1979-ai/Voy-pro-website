@@ -36,6 +36,96 @@ for(const [file,groupHref,corporateHref] of pages){
   if(!hub.includes(`href="${groupHref}"`)) failures.push(`${file}: missing group-tour discovery link`);
   if(!hub.includes(`href="${corporateHref}"`)) failures.push(`${file}: missing corporate-event discovery link`);
 }
+// Tour-card intent is an accessible same-page booking action only when the
+// selected experience exists in the live form. If not, keep the original
+// localized route-page anchor functional instead of showing a wrong selection.
+const selectSource=fs.readFileSync('site/assets/site.js','utf8');
+const selectBegin=selectSource.indexOf('  function bindTourCardSelectors(){');
+const selectEnd=selectSource.indexOf('\n  bindTourCardSelectors();',selectBegin);
+if(selectBegin<0||selectEnd<0){
+  failures.push('Tour-card booking handler missing');
+}else{
+  const snippet=selectSource.slice(selectBegin,selectEnd)+'\n bindTourCardSelectors();';
+  for(const [locale,file] of [
+    ['en','site/budapest/index.html'],
+    ['he','site/he/budapest/index.html'],
+    ['hu','site/hu/budapest/index.html']
+  ]){
+    const html=fs.readFileSync(file,'utf8');
+    if((html.match(/data-select-experience=""/g)||[]).length!==2||
+       !html.includes('id="booking"')||
+       !html.includes('name="experience"'))
+      failures.push(file+': hub needs two live tour-card links and a booking form');
+    const knownValues=[...html.matchAll(/<option value="(exp_bud_(?:buda|margaret))"/g)]
+      .map(m=>m[1]);
+    if(knownValues.length!==2)failures.push(file+': expected Buda and Margaret form choices');
+
+    function run(optionIncluded=true,enabled=true,bookingPresent=true){
+      const events=[],focuses=[],changes=[],tracked=[],hints=[];
+      let action=null,scrolled=0;
+      const product={id:'exp_bud_margaret',slug:'margaret-island',bookingEnabled:enabled};
+      const card={dataset:{experienceSlugs:'margaret-island,margaret-island-tour'}};
+      const link={
+        closest(selector){return selector==='[data-tour-card]'?card:null;},
+        addEventListener(type,handler){if(type==='click')action=handler;}
+      };
+      const select={
+        options:optionIncluded?[{value:product.id,disabled:false}]:[{value:'exp_bud_buda',disabled:false}],
+        value:'exp_bud_buda',disabled:true,
+        dispatchEvent(event){changes.push(event.type);},
+        focus(options){focuses.push(['select',options?.preventScroll]);}
+      };
+      const title={tabIndex:undefined,
+        focus(options){focuses.push(['h2',options?.preventScroll]);}};
+      const booking={
+        querySelector(selector){return selector==='h2'?title:null;},
+        scrollIntoView(options){scrolled++;events.push(options.block);}
+      };
+      const document={
+        querySelectorAll(selector){return selector==='[data-select-experience]'?[link]:[];},
+        querySelector(selector){
+          if(selector==='select[name="experience"]')return select;
+          if(selector==='#booking')return bookingPresent?booking:null;
+          return null;
+        }
+      };
+      vm.runInNewContext(snippet,{
+        document,productByAliases:()=>product,
+        setSelectedTourHint:p=>hints.push(p.id),
+        track:(name)=>tracked.push(name),patchSession:()=>{},page:'budapest',
+        Event:class {constructor(type){this.type=type;}},
+        Array
+      },{timeout:1000,filename:'tour-card-selector.js'});
+      if(typeof action!=='function')throw Error('Tour card did not bind click');
+      const event={prevented:false,preventDefault(){this.prevented=true;}};
+      action(event);
+      return {event,select,events,focuses,changes,tracked,hints,scrolled,title};
+    }
+    try{
+      const ok=run();
+      if(!ok.event.prevented||ok.select.value!=='exp_bud_margaret'||
+         ok.changes.join(',')!=='change'||ok.hints.join(',')!=='exp_bud_margaret'||
+         ok.tracked.join(',')!=='tour_card_selected'||ok.scrolled!==1||
+         ok.focuses.length!==1||ok.focuses[0][0]!=='h2'||
+         ok.focuses[0][1]!==true||ok.title.tabIndex!==-1)
+        failures.push(locale+': successful tour-card selection must switch form, scroll and focus heading');
+      for(const [description,args] of [
+        ['option removed',[false,true,true]],
+        ['product unavailable',[true,false,true]],
+        ['booking section missing',[true,true,false]]
+      ]){
+        const fallback=run(...args);
+        if(fallback.event.prevented||fallback.scrolled||fallback.tracked.length||
+          fallback.hints.length||fallback.changes.length||fallback.focuses.length)
+          failures.push(locale+': '+description+' must preserve the original route-page link');
+      }
+    }catch(error){
+      failures.push(locale+': tour-card selector behavior test failed: '+error.message);
+    }
+  }
+}
+
+
 // The EZRaider vehicle guide is network-wide and remains localized.
 const vehicleFiles=[
   {locale:'en',prefix:'',home:'site/budapest/index.html'},
