@@ -98,7 +98,7 @@ try{
     assert.ok(read(sample).includes(extra),
       'a review-count update must not alter unrelated numeric content: '+provider);
     const homeCounts=[...read('site/index.html').matchAll(
-      new RegExp('<span data-review-count="'+provider+'">([\\\\d ,]+)</span>','g'))];
+      new RegExp('<span data-review-count="'+provider+'">([\\d ,]+)</span>','g'))];
     assert.equal(homeCounts.length,1,
       'parent homepage must keep precisely one rating count per source');
     assert.equal(homeCounts[0][1],format(count,'en'),
