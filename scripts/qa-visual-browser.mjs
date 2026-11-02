@@ -198,6 +198,22 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         }
       }
     }
+    if(path==='/hu/budapest/'){
+      // HU planner links should introduce individual tours before booking;
+      // the extended tour is request-only, not a generic instant-booking CTA.
+      const plannerLinks=await page.evaluate(()=>{
+        const links=[...document.querySelectorAll('.budapest-seo-links .seo-links a')];
+        const find=label=>links.find(a=>a.textContent.trim()===label)?.getAttribute('href')||null;
+        return {
+          buda:find('Budavári túra'),
+          extended:find('Buda + Margitsziget hosszabb túra')
+        };
+      });
+      check(plannerLinks.buda==='/hu/budapest/tours/buda-castle-ezraider-tour/',
+        name+' HU Buda planner opens the actual tour details');
+      check(plannerLinks.extended==='/hu/budapest/tours/buda-margaret-extended-tour/',
+        name+' HU extended planner opens request-only tour details');
+    }
     if(path==='/'){
       // Real Chrome regression for the Budapest-only network home ratings.
       // The global <=800px rule stacks generic .trust-grid into one column;
