@@ -31,7 +31,7 @@ try{
   for(const relative of [
     'scripts/budapest-review-counts.mjs','site/assets/budapest-reputation.json',
     'site/assets/site.css','site/assets/budapest-review-sources-compact.css',
-    'site/budapest','site/he/budapest','site/hu/budapest'
+    'site/index.html','site/budapest','site/he/budapest','site/hu/budapest'
   ])copy(relative);
   const original=JSON.parse(read('site/assets/budapest-reputation.json'));
   const sample='site/budapest/first-day/index.html';
@@ -51,6 +51,7 @@ try{
     const args=['--update',provider,String(count),'2026-10-23',snapshots[provider]];
     const beforePlanSnapshot=read('site/assets/budapest-reputation.json');
     const beforePlanLanding=read('site/budapest/index.html');
+    const beforePlanHome=read('site/index.html');
     const beforePlanSample=read(sample);
     const plan=JSON.parse(run([...args,'--dry-run']));
     assert.deepEqual([plan.mode,plan.platform,plan.newCount],
@@ -61,10 +62,14 @@ try{
       plan.changedPages.includes('site/he/budapest/index.html')&&
       plan.changedPages.includes('site/hu/budapest/index.html'),
       'preview must list every localized Budapest landing page');
+    assert.ok(plan.changedPages.includes('site/index.html'),
+      'any verified Budapest count change must also update the parent home ratings');
     assert.equal(read('site/assets/budapest-reputation.json'),beforePlanSnapshot,
       'dry-run must never touch the current reputation snapshot');
     assert.equal(read('site/budapest/index.html'),beforePlanLanding,
       'dry-run must never change localized site pages');
+    assert.equal(read('site/index.html'),beforePlanHome,
+      'dry-run must leave the parent homepage ratings untouched');
     assert.equal(read(sample),beforePlanSample,
       'dry-run must leave the injected unrelated numbers untouched');
     assert.match(run(args),/Updated verified/);
@@ -92,6 +97,12 @@ try{
     assert.match(run(['--check']),/Budapest review layout and counts consistent/);
     assert.ok(read(sample).includes(extra),
       'a review-count update must not alter unrelated numeric content: '+provider);
+    const homeCounts=[...read('site/index.html').matchAll(
+      new RegExp('<span data-review-count="'+provider+'">([\\\\d ,]+)</span>','g'))];
+    assert.equal(homeCounts.length,1,
+      'parent homepage must keep precisely one rating count per source');
+    assert.equal(homeCounts[0][1],format(count,'en'),
+      provider+' must also refresh the visible Budapest count on the parent homepage');
     const current=JSON.parse(read('site/assets/budapest-reputation.json'));
     assert.equal(current[provider].review_count,count);
     assert.equal(current[provider].verified_at,'2026-10-23');
