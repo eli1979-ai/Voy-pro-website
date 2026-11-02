@@ -199,6 +199,39 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       }
     }
     if(path==='/'){
+      // Real Chrome regression for the Budapest-only network home ratings.
+      // The global <=800px rule stacks generic .trust-grid into one column;
+      // this particular three-source band must remain compact and in one row.
+      const homeRatings=await page.evaluate(()=>{
+        const sections=[...document.querySelectorAll('section.network-trust')];
+        const band=sections[0];
+        const grid=band?.querySelector('.trust-grid');
+        const cards=[...(grid?.querySelectorAll('.trust-item')||[])];
+        const bounds=grid?.getBoundingClientRect();
+        const items=cards.map(card=>card.getBoundingClientRect());
+        const hero=document.querySelector('main .hero');
+        const guide=document.querySelector('main .ez-vehicle-bridge');
+        return {
+          sectionCount:sections.length,
+          count:cards.length,
+          sources:cards.map(card=>card.querySelector('.trust-source')?.textContent.trim()).join('|'),
+          columns:grid?getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length:0,
+          row:items.length===3&&items.every(item=>Math.abs(item.top-items[0].top)<=2),
+          contained:!!bounds&&items.every(item=>item.width>0&&
+            item.left>=bounds.left-2&&item.right<=bounds.right+2),
+          attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
+          order:!!(hero&&guide&&band&&hero.getBoundingClientRect().top<=
+            band.getBoundingClientRect().top&&band.getBoundingClientRect().top<
+            guide.getBoundingClientRect().top)
+        };
+      });
+      check(homeRatings.sectionCount===1&&homeRatings.count===3&&
+        homeRatings.sources==='Google|Tripadvisor|GetYourGuide',
+        name+' one honest Budapest-only three-platform trust band');
+      check(homeRatings.attributed&&homeRatings.order,
+        name+' root trust attribution and placement before EZRaider guide');
+      check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
+        name+' root trust stays in one contained three-column row at '+viewport.width+'px');
       const proof=await page.evaluate(()=>{
         const root=document.querySelector('.parent-hero-mosaic');
         const cards=[...document.querySelectorAll('.parent-hero-destination')];
