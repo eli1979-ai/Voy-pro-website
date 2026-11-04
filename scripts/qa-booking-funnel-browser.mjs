@@ -993,7 +993,22 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
       response=deny(headers);
     }else if(endpoint==='/bookings'&&method==='POST')response=deny(headers);
     else if(endpoint==='/payments/intents'&&method==='POST')response=deny(headers);
-    else if(endpoint.startsWith('/manage/')&&method==='GET')response=deny(headers);
+    else if(stage==='manage-allowed'&&method==='GET'&&endpoint==='/manage/synthetic_only'){
+      response={status:200,headers,body:JSON.stringify({
+        reference:'SYNTHETIC-EXISTING',status:'confirmed',
+        selected_date:'2099-01-01',slot_time:'10:30',party_size:2,
+        group_composition:{riders_16_plus:2,child_passengers_3_15:0,baby_passengers_1_2:0},
+        experience_slug:'buda-highlights',guide_language:'en',total:140,currency:'EUR',
+        payment_status:'unpaid',payment_method:'pay_arrival_cash',
+        customer:{email:'original@example.invalid',phone:'0000000000',preferred_language:'en'}
+      })};
+    }else if(stage==='manage-allowed'&&method==='GET'&&endpoint==='/manage/synthetic_only/options'){
+      response={status:200,headers,body:JSON.stringify({
+        can_change_datetime:false,cancellation:{allowed:false}
+      })};
+    }else if(stage==='manage-allowed'&&method==='GET'&&endpoint==='/manage/synthetic_only/riders'){
+      response={status:200,headers,body:'{"riders":[]}'};
+    }else if(endpoint.startsWith('/manage/')&&method==='GET')response=deny(headers);
     else if((endpoint.startsWith('/manage/')||endpoint.startsWith('/booking-capacity-requests'))
       &&method!=='GET')response=deny(headers);
     else if(method!=='GET')response=deny(headers);
@@ -1003,7 +1018,7 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
   try{
     const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
     check(response?.status()===200,label+' synthetic page loads');
-    if(stage==='manage-off'||stage==='manage-denied'){
+    if(stage==='manage-off'||stage==='manage-denied'||stage==='manage-allowed'){
       if(stage==='manage-off'){
         await page.waitForFunction(()=>document.querySelector('#manage-box')?.textContent
           ?.includes('support@voy-pro.com'),null,{timeout:8000});
@@ -1011,15 +1026,37 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
           label+' disabled historic Manage makes no token request');
         check(await page.locator('#manage-box a[href="mailto:support@voy-pro.com"]').count()===1,
           label+' historic Manage provides human email');
-      }else{
-        await page.locator('#manage-box .manage-error a[href^="https://wa.me/"]')
-          .waitFor({state:'attached',timeout:10000});
+      }else if(stage==='manage-denied'){
+        await wait(450);
         check(calls.some(c=>c.method==='GET'&&c.path.startsWith('/manage/')),
-          label+' synthetic private token reads only from the scoped Manage URL');
+          label+' synthetic private token sends read GET only');
         check(!calls.some(c=>['PATCH','POST','DELETE'].includes(c.method)&&c.path.startsWith('/manage/')),
           label+' failed Manage read performs no mutation');
-        check(await page.locator('#manage-box .manage-error a[href^="https://wa.me/"]').count()>0,
-          label+' denied token routes to human WhatsApp');
+        const fallback=await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0;
+        check(fallback,label+' denied token routes to human WhatsApp');
+        if(!fallback){
+          const snapshot=await page.locator('#manage-box').innerText().catch(()=>'<box unavailable>');
+          failures.push(label+' manage fallback diagnostic: '+snapshot.slice(0,200)+
+            ' | page errors='+errors.slice(0,2).join('; '));
+        }
+      }else{
+        await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:8000});
+        check((await page.locator('#manage-box .manage-head h2').innerText()).includes('SYNTHETIC-EXISTING'),
+          label+' existing booking details visible from authorized synthetic read');
+        check(calls.some(c=>c.method==='GET'&&c.path==='/manage/synthetic_only'),
+          label+' private Manage GET uses scoped token');
+        const form=page.locator('#manage-contact');
+        await form.locator('[name="email"]').fill('updated@example.invalid');
+        await form.locator('button[type="submit"]').click();
+        await page.waitForFunction(()=>/verify whether|לא הצלחנו לאמת|Could not update/i.test(
+          document.querySelector('[data-contact-status]')?.textContent||''),null,{timeout:8000});
+        check(calls.filter(c=>c.method==='PATCH'&&c.path==='/manage/synthetic_only').length===1,
+          label+' customer change uses one protected PATCH, never public POST booking');
+        check(!/Contact details updated|פרטי הקשר עודכנו/i.test(
+          await page.locator('[data-contact-status]').innerText()),
+          label+' denied Manage mutation never shows saved confirmation');
+        check(await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0,
+          label+' existing booking retains human WhatsApp support');
       }
       check(!calls.some(c=>c.path==='/bookings'||c.path==='/payments/intents'),
         label+' historic Manage cannot become public checkout');
@@ -1106,10 +1143,12 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
       check(calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length===attempts,
         label+' no automatic retry after server rejection');
       const statusText=await page.locator('#availability-status').innerText();
-      check(!/try again|נסו שוב|próbáld újra|próbálja újra/i.test(statusText),
-        label+' manual-only server rejection must not suggest public retry');
-      check(await page.locator('#availability-form button[type="submit"]').isDisabled(),
-        label+' explicit manual-only reject disables further public availability');
+      if(status===423){
+        check(!/try again|נסו שוב|próbáld újra|próbálja újra/i.test(statusText),
+          label+' explicit 423 manual-only denial must not suggest public retry');
+        check(await page.locator('#availability-form button[type="submit"]').isDisabled(),
+          label+' explicit 423 manual-only denial disables further public availability');
+      }
     }else if(stage==='booking'||stage==='payment'){
       const text=await page.locator('[data-checkout-status]').innerText();
       check(!/Retry this same request|לנסות שוב את אותה בקשה|Próbáld újra ugyanazt/i.test(text),
@@ -1192,6 +1231,8 @@ try{
     {stage:'manage-off',status:423});
   await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
     {stage:'manage-denied',status:423});
+  await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
+    {stage:'manage-allowed',status:423});
   for(const [lang,path] of [['en','/portugal/'],['he','/he/portugal/'],['pt','/pt/portugal/']])
     await serverDenyAudit(lang,path,{stage:'marvao',status:423});
 
