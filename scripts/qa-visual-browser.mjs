@@ -12,7 +12,7 @@ const out=resolve('visual-qa-output');
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8',
   '.js':'text/javascript; charset=utf-8','.json':'application/json',
   '.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg',
-  '.jpeg':'image/jpeg','.webp':'image/webp','.ico':'image/x-icon',
+  '.jpeg':'image/jpeg','.webp':'image/webp','.mp4':'video/mp4','.ico':'image/x-icon',
   '.woff2':'font/woff2','.woff':'font/woff'};
 const server=createServer(async(req,res)=>{
   try{
@@ -169,8 +169,8 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
               name+' infinite-scroll duplicate is excluded from the accessible tab order');
             const rightControl=carousel.locator('[data-vp-reviews-right]');
             const pauseControl=carousel.locator('[data-vp-reviews-pause]');
-            check(await pauseControl.isHidden(),
-              name+' reduced-motion mode hides unnecessary auto-scroll Resume control');
+            check(await pauseControl.isVisible(),
+              name+' reduced-motion mode keeps an explicit opt-in Resume control available');
             await duplicate.evaluate(el=>el.click());
             await modal.waitFor({state:'visible',timeout:4000});
             await page.keyboard.press('Escape');
@@ -178,10 +178,10 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
             // Escape asynchronously; assert the eventual accessible focus
             // destination instead of racing the browser's close callback.
             await page.waitForFunction(()=>
-              document.activeElement===document.querySelector('[data-vp-reviews-right]'),
+              document.activeElement===document.querySelector('[data-vp-reviews-pause]'),
               null,{timeout:3000}).catch(()=>{});
-            check(await rightControl.evaluate(el=>document.activeElement===el),
-              name+' duplicate review close focuses visible manual arrow with reduced motion');
+            check(await pauseControl.evaluate(el=>document.activeElement===el),
+              name+' duplicate review close focuses visible reduced-motion Resume control');
             await page.emulateMedia({reducedMotion:'no-preference'});
             await page.waitForFunction(()=>
               document.querySelector('[data-vp-reviews-pause]')?.hidden===false,
@@ -198,7 +198,56 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         }
       }
     }
+    if(path==='/hu/budapest/'){
+      // HU planner links should introduce individual tours before booking;
+      // the extended tour is request-only, not a generic instant-booking CTA.
+      const plannerLinks=await page.evaluate(()=>{
+        const links=[...document.querySelectorAll('.budapest-seo-links .seo-links a')];
+        const find=label=>links.find(a=>a.textContent.trim()===label)?.getAttribute('href')||null;
+        return {
+          buda:find('Budavári túra'),
+          extended:find('Buda + Margitsziget hosszabb túra')
+        };
+      });
+      check(plannerLinks.buda==='/hu/budapest/tours/buda-castle-ezraider-tour/',
+        name+' HU Buda planner opens the actual tour details');
+      check(plannerLinks.extended==='/hu/budapest/tours/buda-margaret-extended-tour/',
+        name+' HU extended planner opens request-only tour details');
+    }
     if(path==='/'){
+      // Real Chrome regression for the Budapest-only network home ratings.
+      // The global <=800px rule stacks generic .trust-grid into one column;
+      // this particular three-source band must remain compact and in one row.
+      const homeRatings=await page.evaluate(()=>{
+        const sections=[...document.querySelectorAll('section.network-trust')];
+        const band=sections[0];
+        const grid=band?.querySelector('.trust-grid');
+        const cards=[...(grid?.querySelectorAll('.trust-item')||[])];
+        const bounds=grid?.getBoundingClientRect();
+        const items=cards.map(card=>card.getBoundingClientRect());
+        const hero=document.querySelector('main .hero');
+        const guide=document.querySelector('main .ez-vehicle-bridge');
+        return {
+          sectionCount:sections.length,
+          count:cards.length,
+          sources:cards.map(card=>card.querySelector('.trust-source')?.textContent.trim()).join('|'),
+          columns:grid?getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length:0,
+          row:items.length===3&&items.every(item=>Math.abs(item.top-items[0].top)<=2),
+          contained:!!bounds&&items.every(item=>item.width>0&&
+            item.left>=bounds.left-2&&item.right<=bounds.right+2),
+          attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
+          order:!!(hero&&guide&&band&&hero.getBoundingClientRect().top<=
+            band.getBoundingClientRect().top&&band.getBoundingClientRect().top<
+            guide.getBoundingClientRect().top)
+        };
+      });
+      check(homeRatings.sectionCount===1&&homeRatings.count===3&&
+        homeRatings.sources==='Google|Tripadvisor|GetYourGuide',
+        name+' one honest Budapest-only three-platform trust band');
+      check(homeRatings.attributed&&homeRatings.order,
+        name+' root trust attribution and placement before EZRaider guide');
+      check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
+        name+' root trust stays in one contained three-column row at '+viewport.width+'px');
       const proof=await page.evaluate(()=>{
         const root=document.querySelector('.parent-hero-mosaic');
         const cards=[...document.querySelectorAll('.parent-hero-destination')];
@@ -1036,7 +1085,7 @@ try{
   for(const cfg of [
     {code:'he',heading:'העמוד לא נמצא.',budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he',dir:'rtl'},
     {code:'hu',heading:'Ez az oldal nem található.',budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu',dir:'ltr'},
-    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/',dir:'ltr'}
+    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt',dir:'ltr'}
   ]){
     const name='404-locale-'+cfg.code;
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});
@@ -1096,13 +1145,95 @@ try{
     }finally{await page.close();}
   }
 
+  // Budapest review-ribbon desktop regression: older builds could render
+  // the complete approved reviews but appear motionless on large screens.
+  // Verify actual animation frames and explicit Pause/Resume in normal motion,
+  // plus the accessibility no-autoplay contract under reduced motion.
+  // Each locale is rendered from its own built page: no public network or FBM.
+  for(const [lang,path] of [
+    ['en','/budapest/'],
+    ['he','/he/budapest/'],
+    ['hu','/hu/budapest/']
+  ]){
+    const name='budapest-desktop-review-motion-'+lang;
+    const page=await browser.newPage({
+      viewport:{width:1365,height:900},deviceScaleFactor:1,
+      reducedMotion:'no-preference'
+    });
+    const errors=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' local Budapest page available');
+      const ribbon=page.locator('[data-vp-reviews-root]');
+      await ribbon.waitFor({state:'visible',timeout:8000});
+      check(await ribbon.locator('.vp-review-card').count()===60,
+        name+' all 20 approved reviews in three continuous groups');
+      const viewport=ribbon.locator('[data-vp-reviews-viewport]');
+      const pause=ribbon.locator('[data-vp-reviews-pause]');
+      const state=()=>viewport.evaluate(el=>({
+        left:el.scrollLeft,paused:el.closest('[data-vp-reviews-root]')?.classList.contains('is-paused'),
+        width:el.scrollWidth,client:el.clientWidth,visibility:document.visibilityState
+      }));
+      const initial=await state();
+      check(initial.width>initial.client*2&&initial.visibility==='visible',
+        name+' wide desktop track can scroll in visible tab');
+      await page.waitForTimeout(800);
+      const moving=await state();
+      check(moving.left-initial.left>=12&&!moving.paused,
+        name+' desktop ticker actually advances automatically without user input');
+      // Exercise the rendered button rather than mutating the class directly.
+      await pause.click();
+      const halted=await state();
+      await page.waitForTimeout(320);
+      const afterPause=await state();
+      check(halted.paused&&Math.abs(afterPause.left-halted.left)<=2,
+        name+' Pause stops desktop ribbon without drifting');
+      await pause.click();
+      const resumed=await state();
+      await page.waitForTimeout(640);
+      const afterResume=await state();
+      check(!afterResume.paused&&afterResume.left-resumed.left>=10,
+        name+' Resume restarts visible motion without hover/focus deadlock');
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.waitForTimeout(100);
+      const reduced=await state();
+      await page.waitForTimeout(320);
+      const reducedAfter=await state();
+      check(reduced.paused&&Math.abs(reducedAfter.left-reduced.left)<=2,
+        name+' OS reduced-motion preference stops automatic movement');
+      check(await pause.isVisible(),name+' reduced-motion still offers a visible manual control');
+      // Until the next curated media batch, keep only the six original photos.
+      check(await page.locator('.photo-gallery-owned').count()===0,
+        name+' temporary owner photo cards absent');
+      check(await page.locator('.photo-gallery-grid .photo-tile').count()===6,
+        name+' six original Budapest gallery photos preserved');
+      const gallerySources=await page.locator('.photo-gallery-grid .photo-tile img')
+        .evaluateAll(nodes=>nodes.map(node=>node.getAttribute('src')));
+      check(gallerySources.length===6&&gallerySources.every(src=>
+        /^\/assets\/images\/budapest\/img\d+\.jpg$/.test(src)),
+        name+' original Budapest images remain same-origin');
+      check(errors.length===0,name+' no browser script errors');
+      await page.screenshot({path:join(out,name+'.png'),fullPage:false});
+      results.push('SCREENSHOT: '+name+'.png | 1365x900 | normal motion then OS reduced motion');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' desktop motion '+String(error).slice(0,850));
+    }finally{await page.close();}
+  }
+
   // #712 — real local Chromium rendering of a tokenless Manage landing.
   // Booking data is never accessed. This checks the safe fallback rather
   // than adding a speculative public-booking lookup to the website.
   for(const [lang,path,expected] of [
     ['en','/manage/','Booking details cannot be opened from this link.'],
     ['he','/manage/?lang=he','לא ניתן לפתוח את פרטי ההזמנה מהקישור הזה.'],
-    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.']
+    ['hu','/manage/?lang=hu','Ebből a linkből nem nyithatók meg a foglalási adatok.'],
+    ['pt','/manage/?lang=pt','Não é possível abrir os detalhes da reserva a partir deste link.']
   ]){
     const name='manage-tokenless-'+lang;
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1});
@@ -1130,9 +1261,11 @@ try{
         };
       });
       check(state.lang===lang,name+' locale matches requested language');
+      if(lang==='pt')check(await page.locator('[data-manage-home]').getAttribute('href')==='/',name+' global brand link remains network homepage');
       check(state.text.includes(expected),name+' explains private Manage link or support');
       check(state.support==='mailto:support@voy-pro.com',name+' support email is clickable');
       check(state.inputs===0,name+' does not offer an unauthenticated lookup form');
+      if(lang==='pt'){check(await page.locator('footer a[href="/manage/?lang=pt"]').count()===1,name+' local service navigation points to Portuguese help');check(await page.locator('footer a[href="/pt/portugal/"]').count()>=1,name+' Marvão Portuguese link remains reachable in footer');}
       check(state.overflow<=2,name+' no horizontal overflow at 390px');
       check(state.dir===(lang==='he'?'rtl':'ltr'),name+' local direction is preserved');
       check(errors.length===0,name+' no uncaught browser JavaScript errors');
@@ -1140,6 +1273,43 @@ try{
       results.push('SCREENSHOT: '+name+'.png | 390x844 | local built no-token Manage landing');
     }catch(error){
       failures++;results.push('FAIL: '+name+' browser recovery '+String(error).slice(0,900));
+    }finally{await page.close();}
+  }
+
+
+  // Media rollback: original Marvão partner gallery and booking CTAs remain.
+  for(const [lang,path,viewport] of [
+    ['en','/portugal/',{width:1365,height:900}],
+    ['pt','/pt/portugal/',{width:390,height:844}],
+    ['he','/he/portugal/',{width:320,height:700}]
+  ]){
+    const name='marvao-media-rollback-'+lang;
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base
+        ?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' page HTTP 200');
+      check(await page.locator('.portugal-gallery-grid figure').count()===4,
+        name+' original four partner photos retained');
+      check(await page.locator('.portugal-owner-photo').count()===0,
+        name+' temporary owner-photo features removed');
+      check(await page.locator('.portugal-owner-video').count()===0&&
+        await page.locator('.portugal-hero-video-link').count()===0,
+        name+' former video and video CTA removed');
+      check(await page.locator('.portugal-hero .hero-actions a[href="#tours"]').count()===1&&
+        await page.locator('.portugal-hero .hero-actions a[href="#request"]').count()===1,
+        name+' tour and availability CTAs preserved');
+      check(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)<=2,
+        name+' no horizontal overflow');
+      check(errors.length===0,name+' no page errors');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' '+String(error).slice(0,700));
     }finally{await page.close();}
   }
 

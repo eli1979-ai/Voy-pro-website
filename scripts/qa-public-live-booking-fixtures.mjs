@@ -394,7 +394,144 @@ async function scenario(locale,path,{recovery=null,sessionStalled=false}={}){
     if(row.passed)console.log('PASS public deployed booking with fixture '+locale+' ('+row.checks.length+' checks)');
   }
 }
+
+// Real public-domain homepage → availability behavior on the SAME deployed
+// HTML/JS/CSS as customers. FBM is simulated entirely inside Chrome.
+// No real holds, bookings, checkout, credentials or payment requests are sent.
+async function homepageTourCardScenario(locale,{removeOption=false}={}){
+  const prefix=locale==='en'?'':'/'+locale;
+  const home=prefix+'/budapest/';
+  const detail=prefix+'/budapest/tours/margaret-island-ezraider-tour/';
+  assert.ok(allowedPaths.has(home)&&allowedPaths.has(detail),
+    'Public booking fixture uses canonical home/tour pages only');
+  const row={locale,path:home,mode:removeOption?'missing-option':'normal',
+    passed:false,checks:[],backendCalls:[],blocked:0};
+  const context=await browser.newContext({
+    viewport:{width:390,height:844},reducedMotion:'reduce',
+    serviceWorkers:'block',acceptDownloads:false
+  });
+  const page=await context.newPage();
+  const errors=[];let unauthorized=0;
+  page.on('pageerror',err=>errors.push(err.message));
+  const check=(condition,label)=>{
+    assert.ok(condition,label);
+    row.checks.push(label);
+  };
+  try{
+    await context.route('**/*',async route=>{
+      const req=route.request(),url=new URL(req.url());
+      const endpoint=url.pathname.slice('/api/v1'.length);
+      if(url.origin===ORIGIN||url.origin==='https://www.voy-pro.com'){
+        if(req.method()==='GET'&&url.pathname==='/assets/runtime-config.js'&&!url.search)
+          return route.fulfill({status:200,contentType:'text/javascript',
+            body:'window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'+JSON.stringify(FAKE_API)+',clientKey:"browser_fixture_only"};'});
+        if(req.method()==='GET'&&!url.search&&
+          req.resourceType()==='document'&&allowedPaths.has(url.pathname))
+          return route.continue();
+        if(req.method()==='GET'&&url.pathname.startsWith('/assets/')&&
+          ['image','font','script','stylesheet','other','fetch'].includes(req.resourceType()))
+          return route.continue();
+        row.blocked++;return route.abort('blockedbyclient');
+      }
+      if(url.origin!==new URL(FAKE_API).origin||!url.pathname.startsWith('/api/v1/')){
+        row.blocked++;return route.abort('blockedbyclient');
+      }
+      const headers={'content-type':'application/json','access-control-allow-origin':ORIGIN,
+        'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type',
+        'access-control-allow-methods':'GET,POST,OPTIONS'};
+      if(req.method()==='OPTIONS')
+        return route.fulfill({status:204,headers,body:''});
+      row.backendCalls.push({method:req.method(),endpoint});
+      let data={ok:true},status=200;
+      if(endpoint==='/marketing/experiments'&&req.method()==='GET')
+        data={experiments:[]};
+      else if(endpoint==='/destinations/budapest'&&req.method()==='GET')
+        data={id:'budapest',rider_policy:policy,booking_horizon_days:21,
+          meeting_point:{address:'Városház utca 14, 1052 Budapest, Hungary',
+            maps_url:'https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac'}};
+      else if(endpoint==='/experiences'&&req.method()==='GET')data=productList;
+      else if(endpoint==='/payments/capabilities'&&req.method()==='GET')
+        data={online_card:false};
+      else if(endpoint==='/sessions'&&req.method()==='POST')
+        data={id:'public-home-fixture-session'};
+      else if(endpoint==='/sessions/public-home-fixture-session'&&
+        ['PATCH','POST'].includes(req.method()))data={ok:true};
+      else{
+        unauthorized++;
+        status=403;data={error:'forbidden in homepage browser fixture'};
+      }
+      return route.fulfill({status,headers,body:JSON.stringify(data)});
+    });
+    const response=await page.goto(ORIGIN+home,{waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,'public homepage HTTP 200');
+    await page.waitForFunction(()=>['granted','denied'].includes(
+      document.documentElement.dataset.analyticsConsent),null,{timeout:9000});
+    const essential=page.locator('[data-consent-essential]');
+    if(await essential.isVisible().catch(()=>false))await essential.click();
+    await page.waitForFunction(()=>!document.body.classList.contains('consent-open'),
+      null,{timeout:9500});
+    await page.waitForFunction(()=>
+      document.querySelector('[data-tour-card][data-experience-slugs*="margaret-island"]')?.classList.contains('is-live'),
+      null,{timeout:12000});
+    const card=page.locator('[data-tour-card][data-experience-slugs*="margaret-island"]');
+    const action=card.locator('[data-select-experience]');
+    const form=page.locator('#availability-form');
+    const picker=form.locator('select[name="experience"]');
+    check(await action.count()===1,'one live Margaret Island tour card CTA');
+    check(await picker.locator('option[value="exp_bud_margaret"]').count()===1,
+      'live catalog and booking form agree on Margaret Island');
+    if(removeOption)
+      await picker.locator('option[value="exp_bud_margaret"]').evaluate(el=>el.remove());
+    await action.focus();
+    await page.keyboard.press('Enter');
+    if(removeOption){
+      await page.waitForURL(url=>url.pathname===detail&&url.hash==='#booking',{timeout:12000});
+      check(new URL(page.url()).pathname===detail&&new URL(page.url()).hash==='#booking',
+        'unselectable tour preserves localized tour-page booking link');
+    }else{
+      await page.waitForFunction(()=>
+        document.querySelector('#availability-form select[name="experience"]')?.value==='exp_bud_margaret'&&
+        document.activeElement===document.querySelector('#booking h2'),
+        null,{timeout:9500});
+      check(new URL(page.url()).pathname===home,'valid tour stays on homepage');
+      check(await picker.inputValue()==='exp_bud_margaret',
+        'exact catalog product selected in booking form');
+      const state=await page.evaluate(()=>({
+        focusedTag:document.activeElement?.tagName,
+        focusedTabindex:document.activeElement?.tabIndex,
+        focusInside:document.querySelector('#booking')?.contains(document.activeElement),
+        hint:document.querySelector('[data-selected-tour-hint]')?.textContent?.trim()||''
+      }));
+      check(state.focusedTag==='H2'&&state.focusedTabindex===-1&&state.focusInside,
+        'keyboard focus moves to booking section heading');
+      check(state.hint.length>12,'selected-tour hint announces booking context');
+    }
+    check(unauthorized===0,'no unsupported backend operation attempted');
+    check(errors.length===0,'no uncaught page errors');
+    check(row.backendCalls.every(c=>!/(?:\/holds|\/quotes|\/bookings|\/payments\/intents)/.test(c.endpoint)),
+      'never attempts hold, booking or payment');
+    await page.screenshot({path:join(OUT,'homepage-'+locale+
+      (removeOption?'-fallback':'-selected')+'.png'),
+      animations:'disabled',timeout:10000});
+    row.passed=true;
+  }catch(error){
+    row.error=String(error?.message||error).replace(/[\r\n]/g,' ').slice(0,650);
+    console.error('FAIL homepage '+locale+' '+row.mode+' '+row.error);
+    await page.screenshot({path:join(OUT,'homepage-failed-'+locale+'-'+row.mode+'.png'),
+      timeout:6000}).catch(()=>{});
+  }finally{
+    await context.close();
+    results.push(row);
+    if(row.passed)console.log('PASS public homepage picker '+locale+' '+row.mode+
+      ' ('+row.checks.length+' checks)');
+  }
+}
+
 try{
+  for(const locale of ['en','he','hu']){
+    await homepageTourCardScenario(locale);
+    await homepageTourCardScenario(locale,{removeOption:true});
+  }
   for(const [locale,path] of paths)await scenario(locale,path);
   for(const [locale,path] of paths)await scenario(locale,path,{sessionStalled:true});
   for(const [locale,path] of paths)await scenario(locale,path,{recovery:'private'});
@@ -411,6 +548,7 @@ await writeFile(join(OUT,'results.json'),JSON.stringify(report,null,2));
 await writeFile(join(OUT,'report.md'),[
   '# VOY PRO public booking with isolated browser fixture',
   '**Scope:** Three guiding locales EN/HE/HU, real public assets, fake FBM entirely in Chrome.',
+  '**Home→booking:** six real public Chrome 390px keyboard scenarios, EN/HE/HU selection and missing-option route fallback.',
   '**Results:** '+report.passed+'/'+report.total+' passed.',
   'No real FBM, payment, WhatsApp, Maps or analytics requests are made.',
   ...results.map(r=>'- '+(r.passed?'PASS':'FAIL')+' '+r.locale+' '+(r.error||r.checks.length+' assertions')),

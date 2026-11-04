@@ -246,13 +246,13 @@ for(const language of ['en','he','hu']){
   const group=reduced.track.children[0];
   const clone=group.children[0].children[2].children[0].lastChild;
   clone.closest=selector=>selector==='.vp-review-group[aria-hidden="true"]'?group:null;
-  assertStrict.equal(reduced.pause.hidden,true);
+  assertStrict.equal(reduced.pause.hidden,false);
   clone.events.click();
   const dialogReduced=reduced.body.lastChild;
   assertStrict.equal(dialogReduced?.open,true,language+' reduced-motion duplicate modal opens');
   dialogReduced.close();
-  assertStrict.equal(reduced.right.focused,true,
-    language+' reduced-motion dialog focuses visible manual scroll control');
+  assertStrict.equal(reduced.pause.focused,true,
+    language+' reduced-motion dialog focuses visible Resume control');
   assertStrict.equal(Boolean(clone.focused),false,
     language+' reduced-motion dialog never focuses accessibility-hidden clone');
 }
@@ -296,8 +296,8 @@ for(const language of ['en','he','hu']){
 for(const language of ['en','he','hu']){
   const motionOff=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language,true);
   assert(motionOff.root.hidden===false,language+' reduced-motion reviews must remain visible');
-  assert(motionOff.pause.hidden===true&&motionOff.root.classList.states.has('is-paused'),
-    language+' reduced-motion ribbon must begin paused with unused Resume control hidden');
+  assert(motionOff.pause.hidden===false&&motionOff.root.classList.states.has('is-paused'),
+    language+' reduced-motion ribbon must begin paused with an accessible Resume control');
   assert(motionOff.frames.length===0,
     language+' reduced-motion ribbon must not schedule animation frames');
   const start=motionOff.viewport.scrollLeft;
@@ -308,6 +308,18 @@ for(const language of ['en','he','hu']){
     language+' manual navigation must not trigger background auto-scrolling');
   assert(motionOff.track.children[1]?.children?.length===20,
     language+' all original accessible reviews must remain visible in reduced motion');
+  // The normal desktop auto-scroll remains paused by OS preference, but a
+  // deliberate Resume is allowed to opt into motion without changing OS settings.
+  motionOff.pause.events.click();
+  assert(!motionOff.root.classList.states.has('is-paused'),
+    language+' explicit Resume overrides the default reduced-motion pause');
+  assert(motionOff.frames.length===1,
+    language+' explicit Resume starts exactly one animation loop');
+  const optInAt=motionOff.viewport.scrollLeft;
+  motionOff.frames[0](1000);
+  motionOff.frames[1](1070);
+  assert(motionOff.viewport.scrollLeft>optInAt,
+    language+' desktop reduced-motion opt-in must visibly move the ribbon');
 }
 
 assert(approved.track.children.length===3,'review track must contain a real group with repeated groups on both sides for looping');
@@ -319,7 +331,7 @@ for(const language of ['en','he','hu']){
   assertStrict.equal(liveMotion.frames.length,1,language+' starts with one scheduled frame');
   const oldFrame=liveMotion.frames[0];
   liveMotion.changeMotion(true);
-  assertStrict.equal(liveMotion.pause.hidden,true,language+' hides unnecessary pause button on reduce');
+  assertStrict.equal(liveMotion.pause.hidden,false,language+' keeps explicit Resume available on reduce');
   assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true);
   const oldFrameCount=liveMotion.frames.length;
   const stoppedAt=liveMotion.viewport.scrollLeft;
@@ -348,6 +360,8 @@ for(const language of ['en','he','hu']){
   liveMotion.changeMotion(true);
   assertStrict.equal(liveMotion.root.classList.states.has('is-paused'),true,
     language+' switching to reduced motion again must re-pause');
+  assertStrict.equal(liveMotion.pause.hidden,false,
+    language+' reduced-motion desktop always offers a visible Resume control');
 }
 
 // A background tab must not queue animation frames. Returning must create

@@ -10,6 +10,7 @@ import {chromium} from 'playwright';
 const ORIGIN='https://voy-pro.com';
 const HOSTS=new Set(['voy-pro.com','www.voy-pro.com']);
 const OUTPUT=resolve('visual-qa-output/public-live');
+
 const xml=await readFile('site/sitemap.xml','utf8');
 const urls=[...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map(match=>match[1]);
 assert.ok(urls.length>=40&&urls.length<=80,'Unexpected sitemap URL count');
@@ -30,7 +31,7 @@ const recoveryCases=[
   {path:'/hu/qa-not-found-visual-20261030/',lang:'hu',heading:'Ez az oldal nem található.',direction:'ltr',
     budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu'},
   {path:'/pt/qa-not-found-visual-20261030/',lang:'pt',heading:'Esta página não existe.',direction:'ltr',
-    budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/'}
+    budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt'}
 ];
 const tokenlessManageCases=[
   {path:'/manage/',search:'',lang:'en',copy:'Booking details cannot be opened from this link.',direction:'ltr'},
@@ -80,6 +81,8 @@ function allowedRequest(request){
       (url.pathname==='/manage/'&&allowedManageQueries.has(url.search))
     );
   }
+  // No first-party videos are exposed during the media replacement pause.
+  if(request.resourceType()==='media')return false;
   return url.pathname.startsWith('/assets/')&&
     /^(image|font|stylesheet|script|other)$/.test(request.resourceType());
 }
@@ -421,6 +424,7 @@ const markdown=[
   '**Blocked requests:** '+blockedRequests+' (external services, all writes, and non-allowlisted paths intentionally denied).',
   '**First-party asset HTTP failures:** '+assetFailures,
   '**Public recovery HTTP/mobile cases:** '+(recoveryCases.length+tokenlessManageCases.length)+' real 390px views with status, headers, locale, link hit-tests and screenshots; synthetic URLs contain no customer data.',
+  '**Public Marvão video:** EN 1440px / PT 390px / HE RTL 320px; real first-party WebP HTTP 200, video/mp4 HTTP 200/206 and native Chrome decoding after explicit play; no pre-play MP4 GET.',
   '',
   '## Failed checks',
   ...(failures.length?failures.map(f=>'- '+f):['- None']),
@@ -434,6 +438,7 @@ const markdown=[
   '',
   '## Limitations',
   'This is an anonymous read-only browser snapshot, not proof that maps, Stripe, FBM availability or authenticated customer journeys work. Third-party scripts and APIs are deliberately blocked.',
+  'Marvão native MP4 playback is verified only in the Chrome environment running this test, not iPhone/iOS Safari or every device.',
   'No production cutover, DNS, booking, payment, or search-indexing change is authorized by a passing test.',
   ''
 ].join('\n');

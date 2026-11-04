@@ -54,7 +54,11 @@
       if(started)render();
     });
   }
-  // Leave the accessible, first-party poster visible until Play is pressed.
-  // Even selecting another clip does not contact YouTube in advance.
+  // The owner requested the original muted autoplay experience back. The
+  // privacy-enhanced YouTube iframe is inserted as this guide opens, with
+  // autoplay=1, mute=1 and playsinline=1. No audio starts without a gesture.
+  // The original watch-on-YouTube link and clip switch remain available.
   updatePreview();
+  started=true;
+  render();
 })();

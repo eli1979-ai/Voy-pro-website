@@ -41,5 +41,31 @@ check(js.includes("link.style.setProperty('--booking-whatsapp-bottom',clearance+
 check(js.includes("new ResizeObserver(syncFloatingGap).observe(bar)"),'WhatsApp should adapt to bar height changes');
 check(js.includes("window.addEventListener('resize',syncFloatingGap"),'WhatsApp should adapt on viewport resize');
 check(css.includes('@media(max-width:800px)'),'Mobile breakpoint missing');
+
+// The WhatsApp action must be visually docked INSIDE a reserved slot in the
+// sticky mobile booking bar, rather than floating over tour copy or form fields.
+const dockMarker='/* 2026-11-01 mobile sticky WhatsApp docking';
+const dockedCss=css.slice(css.indexOf(dockMarker));
+check(css.includes(dockMarker),'Mobile sticky WhatsApp docking CSS missing');
+check(dockedCss.includes('@media(max-width:800px)'), 'Docking must be mobile-only');
+for(const locale of ['[data-page^="/budapest/"]','[data-page^="/he/budapest/"]','[data-page^="/hu/budapest/"]',
+'[data-page^="/portugal/"]','[data-page^="/he/portugal/"]','[data-page^="/pt/portugal/"]']){
+  check(dockedCss.includes(locale),'Mobile docking missing branch/locale: '+locale);
+}
+check(dockedCss.includes(':has(.compact-booking-whatsapp) .mobilebook{'),
+ 'Reserve sticky-bar space ONLY when the runtime compact WA control exists');
+check(dockedCss.includes('padding-inline-end:60px'),'Sticky CTA must reserve space for 44px WhatsApp');
+check(dockedCss.includes('.mobilebook>.btn{')&&dockedCss.includes('white-space:normal;'),
+ 'Long localized sticky primary CTA must be allowed to wrap, not overflow');
+check(dockedCss.includes('min-height:44px;')&&dockedCss.includes('width:44px;height:44px;'),
+ 'WhatsApp touch target must remain at least 44x44px');
+check(dockedCss.includes('bottom:calc(16px + env(safe-area-inset-bottom,0px))'),
+ 'Docked action must sit inside the booking bar, not 100px over copy');
+check(dockedCss.includes('.rtl .compact-booking-whatsapp{')&&dockedCss.includes('env(safe-area-inset-left,0px)'),
+ 'Docked WhatsApp must mirror in RTL and respect safe-area insets');
+check(js.includes("link.setAttribute('aria-label'"),'Keep WhatsApp screen-reader labeling');
+check(js.includes("const clearance=Math.ceil(window.innerHeight-rect.top+12);"),
+ 'Keep existing resize/WA routing runtime; CSS takes visual precedence at mobile widths');
+
 if(failures.length){console.error('Mobile sticky CTA checks FAIL:\n'+failures.join('\n'));process.exit(1)}
 console.log('Mobile sticky bar pricing and accessible compact WhatsApp checks OK (EN/HE/HU).');

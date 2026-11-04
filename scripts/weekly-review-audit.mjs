@@ -64,19 +64,24 @@ function render(reference=new Date()){
   ].join('\n');
 }
 if(process.argv.includes('--test')){
-  const result=render(new Date('2026-10-30T12:00:00Z'));
+  // Derive the fixture clock from the latest stored verification date.
+  // A fixed historical date would reject a legitimately refreshed snapshot.
+  const dates=platforms.map(({key})=>asDay(source[key].verified_at));
+  const newest=Math.max(...dates),earliest=Math.min(...dates);
+  const testDate=new Date(newest+3*day).toISOString().slice(0,10);
+  const result=render(new Date(testDate+'T12:00:00Z'));
   for(const {label} of platforms)assert.ok(result.includes(label));
-  assert.ok(result.includes('2026-10-30'));
+  assert.ok(result.includes(testDate));
   for(const {key} of platforms)assert.ok(result.includes(source[key].verified_at));
   assert.ok(result.includes('dry-run')&&result.includes('unverified'));
   assert.ok(result.includes('voy-pro-budapest-weekly-reputation'));
   assert.equal((result.match(/\[Open listing\]/g)||[]).length,3);
   assert.ok(result.includes('Within 7-day interval — not a live reading'),
     'Recent stored counts are still not live counts');
-  const stale=render(new Date('2026-11-10T12:00:00Z'));
+  const stale=render(new Date(newest+20*day));
   for(const {label} of platforms)assert.ok(stale.includes('| '+label+' |')&&stale.includes('DUE — source check required'));
   assert.ok(stale.includes('require fresh official-page verification'));
-  assert.throws(()=>render(new Date('2026-10-20T12:00:00Z')),/future verification date/,
+  assert.throws(()=>render(new Date(earliest-day)),/future verification date/,
     'The checklist must reject future-dated verification rather than report 0-day freshness');
   console.log('Budapest weekly review evidence report QA passed: three canonical sources, explicit provenance, safe no-update guardrails.');
 }else if(process.argv.length>2||process.argv.length===3)throw Error('Usage: weekly-review-audit.mjs [--test]');

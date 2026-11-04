@@ -578,6 +578,121 @@ async function scenario(lang,path,{catalogDown=false,overnightRollover=false,rec
     await page.close();
   }
 }
+
+// Real Chrome test of the Budapest HOME → tour-card → booking form journey.
+// All FBM endpoints, session writes and availability are simulated in-browser.
+// Only page assets are fetched from the local built dist; there are no guest
+// records, real holds, real availability, Stripe calls or vendor requests.
+async function tourPickerHomepageScenario(locale,{missingOption=false}={}){
+  const prefix=locale==='en'?'':'/'+locale;
+  const home=prefix+'/budapest/';
+  const target=prefix+'/budapest/tours/margaret-island-ezraider-tour/';
+  const name=locale+' homepage tour picker'+(missingOption?' fallback':' selected');
+  const context=await browser.newContext({
+    viewport:{width:390,height:844},reducedMotion:'reduce',
+    serviceWorkers:'block',acceptDownloads:false
+  });
+  const page=await context.newPage();
+  const calls=[],errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  try{
+    await context.route('**/*',async route=>{
+      const request=route.request();
+      const url=new URL(request.url());
+      if(url.origin===local){
+        if(url.pathname==='/assets/runtime-config.js')
+          return route.fulfill({status:200,contentType:'text/javascript',
+            body:'window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'+JSON.stringify(fakeApi)+',clientKey:"test_public_fixture"};'});
+        return route.continue();
+      }
+      if(url.origin!==new URL(fakeApi).origin||!url.pathname.startsWith('/api/v1/'))
+        return route.abort('blockedbyclient');
+      const endpoint=url.pathname.slice('/api/v1'.length);
+      const headers={'content-type':'application/json','access-control-allow-origin':local,
+        'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type',
+        'access-control-allow-methods':'GET,POST,PATCH,OPTIONS'};
+      if(request.method()==='OPTIONS')
+        return route.fulfill({status:204,headers,body:''});
+      calls.push({method:request.method(),endpoint});
+      let payload={ok:true},status=200;
+      if(endpoint==='/experiences'&&request.method()==='GET')payload=products;
+      else if(endpoint==='/destinations/budapest'&&request.method()==='GET')
+        payload={id:'budapest',rider_policy:fixturePolicy,booking_horizon_days:21,
+          meeting_point:{address:'Városház utca 14, 1052 Budapest, Hungary',
+            maps_url:'https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac'}};
+      else if(endpoint==='/marketing/experiments'&&request.method()==='GET')
+        payload={experiments:[]};
+      else if(endpoint==='/payments/capabilities'&&request.method()==='GET')
+        payload={online_card:false};
+      else if(endpoint==='/sessions'&&request.method()==='POST')
+        payload={id:'mock-home-picker-session'};
+      else if(endpoint.startsWith('/sessions/')&&['PATCH','POST'].includes(request.method()))
+        payload={ok:true};
+      else if(/^\/experiences\/[^/]+\/availability$/.test(endpoint)&&request.method()==='GET')
+        payload={slots:[]};
+      else{
+        status=403;payload={error:'unapproved browser fixture operation'};
+        failures.push(name+' unexpectedly called '+request.method()+' '+endpoint);
+      }
+      return route.fulfill({status,headers,body:JSON.stringify(payload)});
+    });
+    const response=await page.goto(local+home,{waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,name+' local home renders');
+    await page.waitForFunction(()=>['granted','denied'].includes(
+      document.documentElement.dataset.analyticsConsent),null,{timeout:8500});
+    const essential=page.locator('[data-consent-essential]');
+    if(await essential.isVisible().catch(()=>false))await essential.click();
+    await page.waitForFunction(()=>!document.body.classList.contains('consent-open'),
+      null,{timeout:8500});
+    const card=page.locator('[data-tour-card][data-experience-slugs*="margaret-island"]');
+    await page.waitForFunction(()=>
+      document.querySelector('[data-tour-card][data-experience-slugs*="margaret-island"]')?.classList.contains('is-live'),
+      null,{timeout:9500});
+    const link=card.locator('[data-select-experience]');
+    const select=page.locator('#availability-form select[name="experience"]');
+    check(await link.count()===1,name+' card has a single action');
+    check(await select.locator('option[value="exp_bud_margaret"]').count()===1,
+      name+' product matches catalog option');
+    if(missingOption)await select.locator('option[value="exp_bud_margaret"]').evaluate(node=>node.remove());
+    await link.focus();
+    await page.keyboard.press('Enter');
+    if(missingOption){
+      await page.waitForURL(url=>url.pathname===target&&url.hash==='#booking',{timeout:10000});
+      check(new URL(page.url()).pathname===target&&new URL(page.url()).hash==='#booking',
+        name+' preserves localized route-page fallback');
+    }else{
+      await page.waitForFunction(()=>
+        document.querySelector('#availability-form select[name="experience"]')?.value==='exp_bud_margaret'&&
+        document.activeElement===document.querySelector('#booking h2'),
+        null,{timeout:7000});
+      check(new URL(page.url()).pathname===home,
+        name+' stays on the booking-capable home');
+      check(await select.inputValue()==='exp_bud_margaret',
+        name+' selects Margaret only after valid catalog option');
+      const focus=await page.evaluate(()=>({
+        tag:document.activeElement?.tagName,
+        tabIndex:document.activeElement?.tabIndex,
+        insideBooking:document.querySelector('#booking')?.contains(document.activeElement),
+        hint:document.querySelector('[data-selected-tour-hint]')?.textContent||''
+      }));
+      check(focus.tag==='H2'&&focus.tabIndex===-1&&focus.insideBooking,
+        name+' moves keyboard focus to booking heading without hiding it');
+      check(focus.hint.length>12,name+' announces chosen experience');
+    }
+    check(!calls.some(x=>/\/(holds|quotes|bookings)(?:\/|$)|\/payments\/intents/.test(x.endpoint)),
+      name+' never creates holds, bookings or payments');
+    check(errors.length===0,name+' no uncaught JavaScript errors');
+    await page.screenshot({path:join(out,'home-picker-'+locale+
+      (missingOption?'-fallback':'-selected')+'.png'),fullPage:false});
+  }catch(error){
+    failures.push(name+' browser scenario failed: '+String(error).slice(0,500));
+    await page.screenshot({path:join(out,'home-picker-'+locale+'-failed.png'),
+      timeout:5000}).catch(()=>{});
+  }finally{
+    await context.close();
+  }
+}
+
 try{
   await scenario('en',paths[0][1]);
   for(const [lang,path] of paths)await scenario(lang,path,{sessionStalled:true});
@@ -600,6 +715,10 @@ try{
   await scenario('en',paths[0][1],{recovery:'garbled-clock'});
   for(const [lang,path] of paths)await scenario(lang,path,{recovery:'corrupt-party'});
   await scenario('en',paths[0][1],{recovery:'stale-version'});
+  for(const locale of ['en','he','hu']){
+    await tourPickerHomepageScenario(locale);
+    await tourPickerHomepageScenario(locale,{missingOption:true});
+  }
   await scenario('en',paths[0][1],{recovery:'discard'});
   await scenario('he',paths[1][1],{recovery:'discard'});
   await scenario('hu',paths[2][1],{recovery:'discard'});

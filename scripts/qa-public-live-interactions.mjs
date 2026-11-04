@@ -45,7 +45,7 @@ function firstPartyAsset(req,u){
       u.pathname==='/assets/budapest-approved-reviews.json')
   );
 }
-async function launch(path,{width=390,fixture=false,reducedMotion='reduce'}={}){
+async function launch(path,{width=390,fixture=false,reducedMotion='reduce',deferConsent=false}={}){
   check(allowedDocuments.has(path),'Test attempted unapproved public route: '+path);
   const context=await browser.newContext({
     viewport:{width,height:844},deviceScaleFactor:1,reducedMotion,
@@ -80,7 +80,7 @@ async function launch(path,{width=390,fixture=false,reducedMotion='reduce'}={}){
   const response=await page.goto(ORIGIN+path,{waitUntil:'domcontentloaded',timeout:20000});
   check(response?.status()===200,'Live '+path+' HTTP status != 200');
   const consent=page.locator('[data-consent-essential]');
-  if(await consent.isVisible().catch(()=>false))await consent.click({timeout:2200});
+  if(!deferConsent&&await consent.isVisible().catch(()=>false))await consent.click({timeout:2200});
   return {page,context,outbounds};
 }
 async function scenario(name,path,opts,verify){
@@ -105,6 +105,48 @@ async function scenario(name,path,opts,verify){
     await session?.context.close().catch(()=>{});
   }
 }
+// Read-only #747 diagnostic: show the outbound third-party request that the
+// current owner-requested autoplay initiates before a visitor chooses consent.
+// The harness aborts that request. No video response, cookie behavior or legal
+// compliance is inferred from this test; an approved consent design can replace it.
+await scenario('EZRaider pre-consent YouTube outbound audit','/ezraider/',
+  {width:390,deferConsent:true},async(page,ok,result,outbounds)=>{
+    const frame=page.locator('[data-ez-video-screen] iframe');
+    await frame.waitFor({state:'attached',timeout:9000});
+    const state=await frame.evaluate(el=>({
+      src:el.src,policy:el.referrerPolicy,loading:el.loading
+    }));
+    const url=new URL(state.src);
+    ok(url.origin==='https://www.youtube-nocookie.com'&&
+      url.pathname==='/embed/1i2IQSShkQ8',
+      'only the approved privacy-enhanced manufacturer iframe is selected');
+    ok(url.searchParams.get('autoplay')==='1'&&
+      url.searchParams.get('mute')==='1'&&
+      url.searchParams.get('playsinline')==='1',
+      'existing autoplay remains muted and mobile-inline');
+    ok(state.policy==='strict-origin-when-cross-origin',
+      'current YouTube-compatible referrer policy preserved');
+    ok(await page.evaluate(()=>localStorage.getItem('voy_consent_v1'))===null,
+      'no visitor consent choice stored when video element appears');
+    await page.waitForTimeout(300);
+    const requestSeen=outbounds.some(req=>
+      req.method==='GET'&&req.host==='www.youtube-nocookie.com'&&
+      req.path==='/embed/1i2IQSShkQ8');
+    ok(requestSeen,'pre-choice third-party YouTube GET attempted and blocked by QA');
+    ok(!outbounds.some(req=>req.method!=='GET'),
+      'no third-party POST/write attempted');
+    result.notes.push('OBSERVED RISK: YouTube GET attempted before any consent choice; blocked by this QA harness. This is not a vendor-storage or legal-compliance test.');
+    const essential=page.locator('[data-consent-essential]');
+    await essential.waitFor({state:'visible',timeout:5000});
+    await essential.click();
+    const chosen=await page.evaluate(()=>{
+      const c=JSON.parse(localStorage.getItem('voy_consent_v1')||'null');
+      return c&&c.decided===true&&c.analytics===false&&c.marketing===false;
+    });
+    ok(chosen,'essential-only choice remains possible after blocked vendor request');
+    ok(await frame.count()===1,'existing player structure remains intact');
+  });
+
 // Check the *deployed* consent UI after a visitor has explicitly chosen
 // essential-only storage. Closing reopened settings must not change consent
 // or leak events to analytics; outbound writes remain blocked by launch().
@@ -344,6 +386,53 @@ for(const [locale,path] of [
     ok(await pause.getAttribute('aria-pressed')==='false','resume updates aria state');
   });
 }
+// Prevent the exact desktop regression reported by the owner: a ribbon
+// which renders and responds to arrows but never auto-scrolls on wide screens.
+// These checks use the DEPLOYED public site, with vendor/API calls blocked.
+// Normal motion must advance; OS reduced-motion must pause by default and
+// allow an explicit opt-in via the visible Resume button.
+for(const [locale,path] of [
+  ['EN','/budapest/'],['HE','/he/budapest/'],['HU','/hu/budapest/']
+]){
+  await scenario('desktop review motion '+locale,path,
+    {width:1440,reducedMotion:'no-preference'},async(page,ok)=>{
+      const root=page.locator('[data-vp-reviews-root]');
+      await page.waitForFunction(()=>
+        document.querySelectorAll('[data-vp-reviews-root] .vp-review-card').length===60,
+        null,{timeout:6500});
+      const viewport=root.locator('[data-vp-reviews-viewport]');
+      const pause=root.locator('[data-vp-reviews-pause]');
+      ok(await pause.isVisible(),'desktop auto-scroll exposes Pause/Resume');
+      const initial=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(1100);
+      const moving=await viewport.evaluate(el=>el.scrollLeft);
+      ok(moving>initial+12,'desktop approved reviews move without clicking');
+      await pause.click();
+      ok(await pause.getAttribute('aria-pressed')==='true','desktop Pause works');
+      const stopped=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(320);
+      ok(Math.abs((await viewport.evaluate(el=>el.scrollLeft))-stopped)<3,
+        'desktop Pause actually freezes scrolling');
+      await page.emulateMedia({reducedMotion:'reduce'});
+      await page.waitForFunction(()=>
+        document.querySelector('[data-vp-reviews-root]')?.classList.contains('is-paused')===true,
+        null,{timeout:3000});
+      ok(await pause.isVisible(),'reduced-motion mode still offers an opt-in Resume');
+      const reducedAt=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(300);
+      ok(Math.abs((await viewport.evaluate(el=>el.scrollLeft))-reducedAt)<3,
+        'OS reduced-motion stops ticker by default');
+      await pause.click();
+      ok(await pause.getAttribute('aria-pressed')==='false',
+        'explicit user Resume overrides reduced-motion pause');
+      const optInAt=await viewport.evaluate(el=>el.scrollLeft);
+      await page.waitForTimeout(850);
+      ok((await viewport.evaluate(el=>el.scrollLeft))>optInAt+10,
+        'desktop review ribbon moves again after explicit Resume');
+      await pause.click();
+    });
+}
+
 // Map verification uses the public deployed site.js, with an in-browser FBM
 // fixture for the destination config. No third-party map iframe is loaded.
 await scenario('Budapest exact business map rendered using API fixture',

@@ -1109,21 +1109,192 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{display
   }
 }
 
-/* EZRaider bridge: lightweight existing first-party photo, no animation/player. */
-.ez-vehicle-bridge .ez-vehicle-bridge-thumb{
+/* Owner-requested EZRaider mini-product watermark: absolutely positioned,
+   decorative, no intrinsic layout height or external image request. */
+.ez-vehicle-bridge .proof>div:first-child{position:relative;min-width:0;isolation:isolate}
+.ez-vehicle-bridge .ez-vehicle-bridge-art{
+  display:block;position:absolute;inset-inline-end:4px;inset-block-end:4px;
+  width:clamp(110px,32%,190px);height:auto;max-height:154px;
+  object-fit:contain;opacity:.16;pointer-events:none;user-select:none;z-index:0;
+}
+.ez-vehicle-bridge .proof>div:first-child>:not(.ez-vehicle-bridge-art){position:relative;z-index:1}
+@media(max-width:480px){
+  .ez-vehicle-bridge .ez-vehicle-bridge-art{width:135px;max-height:125px;opacity:.12;inset-block-end:10px}
+}
+/* Exact vector check centered in a circular informational icon, independent
+   of Android font metrics/baselines. */
+body[data-page="/"] .hero .facts.network-benefits .network-benefit-check{
+  display:grid;place-items:center;inline-size:20px;block-size:20px;min-inline-size:20px;
+  padding:0;line-height:0;
+}
+body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
+  display:block;inline-size:15px;block-size:15px;flex:none;
+}
+
+/* Marvão first-party countryside video: voluntary playback, stable mobile geometry. */
+
+/* Geographic context for the Buda-only landmark-relative schematic. */
+.route-buda-landmark-labels text{
+  fill:#607d8d;
+  font:800 2.7px/1 Arial,sans-serif;
+  letter-spacing:.1px;
+}
+.route-picture-panel>.route-schematic-note{
   display:block;
-  width:clamp(88px,25%,118px);
-  height:auto;
-  aspect-ratio:4 / 3;
-  object-fit:cover;
-  object-position:center 72%;
-  float:inline-end;
-  margin-inline-start:14px;
-  margin-block-end:8px;
-  border-radius:14px;
-  box-shadow:0 5px 16px rgba(16,42,62,.14);
+  margin:10px 2px 0;
 }
-.ez-vehicle-bridge .proof>div:first-child::after{content:"";display:table;clear:both}
-@media(max-width:380px){
-  .ez-vehicle-bridge .ez-vehicle-bridge-thumb{width:94px;margin-inline-start:10px}
+
+/* Owner-requested visible vehicle photo: dedicated media position, never over copy. */
+.ez-vehicle-bridge .proof>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:0 14px;align-items:center}
+.ez-vehicle-bridge .proof>div:first-child .ez-vehicle-bridge-product{position:static;inset:auto;opacity:1;width:150px;height:auto;max-height:none;grid-column:2;grid-row:1 / span 3;justify-self:end;align-self:center;object-fit:contain;border:0;box-shadow:none;pointer-events:none;user-select:none;z-index:auto}
+.ez-vehicle-bridge .proof>div:first-child>:not(.ez-vehicle-bridge-product){grid-column:1;min-width:0}
+.ez-vehicle-bridge .proof>div:first-child>p{line-height:1.6}
+@media(max-width:800px){.ez-vehicle-bridge .proof>div:first-child{grid-template-columns:minmax(0,1fr) 125px;gap:0 8px}.ez-vehicle-bridge .proof>div:first-child .ez-vehicle-bridge-product{width:125px;max-height:none}}
+@media(max-width:390px){.ez-vehicle-bridge .proof>div:first-child{grid-template-columns:minmax(0,1fr) 105px}.ez-vehicle-bridge .proof>div:first-child .ez-vehicle-bridge-product{width:105px}}
+
+/* Shared EZRaider guide referrals: show the approved owner vehicle photo in
+   EVERY existing bridge, including Marvão EN/HE/PT and Budapest tour pages.
+   The four landing bridges already have semantic <img> elements in this PR;
+   use a decorative CSS fallback only where the photo markup is absent. */
+.ez-vehicle-bridge .proof>div:first-child:not(:has(> .ez-vehicle-bridge-product))::after{
+  content:"";display:block;grid-column:2;grid-row:1 / span 3;
+  width:150px;max-width:100%;aspect-ratio:130 / 132;
+  align-self:center;justify-self:end;pointer-events:none;
+  background:url('/assets/images/ezraider/owner-photo-20261031.webp') center / contain no-repeat;
 }
+@media(max-width:800px){
+  .ez-vehicle-bridge .proof>div:first-child:not(:has(> .ez-vehicle-bridge-product))::after{width:125px}
+}
+@media(max-width:390px){
+  .ez-vehicle-bridge .proof>div:first-child:not(:has(> .ez-vehicle-bridge-product))::after{width:105px}
+}
+/* Some Budapest pages link to the same guide below their primary hero CTA
+   instead of using a full bridge. Decorate that existing link in-place. */
+.tour-vehicle-guide-link a{display:inline-flex;align-items:center;gap:8px;max-width:100%}
+.tour-vehicle-guide-link a::before{
+  content:"";display:inline-block;width:42px;height:42px;flex:0 0 42px;
+  background:url('/assets/images/ezraider/owner-photo-20261031.webp') center / contain no-repeat;
+}
+@media(max-width:390px){
+  .tour-vehicle-guide-link a::before{width:36px;height:36px;flex-basis:36px}
+}
+
+
+/* Mobile screenshot-based landing-page section rhythm, 31 Oct 2026.
+   Reduce stacked blank margins on the homepage, Budapest and Marvão landing
+   pages only. Booking forms, payment controls, tour detail pages, legal pages,
+   desktop layout and sticky CTA clearance keep their existing spacing. */
+@media(max-width:800px){
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section:not(.booking){
+    padding-block:24px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section h2{
+    margin-block:4px 10px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-grid{
+    gap:10px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-card{
+    padding:16px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-card h3{
+    margin:0 0 8px;
+  }
+  body:is([data-page="/"],[data-page$="/budapest/"],[data-page$="/portugal/"]) .section .content-card p{
+    margin:0;
+    line-height:1.55;
+  }
+  body[data-page$="/budapest/"] .intent-hub-grid{gap:10px}
+  body[data-page$="/budapest/"] .intent-hub-card{
+    padding:15px;
+    min-height:0;
+  }
+  body[data-page$="/budapest/"] .intent-hub-card p{
+    margin:0 0 10px;
+    line-height:1.5;
+  }
+  body[data-page$="/budapest/"] .intent-hub .intent-bridge-head{
+    margin-bottom:14px;
+  }
+}
+
+/* 31 Oct screenshot follow-up: tighten mobile spacing on every customer-facing tour page.
+   Keep legal, EZRaider reference, manage-booking and checkout internals intact. */
+@media(max-width:800px){
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section:not(.booking){padding-block:20px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section.booking{padding-block:24px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-grid{gap:10px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-card{padding:16px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-card h3{margin:0 0 8px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .content-card p{margin:0;line-height:1.55}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section h2{margin-block:4px 10px}
+  body:is([data-page="/"],[data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .section .proof{gap:12px;padding:18px}
+}
+
+/* 2026-11-01 mobile sticky WhatsApp docking
+   Keep WhatsApp visible but inside the fixed booking bar's reserved trailing
+   icon slot instead of covering the next section, a map, or a form field.
+   The original destination-specific anchor and runtime href remain untouched.
+   CSS is mobile-only, and only on pages with the compact sticky WA class. */
+@media(max-width:800px){
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]):has(.compact-booking-whatsapp) .mobilebook{
+    gap:6px;
+    padding-inline-end:60px;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]):has(.compact-booking-whatsapp) .mobilebook .mobile-price-copy{
+    flex:0 1 92px;
+    min-width:55px;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]):has(.compact-booking-whatsapp) .mobilebook>.btn{
+    flex:1 1 auto;
+    min-width:0;
+    min-height:44px;
+    padding:8px 6px;
+    white-space:normal;
+    text-align:center;
+    line-height:1.2;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]) .compact-booking-whatsapp{
+    box-sizing:border-box;
+    width:44px;height:44px;min-width:44px;min-height:44px;
+    display:inline-flex;align-items:center;justify-content:center;
+    position:fixed;
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));
+    right:calc(18px + env(safe-area-inset-right,0px));
+    left:auto;
+    padding:0;
+    border-radius:50%;
+    box-shadow:0 0 0 1px rgba(255,255,255,.22);
+    z-index:30;
+  }
+  body:is([data-page^="/budapest/"],[data-page^="/he/budapest/"],[data-page^="/hu/budapest/"],[data-page^="/portugal/"],[data-page^="/he/portugal/"],[data-page^="/pt/portugal/"]).rtl .compact-booking-whatsapp{
+    right:auto;
+    left:calc(18px + env(safe-area-inset-left,0px));
+  }
+}
+
+/* Marvão owned footage: an accessible, low-priority hero jump link.
+   Native media remains opt-in with no fetch before pressing Play. */
+
+/* Owner-approved Marvão photo: a 4:3 editorial feature, NOT a fifth route card.
+   The four existing Pombais gallery images retain their separate credit. */
+
+/* #727 — approved first-party owner photos, separate from partner-credited media. */
+
+/* Network homepage: same compact three-platform Budapest trust strip, scoped honestly to Budapest. */
+.network-trust .network-trust-label{margin:0;padding:11px 0 0;color:var(--muted);font-size:12px;line-height:1.3;font-weight:750}
+.network-trust .network-trust-label a{color:var(--blue);text-underline-offset:2px}
+.network-trust .network-trust-label a:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:2px}
+
+/* Keep the Budapest-only network trust bar one compact row on mobile.
+   Scope tightly to /: other destination and tour trust layouts are unchanged. */
+@media(max-width:800px){
+  .network-trust .trust-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .network-trust .trust-item{min-width:0;padding:11px 5px;border-bottom:0;border-inline-end:1px solid var(--line)}
+  .network-trust .trust-item:last-child{border-inline-end:0}
+  .network-trust .trust-source{font-size:10px}
+  .network-trust .stars{font-size:10px;letter-spacing:0}
+  .network-trust .trust-score{font-size:17px}
+  .network-trust .trust-sub{font-size:8px;line-height:1.25;overflow-wrap:anywhere}
+}
+

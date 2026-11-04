@@ -39,6 +39,48 @@ function inlineScriptKind(attrs){
  if(type==='module')return 'module';
  return CLASSIC_SCRIPT_TYPES.has(type)?'classic':'inert';
 }
+// Only the literal-selector, literal-value jQuery DOM-ready idioms used by
+// removed legacy handlers. This is not a general-purpose jQuery/JS parser.
+// Unknown callbacks, statements and dynamic arguments MUST fail closed.
+function reviewLegacyJQueryHandler(kind,js,attrs){
+ if(!/(?:\bjQuery|\$)\s*\(/.test(js))return null;
+ if(attrs.trim() && !/^\s*type\s*=\s*(?:"text\/javascript"|'text\/javascript'|text\/javascript)\s*$/i.test(attrs))
+  return false;
+ const wrappers=[
+  /^(?:jQuery|\$)\s*\(\s*document\s*\)\s*\.\s*ready\s*\(\s*function\s*\(\s*(?:\$\s*)?\)\s*\{\s*([\s\S]*?)\s*\}\s*\)\s*;?$/,
+  /^(?:jQuery|\$)\s*\(\s*function\s*\(\s*(?:\$\s*)?\)\s*\{\s*([\s\S]*?)\s*\}\s*\)\s*;?$/
+ ];
+ const wrapper=wrappers.map(re=>js.trim().match(re)).find(Boolean);
+ if(!wrapper)return false;
+ const body=wrapper[1];
+ // Sticky matching consumes ALL script-body bytes; no extra statements,
+ // comments, telemetry, variables, DOM effects or network calls are ignored.
+ const statement=/\s*(?:jQuery|\$)\s*\(\s*(['"])([^'"\\\r\n]+)\1\s*\)\s*\.\s*(text|attr)\s*\(\s*(['"])([^'"\\\r\n]*)\4(?:\s*,\s*(['"])([^'"\\\r\n]*)\6)?\s*\)\s*;?/gy;
+ let offset=0,steps=0;const visited=[];
+ while(body.slice(offset).trim()){
+  statement.lastIndex=offset;
+  const m=statement.exec(body);
+  if(!m||m.index!==offset||++steps>3)return false;
+  offset=statement.lastIndex;
+  const selectors=m[2].split(',').map(s=>s.trim());
+  if(selectors.some(s=>!/^\.[a-z][\w-]*(?:\.[a-z][\w-]*)?$/i.test(s)))return false;
+  if(kind==='red-floater-label-handler'){
+   const allowed=new Set(['.fh-fixed--bottom','.fh-button-true-flat-red',
+    '.fh-fixed--bottom.fh-button-true-flat-red']);
+   if(m[3]!=='text'||m[6]!==undefined||
+      !/^(?:Időpontot foglalok|Érdeklődés WhatsAppon)$/.test(m[5])||
+      selectors.some(s=>!allowed.has(s)))return false;
+  }else if(kind==='fareharbor-cta-rewriter'){
+   if(m[3]!=='attr'||m[5]!=='href'||m[7]===undefined||
+      !/^https?:\/\/(?:www\.)?fareharbor\.com(?:[/?#]|$)/i.test(m[7])||
+      selectors.some(s=>!['.hero__cta','.button-cta'].includes(s)))return false;
+  }else return false;
+  visited.push(...selectors);
+ }
+ if(!steps||new Set(visited).size!==visited.length)return false;
+ if(kind==='red-floater-label-handler')return visited.length<=2;
+ return visited.length===2&&visited.includes('.hero__cta')&&visited.includes('.button-cta');
+}
 // Conservative guard against collateral removals. This is NOT a JS semantic
 // analyzer; review of the original private source remains mandatory.
 // Reject unexpected DOM selectors / external effects rather than pretending
@@ -56,6 +98,11 @@ function reviewRemovalSurface(kind,span,add){
  }
  const js=match[2];
  try{new Script(js)}catch{add('REMOVED_HANDLER_SYNTAX_ERROR:'+kind);}
+ const legacyJQuery=reviewLegacyJQueryHandler(kind,js,match[1]);
+ if(legacyJQuery!==null){
+  if(!legacyJQuery)add('UNSAFE_OR_UNRECOGNIZED_JQUERY_HANDLER:'+kind);
+  return;
+ }
  // Never delete unrelated network, storage, navigation, telemetry or DOM
  // mutation activity simply because the same script references FareHarbor.
  if(/\b(?:fetch|eval|Function|XMLHttpRequest|WebSocket|Worker|setTimeout|setInterval|sendBeacon)\s*\(|\b(?:window|navigator|location|localStorage|sessionStorage|indexedDB)\s*\.|\b(?:removeChild|appendChild|insertBefore|dispatchEvent|submit|click)\s*\(|\bdocument\s*\.\s*(?:cookie|body|head|location)/i.test(js))
@@ -221,6 +268,76 @@ function selfTest(){
  bad(before+moduleCode,after+moduleCode,request,'AFTER_INLINE_MODULE_REQUIRES_MANUAL_REVIEW');
  const sneakyData='<script data-type="application/ld+json">let = ;</script>';
  bad(before+sneakyData,after+sneakyData,request,'AFTER_INLINE_SCRIPT_SYNTAX_ERROR');
+
+ // Synthetic test cases only; no private WPCode Footer bytes are shipped.
+ const jqLabel='<script>jQuery(document).ready(function($){$(".fh-fixed--bottom").text("Időpontot foglalok");});</script>';
+ const jqCTA='<script>jQuery(function($){$(".hero__cta").attr("href","https://fareharbor.com/book/");$(".button-cta").attr("href","https://fareharbor.com/book/");});</script>';
+ const jqBefore=jquery+anchor+jqLabel+jqCTA+harmless;
+ const jqAfter=jquery+harmless;
+ const jqReq=clone(request);
+ jqReq.removals[1].text=jqLabel;jqReq.removals[2].text=jqCTA;
+ assert.equal(inspectGlobalFooterRemoval(jqBefore,jqAfter,jqReq).status,'candidate-diff-structure-only');
+ const variants=[
+  ['<script>$(document).ready(function(){$(".fh-button-true-flat-red").text("Időpontot foglalok");});</script>',
+   '<script>$(function(){$(".hero__cta, .button-cta").attr("href","https://fareharbor.com/book/");});</script>'],
+  ['<script type="text/javascript">jQuery(function($){$(".fh-fixed--bottom.fh-button-true-flat-red").text("Időpontot foglalok");});</script>',
+   '<script>jQuery(document).ready(function($){$(".hero__cta").attr("href","https://fareharbor.com/a");$(".button-cta").attr("href","https://fareharbor.com/b");});</script>']
+ ];
+ for(const [l,c] of variants){
+  const r=clone(jqReq);r.removals[1].text=l;r.removals[2].text=c;
+  assert.equal(inspectGlobalFooterRemoval(jqBefore.replace(jqLabel,l).replace(jqCTA,c),jqAfter,r).status,'candidate-diff-structure-only');
+ }
+ const lBody='$ (".fh-fixed--bottom").text("Időpontot foglalok");';
+ const cBody='$ (".hero__cta").attr("href","https://fareharbor.com/book/");$(".button-cta").attr("href","https://fareharbor.com/book/");';
+ const labelBad=[
+  lBody+'window.analytics=1;',
+  lBody+'localStorage.setItem("x","y");',
+  lBody+'fetch("/x");',
+  lBody+'$(".admin").text("x");',
+  lBody.replace('.text(','.html('),
+  lBody.replace('"Időpontot foglalok"','makeLabel()'),
+  lBody+'$(selectorFromConfig).text("x");',
+  lBody+'$(".fh-fixed--bottom").css("display","none");',
+  lBody+'$(".fh-fixed--bottom").attr("href","https://fareharbor.com/");',
+  lBody+'$(".fh-fixed--bottom").on("click",handler);',
+  lBody.replace('"Időpontot foglalok"','"different text"'),
+  lBody+'$(".fh-fixed--bottom").remove();',
+  lBody.replace('".fh-fixed--bottom"','".fh-fixed--bottom, .admin"'),
+  lBody+'/* unrelated comment */'
+ ];
+ const ctaBad=[
+  cBody+'window.analytics=1;',
+  cBody+'fetch("/x");',
+  cBody+'$(".admin").attr("href","https://fareharbor.com/");',
+  cBody.replace('.attr("href"','.attr("target"'),
+  cBody.replace('"https://fareharbor.com/book/"','makeUrl()'),
+  cBody.replace('"https://fareharbor.com/book/"','"https://evil.example/fareharbor.com"'),
+  cBody+'$(".hero__cta").remove();',
+  cBody+'$(".hero__cta").on("click",handler);',
+  cBody.replace('".button-cta"','".admin"'),
+  cBody.replace('$(".button-cta").attr("href","https://fareharbor.com/book/");','$(".hero__cta").attr("href","https://fareharbor.com/book/");'),
+  cBody+'$(".hero__cta, .admin").attr("href","https://fareharbor.com/");',
+  cBody+'$(selectorFromConfig).attr("href","https://fareharbor.com/");',
+  cBody+'$.ajax("/x");',
+  cBody+'var other=1;'
+ ];
+ assert.equal(labelBad.length+ctaBad.length,28);
+ let rejected=0;
+ function checkJqMutation(kind,inner){
+  const old=kind==='red-floater-label-handler'?jqLabel:jqCTA;
+  const wrapper=kind==='red-floater-label-handler'
+   ?'<script>jQuery(document).ready(function($){'+inner+'});</script>'
+   :'<script>jQuery(function($){'+inner+'});</script>';
+  const r=clone(jqReq);r.removals.find(x=>x.kind===kind).text=wrapper;
+  bad(jqBefore.replace(old,wrapper),jqAfter,r,'UNSAFE_OR_UNRECOGNIZED_JQUERY_HANDLER');
+  rejected++;
+ }
+ labelBad.forEach(x=>checkJqMutation('red-floater-label-handler',x));
+ ctaBad.forEach(x=>checkJqMutation('fareharbor-cta-rewriter',x));
+ assert.equal(rejected,28);
+ bad(jqBefore,jqAfter.replace('cdn.example.org','cdn.bad.invalid'),jqReq,'UNRELATED_SOURCE_CHANGED');
+ bad(jqBefore,jqAfter+'<a id="ezre-wa-float-v1"></a>',jqReq,'WRONG_SURFACE_WPCODE_488');
+ console.log('PASS: 3 narrow jQuery positives, 28 jQuery negatives, 2 preservation checks');
  console.log('PASS: 26 private-global-footer guard regression assertions; no live writes');
 }
 if(process.argv.includes('--self-test'))selfTest();

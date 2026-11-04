@@ -1,5 +1,5 @@
-// A single audited snapshot for the two deliberate ratings displays in each
-// Budapest locale (hero trust strip and original-source links above the ticker).
+// A single audited snapshot for the two Budapest ratings displays per locale
+// (top trust strip and source links), plus ONE Budapest-only trust strip on /.
 // No third-party scraping, API keys, build-time network or fabricated "live" data.
 // Usage:
 //   node scripts/budapest-review-counts.mjs --check
@@ -18,6 +18,7 @@ const pages=[
   {locale:'he',file:'site/he/budapest/index.html'},
   {locale:'hu',file:'site/hu/budapest/index.html'}
 ];
+const homeFile='site/index.html';
 const keys=['google','tripadvisor','getyourguide'];
 const format=(n,locale)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'?' ':',');
 const fail=message=>{throw new Error('Budapest review source/count integrity: '+message)};
@@ -45,9 +46,9 @@ const validatePage=(record,html,locale,filename)=>{
   const sourceGrid=html.indexOf('class="review-source-grid"');
   const sourceCta=html.indexOf('class="review-source-actions"');
   const ticker=html.indexOf('data-vp-reviews-root hidden');
-  if(!(trust>=0&&bridge>trust&&tour>bridge&&seo>tour&&sources>seo&&
-       sourceGrid>sources&&sourceCta>sourceGrid&&ticker>sourceCta))
-    fail(filename+': section sequence or consolidated source CTA is invalid');
+  if(!(trust>=0&&bridge>trust&&tour>bridge&&seo>tour&&
+       sourceCta>seo&&sourceCta<sources&&sourceGrid>sources&&ticker>sourceGrid))
+    fail(filename+': planning availability CTA must appear BEFORE closing review sources');
   if((html.match(/class="wrap proof"/g)||[]).length!==1)
     fail(filename+': duplicated mid-page ratings proof block must stay removed');
   if((html.match(/class="review-source-grid"/g)||[]).length!==1||
@@ -73,9 +74,54 @@ const validatePage=(record,html,locale,filename)=>{
     if(!new RegExp('class="review-source-card" data-review-source="'+source+'" href="https://').test(sourceBlock))
       fail(filename+': external review source link missing: '+source);
   }
-  if(!/class="review-source-actions"><a class="btn" data-track="booking_cta"/.test(sourceBlock))
-    fail(filename+': consolidated review CTA must preserve booking attribution');
+  const planningBlock=html.slice(seo,sources);
+  if(!/class="review-source-actions"><a class="btn" data-track="booking_cta" href="\/(?:he\/|hu\/)?budapest\/#booking"/.test(planningBlock)||
+      sourceBlock.includes('class="review-source-actions"'))
+    fail(filename+': booking attribution must remain on the planner CTA, not the review source strip');
 };
+// Parent-site ratings are specifically Budapest business feedback; never label
+// these scores as network-wide or as ratings for the Marvão operating partner.
+const validateHomePage=(record,html)=>{
+  const file=homeFile;
+  const sections=[...html.matchAll(/<section class="trust network-trust"[^>]*>/g)];
+  if(sections.length!==1||
+     (html.match(/class="trust-item"/g)||[]).length!==3||
+     (html.match(/class="network-trust-label"/g)||[]).length!==1||
+     !html.includes('href="/budapest/">Budapest EZRaider tours</a>'))
+    fail(file+': exactly one Budapest-attributed three-platform parent trust strip required');
+  const start=html.indexOf('<section class="trust network-trust"');
+  const end=html.indexOf('</section>',start);
+  const hero=html.indexOf('<section class="hero">');
+  const nextSection=html.indexOf('<section class="section ez-vehicle-bridge">');
+  if(!(hero>=0&&start>hero&&end>start&&nextSection>end))
+    fail(file+': parent ratings strip must follow hero and precede EZRaider bridge');
+  const segment=html.slice(start,end);
+  for(const key of keys){
+    const matches=[...segment.matchAll(countMatcher(key))];
+    if(matches.length!==1||matches[0][2]!==format(record[key].review_count,'en'))
+      fail(file+': '+key+' homepage counter is absent or stale');
+  }
+  for(const source of ['Google','Tripadvisor','GetYourGuide'])
+    if(!segment.includes('<div class="trust-source">'+source+'</div>'))
+      fail(file+': Budapest reputation source absent: '+source);
+  if((segment.match(/class="stars">★★★★★<\/div>/g)||[]).length!==3||
+     (segment.match(/class="trust-score">5\.0<\/div>/g)||[]).length!==3)
+    fail(file+': the upper Budapest trust-strip stars and score hierarchy changed');
+};
+const updateHomePage=(html,record)=>{
+  let result=html;
+  for(const key of keys){
+    let n=0;
+    result=result.replace(countMatcher(key),(_whole,before,_count,after)=>{
+      n++;
+      return before+format(record[key].review_count,'en')+after;
+    });
+    if(n!==1)fail(homeFile+': expected one '+key+' reputation counter');
+  }
+  validateHomePage(record,result);
+  return result;
+};
+
 const updatePage=(html,record,locale,file)=>{
   let result=html;
   for(const key of keys){
@@ -168,6 +214,11 @@ if(args[0]==='--update'){
     if(landing)html=updatePage(html,record,locale,file);
     return {full,text:html};
   });
+  // The network homepage deliberately displays the Budapest ratings just
+  // once. Refresh it in the same audited transaction as the Budapest pages.
+  const homeAbsolute=path.join(root,homeFile);
+  updated.push({full:homeAbsolute,text:updateHomePage(
+    fs.readFileSync(homeAbsolute,'utf8'),record)});
   // Validate the full output set before touching the working tree.
   if(updated.filter(x=>pages.some(p=>path.join(root,p.file)===x.full)).length!==3)
     fail('missing localized Budapest landing files');
@@ -206,7 +257,8 @@ if(args[0]==='--update'){
     fail('review summary must have three columns and keyboard-visible focus');
   for(const {locale,file} of pages)
     validatePage(record,fs.readFileSync(path.join(root,file),'utf8'),locale,file);
-  console.log('Budapest review layout and counts consistent in EN/HE/HU: '+
+  validateHomePage(record,fs.readFileSync(path.join(root,homeFile),'utf8'));
+  console.log('Budapest review layout and counts consistent in EN/HE/HU and network home: '+
     keys.map(k=>k+' '+record[k].review_count+
       (record[k].verified_at?' verified '+record[k].verified_at:' baseline/unverified')).join('; '));
 }else fail('use --check or --update');

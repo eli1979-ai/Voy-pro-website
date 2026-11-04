@@ -36,6 +36,96 @@ for(const [file,groupHref,corporateHref] of pages){
   if(!hub.includes(`href="${groupHref}"`)) failures.push(`${file}: missing group-tour discovery link`);
   if(!hub.includes(`href="${corporateHref}"`)) failures.push(`${file}: missing corporate-event discovery link`);
 }
+// Tour-card intent is an accessible same-page booking action only when the
+// selected experience exists in the live form. If not, keep the original
+// localized route-page anchor functional instead of showing a wrong selection.
+const selectSource=fs.readFileSync('site/assets/site.js','utf8');
+const selectBegin=selectSource.indexOf('  function bindTourCardSelectors(){');
+const selectEnd=selectSource.indexOf('\n  bindTourCardSelectors();',selectBegin);
+if(selectBegin<0||selectEnd<0){
+  failures.push('Tour-card booking handler missing');
+}else{
+  const snippet=selectSource.slice(selectBegin,selectEnd)+'\n bindTourCardSelectors();';
+  for(const [locale,file] of [
+    ['en','site/budapest/index.html'],
+    ['he','site/he/budapest/index.html'],
+    ['hu','site/hu/budapest/index.html']
+  ]){
+    const html=fs.readFileSync(file,'utf8');
+    if((html.match(/data-select-experience=""/g)||[]).length!==2||
+       !html.includes('id="booking"')||
+       !html.includes('name="experience"'))
+      failures.push(file+': hub needs two live tour-card links and a booking form');
+    const knownValues=[...html.matchAll(/<option value="(exp_bud_(?:buda|margaret))"/g)]
+      .map(m=>m[1]);
+    if(knownValues.length!==2)failures.push(file+': expected Buda and Margaret form choices');
+
+    function run(optionIncluded=true,enabled=true,bookingPresent=true){
+      const events=[],focuses=[],changes=[],tracked=[],hints=[];
+      let action=null,scrolled=0;
+      const product={id:'exp_bud_margaret',slug:'margaret-island',bookingEnabled:enabled};
+      const card={dataset:{experienceSlugs:'margaret-island,margaret-island-tour'}};
+      const link={
+        closest(selector){return selector==='[data-tour-card]'?card:null;},
+        addEventListener(type,handler){if(type==='click')action=handler;}
+      };
+      const select={
+        options:optionIncluded?[{value:product.id,disabled:false}]:[{value:'exp_bud_buda',disabled:false}],
+        value:'exp_bud_buda',disabled:true,
+        dispatchEvent(event){changes.push(event.type);},
+        focus(options){focuses.push(['select',options?.preventScroll]);}
+      };
+      const title={tabIndex:undefined,
+        focus(options){focuses.push(['h2',options?.preventScroll]);}};
+      const booking={
+        querySelector(selector){return selector==='h2'?title:null;},
+        scrollIntoView(options){scrolled++;events.push(options.block);}
+      };
+      const document={
+        querySelectorAll(selector){return selector==='[data-select-experience]'?[link]:[];},
+        querySelector(selector){
+          if(selector==='select[name="experience"]')return select;
+          if(selector==='#booking')return bookingPresent?booking:null;
+          return null;
+        }
+      };
+      vm.runInNewContext(snippet,{
+        document,productByAliases:()=>product,
+        setSelectedTourHint:p=>hints.push(p.id),
+        track:(name)=>tracked.push(name),patchSession:()=>{},page:'budapest',
+        Event:class {constructor(type){this.type=type;}},
+        Array
+      },{timeout:1000,filename:'tour-card-selector.js'});
+      if(typeof action!=='function')throw Error('Tour card did not bind click');
+      const event={prevented:false,preventDefault(){this.prevented=true;}};
+      action(event);
+      return {event,select,events,focuses,changes,tracked,hints,scrolled,title};
+    }
+    try{
+      const ok=run();
+      if(!ok.event.prevented||ok.select.value!=='exp_bud_margaret'||
+         ok.changes.join(',')!=='change'||ok.hints.join(',')!=='exp_bud_margaret'||
+         ok.tracked.join(',')!=='tour_card_selected'||ok.scrolled!==1||
+         ok.focuses.length!==1||ok.focuses[0][0]!=='h2'||
+         ok.focuses[0][1]!==true||ok.title.tabIndex!==-1)
+        failures.push(locale+': successful tour-card selection must switch form, scroll and focus heading');
+      for(const [description,args] of [
+        ['option removed',[false,true,true]],
+        ['product unavailable',[true,false,true]],
+        ['booking section missing',[true,true,false]]
+      ]){
+        const fallback=run(...args);
+        if(fallback.event.prevented||fallback.scrolled||fallback.tracked.length||
+          fallback.hints.length||fallback.changes.length||fallback.focuses.length)
+          failures.push(locale+': '+description+' must preserve the original route-page link');
+      }
+    }catch(error){
+      failures.push(locale+': tour-card selector behavior test failed: '+error.message);
+    }
+  }
+}
+
+
 // The EZRaider vehicle guide is network-wide and remains localized.
 const vehicleFiles=[
   {locale:'en',prefix:'',home:'site/budapest/index.html'},
@@ -97,27 +187,24 @@ try {
     }
   },Set};
   vm.runInNewContext(videoJs,context,{timeout:1000});
-  if(created.length!==0||stage.child!==play)
-    failures.push('EZRaider created a YouTube iframe before explicit Play');
+  if(created.length!==1||stage.child?.tag!=='iframe'||
+     !stage.child?.src?.includes('embed/'+videos[0]+'?autoplay=1&mute=1&playsinline=1'))
+    failures.push('EZRaider guide must start the approved first clip muted on page open');
   if(link.href!=='https://www.youtube.com/watch?v='+videos[0])
     failures.push('EZRaider initial official video link was lost');
-  buttons[1].events.click?.();
-  if(created.length!==0||previewLabel.textContent!=='Video 1'||
-    link.href!=='https://www.youtube.com/watch?v='+videos[1])
-    failures.push('EZRaider selection must update preview and link without loading media');
-  play.events.click?.();
-  if(created.length!==1||stage.child?.tag!=='iframe'||
-    !stage.child?.src?.includes('embed/'+videos[1]+'?autoplay=1&mute=1&playsinline=1'))
-    failures.push('Explicit Play did not load the selected muted YouTube clip');
   if(!stage.child?.allow?.includes('autoplay'))
-    failures.push('Explicitly played EZRaider iframe lacks autoplay permission');
-  if(created[0]?.tabIndex!==0||created[0]?.focusCount!==1||
-    !created[0]?.focusedAfterInsertion||!created[0]?.preventScroll)
-    failures.push('Explicit Play must transfer focus to the new titled iframe after insertion');
+    failures.push('Autoplay iframe lacks explicit browser autoplay permission');
+  if(created[0]?.tabIndex!==0||created[0]?.focusCount!==0)
+    failures.push('EZRaider autoplay must remain keyboard reachable without stealing page focus');
+  buttons[1].events.click?.();
+  if(created.length!==2||previewLabel.textContent!=='Video 1'||
+    link.href!=='https://www.youtube.com/watch?v='+videos[1]||
+    !stage.child?.src?.includes('embed/'+videos[1]+'?autoplay=1&mute=1'))
+    failures.push('EZRaider selection must switch seamlessly to the selected muted clip');
   buttons[0].events.click?.();
-  if(stage.child?.src?.indexOf('embed/'+videos[0])<0||created.length!==2)
+  if(stage.child?.src?.indexOf('embed/'+videos[0])<0||created.length!==3)
     failures.push('Switching already-playing EZRaider clips did not replace the iframe');
-  if(created[1]?.focusCount!==0)
+  if(created[1]?.focusCount!==0||created[2]?.focusCount!==0)
     failures.push('Clip switch must retain keyboard focus on the selected video control');
 } catch(error){failures.push('EZRaider opt-in video player runtime failed: '+error.message);}
 
@@ -148,7 +235,7 @@ for(const {locale,prefix,home} of vehicleFiles){
     failures.push(path+': video must be first and precede the hero text');
   if(html.includes('family-child-seat-closeup.jpg')||html.includes('class="ez-seat-tour-photo"'))
     failures.push(path+': confusing child-on-seat photograph must be removed');
-  if(!html.includes('Choose a video and press Play to load it.')&&locale==='en')failures.push(path+': explicit Play instructions missing');
+  if(!html.includes('The YouTube video loads automatically and starts muted.')&&locale==='en')failures.push(path+': muted autoplay instructions missing');
   if(hero.includes('<figure class="ez-hero-visual">')||html.includes('class="section ez-video-section"'))
     failures.push(path+': redundant old static photo or standalone video section remains');
   if((html.match(/data-ez-video-player/g)||[]).length!==1)
@@ -207,8 +294,9 @@ for(const {prefix} of vehicleFiles)if(!sitemap.includes('https://voy-pro.com/'+p
   failures.push('Sitemap missing EZRaider vehicle route for '+(prefix||'EN'));
 
 
-// The vehicle guide is shared across the VOY PRO network, but links preserve
-// destination-specific operating rules rather than implying Budapest tour rules apply in Marvão.
+// The vehicle guide is shared across VOY PRO destinations. Each entry must
+// retain its destination-specific source and return path, without inventing
+// different passenger-seat rules for Marvão.
 for(const {page,href,locale,positionMarker} of [
   {page:'site/index.html',href:'/ezraider/?from=home&amp;return_to=%2F',locale:'en',positionMarker:'id="destinations"'},
   {page:'site/portugal/index.html',href:'/ezraider/?from=marvao&amp;return_to=%2Fportugal%2F',locale:'en',positionMarker:'id="request"'},
@@ -223,13 +311,13 @@ for(const {page,href,locale,positionMarker} of [
     failures.push(page+': guide link should be visible before destination selection or Marvão booking');
   if(!block.includes('href="'+href+'"'))
     failures.push(page+': missing localized link to existing EZRaider guide: '+href);
-  if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||!block.includes('<h2 '))
+  if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||(!block.includes('<h2 ')&&!block.includes('<strong>')))
     failures.push(page+': guide referral must have clear copy and button');
   if(locale==='pt'&&(block.includes('guia em inglês')||block.includes('hreflang="en"')))
     failures.push(page+': Portuguese vehicle guide must not be labelled as English');
   if(page.includes('/portugal/')&&
-      !(block.includes('Marvão')||block.includes('מרבאו')) )
-    failures.push(page+': Marvão referral must explain local tour rules differ from Budapest');
+      !(href.includes('from=marvao')&&html.includes('Marvão')))
+    failures.push(page+': Marvão referral must preserve local origin and destination identity');
 }
 
 

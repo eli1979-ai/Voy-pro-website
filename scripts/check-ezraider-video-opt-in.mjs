@@ -63,64 +63,46 @@ function simulate(withPlay=true){
 }
 
 const first=simulate();
-assert.equal(first.frames.length,0,'page load must not create or fetch a YouTube iframe');
-assert.equal(first.stage.current,first.play,'original focusable first-party Play button remains');
+assert.equal(first.frames.length,1,'opening the guide must create the muted autoplay frame');
+assert.equal(first.stage.current,first.frames[0],'autoplay frame replaces the initial poster');
 assert.equal(first.watch.href,'https://www.youtube.com/watch?v=1i2IQSShkQ8');
+assert.ok(first.frames[0].src.startsWith('https://www.youtube-nocookie.com/embed/1i2IQSShkQ8?'),
+  'use the privacy-enhanced approved manufacturer clip');
+assert.ok(first.frames[0].src.includes('autoplay=1&mute=1&playsinline=1'),
+  'autoplay must be muted and mobile-inline');
+assert.equal(first.frames[0].loading,'eager','the player loads immediately');
+assert.equal(first.frames[0].referrerPolicy,'strict-origin-when-cross-origin');
+assert.equal(first.frames[0].tabIndex,0,'player remains keyboard reachable');
+assert.equal(first.frames[0].focusCount,0,'autoplay must not steal page focus');
 first.buttons[1].events.click();
-assert.equal(first.frames.length,0,'switching clips before Play must not create an iframe');
-assert.equal(first.stage.current,first.play,'Play button must stay visible after selection');
-assert.equal(first.label.textContent,'Safety clip','Play poster label tracks selected clip');
-assert.equal(first.watch.href,'https://www.youtube.com/watch?v=fMcnMk6gzYA',
-  'official YouTube link must track selected clip before Play');
+assert.equal(first.frames.length,2,'choosing another clip after autoplay starts it muted');
+assert.equal(first.stage.current,first.frames[1]);
+assert.equal(first.label.textContent,'Safety clip');
+assert.equal(first.watch.href,'https://www.youtube.com/watch?v=fMcnMk6gzYA');
 assert.equal(first.buttons[1].attrs['aria-pressed'],'true');
 assert.equal(first.buttons[0].attrs['aria-pressed'],'false');
 assert.equal(first.buttons[1].classes.has('is-active'),true);
-
-first.play.events.click();
-assert.equal(first.frames.length,1,'only a direct Play click creates a media iframe');
-assert.equal(first.stage.current,first.frames[0],'iframe replaces poster after interaction');
-assert.ok(first.frames[0].src.startsWith('https://www.youtube-nocookie.com/embed/fMcnMk6gzYA?'));
-assert.ok(first.frames[0].src.includes('autoplay=1&mute=1'),
-  'the explicitly selected video begins muted with native player controls');
-assert.equal(first.frames[0].loading,'eager');
-assert.equal(first.frames[0].referrerPolicy,'strict-origin-when-cross-origin');
-assert.equal(first.frames[0].tabIndex,0,'new video iframe must be keyboard focusable');
-assert.equal(first.frames[0].focusCount,1,'Play should explicitly focus the replacement player');
-assert.equal(first.frames[0].focusedAfterInsertion,true,
-  'focus the iframe only after replacing the Play button in the DOM');
-assert.equal(first.frames[0].preventScroll,true,
-  'focusing the video must not unexpectedly scroll away from the hero');
-
+assert.ok(first.frames[1].src.startsWith('https://www.youtube-nocookie.com/embed/fMcnMk6gzYA?'));
+assert.equal(first.frames[1].focusCount,0,'switching clips must not steal focus');
 first.buttons[0].events.click();
-assert.equal(first.frames.length,2,'after Play, switching clips replaces the existing video');
-assert.equal(first.stage.current,first.frames[1]);
-assert.ok(first.frames[1].src.startsWith('https://www.youtube-nocookie.com/embed/1i2IQSShkQ8?'));
+assert.equal(first.frames.length,3,'switching back loads the approved tourism clip');
 assert.equal(first.watch.href,'https://www.youtube.com/watch?v=1i2IQSShkQ8');
-assert.equal(first.buttons[0].attrs['aria-pressed'],'true');
-assert.equal(first.frames[1].tabIndex,0,'new clip iframe stays keyboard reachable');
-assert.equal(first.frames[1].focusCount,0,
-  'selecting another clip after playback must not steal focus from the selection button');
-
 first.buttons[1].dataset.ezVideo='javascript:alert(1)';
 first.buttons[1].events.click();
-assert.equal(first.frames.length,2,'unallowlisted clip ID must not create an iframe');
-assert.equal(first.watch.href,'https://www.youtube.com/watch?v=1i2IQSShkQ8',
-  'unallowlisted clip ID must not change the outbound video link');
-assert.equal(first.buttons[0].attrs['aria-pressed'],'true',
-  'unallowlisted clip must not change button selection');
-
+assert.equal(first.frames.length,3,'unallowlisted clip IDs must never load');
+assert.equal(first.watch.href,'https://www.youtube.com/watch?v=1i2IQSShkQ8');
 const noPlay=simulate(false);
-assert.equal(noPlay.frames.length,0,'missing Play button must fail closed');
+assert.equal(noPlay.frames.length,0,'malformed guide without a fallback Play button fails closed');
 
 const guides=[
- ['site/ezraider/index.html','Choose a video and press Play to load it.'],
- ['site/he/ezraider/index.html','בחרו סרטון ולחצו על כפתור הצפייה'],
- ['site/hu/ezraider/index.html','Válassz ki egy videót'],
- ['site/pt/ezraider/index.html','Escolha um vídeo e prima Reproduzir']
+ ['site/ezraider/index.html','The YouTube video loads automatically'],
+ ['site/he/ezraider/index.html','סרטון היוטיוב נטען ומתחיל להתנגן אוטומטית'],
+ ['site/hu/ezraider/index.html','A YouTube-videó automatikusan betöltődik'],
+ ['site/pt/ezraider/index.html','O vídeo do YouTube carrega e começa automaticamente']
 ];
 for(const [path,copy] of guides){
   const html=readFileSync(path,'utf8');
-  assert.ok(html.includes(copy),path+' must explain explicit Play behavior');
+  assert.ok(html.includes(copy),path+' must explain muted autoplay');
   assert.ok(html.includes('data-ez-video-screen')&&html.includes('data-ez-play')&&
     html.includes('data-ez-play-label')&&html.includes('data-ez-watch'),
     path+' must preserve accessible first-party preview and official link');
@@ -129,4 +111,4 @@ for(const [path,copy] of guides){
   assert.ok(!/<iframe\b[^>]*youtube-nocookie/i.test(html),
     path+' must not hard-code a third-party iframe into initial HTML');
 }
-console.log('EZRaider EN/HE/HU/PT: explicit Play, deferred media, switching, links and allowlist QA passed.');
+console.log('EZRaider EN/HE/HU/PT: muted autoplay, switching, focus, link and allowlist QA passed.');
