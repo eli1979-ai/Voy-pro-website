@@ -952,7 +952,10 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
       'access-control-allow-origin':local,
       'access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS',
       'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type,idempotency-key'};
-    if(method==='OPTIONS')return route.fulfill({status:204,headers,body:''});
+    if(method==='OPTIONS'){
+      if(endpoint.startsWith('/manage/'))calls.push({method:'OPTIONS',path:endpoint,status:204});
+      return route.fulfill({status:204,headers,body:''});
+    }
     calls.push({method,path:endpoint,status:null});
     let response={status:200,headers,body:'{"ok":true}'};
     if(endpoint==='/experiences'&&method==='GET')
@@ -1036,11 +1039,19 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
         check(fallback,label+' denied token routes to human WhatsApp');
         if(!fallback){
           const snapshot=await page.locator('#manage-box').innerText().catch(()=>'<box unavailable>');
+          const trace=await page.evaluate(()=>({
+            page:location.pathname+location.search+location.hash,
+            flag:window.VOY_RUNTIME_CONFIG?.bookingEnabled,
+            api:window.VOY_RUNTIME_CONFIG?.apiRoot,
+            scripts:document.scripts.length
+          }));
           failures.push(label+' manage fallback diagnostic: '+snapshot.slice(0,200)+
-            ' | page errors='+errors.slice(0,2).join('; '));
+            ' | '+JSON.stringify({trace,requests:calls.filter(c=>c.path.startsWith('/manage/')).slice(0,5),
+              external:external.filter(c=>c.path.includes('/manage')).slice(0,3),
+              errors:errors.slice(0,2)}));
         }
       }else{
-        await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:8000});
+        await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:6000});
         check((await page.locator('#manage-box .manage-head h2').innerText()).includes('SYNTHETIC-EXISTING'),
           label+' existing booking details visible from authorized synthetic read');
         check(calls.some(c=>c.method==='GET'&&c.path==='/manage/synthetic_only'),
@@ -1158,7 +1169,11 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
     }
     check(errors.length===0,label+' no uncaught browser JS errors');
   }catch(error){
-    failures.push(label+' isolated fixture failure: '+String(error).slice(0,360));
+    const snapshot=await page.locator('#manage-box').innerText().catch(()=>null);
+    failures.push(label+' isolated fixture failure: '+String(error).slice(0,230)+
+      (stage.startsWith('manage')?' | '+JSON.stringify({snapshot,
+        manageRequests:calls.filter(c=>c.path.startsWith('/manage/')).slice(0,4),
+        pageErrors:errors.slice(0,2)}):''));
   }finally{
     await page.close().catch(()=>{});
   }
@@ -1227,11 +1242,11 @@ try{
   await serverDenyAudit('en',paths[0][1],{stage:'hold',status:423});
   await serverDenyAudit('en',paths[0][1],{stage:'booking',status:423});
   await serverDenyAudit('en',paths[0][1],{stage:'payment',status:423});
-  await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
     {stage:'manage-off',status:423});
-  await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
     {stage:'manage-denied',status:423});
-  await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
     {stage:'manage-allowed',status:423});
   for(const [lang,path] of [['en','/portugal/'],['he','/he/portugal/'],['pt','/pt/portugal/']])
     await serverDenyAudit(lang,path,{stage:'marvao',status:423});
