@@ -800,6 +800,10 @@ async function manualOnlyAudit(name,path,options={}){
       return;
     }
     if(options.rtb){
+      // Check the authored WhatsApp route BEFORE the synthetic POST; the
+      // disabled relay fallback may navigate to an externally aborted URL.
+      check(await page.locator('a[href^="https://wa.me/36300993099"]').count()>0,
+        name+' authored WhatsApp fallback remains available before submitting RTB');
       const form=page.locator('form.voy-rtb-enquiry');
       const mounted=await form.count()>0;
       check(!mounted,name+' request-to-book form must not mount during manual-only');
@@ -858,6 +862,35 @@ async function manualOnlyAudit(name,path,options={}){
         }
       }
     }
+    if(options.directProbe){
+      // An old cached page, injected script, or console caller can invoke the
+      // existing exported API bridge. Manual-only must reject it before fetch,
+      // for *every* business write and side-effecting availability GET.
+      const actions=[
+        {method:'GET',path:'/experiences/exp_bud_buda/availability?date=2099-01-01'},
+        {method:'POST',path:'/quotes'},
+        {method:'POST',path:'/holds'},
+        {method:'POST',path:'/bookings'},
+        {method:'POST',path:'/booking-capacity-requests'},
+        {method:'POST',path:'/payments/intents'},
+        {method:'POST',path:'/sessions'},
+        {method:'POST',path:'/attribution/sync'}
+      ];
+      const start=calls.length;
+      await page.evaluate(async entries=>{
+        const send=window.VOYBookingIntelligence?.api;
+        if(typeof send!=='function')return;
+        for(const entry of entries){
+          try{await send(entry.path,{method:entry.method,
+            ...(entry.method==='POST'?{body:'{}'}:{})});}catch{}
+        }
+      },actions);
+      for(const entry of actions){
+        check(!calls.slice(start).some(c=>c.source==='fbm'&&
+          c.method===entry.method&&c.path===entry.path),
+          name+' manual-only rejects direct '+entry.method+' '+entry.path.split('?')[0]);
+      }
+    }
     const unsafe=calls.filter(c=>c.source==='fbm'&&(
       /\/experiences\/[^/]+\/availability\?/.test(c.path)||
       /^\/(?:quotes|holds|bookings|booking-capacity-requests|payments\/intents|sessions|attribution\/sync|marketing\/events|promotions\/validate|ancillary\/offers)(?:\/|\?|$)/.test(c.path)));
@@ -901,7 +934,7 @@ try{
   // P0 RED-first acceptance probes. All API responses are local interceptions;
   // never paper over an expected RED to make CI appear green.
   await manualOnlyAudit('manual EN Budapest','/budapest/tours/buda-castle-ezraider-tour/',
-    {locale:'en',bookingEnabled:true,wa:'36300993099',availability:true,seedSelection:true});
+    {locale:'en',bookingEnabled:true,wa:'36300993099',availability:true,seedSelection:true,directProbe:true});
   await manualOnlyAudit('manual HE Budapest','/he/budapest/tours/buda-castle-ezraider-tour/',
     {locale:'he',bookingEnabled:true,wa:'36300993099',availability:true});
   await manualOnlyAudit('manual HU Budapest','/hu/budapest/tours/buda-castle-ezraider-tour/',
@@ -913,7 +946,7 @@ try{
   await manualOnlyAudit('manual PT Marvao','/pt/portugal/',
     {locale:'pt',bookingEnabled:true,wa:'351935695004'});
   await manualOnlyAudit('manual RTB','/budapest/tours/heroes-square-city-ezraider-tour/',
-    {locale:'en',bookingEnabled:false,rtb:true,wa:'36300993099'});
+    {locale:'en',bookingEnabled:false,rtb:true});
   await manualOnlyAudit('manual Stripe retry',
     '/budapest/tours/buda-castle-ezraider-tour/?payment=cancelled',
     {locale:'en',bookingEnabled:false,seedRetry:true,wa:'36300993099'});
