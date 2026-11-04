@@ -902,6 +902,229 @@ async function manualOnlyAudit(name,path,options={}){
   }
 }
 
+
+
+// SERVER-DENY contract probes: additional to (never replaces) 19 RED client-gate
+// assertions. FBM draft #1092 proposes HTTP 423 {error:"PUBLIC_BOOKING_MANUAL_ONLY"}.
+// Other generic 403/409 are existing error classes, NOT the manual-only contract.
+// All URLs are intercepted locally. No live customer/API/provider traffic.
+async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
+  const label='SERVER DENY '+lang+' '+stage+' '+status;
+  const page=await browser.newPage({
+    viewport:{width:390,height:844},reducedMotion:'reduce',
+    serviceWorkers:'block',acceptDownloads:false
+  });
+  const calls=[],external=[],errors=[];
+  const blockedPath=new URL(fakeApi);
+  const denyPayload=status===423?{error:'PUBLIC_BOOKING_MANUAL_ONLY'}
+    :status===403?{error:'Origin is not allowed.'}
+      :{error:'Departure unavailable.',code:'DEPARTURE_UNAVAILABLE'};
+  const deny=(headers)=>({status,headers,
+    body:JSON.stringify(denyPayload)});
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());
+    if(url.origin===local){
+      if(url.pathname==='/assets/runtime-config.js')
+        return route.fulfill({status:200,contentType:'text/javascript',
+          body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
+            manualOnly:true,bookingEnabled:stage!=='manage-off',
+            apiRoot:fakeApi,clientKey:'server_deny_synthetic_public_key'
+          })+';'});
+      // A Vercel relay is never invoked in a way that could reach a server.
+      if(url.pathname==='/api/request-to-book'||url.pathname==='/api/request-to-book/'){
+        calls.push({method:req.method(),path:url.pathname,status:404});
+        return route.fulfill({status:404,contentType:'application/json',
+          body:JSON.stringify({error:'request_intake_disabled'})});
+      }
+      return route.continue();
+    }
+    if(url.origin!==blockedPath.origin){
+      // Explicitly record attempts to visit a provider, live Staging, or a
+      // third-party script, but NEVER let one leave the fixture.
+      external.push({host:url.hostname,method:req.method(),path:url.pathname});
+      return route.abort('blockedbyclient');
+    }
+    if(!url.pathname.startsWith('/api/v1/'))return route.abort('blockedbyclient');
+    const endpoint=url.pathname.slice('/api/v1'.length)+url.search;
+    const method=req.method();
+    const headers={'content-type':'application/json',
+      'access-control-allow-origin':local,
+      'access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS',
+      'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type,idempotency-key'};
+    if(method==='OPTIONS')return route.fulfill({status:204,headers,body:''});
+    calls.push({method,path:endpoint,status:null});
+    let response={status:200,headers,body:'{"ok":true}'};
+    if(endpoint==='/experiences'&&method==='GET')
+      response.body=JSON.stringify(products);
+    else if(endpoint==='/destinations/budapest'&&method==='GET')
+      response.body=JSON.stringify({
+        id:'budapest',rider_policy:fixturePolicy,booking_horizon_days:21,
+        meeting_point:{address:'Synthetic Budapest location'}});
+    else if(endpoint==='/marketing/experiments'&&method==='GET')
+      response.body='{"experiments":[]}';
+    else if(endpoint==='/payments/capabilities'&&method==='GET')
+      response.body=JSON.stringify({online_card:stage==='payment',provider:stage==='payment'?'stripe':null,
+        mode:'test',readiness:{status:stage==='payment'?'ready':'unavailable'}});
+    else if(endpoint==='/sessions'&&method==='POST')response=deny(headers);
+    else if(/^\/sessions\//.test(endpoint)&&method==='PATCH')response=deny(headers);
+    else if(endpoint==='/attribution/sync'&&method==='POST')response=deny(headers);
+    else if(/\/experiences\/[^/]+\/availability\?/.test(endpoint)&&method==='GET'){
+      response=stage==='availability'?deny(headers):{status:200,headers,
+        body:JSON.stringify({slots:[{
+          id:'22222222-2222-4222-8222-222222222222',
+          time:'10:30',sellable:true,requestable:false
+        }]})};
+    }else if(endpoint==='/quotes'&&method==='POST'){
+      response=stage==='quote'?deny(headers):{
+        status:200,headers,body:JSON.stringify({
+          id:'quote_synthetic',total:140,currency:'EUR',lines:[]
+        })};
+    }else if(endpoint==='/holds'&&method==='POST'){
+      response=stage==='hold'?deny(headers):{
+        status:201,headers,body:JSON.stringify({
+          id:'hold_synthetic',
+          expires_at:new Date(Date.now()+12*60000).toISOString(),
+          status:'active'
+        })};
+    }else if(endpoint==='/holds/hold_synthetic'&&method==='DELETE'){
+      response={status:200,headers,body:'{"released":true}'};
+    }else if(endpoint==='/ancillary/offers'&&method==='POST'){
+      response=deny(headers);
+    }else if(endpoint==='/bookings'&&method==='POST')response=deny(headers);
+    else if(endpoint==='/payments/intents'&&method==='POST')response=deny(headers);
+    else if(endpoint.startsWith('/manage/')&&method==='GET')response=deny(headers);
+    else if((endpoint.startsWith('/manage/')||endpoint.startsWith('/booking-capacity-requests'))
+      &&method!=='GET')response=deny(headers);
+    else if(method!=='GET')response=deny(headers);
+    calls[calls.length-1].status=response.status;
+    return route.fulfill(response);
+  });
+  try{
+    const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,label+' synthetic page loads');
+    if(stage==='manage-off'||stage==='manage-denied'){
+      if(stage==='manage-off'){
+        await page.waitForFunction(()=>document.querySelector('#manage-box')?.textContent
+          ?.includes('support@voy-pro.com'),null,{timeout:8000});
+        check(!calls.some(c=>c.path.startsWith('/manage/')),
+          label+' disabled historic Manage makes no token request');
+        check(await page.locator('#manage-box a[href="mailto:support@voy-pro.com"]').count()===1,
+          label+' historic Manage provides human email');
+      }else{
+        await page.locator('#manage-box .manage-error a[href^="https://wa.me/"]')
+          .waitFor({state:'attached',timeout:10000});
+        check(calls.some(c=>c.method==='GET'&&c.path.startsWith('/manage/')),
+          label+' synthetic private token reads only from the scoped Manage URL');
+        check(!calls.some(c=>['PATCH','POST','DELETE'].includes(c.method)&&c.path.startsWith('/manage/')),
+          label+' failed Manage read performs no mutation');
+        check(await page.locator('#manage-box .manage-error a[href^="https://wa.me/"]').count()>0,
+          label+' denied token routes to human WhatsApp');
+      }
+      check(!calls.some(c=>c.path==='/bookings'||c.path==='/payments/intents'),
+        label+' historic Manage cannot become public checkout');
+      return;
+    }
+    if(stage==='marvao'){
+      const wa=lang==='pt'?'351935695004':'351935695004';
+      const link=page.locator('a[href^="https://wa.me/'+wa+'"]').first();
+      check(await link.count()>0,label+' branch WhatsApp remains available');
+      check(!calls.some(c=>/\/(bookings|holds|payments\/intents)/.test(c.path)),
+        label+' branch contact did not trigger booking or payment');
+      return;
+    }
+    await page.locator('#availability-form select[name="experience"] option[value="exp_bud_buda"]')
+      .waitFor({state:'attached',timeout:12000});
+    const form=page.locator('#availability-form');
+    const date=form.locator('[name="date"]');
+    await date.fill(await date.getAttribute('min'));
+    await form.locator('[name="guide_language"] option[value="en"]')
+      .waitFor({state:'attached',timeout:8000});
+    await form.locator('[name="guide_language"]').selectOption('en');
+    await form.locator('[name="adults"]').selectOption('2');
+    await form.locator('button[type="submit"]').click();
+    await page.waitForFunction(({stage})=>{
+      const text=document.querySelector('#availability-status')?.textContent||'';
+      const slots=document.querySelectorAll('#slotlist button.slot').length;
+      return stage==='availability'
+        ? /could not be loaded|לא הצלחנו|nem sikerült/i.test(text)
+        : slots>0;
+    },{stage},{timeout:10000});
+    if(stage!=='availability'){
+      const slot=page.locator('#slotlist button.slot').first();
+      check(await slot.count()===1,label+' synthetic sellable slot displayed');
+      await slot.click();
+      await page.waitForFunction(({stage})=>stage==='quote'||stage==='hold'
+        ?/Could not hold|לא ניתן לשמור/i.test(document.querySelector('#availability-status')?.textContent||'')
+        :document.querySelector('#live-checkout-shell')?.hidden===false,
+        {stage},{timeout:10000});
+      if(stage==='booking'||stage==='payment'){
+        const checkout=page.locator('#live-checkout-form');
+        await checkout.locator('[name="full_name"]').fill('Synthetic Test Only');
+        await checkout.locator('[name="email"]').fill('synthetic@example.invalid');
+        await checkout.locator('[name="phone"]').fill('0000000000');
+        await checkout.locator('[name="legal_acceptance"]').check();
+        if(stage==='payment'){
+          const method=checkout.locator('[name="payment_method"]');
+          await method.locator('option[value="pay_now_card"]').waitFor({state:'attached'});
+          await page.waitForFunction(()=>!document.querySelector(
+            '#live-checkout-form option[value="pay_now_card"]')?.disabled,null,{timeout:9000});
+          await method.selectOption('pay_now_card');
+        }
+        await checkout.locator('button[type="submit"]').click();
+        await page.waitForFunction(()=>/could not verify|לא הצלחנו לאמת|Nem tudtuk/i.test(
+          document.querySelector('[data-checkout-status]')?.textContent||''),null,{timeout:12000});
+      }
+    }
+    const blockedEndpoint=stage==='availability'?'/availability?':
+      stage==='quote'?'/quotes':stage==='hold'?'/holds':
+        stage==='payment'?'/payments/intents':'/bookings';
+    check(calls.some(c=>c.status===status&&c.path.includes(blockedEndpoint)),
+      label+' FBM rejection observed with real proposed status/body');
+    const human=page.locator('#availability-status [data-inline-wa], [data-checkout-status] [data-inline-wa]');
+    check(await human.count()>0,label+' denied booking retains human WhatsApp escape');
+    const confirmation=page.locator('[data-checkout-status] .success-card, [data-checkout-status].success-card');
+    check(await confirmation.count()===0,
+      label+' denied request never displays Booking confirmed card');
+    const paymentLinks=page.locator('[data-payment-retry], [data-checkout-status] a[href^="https://checkout.stripe.com"]');
+    check(await paymentLinks.count()===0,
+      label+' denied request never creates payment demand or checkout redirect');
+    const paymentAttempt=calls.filter(c=>c.method==='POST'&&c.path==='/payments/intents').length;
+    check(stage==='payment'?paymentAttempt===1:paymentAttempt===0,
+      label+' no alternate payment route after server deny');
+    check(external.filter(c=>/ezraider-os-staging\.vercel\.app|stripe\.com/.test(c.host)).length===0,
+      label+' never falls back to live Staging or Stripe');
+    const primaryWrites=calls.filter(c=>c.method==='POST'&&/^(\/quotes|\/holds|\/bookings|\/payments\/intents|\/booking-capacity-requests)/.test(c.path));
+    const deniedWrites=primaryWrites.filter(c=>c.status===status);
+    check(primaryWrites.every(c=>c.status===status||(
+      c.path==='/quotes'&&stage!=='quote'&&c.status===200)||
+      (c.path==='/holds'&&['booking','payment'].includes(stage)&&c.status===201)),
+      label+' no unexpected fallback write endpoint');
+    if(stage==='availability'){
+      const attempts=calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length;
+      await wait(300);
+      check(calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length===attempts,
+        label+' no automatic retry after server rejection');
+      const statusText=await page.locator('#availability-status').innerText();
+      check(!/try again|נסו שוב|próbáld újra|próbálja újra/i.test(statusText),
+        label+' manual-only server rejection must not suggest public retry');
+      check(await page.locator('#availability-form button[type="submit"]').isDisabled(),
+        label+' explicit manual-only reject disables further public availability');
+    }else if(stage==='booking'||stage==='payment'){
+      const text=await page.locator('[data-checkout-status]').innerText();
+      check(!/Retry this same request|לנסות שוב את אותה בקשה|Próbáld újra ugyanazt/i.test(text),
+        label+' known 423 denial never offers payment/booking retry');
+      check(await page.locator('#live-checkout-form button[type="submit"]').isDisabled(),
+        label+' known 423 denial must lock booking/payment submit');
+    }
+    check(errors.length===0,label+' no uncaught browser JS errors');
+  }catch(error){
+    failures.push(label+' isolated fixture failure: '+String(error).slice(0,360));
+  }finally{
+    await page.close().catch(()=>{});
+  }
+}
+
 try{
   await scenario('en',paths[0][1]);
   for(const [lang,path] of paths)await scenario(lang,path,{sessionStalled:true});
@@ -954,6 +1177,24 @@ try{
     {manage:true,bookingEnabled:false});
   await manualOnlyAudit('manual affiliate widget','/budapest/',
     {locale:'en',bookingEnabled:false,aff:true});
+
+  // FBM #1092 SOURCE-only canonical 423 and separate existing 403/409 errors.
+  // These probe rejected HTTP replies, NOT the 19 existing client gate tests.
+  for(const [lang,path] of paths)
+    await serverDenyAudit(lang,path,{stage:'availability',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'availability',status:403});
+  await serverDenyAudit('en',paths[0][1],{stage:'availability',status:409});
+  await serverDenyAudit('en',paths[0][1],{stage:'quote',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'hold',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'booking',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'payment',status:423});
+  await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
+    {stage:'manage-off',status:423});
+  await serverDenyAudit('en','/manage/?lang=en#token=synthetic_only',
+    {stage:'manage-denied',status:423});
+  for(const [lang,path] of [['en','/portugal/'],['he','/he/portugal/'],['pt','/pt/portugal/']])
+    await serverDenyAudit(lang,path,{stage:'marvao',status:423});
+
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
