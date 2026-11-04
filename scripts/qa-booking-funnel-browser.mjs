@@ -693,6 +693,180 @@ async function tourPickerHomepageScenario(locale,{missingOption=false}={}){
   }
 }
 
+
+// P0 manual-only contract: run against a LOCAL static server and synthetic FBM.
+// Intentionally RED while the current client ignores manualOnly=true. Never
+// contact real FBM, WhatsApp, Stripe, or the public website from this test.
+async function manualOnlyAudit(name,path,options={}){
+  const page=await browser.newPage({
+    viewport:{width:options.desktop?1280:390,height:844},
+    reducedMotion:'reduce',serviceWorkers:'block'
+  });
+  const calls=[];
+  const configuredOn=options.bookingEnabled!==false;
+  if(options.seedRetry||options.seedSelection)await page.addInitScript(({retry,selection})=>{
+    if(retry)sessionStorage.setItem('voy_payment_retry_v1',JSON.stringify({
+      version:1,saved_at:Date.now(),
+      checkout_url:'https://checkout.stripe.com/c/pay/cs_test_synthetic_only',
+      expires_at:new Date(Date.now()+45*60000).toISOString(),
+      payment_checkout_id:'fixture_only'
+    }));
+    if(selection){
+      const day=new Date(Date.now()+5*86400000).toISOString().slice(0,10);
+      localStorage.setItem('voy_recovery_state',JSON.stringify({
+        version:1,saved_at:Date.now(),experience_id:'exp_bud_buda',
+        experience_slug:'buda-highlights',experience_title:'Buda Highlights',
+        date:day,is_private:false,guide_language:'en',
+        composition:{riders_16_plus:2,child_passengers_3_15:0,
+          baby_passengers_1_2:0,request_15yo_independent_assessment:false}
+      }));
+    }
+  },{retry:Boolean(options.seedRetry),selection:Boolean(options.seedSelection)});
+  await page.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());
+    if(url.origin===local){
+      if(url.pathname==='/assets/runtime-config.js'){
+        return route.fulfill({status:200,contentType:'text/javascript',
+          body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
+            manualOnly:true,bookingEnabled:configuredOn,apiRoot:fakeApi,
+            clientKey:'synthetic_browser_client'
+          })+';'});
+      }
+      if(url.pathname==='/api/request-to-book'||url.pathname==='/api/request-to-book/'){
+        calls.push({method:req.method(),path:url.pathname,source:'rtb'});
+        return route.fulfill({status:404,contentType:'application/json',
+          body:JSON.stringify({error:'request_intake_disabled'})});
+      }
+      return route.continue();
+    }
+    if(url.origin!==new URL(fakeApi).origin)return route.abort('blockedbyclient');
+    if(!url.pathname.startsWith('/api/v1/'))return route.abort('blockedbyclient');
+    const endpoint=url.pathname.slice('/api/v1'.length)+url.search;
+    const headers={'content-type':'application/json','access-control-allow-origin':local,
+      'access-control-allow-headers':'content-type,x-voy-client-key,x-voy-client,idempotency-key',
+      'access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS'};
+    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
+    calls.push({method:req.method(),path:endpoint,source:'fbm'});
+    let data={ok:true};
+    if(endpoint==='/experiences'||endpoint==='/experiences?destination=budapest')data=products;
+    else if(endpoint==='/destinations/budapest')data={
+      id:'budapest',currency:'EUR',timezone:'Europe/Budapest',
+      booking_horizon_days:21,rider_policy:fixturePolicy,
+      meeting_point:{address:'Synthetic Budapest meeting point'}};
+    else if(endpoint==='/payments/capabilities')data={
+      online_card:false,provider:null,mode:'test',
+      readiness:{status:'unavailable',reason:'provider_disabled'}};
+    else if(endpoint==='/sessions')data={id:'synthetic_session_only'};
+    else if(/\/experiences\/[^/]+\/availability\?/.test(endpoint))data={slots:[]};
+    return route.fulfill({status:200,headers,body:JSON.stringify(data)});
+  });
+  try{
+    const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,name+' local fixture route loads');
+    if(options.manage){
+      await page.waitForFunction(()=>document.querySelector('#manage-box')?.textContent?.includes('support@voy-pro.com'),
+        null,{timeout:8000});
+      check(await page.locator('#manage-box a[href="mailto:support@voy-pro.com"]').count()===1,
+        name+' existing booking token gets a usable human support path when self-service is disabled');
+      check(!calls.some(c=>c.path.startsWith('/manage/')),
+        name+' no historic booking token sent to the disabled client');
+      return;
+    }
+    await page.waitForFunction(()=>Boolean(window.VOYBookingIntelligence),
+      null,{timeout:12000});
+    const html=await page.locator('html').evaluate(el=>({lang:el.lang,dir:el.dir}));
+    check(html.lang===options.locale,name+' retains document language');
+    check(options.locale==='he'?html.dir==='rtl':html.dir!=='rtl',
+      name+' retains correct RTL/LTR');
+    check(await page.locator('main h1').count()>0,
+      name+' tour content remains present');
+    if(options.aff){
+      await page.evaluate(apiOrigin=>{
+        const mount=document.createElement('div');
+        mount.id='synthetic-affiliate-mount';
+        document.body.appendChild(mount);
+        const script=document.createElement('script');
+        script.src='/assets/affiliate-booking-widget.js';
+        script.setAttribute('data-voy-affiliate-widget','');
+        script.setAttribute('data-target','synthetic-affiliate-mount');
+        script.setAttribute('data-affiliate','SYNTHETIC');
+        script.setAttribute('data-client-key','synthetic_widget_client');
+        script.setAttribute('data-api-root',apiOrigin);
+        document.body.appendChild(script);
+      },new URL(fakeApi).origin);
+      await wait(950);
+      check(!calls.some(c=>c.path==='/experiences?destination=budapest'),
+        name+' affiliate widget must NOT ignore manual-only contract (separate client boundary)');
+      return;
+    }
+    if(options.rtb){
+      const form=page.locator('form.voy-rtb-enquiry');
+      const mounted=await form.count()>0;
+      check(!mounted,name+' request-to-book form must not mount during manual-only');
+      if(mounted){
+        const date=new Date(Date.now()+6*86400000).toISOString().slice(0,10);
+        await form.locator('[name="requested_date"]').fill(date);
+        await form.locator('[name="requested_time"]').fill('14:00');
+        await form.locator('[name="requested_guide_language"]').selectOption('en');
+        await form.locator('[name="contact_name"]').fill('Synthetic Guest');
+        await form.locator('[name="contact_phone"]').fill('0000000000');
+        await form.locator('button[type="submit"]').click();
+        await wait(250);
+      }
+      check(!calls.some(c=>c.source==='rtb'&&c.method==='POST'),
+        name+' RTB submit cannot POST when manual-only');
+    }
+    if(options.seedRetry){
+      check(await page.locator('[data-payment-retry]').count()===0,
+        name+' saved Stripe redirect cannot be restored from sessionStorage');
+    }
+    if(options.seedSelection){
+      check(await page.locator('[data-resume-booking]').isHidden(),
+        name+' saved selection cannot restore a checkout path');
+    }
+    if(options.wa){
+      const link=page.locator('[data-wa]').first();
+      check(await link.count()===1,name+' WhatsApp contact remains in page');
+      if(await link.count()){
+        const target=await link.getAttribute('href');
+        check(target?.startsWith('https://wa.me/'+options.wa),
+          name+' WhatsApp points to correct branch, not an FBM checkout');
+        await link.evaluate(node=>{
+          node.addEventListener('click',event=>event.preventDefault(),
+            {capture:true,once:true});
+          node.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+        });
+        await wait(320);
+      }
+    }
+    if(options.availability){
+      const form=page.locator('#availability-form');
+      const submit=form.locator('button[type="submit"]');
+      check(await submit.count()===1,name+' availability section still has accessible context');
+      if(await submit.count()){
+        const disabled=await submit.isDisabled()||await submit.isHidden();
+        check(disabled,name+' manual-only blocks public availability submit');
+        if(!disabled){
+          await form.locator('[name="date"]').fill(
+            new Date(Date.now()+6*86400000).toISOString().slice(0,10));
+          await form.locator('[name="guide_language"]').selectOption('en');
+          await form.locator('[name="adults"]').selectOption('2');
+          await submit.click();
+          await wait(320);
+        }
+      }
+    }
+    const unsafe=calls.filter(c=>c.source==='fbm'&&(
+      /\/experiences\/[^/]+\/availability\?/.test(c.path)||
+      /^\/(?:quotes|holds|bookings|booking-capacity-requests|payments\/intents|sessions|attribution\/sync|marketing\/events|promotions\/validate|ancillary\/offers)(?:\/|\?|$)/.test(c.path)));
+    check(unsafe.length===0,name+' no FBM availability, quote, hold, booking, payment, session or attribution request');
+  }catch(error){
+    failures.push(name+' manual-only fixture error: '+String(error).slice(0,320));
+  }finally{
+    await page.close().catch(()=>{});
+  }
+}
+
 try{
   await scenario('en',paths[0][1]);
   for(const [lang,path] of paths)await scenario(lang,path,{sessionStalled:true});
@@ -722,6 +896,29 @@ try{
   await scenario('en',paths[0][1],{recovery:'discard'});
   await scenario('he',paths[1][1],{recovery:'discard'});
   await scenario('hu',paths[2][1],{recovery:'discard'});
+  // P0 RED-first acceptance probes. All API responses are local interceptions;
+  // never paper over an expected RED to make CI appear green.
+  await manualOnlyAudit('manual EN Budapest','/budapest/tours/buda-castle-ezraider-tour/',
+    {locale:'en',bookingEnabled:true,wa:'36300993099',availability:true,seedSelection:true});
+  await manualOnlyAudit('manual HE Budapest','/he/budapest/tours/buda-castle-ezraider-tour/',
+    {locale:'he',bookingEnabled:true,wa:'36300993099',availability:true});
+  await manualOnlyAudit('manual HU Budapest','/hu/budapest/tours/buda-castle-ezraider-tour/',
+    {locale:'hu',bookingEnabled:true,wa:'36300993099',availability:true});
+  await manualOnlyAudit('manual EN Marvao','/portugal/',
+    {locale:'en',bookingEnabled:true,wa:'351935695004'});
+  await manualOnlyAudit('manual HE Marvao','/he/portugal/',
+    {locale:'he',bookingEnabled:true,wa:'351935695004'});
+  await manualOnlyAudit('manual PT Marvao','/pt/portugal/',
+    {locale:'pt',bookingEnabled:true,wa:'351935695004'});
+  await manualOnlyAudit('manual RTB','/budapest/tours/heroes-square-city-ezraider-tour/',
+    {locale:'en',bookingEnabled:false,rtb:true,wa:'36300993099'});
+  await manualOnlyAudit('manual Stripe retry',
+    '/budapest/tours/buda-castle-ezraider-tour/?payment=cancelled',
+    {locale:'en',bookingEnabled:false,seedRetry:true,wa:'36300993099'});
+  await manualOnlyAudit('manual old booking manage','/manage/?lang=en#token=synthetic_token_only',
+    {manage:true,bookingEnabled:false});
+  await manualOnlyAudit('manual affiliate widget','/budapest/',
+    {locale:'en',bookingEnabled:false,aff:true});
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
