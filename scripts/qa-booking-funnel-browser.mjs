@@ -1046,8 +1046,35 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
           label+' disabled historic Manage makes no token request');
         check(await page.locator('#manage-box a[href="mailto:support@voy-pro.com"]').count()===1,
           label+' historic Manage provides human email');
-      }else if(stage==='manage-denied'){
-        await wait(450);
+      }else{
+        // Separate a broken built Manage bootstrap from a synthetic-token or
+        // mock API failure. A direct test-only fetch cannot count as app work.
+        const normalized=await page.evaluate(()=>({
+          query:new URLSearchParams(location.search).has('token'),
+          hash:new URLSearchParams(location.hash.slice(1)).get('token')
+        }));
+        check(!normalized.query&&normalized.hash==='synthetic_only',
+          label+' synthetic token is normalized query to fragment');
+        const booted=await page.waitForFunction(()=>(
+          (window.__syntheticFetchCalls||[]).some(u=>u.includes('/manage/synthetic_only'))
+        ),null,{timeout:2200}).then(()=>true).catch(()=>false);
+        check(booted,label+' built Manage app issues initial token-scoped GET');
+        if(!booted){
+          const probe=await page.evaluate(async()=>{
+            const cfg=window.VOY_RUNTIME_CONFIG;
+            const result=await fetch(cfg.apiRoot+'/manage/synthetic_only',{
+              headers:{'x-voy-client-key':'server_deny_synthetic_public_key',
+                'x-voy-client':'voy-pro-website'}
+            });
+            return {status:result.status,payload:await result.json().catch(()=>null)};
+          }).catch(e=>({error:String(e)}));
+          check(probe.status===(stage==='manage-denied'?423:200),
+            label+' local Manage API mock responds to independent synthetic GET');
+          results.push('NOT VERIFIED: '+label+
+            ' customer read/mutation UX blocked by missing built Manage load()');
+          return;
+        }
+        if(stage==='manage-denied'){
         check(calls.some(c=>c.method==='GET'&&c.path.startsWith('/manage/')),
           label+' synthetic private token sends read GET only');
         check(!calls.some(c=>['PATCH','POST','DELETE'].includes(c.method)&&c.path.startsWith('/manage/')),
@@ -1071,7 +1098,7 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
               external:external.filter(c=>c.path.includes('/manage')).slice(0,3),
               errors:errors.slice(0,2),console:consoleErrors.slice(0,4)}));
         }
-      }else{
+        }else{
         await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:6000});
         check((await page.locator('#manage-box .manage-head h2').innerText()).includes('SYNTHETIC-EXISTING'),
           label+' existing booking details visible from authorized synthetic read');
@@ -1089,6 +1116,7 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
           label+' denied Manage mutation never shows saved confirmation');
         check(await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0,
           label+' existing booking retains human WhatsApp support');
+        }
       }
       check(!calls.some(c=>c.path==='/bookings'||c.path==='/payments/intents'),
         label+' historic Manage cannot become public checkout');
@@ -1176,6 +1204,15 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
         label+' no automatic retry after server rejection');
       const statusText=await page.locator('#availability-status').innerText();
       if(status===423){
+        const notice=lang==='en'
+          ?/online booking.*(?:paused|unavailable)/i.test(statusText)&&
+            /not.*confirmed booking/i.test(statusText)
+          :lang==='he'
+            ?/הזמנ/.test(statusText)&&/מושה|מושבת|אינן זמינות/.test(statusText)&&
+              /לא.*הזמנה מאושרת/.test(statusText)
+            :/foglalás/i.test(statusText)&&/szünetel|nem érhető el/i.test(statusText)&&
+              /nem.*visszaigazolt foglalás/i.test(statusText);
+        check(notice,label+' localized 423 explains booking paused and no confirmed booking');
         check(!/try again|נסו שוב|próbáld újra|próbálja újra/i.test(statusText),
           label+' explicit 423 manual-only denial must not suggest public retry');
         check(await page.locator('#availability-form button[type="submit"]').isDisabled(),
