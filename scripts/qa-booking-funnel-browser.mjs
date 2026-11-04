@@ -908,13 +908,15 @@ async function manualOnlyAudit(name,path,options={}){
 // assertions. FBM draft #1092 proposes HTTP 423 {error:"PUBLIC_BOOKING_MANUAL_ONLY"}.
 // Other generic 403/409 are existing error classes, NOT the manual-only contract.
 // All URLs are intercepted locally. No live customer/API/provider traffic.
-async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
-  const label='SERVER DENY '+lang+' '+stage+' '+status;
+async function serverDenyAudit(lang,path,{stage='availability',status=423,managePatched=false}={}){
+  const label='SERVER DENY '+lang+' '+stage+' '+status+(managePatched?' candidate':'');
   const page=await browser.newPage({
     viewport:{width:390,height:844},reducedMotion:'reduce',
     serviceWorkers:'block',acceptDownloads:false
   });
   const calls=[],external=[],errors=[],consoleErrors=[];
+  const syntheticManage={email:'original@example.invalid',
+    phone:'0000000000',preferred_language:'en'};
   page.on('console',message=>{
     if(message.type()==='error')consoleErrors.push(message.text().slice(0,200));
   });
@@ -942,6 +944,19 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
   await page.route('**/*',async route=>{
     const req=route.request(),url=new URL(req.url());
     if(url.origin===local){
+      if(managePatched&&url.pathname==='/manage/'){
+        // The production build is untouched. Replay exactly the missing
+        // trailing initialization in this ONE intercepted local HTML reply.
+        // This proves candidate behavior without editing the source/build.
+        const built=await readFile(join(root,'manage/index.html'),'utf8');
+        const suffix='})();</script><script src="/assets/site.js"></script>';
+        if(built.includes(' await load();')||built.split(suffix).length!==2){
+          failures.push(label+' candidate HTML cannot prove unique startup injection');
+          return route.abort('blockedbyclient');
+        }
+        const candidate=built.replace(suffix,' await load();\n'+suffix);
+        return route.fulfill({status:200,contentType:'text/html',body:candidate});
+      }
       if(url.pathname==='/assets/runtime-config.js')
         return route.fulfill({status:200,contentType:'text/javascript',
           body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
@@ -1013,21 +1028,29 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
       response=deny(headers);
     }else if(endpoint==='/bookings'&&method==='POST')response=deny(headers);
     else if(endpoint==='/payments/intents'&&method==='POST')response=deny(headers);
-    else if(stage==='manage-allowed'&&method==='GET'&&endpoint==='/manage/synthetic_only'){
+    else if(['manage-allowed','manage-accepted'].includes(stage)&&method==='GET'&&endpoint==='/manage/synthetic_only'){
       response={status:200,headers,body:JSON.stringify({
         reference:'SYNTHETIC-EXISTING',status:'confirmed',
         selected_date:'2099-01-01',slot_time:'10:30',party_size:2,
         group_composition:{riders_16_plus:2,child_passengers_3_15:0,baby_passengers_1_2:0},
         experience_slug:'buda-highlights',guide_language:'en',total:140,currency:'EUR',
         payment_status:'unpaid',payment_method:'pay_arrival_cash',
-        customer:{email:'original@example.invalid',phone:'0000000000',preferred_language:'en'}
+        customer:{...syntheticManage}
       })};
-    }else if(stage==='manage-allowed'&&method==='GET'&&endpoint==='/manage/synthetic_only/options'){
+    }else if(['manage-allowed','manage-accepted'].includes(stage)&&method==='GET'&&endpoint==='/manage/synthetic_only/options'){
       response={status:200,headers,body:JSON.stringify({
         can_change_datetime:false,cancellation:{allowed:false}
       })};
-    }else if(stage==='manage-allowed'&&method==='GET'&&endpoint==='/manage/synthetic_only/riders'){
+    }else if(['manage-allowed','manage-accepted'].includes(stage)&&method==='GET'&&endpoint==='/manage/synthetic_only/riders'){
       response={status:200,headers,body:'{"riders":[]}'};
+    }else if(stage==='manage-accepted'&&endpoint==='/manage/synthetic_only'&&method==='PATCH'){
+      const data=JSON.parse(req.postData()||'{}');
+      syntheticManage.email=String(data.email||'');
+      syntheticManage.phone=String(data.phone||'');
+      syntheticManage.preferred_language=String(data.preferred_language||'');
+      response={status:200,headers,body:JSON.stringify({
+        reference:'SYNTHETIC-EXISTING',customer:{...syntheticManage}
+      })};
     }else if(endpoint.startsWith('/manage/')&&method==='GET')response=deny(headers);
     else if((endpoint.startsWith('/manage/')||endpoint.startsWith('/booking-capacity-requests'))
       &&method!=='GET')response=deny(headers);
@@ -1038,7 +1061,7 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
   try{
     const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
     check(response?.status()===200,label+' synthetic page loads');
-    if(stage==='manage-off'||stage==='manage-denied'||stage==='manage-allowed'){
+    if(['manage-off','manage-denied','manage-allowed','manage-accepted'].includes(stage)){
       if(stage==='manage-off'){
         await page.waitForFunction(()=>document.querySelector('#manage-box')?.textContent
           ?.includes('support@voy-pro.com'),null,{timeout:8000});
@@ -1068,15 +1091,15 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
             });
             return {status:result.status,payload:await result.json().catch(()=>null)};
           }).catch(e=>({error:String(e)}));
-          check(probe.status===(stage==='manage-denied'?423:200),
+          check(probe.status===(stage==='manage-denied'?status:200),
             label+' local Manage API mock responds to independent synthetic GET');
           results.push('NOT VERIFIED: '+label+
             ' customer read/mutation UX blocked by missing built Manage load()');
           return;
         }
         if(stage==='manage-denied'){
-        check(calls.some(c=>c.method==='GET'&&c.path.startsWith('/manage/')),
-          label+' synthetic private token sends read GET only');
+        check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/synthetic_only').length===1,
+          label+' synthetic private token sends exactly one initial GET');
         check(!calls.some(c=>['PATCH','POST','DELETE'].includes(c.method)&&c.path.startsWith('/manage/')),
           label+' failed Manage read performs no mutation');
         const fallback=await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0;
@@ -1102,18 +1125,27 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
         await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:6000});
         check((await page.locator('#manage-box .manage-head h2').innerText()).includes('SYNTHETIC-EXISTING'),
           label+' existing booking details visible from authorized synthetic read');
-        check(calls.some(c=>c.method==='GET'&&c.path==='/manage/synthetic_only'),
-          label+' private Manage GET uses scoped token');
+        check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/synthetic_only').length===1,
+          label+' initial Manage GET uses scoped token exactly once');
         const form=page.locator('#manage-contact');
         await form.locator('[name="email"]').fill('updated@example.invalid');
         await form.locator('button[type="submit"]').click();
-        await page.waitForFunction(()=>/verify whether|לא הצלחנו לאמת|Could not update/i.test(
-          document.querySelector('[data-contact-status]')?.textContent||''),null,{timeout:8000});
+        await page.waitForFunction(({allowed})=>{
+          const status=document.querySelector('[data-contact-status]')?.textContent||'';
+          return allowed
+            ?/Contact details updated|פרטי הקשר עודכנו/i.test(status)
+            :/could not verify|לא הצלחנו לאמת|Could not update/i.test(status);
+        },{allowed:stage==='manage-accepted'},{timeout:8500});
         check(calls.filter(c=>c.method==='PATCH'&&c.path==='/manage/synthetic_only').length===1,
           label+' customer change uses one protected PATCH, never public POST booking');
-        check(!/Contact details updated|פרטי הקשר עודכנו/i.test(
-          await page.locator('[data-contact-status]').innerText()),
-          label+' denied Manage mutation never shows saved confirmation');
+        check(
+          stage==='manage-accepted'
+            ?/Contact details updated|פרטי הקשר עודכנו/i.test(
+              await page.locator('[data-contact-status]').innerText())
+            :!/Contact details updated|פרטי הקשר עודכנו/i.test(
+              await page.locator('[data-contact-status]').innerText()),
+          label+(stage==='manage-accepted'
+            ?' authorized PATCH verified after canonical GET':' denied PATCH never claims saved'));
         check(await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0,
           label+' existing booking retains human WhatsApp support');
         }
@@ -1311,6 +1343,16 @@ try{
     {stage:'manage-denied',status:423});
   await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
     {stage:'manage-allowed',status:423});
+  // Candidate-only built Manage restoration. This changes local intercepted HTML
+  // in memory, never checked-in site/build scripts or hosted behavior.
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-denied',status:403,managePatched:true});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-denied',status:423,managePatched:true});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-allowed',status:423,managePatched:true});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-accepted',status:200,managePatched:true});
   for(const [lang,path] of [['en','/portugal/'],['he','/he/portugal/'],['pt','/pt/portugal/']])
     await serverDenyAudit(lang,path,{stage:'marvao',status:423});
 
