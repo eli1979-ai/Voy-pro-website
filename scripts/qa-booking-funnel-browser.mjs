@@ -825,7 +825,9 @@ async function manualOnlyAudit(name,path,options={}){
         name+' saved selection cannot restore a checkout path');
     }
     if(options.wa){
-      const link=page.locator('[data-wa]').first();
+      // RTB pages use authored WhatsApp anchors without data-wa.
+      const tagged=page.locator('[data-wa]').first();
+      const link=await tagged.count()?tagged:page.locator('a[href^="https://wa.me/"]').first();
       check(await link.count()===1,name+' WhatsApp contact remains in page');
       if(await link.count()){
         const target=await link.getAttribute('href');
