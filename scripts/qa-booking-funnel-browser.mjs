@@ -914,7 +914,24 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
     viewport:{width:390,height:844},reducedMotion:'reduce',
     serviceWorkers:'block',acceptDownloads:false
   });
-  const calls=[],external=[],errors=[];
+  const calls=[],external=[],errors=[],consoleErrors=[];
+  page.on('console',message=>{
+    if(message.type()==='error')consoleErrors.push(message.text().slice(0,200));
+  });
+  if(stage.startsWith('manage')){
+    await page.addInitScript(()=>{
+      window.__syntheticFetchCalls=[];
+      window.__syntheticPromiseErrors=[];
+      addEventListener('unhandledrejection',event=>{
+        window.__syntheticPromiseErrors.push(String(event.reason).slice(0,180));
+      });
+      const original=window.fetch.bind(window);
+      window.fetch=(...args)=>{
+        window.__syntheticFetchCalls.push(String(args[0]).slice(0,130));
+        return original(...args);
+      };
+    });
+  }
   const blockedPath=new URL(fakeApi);
   const denyPayload=status===423?{error:'PUBLIC_BOOKING_MANUAL_ONLY'}
     :status===403?{error:'Origin is not allowed.'}
@@ -1043,12 +1060,16 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
             page:location.pathname+location.search+location.hash,
             flag:window.VOY_RUNTIME_CONFIG?.bookingEnabled,
             api:window.VOY_RUNTIME_CONFIG?.apiRoot,
-            scripts:document.scripts.length
+            scripts:document.scripts.length,
+            inlineLengths:[...document.scripts].map(s=>s.src?'external':s.textContent.length),
+            fetchCalls:window.__syntheticFetchCalls||[],
+            promiseErrors:window.__syntheticPromiseErrors||[],
+            title:document.title
           }));
           failures.push(label+' manage fallback diagnostic: '+snapshot.slice(0,200)+
             ' | '+JSON.stringify({trace,requests:calls.filter(c=>c.path.startsWith('/manage/')).slice(0,5),
               external:external.filter(c=>c.path.includes('/manage')).slice(0,3),
-              errors:errors.slice(0,2)}));
+              errors:errors.slice(0,2),console:consoleErrors.slice(0,4)}));
         }
       }else{
         await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:6000});
@@ -1173,7 +1194,12 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423}={}){
     failures.push(label+' isolated fixture failure: '+String(error).slice(0,230)+
       (stage.startsWith('manage')?' | '+JSON.stringify({snapshot,
         manageRequests:calls.filter(c=>c.path.startsWith('/manage/')).slice(0,4),
-        pageErrors:errors.slice(0,2)}):''));
+        pageErrors:errors.slice(0,2),console:consoleErrors.slice(0,4),
+        detail:await page.evaluate(()=>({title:document.title,
+          fetchCalls:window.__syntheticFetchCalls||[],
+          promiseErrors:window.__syntheticPromiseErrors||[],
+          inlineLengths:[...document.scripts].map(s=>s.src?'external':s.textContent.length)
+        })).catch(()=>null)}):''));
   }finally{
     await page.close().catch(()=>{});
   }
