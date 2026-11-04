@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "site": "https://ezraidereu.com",
+  "siteId": 258220563,
+  "source": "Authenticated WordPress posts, pages, and tours readback, 2026-10-28",
+  "purpose": "Read-only validation of stored WordPress content, not published browser health or front-end JavaScript",
+  "contactEmail": "Voyprobud@gmail.com",
+  "whatsappPath": "/36300993099",
+  "families": [
+    {
+      "family": "buda-castle",
+      "en": {
+        "id": 38,
+        "slug": "buda-castle-tour"
+      },
+      "hu": {
+        "id": 256,
+        "slug": "budavari-tura"
+      },
+      "he": {
+        "id": 271,
+        "slug": "סיור-לטירת-בודהה"
+      }
+    },
+    {
+      "family": "citadella",
+      "en": {
+        "id": 43,
+        "slug": "citadella-tour"
+      },
+      "hu": {
+        "id": 258,
+        "slug": "citadella-tura"
+      },
+      "he": {
+        "id": 272,
+        "slug": "סיור-סיטדלה"
+      }
+    },
+    {
+      "family": "heroes-square",
+      "en": {
+        "id": 44,
+        "slug": "heroes-square-tour"
+      },
+      "hu": {
+        "id": 259,
+        "slug": "tura-a-hosok-terere"
+      },
+      "he": {
+        "id": 273,
+        "slug": "סיור-בכיכר-גיבורים"
+      }
+    },
+    {
+      "family": "margaret-island",
+      "en": {
+        "id": 45,
+        "slug": "margaret-island-tour"
+      },
+      "hu": {
+        "id": 260,
+        "slug": "margitszigeti-tura"
+      },
+      "he": {
+        "id": 274,
+        "slug": "סיור-לאי-מרגיט-והפרלמנט"
+      }
+    },
+    {
+      "family": "extended",
+      "en": {
+        "id": 46,
+        "slug": "all-in-budapest-tour"
+      },
+      "hu": {
+        "id": 261,
+        "slug": "a-budapesti-tura"
+      },
+      "he": {
+        "id": 275,
+        "slug": "הסיור-המקיף-של-בודפשט"
+      }
+    },
+    {
+      "family": "night",
+      "en": {
+        "id": 47,
+        "slug": "night-tour"
+      },
+      "hu": {
+        "id": 262,
+        "slug": "ejszakai-tura"
+      },
+      "he": {
+        "id": 276,
+        "slug": "הסיור-לילי-הינשופי"
+      }
+    },
+    {
+      "family": "off-road",
+      "en": {
+        "id": 48,
+        "slug": "off-road-tour"
+      },
+      "hu": {
+        "id": 263,
+        "slug": "terepjaro-tura"
+      },
+      "he": {
+        "id": 277,
+        "slug": "סיור-שטח-נהיגה-אתגרית"
+      }
+    }
+  ],
+  "editorial": [
+    {
+      "id": 439,
+      "slug": "hotel-recommendations-by-voypro-budapest",
+      "locale": "en",
+      "type": "post"
+    },
+    {
+      "id": 373,
+      "slug": "ezraider-סיורים-בבודפשט",
+      "locale": "he",
+      "type": "post"
+    },
+    {
+      "id": 369,
+      "slug": "ezraider-budapest-tours",
+      "locale": "en",
+      "type": "post"
+    },
+    {
+      "id": 228,
+      "slug": "az-ezraider",
+      "locale": "hu",
+      "type": "post"
+    },
+    {
+      "id": 221,
+      "slug": "mi-az-ezraider",
+      "locale": "hu",
+      "type": "post"
+    },
+    {
+      "id": 219,
+      "slug": "על-העזר",
+      "locale": "he",
+      "type": "post"
+    },
+    {
+      "id": 217,
+      "slug": "למה-העזרני",
+      "locale": "he",
+      "type": "post"
+    },
+    {
+      "id": 54,
+      "slug": "why-the-ezraider",
+      "locale": "en",
+      "type": "post"
+    },
+    {
+      "id": 49,
+      "slug": "about-the-ezraider",
+      "locale": "en",
+      "type": "post"
+    },
+    {
+      "id": 390,
+      "slug": "recommendations",
+      "locale": "en",
+      "type": "page"
+    },
+    {
+      "id": 393,
+      "slug": "ajanlasok",
+      "locale": "hu",
+      "type": "page"
+    },
+    {
+      "id": 396,
+      "slug": "המלצות",
+      "locale": "he",
+      "type": "page"
+    }
+  ],
+  "homes": {
+    "en": "/budapest/",
+    "hu": "/budapest/fooldal/",
+    "he": "/budapest/בית/"
+  },
+  "notes": [
+    "Tour slugs and links are verified against WordPress content IDs; preserve them (especially the legacy Hebrew Buda slug spelling).",
+    "Do not change current payment or FareHarbor plugin state; stored posts have enquiry links only.",
+    "Do not infer page locale from URL for articles; taxonomy/lang meta is inaccessible through the connector.",
+    "Never store unsanitized WordPress content snapshots, customer information or credentials in this public GitHub repository."
+  ]
+}
