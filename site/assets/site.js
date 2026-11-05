@@ -1008,7 +1008,7 @@
     }finally{if(timer)clearTimeout(timer);}
   }
 
-  // Only the explicit FBM public-client policy code is terminal; 403/409
+  // Only the explicit server policy code is terminal; 403/409
   // and unrelated 423 errors retain their existing recovery behavior.
   function isPublicManualOnly423(err){
     return err?.status===423&&(
