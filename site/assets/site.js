@@ -1017,15 +1017,10 @@
       err?.message==='PUBLIC_BOOKING_MANUAL_ONLY'
     );
   }
-  function publicManualOnly423Notice(context){
-    if(context==='availability'){
-      if(locale==='he')return 'ההזמנות המקוונות מושבתות ולכן לא הצלחנו לטעון זמינות. זו לא הזמנה מאושרת. פנו לצוות שלנו ב-WhatsApp לבירור אנושי.';
-      if(locale==='hu')return 'Az online foglalás szünetel, ezért nem sikerült betölteni az elérhetőséget. Ez nem visszaigazolt foglalás. Kérjük, lépj kapcsolatba a csapattal WhatsAppon.';
-      return 'Current availability could not be loaded because online booking is paused. This is not a confirmed booking. Contact our team on WhatsApp.';
-    }
-    if(locale==='he')return 'ההזמנות המקוונות מושבתות. לא הצלחנו לאמת הזמנה בבקשה זו; זו לא הזמנה מאושרת. אם בוצע ניסיון תשלום קודם, הצוות יסייע בבדיקת מצבו. פנו אלינו ב-WhatsApp ולא דרך שליחה חוזרת באתר.';
-    if(locale==='hu')return 'Az online foglalás szünetel. Nem tudtuk ellenőrizni vagy visszaigazolni a foglalást ezzel a kéréssel. Egy korábbi fizetés állapotát a csapat ellenőrizheti. Kérjük, írj nekünk WhatsAppon, ne küldd be újra az oldalon.';
-    return 'Online booking is paused. We could not verify or confirm a booking from this request. Our team can check any earlier payment status. Contact us on WhatsApp instead of submitting again on this site.';
+  function publicManualOnly423Notice(){
+    if(locale==='he')return 'ההזמנות המקוונות מושבתות ולכן לא הצלחנו לטעון זמינות. זו לא הזמנה מאושרת. פנו לצוות שלנו ב-WhatsApp לבירור אנושי.';
+    if(locale==='hu')return 'Az online foglalás szünetel, ezért nem sikerült betölteni az elérhetőséget. Ez nem visszaigazolt foglalás. Kérjük, lépj kapcsolatba a csapattal WhatsAppon.';
+    return 'Current availability could not be loaded because online booking is paused. This is not a confirmed booking. Contact our team on WhatsApp.';
   }
 
   async function hydrateDestinationRuntime(){
@@ -2775,7 +2770,7 @@
         const publicDenied=isPublicManualOnly423(err);
         if(!publicDenied)patchSession({stage:'availability_error',error_code:err?.code||String(err?.status||'availability_error')});
         status.innerHTML=rescueMarkup(publicDenied
-          ?publicManualOnly423Notice('availability')
+          ?publicManualOnly423Notice()
           :t('Current availability could not be loaded. Please try again or contact us on WhatsApp.','לא הצלחנו לטעון כרגע את הזמינות. נסו שוב או פנו אלינו ב‑WhatsApp.'));
         bindInlineWhatsApp(status);
         if(publicDenied){
@@ -2890,7 +2885,17 @@
   }
 
   function checkoutFailureMessage(err,paymentMethod){
-    if(isPublicManualOnly423(err))return publicManualOnly423Notice('checkout');
+    // This helper is also run in isolation by payment-outcome regression QA;
+    // keep its explicit policy classification and copy self-contained.
+    if(err?.status===423&&(
+      err?.code==='PUBLIC_BOOKING_MANUAL_ONLY'||
+      err?.data?.error==='PUBLIC_BOOKING_MANUAL_ONLY'||
+      err?.message==='PUBLIC_BOOKING_MANUAL_ONLY'
+    )){
+      if(locale==='he')return 'ההזמנות המקוונות מושבתות. לא הצלחנו לאמת הזמנה בבקשה זו; זו לא הזמנה מאושרת. אם בוצע ניסיון תשלום קודם, הצוות יסייע בבדיקת מצבו. פנו אלינו ב-WhatsApp ולא דרך שליחה חוזרת באתר.';
+      if(locale==='hu')return 'Az online foglalás szünetel. Nem tudtuk ellenőrizni vagy visszaigazolni a foglalást ezzel a kéréssel. Egy korábbi fizetés állapotát a csapat ellenőrizheti. Kérjük, írj nekünk WhatsAppon, ne küldd be újra az oldalon.';
+      return 'Online booking is paused. We could not verify or confirm a booking from this request. Our team can check any earlier payment status. Contact us on WhatsApp instead of submitting again on this site.';
+    }
     if(err?.code==='HOLD_EXPIRED')
       return t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.');
     if(err?.code==='STAFF_CONFIRMATION_REQUIRED')
