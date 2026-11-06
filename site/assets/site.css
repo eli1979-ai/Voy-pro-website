@@ -1298,3 +1298,33 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
   .network-trust .trust-sub{font-size:8px;line-height:1.25;overflow-wrap:anywhere}
 }
 
+
+
+/* Budapest destination and tour heroes: trim ~1.5cm/56px from the photo top.
+   Negative image margin shortens the visible frame and document flow, while
+   leaving the original photograph, lower focal area and caption intact.
+   Intentionally excludes articles, Portugal and the network homepage. */
+body:is(
+  [data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"],
+  [data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"]
+) .hero-card[data-media-slot="hero"]{
+  min-height:0;
+  aspect-ratio:auto;
+}
+body:is(
+  [data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"],
+  [data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"]
+) .hero-card[data-media-slot="hero"] .hero-photo-frame img{
+  margin-top:-56px;
+}
+/* Budapest hub already uses a 5:6 mobile photo crop. Move that same crop
+   onto the image so its figure can shrink naturally by the 56px top trim. */
+@media(max-width:800px){
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"] .hero-photo-frame{aspect-ratio:auto}
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"] .hero-photo-frame img{
+    height:auto!important;
+    aspect-ratio:5 / 6!important;
+  }
+}
