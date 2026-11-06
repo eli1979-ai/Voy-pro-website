@@ -1354,3 +1354,12 @@ body:is([data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data
 .hero-card[data-media-slot="hero"] .hero-photo-frame img[src$="/img14.jpg"]{aspect-ratio:4 / 5!important}
 body:is([data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"])
 .hero-card[data-media-slot="hero"] .hero-photo-frame img[src$="/IMG-20261006-WA0092.jpg"]{aspect-ratio:3 / 4!important}
+
+
+/* Heroes' Square tour: display the owner's landscape rider photo with its
+   native ratio while retaining the Budapest-only top crop and all other
+   hero photo styling. */
+body[data-page$="/tours/heroes-square-city-ezraider-tour/"]
+.hero-card .hero-photo-frame img[src$="/heroes-square-riders-20261106.jpg"]{
+  aspect-ratio:2048 / 1634!important;
+}
