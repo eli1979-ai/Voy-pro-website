@@ -1298,3 +1298,59 @@ body[data-page="/"] .hero .facts.network-benefits .network-benefit-check svg{
   .network-trust .trust-sub{font-size:8px;line-height:1.25;overflow-wrap:anywhere}
 }
 
+
+
+/* Budapest destination and tour heroes: trim ~1.5cm/56px from the photo top.
+   Negative image margin shortens the visible frame and document flow, while
+   leaving the original photograph, lower focal area and caption intact.
+   Intentionally excludes articles, Portugal and the network homepage. */
+body:is(
+  [data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"],
+  [data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"]
+) .hero-card[data-media-slot="hero"]{
+  min-height:0;
+  aspect-ratio:auto;
+}
+body:is(
+  [data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"],
+  [data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"]
+) .hero-card[data-media-slot="hero"] .hero-photo-frame img{
+  margin-top:-56px;
+}
+/* Budapest hub already uses a 5:6 mobile photo crop. Move that same crop
+   onto the image so its figure can shrink naturally by the 56px top trim. */
+@media(max-width:800px){
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"] .hero-photo-frame{aspect-ratio:auto}
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"] .hero-photo-frame img{
+    height:auto!important;
+    aspect-ratio:5 / 6!important;
+  }
+}
+
+
+/* Pre-reserve the destination image size on desktop: the previous explicit
+   2:3 card ratio prevented CLS before load. The shorter 8:11 frame trims
+   roughly 56px of the portrait's sky at the desktop max-width layout. */
+@media(min-width:801px){
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"]{aspect-ratio:8 / 11}
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"] .hero-photo-frame{height:100%!important}
+  body:is([data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  .hero-card[data-media-slot="hero"] .hero-photo-frame img{
+    height:100%!important;
+    margin-top:0;
+    object-fit:cover!important;
+    object-position:center bottom!important;
+  }
+}
+/* Tour hero images do not have inline width/height; reserve each image's
+   native shape before decoding to prevent a new visual layout shift. */
+body:is([data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"])
+.hero-card[data-media-slot="hero"] .hero-photo-frame img{aspect-ratio:2 / 3!important}
+body:is([data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"])
+.hero-card[data-media-slot="hero"] .hero-photo-frame img[src$="/img14.jpg"]{aspect-ratio:4 / 5!important}
+body:is([data-page^="/budapest/tours/"],[data-page^="/he/budapest/tours/"],[data-page^="/hu/budapest/tours/"])
+.hero-card[data-media-slot="hero"] .hero-photo-frame img[src$="/IMG-20261006-WA0092.jpg"]{aspect-ratio:3 / 4!important}
