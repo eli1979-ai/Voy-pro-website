@@ -1321,7 +1321,7 @@
   ensureSpecialRequestBuilder();
   // Budapest request-only pilot: language preference and explicit English
   // alternative consent are collected without exposing a private server key.
-  if(requestOnlyTourRoute&&!manualOnly&&bookingEnabled){
+  if(requestOnlyTourRoute&&!manualOnly){
     const loader=document.createElement('script');
     loader.src='/assets/rtb-request.js?v=20261026r11';
     loader.defer=true;
