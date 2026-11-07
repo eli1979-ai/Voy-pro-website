@@ -21,6 +21,10 @@
 
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
+  // Keep the historical bookingEnabled contract, but make this client
+  // fail closed when explicitly put into manual-only mode.
+  const manualOnly=cfg.manualOnly===true;
+  if(manualOnly)cfg.bookingEnabled=false;
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
   const page = document.body.dataset.page || location.pathname;
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
@@ -35,11 +39,8 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  // UI-only counterpart of the server-owned manual-only deny. Never treat this
-  // flag as authorization; cached browsers and independent partner embeds still
-  // require the server gate to reject every protected public operation.
-  const manualOnly=cfg.manualOnly===true;
-  const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  // A cached client can ignore manual-only; only the backend enforces policy.
+  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
