@@ -35,7 +35,11 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  // UI-only counterpart of FBM's server-owned manual-only deny. Never treat this
+  // flag as authorization; cached browsers and independent partner embeds still
+  // require FBM #1092 to reject every protected public operation.
+  const manualOnly=cfg.manualOnly===true;
+  const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
@@ -1725,6 +1729,7 @@
   }
   async function initSelectionRecovery(){
     const shell=document.querySelector('[data-resume-booking]');if(!shell)return;
+    if(manualOnly){shell.hidden=true;return;}
     const state=savedSelectionRecovery();if(!state){shell.hidden=true;return;}
     const title=shell.querySelector('[data-resume-title]');if(title)title.textContent=t('Restore your last tour selection','שחזור הבחירה האחרונה');
     const sub=shell.querySelector('[data-resume-sub]');if(sub)sub.textContent=t('We will recheck availability and price before anything is confirmed.','נבדוק מחדש זמינות ומחיר חיים לפני אישור כלשהו.');
@@ -2994,6 +2999,20 @@
   });}
 
   function initPaymentReturnNotice(){
+    // No stored Stripe checkout link can resume a public payment while the
+    // pilot is manual-only. Never infer payment state from the URL.
+    if(manualOnly){
+      if(qs.get('payment')==='cancelled'||qs.get('payment')==='success'){
+        const status=document.querySelector('#availability-status');
+        if(status){
+          status.hidden=false;
+          status.textContent=locale==='he'?'לא ניתן לאמת כאן את מצב התשלום או ההזמנה. אין לפתוח תשלום נוסף; פנו לצוות ב־WhatsApp.'
+            :locale==='hu'?'A fizetés és a foglalás állapota itt nem ellenőrizhető. Ne indíts új fizetést; kérj segítséget WhatsAppon.'
+            :'Payment and booking status cannot be verified here. Do not retry a payment; contact our team on WhatsApp.';
+        }
+      }
+      return;
+    }
     if(qs.get('payment')==='success'){clearPaymentRetry();resetBookingStarted();return;}
     if(!form||qs.get('payment')!=='cancelled')return;
     const retry=paymentRetryState();

@@ -6,6 +6,9 @@
   'use strict';
   const matched=location.pathname.match(/^\/(?:(he|hu)\/)?budapest\/tours\/(heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour|buda-margaret-extended-tour)\/?$/);
   if(!matched)return;
+  // Manual-only disables optional public CRM enquiry intake. Existing
+  // authored WhatsApp links remain available; no request is transmitted.
+  if(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true)return;
   const locale=matched[1]||'en';
   const slugByPage={
     'heroes-square-city-ezraider-tour':'heroes-square',
