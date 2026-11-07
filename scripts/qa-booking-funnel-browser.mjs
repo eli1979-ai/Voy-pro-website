@@ -693,6 +693,119 @@ async function tourPickerHomepageScenario(locale,{missingOption=false}={}){
   }
 }
 
+
+// Exact-build Manage regression: load dist/manage/index.html over the local HTTP
+// server in real Chrome. No injected HTML, no real FBM, payments or customer data.
+async function builtManageScenario({initialStatus=200,changeStatus=200,confirmChange=true}={}){
+  const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+  const token='synthetic-manage-token-qa',calls=[],errors=[];
+  const key='built Manage '+initialStatus+'/'+changeStatus+(confirmChange?'/accepted':'/dismissed');
+  page.on('pageerror',e=>errors.push(e.message));
+  const booking={reference:'BUD-SYNTHETIC-001',status:'confirmed',
+    selected_date:'2030-07-01',slot_time:'10:00',party_size:2,
+    experience_slug:'buda-highlights',guide_language:'en',currency:'EUR',total:140,
+    payment_status:'unpaid',payment_method:'cash',customer:{email:'qa@example.invalid',
+      phone:'000000000',preferred_language:'en'},
+    group_composition:{riders_16_plus:2,child_passengers_3_15:0,baby_passengers_1_2:0}};
+  const header={'content-type':'application/json','access-control-allow-origin':local,
+    'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type',
+    'access-control-allow-methods':'GET,POST,PATCH,OPTIONS'};
+  await page.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());
+    if(url.origin===local){
+      if(url.pathname==='/assets/runtime-config.js')
+        return route.fulfill({status:200,contentType:'text/javascript',
+          body:'window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:'+
+            JSON.stringify(fakeApi)+',clientKey:"synthetic-public-client"};'});
+      return route.continue();
+    }
+    // The sole allowed non-local origin is also fully simulated in Chrome;
+    // all other origins, including real VOY/FBM/Stripe, are blocked.
+    if(url.origin!==new URL(fakeApi).origin)return route.abort();
+    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers:header,body:''});
+    const p=url.pathname.slice('/api/v1'.length);
+    calls.push({method:req.method(),path:p});
+    let status=200,value={};
+    if(p==='/manage/'+token && req.method()==='GET'){
+      status=initialStatus;
+      value=status===200?booking:{code:status===423?'PUBLIC_BOOKING_MANUAL_ONLY':'FORBIDDEN',
+        error:'synthetic denied'};
+    }else if(p==='/manage/'+token+'/options'){
+      value={can_change_datetime:true,cancellation:{allowed:false}};
+    }else if(p==='/manage/'+token+'/riders'){
+      value={booking_reference:booking.reference,riders:[]};
+    }else if(p==='/destinations/budapest'){
+      value={rider_policy:{standard_min_age:16,child_passenger_min_age:3,
+        child_passenger_max_age:15,baby_passenger_min_age:1,baby_passenger_max_age:2}};
+    }else if(p==='/manage/'+token+'/availability'){
+      value={slots:[{id:'11111111-1111-4111-8111-111111111111',time:'14:00',
+        sellable:true,current:false,starts_at:'2035-01-01T14:00:00Z'}]};
+    }else if(p==='/manage/'+token+'/change'&&req.method()==='POST'){
+      status=changeStatus;
+      value=status===200?{...booking,slot_time:'14:00'}:
+        {code:status===423?'PUBLIC_BOOKING_MANUAL_ONLY':'STAFF_CONFIRMATION_REQUIRED',
+          error:'synthetic change denied'};
+    }else{
+      failures.push(key+' unexpected API '+req.method()+' '+p);
+      return route.fulfill({status:403,headers:header,body:'{"error":"unexpected synthetic request"}'});
+    }
+    await route.fulfill({status,headers:header,body:JSON.stringify(value)});
+  });
+  try{
+    const response=await page.goto(local+'/manage/?lang=en&token='+token,
+      {waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,key+' loads real built HTML from local server');
+    check(!new URL(page.url()).searchParams.has('token')&&
+      new URL(page.url()).hash.includes('token='),
+      key+' removes sensitive token from query into fragment');
+    if(initialStatus!==200){
+      await page.locator('#manage-box .manage-error').waitFor({state:'visible',timeout:9000});
+      check(await page.locator('#manage-box a[href^="https://wa.me/"]').count()===1,
+        key+' denies GET with human WhatsApp support');
+      check((await page.locator('#manage-box').innerText()).includes('We could not load'),
+        key+' denies GET without booking confirmation');
+      check(!calls.some(c=>c.method!=='GET'),
+        key+' denied Manage GET cannot mutate');
+    }else{
+      await page.locator('.manage-head h2').waitFor({state:'visible',timeout:9000});
+      check((await page.locator('.manage-head h2').innerText()).includes(booking.reference),
+        key+' displays server-verified reference');
+      const tomorrow=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
+      await page.locator('#manage-date').fill(tomorrow);
+      await page.locator('#manage-search').click();
+      await page.locator('#manage-slots button').first().waitFor({state:'visible',timeout:9000});
+      page.once('dialog',dialog=>confirmChange?dialog.accept():dialog.dismiss());
+      await page.locator('#manage-slots button').first().click();
+      if(!confirmChange){
+        check(!calls.some(c=>c.method==='POST'),
+          key+' dismissed confirmation never submits change');
+      }else{
+        const status=page.locator('#manage-change-status');
+        await page.waitForFunction(expected=>{
+          const s=document.querySelector('#manage-change-status');
+          return !!s&&s.textContent.includes(expected);
+        },changeStatus===200?'Booking changed successfully.':
+          changeStatus===423?'The change could not be completed.':
+          'This change needs additional confirmation.',{timeout:9000});
+        check((await status.innerText()).includes(changeStatus===200?
+          'Booking changed successfully.':'Contact support.'),
+          key+' displays correct result without false confirmation');
+        check(calls.filter(c=>c.method==='POST'&&c.path==='/manage/'+token+'/change').length===1,
+          key+' confirms change with exactly one POST');
+      }
+    }
+    check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/'+token).length===1,
+      key+' executes exactly one initial token-scoped GET');
+    check(errors.length===0,key+' has no uncaught inline or site JavaScript error');
+  }catch(error){
+    failures.push(key+' exact-build browser exception: '+String(error).slice(0,350));
+    await page.screenshot({path:join(out,'manage-built-failed-'+initialStatus+'-'+changeStatus+'.png'),
+      timeout:3000}).catch(()=>{});
+  }finally{
+    await page.close();
+  }
+}
+
 try{
   await scenario('en',paths[0][1]);
   for(const [lang,path] of paths)await scenario(lang,path,{sessionStalled:true});
@@ -715,6 +828,12 @@ try{
   await scenario('en',paths[0][1],{recovery:'garbled-clock'});
   for(const [lang,path] of paths)await scenario(lang,path,{recovery:'corrupt-party'});
   await scenario('en',paths[0][1],{recovery:'stale-version'});
+  await builtManageScenario({initialStatus:403});
+  await builtManageScenario({initialStatus:423});
+  await builtManageScenario({changeStatus:200});
+  await builtManageScenario({changeStatus:403});
+  await builtManageScenario({changeStatus:423});
+  await builtManageScenario({confirmChange:false});
   for(const locale of ['en','he','hu']){
     await tourPickerHomepageScenario(locale);
     await tourPickerHomepageScenario(locale,{missingOption:true});
