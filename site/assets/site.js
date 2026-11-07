@@ -20,9 +20,11 @@
 })();
 
 (async function(){
-  const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
-  // Prepared-only client gate; no live runtime flag is changed by this PR.
-  const manualOnly=cfg.manualOnly===true;
+  const rawCfg=window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
+  // Explicit manual-only wins over a cached/stale bookingEnabled:true.
+  // Preserve the existing Legal-page guard and central API safety invariant.
+  const manualOnly=rawCfg.manualOnly===true;
+  const cfg=manualOnly?{...rawCfg,bookingEnabled:false}:rawCfg;
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
   const page = document.body.dataset.page || location.pathname;
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
@@ -37,7 +39,7 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
