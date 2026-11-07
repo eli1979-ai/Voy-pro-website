@@ -956,7 +956,11 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423,manage
       if(url.pathname==='/assets/runtime-config.js')
         return route.fulfill({status:200,contentType:'text/javascript',
           body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
-            manualOnly:true,bookingEnabled:stage!=='manage-off',
+            // Server-deny acceptance must exercise a stale/public client that
+            // *still attempts* booking, independently of the separate
+            // manual-only frontend-gate audit. Otherwise there is no 423
+            // response to validate. Preserve all original 423 assertions.
+            manualOnly:stage==='manage-off',bookingEnabled:stage!=='manage-off',
             apiRoot:fakeApi,clientKey:'server_deny_synthetic_public_key'
           })+';'});
       // A Vercel relay is never invoked in a way that could reach a server.
