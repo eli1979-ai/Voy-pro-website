@@ -35,7 +35,10 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  // Manual-only is authoritative even when stale cached client configuration
+  // still advertises bookingEnabled=true. This is UX defence, not server auth.
+  const manualOnly=cfg.manualOnly===true;
+  const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
@@ -990,6 +993,7 @@
 
   function authHeaders(extra={}){return {'Content-Type':'application/json','x-voy-client-key':clientKey,'x-voy-client':'voy-pro-website',...extra};}
   async function api(path,options={}){
+    if(manualOnly)throw new Error('PUBLIC_BOOKING_MANUAL_ONLY');
     if(!bookingEnabled) throw new Error('BOOKING_NOT_CONFIGURED');
     const headers=authHeaders(options.headers||{});
     const timeoutMs=Math.max(1000,Number(options.timeoutMs||8000));
@@ -1317,7 +1321,7 @@
   ensureSpecialRequestBuilder();
   // Budapest request-only pilot: language preference and explicit English
   // alternative consent are collected without exposing a private server key.
-  if(requestOnlyTourRoute){
+  if(requestOnlyTourRoute&&!manualOnly){
     const loader=document.createElement('script');
     loader.src='/assets/rtb-request.js?v=20261026r11';
     loader.defer=true;
@@ -1740,6 +1744,7 @@
   }
   async function initSelectionRecovery(){
     const shell=document.querySelector('[data-resume-booking]');if(!shell)return;
+    if(manualOnly){delStore('voy_recovery_state');shell.hidden=true;return;}
     const state=savedSelectionRecovery();if(!state){shell.hidden=true;return;}
     const title=shell.querySelector('[data-resume-title]');if(title)title.textContent=t('Restore your last tour selection','שחזור הבחירה האחרונה');
     const sub=shell.querySelector('[data-resume-sub]');if(sub)sub.textContent=t('We will recheck availability and price before anything is confirmed.','נבדוק מחדש זמינות ומחיר חיים לפני אישור כלשהו.');
@@ -3044,6 +3049,9 @@
   });}
 
   function initPaymentReturnNotice(){
+    // Old cancelled Stripe redirects must never surface an actionable retry
+    // during a manual-only pilot; unknown payment status is never claimed.
+    if(manualOnly){clearPaymentRetry();document.querySelectorAll('[data-payment-retry]').forEach(link=>link.remove());return;}
     if(qs.get('payment')==='success'){clearPaymentRetry();resetBookingStarted();return;}
     if(!form||qs.get('payment')!=='cancelled')return;
     const retry=paymentRetryState();
