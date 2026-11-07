@@ -35,9 +35,9 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  // UI-only counterpart of FBM's server-owned manual-only deny. Never treat this
+  // UI-only counterpart of the server-owned manual-only deny. Never treat this
   // flag as authorization; cached browsers and independent partner embeds still
-  // require FBM #1092 to reject every protected public operation.
+  // require the server gate to reject every protected public operation.
   const manualOnly=cfg.manualOnly===true;
   const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
