@@ -700,6 +700,7 @@ async function builtManageScenario({initialStatus=200,changeStatus=200,confirmCh
   const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
   const token='synthetic-manage-token-qa',calls=[],errors=[];
   const key='built Manage '+initialStatus+'/'+changeStatus+(confirmChange?'/accepted':'/dismissed');
+  let requestedDate=null;
   page.on('pageerror',e=>errors.push(e.message));
   const booking={reference:'BUD-SYNTHETIC-001',status:'confirmed',
     selected_date:'2030-07-01',slot_time:'10:00',party_size:2,
@@ -738,11 +739,13 @@ async function builtManageScenario({initialStatus=200,changeStatus=200,confirmCh
       value={rider_policy:{standard_min_age:16,child_passenger_min_age:3,
         child_passenger_max_age:15,baby_passenger_min_age:1,baby_passenger_max_age:2}};
     }else if(p==='/manage/'+token+'/availability'){
+      requestedDate=url.searchParams.get('date');
       value={slots:[{id:'11111111-1111-4111-8111-111111111111',time:'14:00',
         sellable:true,current:false,starts_at:'2035-01-01T14:00:00Z'}]};
     }else if(p==='/manage/'+token+'/change'&&req.method()==='POST'){
       status=changeStatus;
-      value=status===200?{...booking,slot_time:'14:00'}:
+      if(status===200){booking.selected_date=requestedDate;booking.slot_time='14:00';}
+      value=status===200?{...booking,change:{confirmed:true,selected_date:requestedDate,slot_time:'14:00'}}:
         {code:status===423?'PUBLIC_BOOKING_MANUAL_ONLY':'STAFF_CONFIRMATION_REQUIRED',
           error:'synthetic change denied'};
     }else{
@@ -770,6 +773,8 @@ async function builtManageScenario({initialStatus=200,changeStatus=200,confirmCh
       await page.locator('.manage-head h2').waitFor({state:'visible',timeout:9000});
       check((await page.locator('.manage-head h2').innerText()).includes(booking.reference),
         key+' displays server-verified reference');
+      check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/'+token).length===1,
+        key+' has only one bootstrap GET before user interaction');
       const tomorrow=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
       await page.locator('#manage-date').fill(tomorrow);
       await page.locator('#manage-search').click();
@@ -794,8 +799,12 @@ async function builtManageScenario({initialStatus=200,changeStatus=200,confirmCh
           key+' confirms change with exactly one POST');
       }
     }
-    check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/'+token).length===1,
-      key+' executes exactly one initial token-scoped GET');
+    if(initialStatus!==200)
+      check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/'+token).length===1,
+        key+' executes exactly one initial token-scoped GET');
+    else if(confirmChange&&changeStatus===200)
+      check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/'+token).length>=2,
+        key+' successful change performs authoritative verification read');
     check(errors.length===0,key+' has no uncaught inline or site JavaScript error');
   }catch(error){
     failures.push(key+' exact-build browser exception: '+String(error).slice(0,350));
