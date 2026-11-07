@@ -15,10 +15,12 @@ if(!html.includes(beforeClick)||!html.includes(beforeFn)){
 html=html.replace(beforeClick,afterClick).replace(beforeFn,afterFn);
 const beforeCatch="}catch(err){st.textContent=err.code==='STAFF_CONFIRMATION_REQUIRED'?";
 const afterCatch="}catch(err){delete st.dataset.busy;changeButtons.forEach(b=>b.disabled=false);st.textContent=err.code==='STAFF_CONFIRMATION_REQUIRED'?";
-if(!html.includes(beforeCatch)||!html.includes(' await load();')){
-  console.error('Manage change-confirmation renderer: expected mutation tail not found.');
+const bootstrap='\n await load();\n})();</script>';
+if(!html.includes(beforeCatch)||html.split(bootstrap).length!==2){
+  console.error('Manage change-confirmation renderer: expected mutation tail and exactly one final startup missing.');
   process.exit(1);
 }
-html=html.replace(beforeCatch,afterCatch).replace(' await load();','');
+// Preserve exactly one terminal Manage bootstrap; update only the change handler.
+html=html.replace(beforeCatch,afterCatch);
 fs.writeFileSync(file,html);
 console.log('Rendered explicit confirmation, mutation lock and single-refresh behavior for Manage Booking departure changes.');

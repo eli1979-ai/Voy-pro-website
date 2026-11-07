@@ -20,6 +20,21 @@
   };
   function install(script){
     if(script.dataset.voyMounted==='true')return;
+    // This host-page guard cannot secure independent third-party embeds;
+    // FBM must independently deny every affected public client server-side.
+    if(typeof window!=='undefined'&&(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true)){
+      const target=document.getElementById(script.dataset.target||'voy-affiliate-booking');
+      if(!target&&document.readyState==='loading'){
+        document.addEventListener('DOMContentLoaded',()=>install(script),{once:true});
+        return;
+      }
+      if(target){
+        target.textContent='Online booking is paused. Please contact the tour operator directly.';
+        target.setAttribute('role','status');
+      }
+      script.dataset.voyMounted='true';
+      return;
+    }
     const target=document.getElementById(script.dataset.target||'voy-affiliate-booking');
     if(!target){
       // Some partners load the standalone script in <head> before the target
