@@ -36,6 +36,14 @@
       script.dataset.voyMounted='true';
       return;
     }
+    // First-party embeds must obey the explicit pilot mode.
+    // External affiliate clients still require independent FBM denial.
+    if(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true){
+      script.dataset.voyMounted='true';
+      target.dataset.voyAffiliateMounted='true';
+      target.textContent='Online bookings are paused. Please contact the VOY PRO team.';
+      return;
+    }
     const root=target.attachShadow({mode:'closed'});
     target.dataset.voyAffiliateMounted='true';
     script.dataset.voyMounted='true';
