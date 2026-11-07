@@ -8,7 +8,7 @@
   if(!matched)return;
   // Manual-only disables optional public CRM enquiry intake. Existing
   // authored WhatsApp links remain available; no request is transmitted.
-  if(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true)return;
+  if((typeof window!=='undefined'&&(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true)))return;
   const locale=matched[1]||'en';
   const slugByPage={
     'heroes-square-city-ezraider-tour':'heroes-square',

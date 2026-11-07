@@ -22,7 +22,7 @@
     if(script.dataset.voyMounted==='true')return;
     // A partner may load this in any origin; this browser hint is NOT a
     // substitute for FBM's independent HTTP 423 authorization gate.
-    if(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true){
+    if((typeof window!=='undefined'&&(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true))){
       script.dataset.voyMounted='true';
       return;
     }
