@@ -22,7 +22,7 @@
     if(script.dataset.voyMounted==='true')return;
     // This host-page guard cannot secure independent third-party embeds;
     // FBM must independently deny every affected public client server-side.
-    if(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true){
+    if(typeof window!=='undefined'&&(window.VOY_RUNTIME_CONFIG?.manualOnly===true||window.VOY_CONFIG?.manualOnly===true)){
       const target=document.getElementById(script.dataset.target||'voy-affiliate-booking');
       if(!target&&document.readyState==='loading'){
         document.addEventListener('DOMContentLoaded',()=>install(script),{once:true});
