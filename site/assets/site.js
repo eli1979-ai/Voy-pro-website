@@ -35,7 +35,10 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  // Manual-only is authoritative even when stale cached client configuration
+  // still advertises bookingEnabled=true. This is UX defence, not server auth.
+  const manualOnly=cfg.manualOnly===true;
+  const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
@@ -990,6 +993,7 @@
 
   function authHeaders(extra={}){return {'Content-Type':'application/json','x-voy-client-key':clientKey,'x-voy-client':'voy-pro-website',...extra};}
   async function api(path,options={}){
+    if(manualOnly)throw new Error('PUBLIC_BOOKING_MANUAL_ONLY');
     if(!bookingEnabled) throw new Error('BOOKING_NOT_CONFIGURED');
     const headers=authHeaders(options.headers||{});
     const timeoutMs=Math.max(1000,Number(options.timeoutMs||8000));
@@ -1006,6 +1010,21 @@
       if(e?.name==='AbortError'){const err=new Error('Request timed out');err.code='REQUEST_TIMEOUT';throw err;}
       throw e;
     }finally{if(timer)clearTimeout(timer);}
+  }
+
+  // Only the explicit server policy code is terminal; 403/409
+  // and unrelated 423 errors retain their existing recovery behavior.
+  function isPublicManualOnly423(err){
+    return err?.status===423&&(
+      err?.code==='PUBLIC_BOOKING_MANUAL_ONLY'||
+      err?.data?.error==='PUBLIC_BOOKING_MANUAL_ONLY'||
+      err?.message==='PUBLIC_BOOKING_MANUAL_ONLY'
+    );
+  }
+  function publicManualOnly423Notice(){
+    if(locale==='he')return 'ההזמנות המקוונות מושבתות ולכן לא הצלחנו לטעון זמינות. זו לא הזמנה מאושרת. פנו לצוות שלנו ב-WhatsApp לבירור אנושי.';
+    if(locale==='hu')return 'Az online foglalás szünetel, ezért nem sikerült betölteni az elérhetőséget. Ez nem visszaigazolt foglalás. Kérjük, lépj kapcsolatba a csapattal WhatsAppon.';
+    return 'Current availability could not be loaded because online booking is paused. This is not a confirmed booking. Contact our team on WhatsApp.';
   }
 
   async function hydrateDestinationRuntime(){
@@ -1302,7 +1321,7 @@
   ensureSpecialRequestBuilder();
   // Budapest request-only pilot: language preference and explicit English
   // alternative consent are collected without exposing a private server key.
-  if(requestOnlyTourRoute){
+  if(requestOnlyTourRoute&&!manualOnly){
     const loader=document.createElement('script');
     loader.src='/assets/rtb-request.js?v=20261026r11';
     loader.defer=true;
@@ -1725,6 +1744,7 @@
   }
   async function initSelectionRecovery(){
     const shell=document.querySelector('[data-resume-booking]');if(!shell)return;
+    if(manualOnly){delStore('voy_recovery_state');shell.hidden=true;return;}
     const state=savedSelectionRecovery();if(!state){shell.hidden=true;return;}
     const title=shell.querySelector('[data-resume-title]');if(title)title.textContent=t('Restore your last tour selection','שחזור הבחירה האחרונה');
     const sub=shell.querySelector('[data-resume-sub]');if(sub)sub.textContent=t('We will recheck availability and price before anything is confirmed.','נבדוק מחדש זמינות ומחיר חיים לפני אישור כלשהו.');
@@ -2679,12 +2699,14 @@
       }
     });
     form.addEventListener('change',e=>{
+      if(form.dataset.publicBookingDenied==='true')return;
       if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
       if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
       if(availabilitySelectionNames.has(e.target.name))invalidateAvailabilityResults({announce:true});
     });
     form.addEventListener('submit',async e=>{
       e.preventDefault();
+      if(form.dataset.publicBookingDenied==='true')return;
       if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
       const today=refreshAvailabilityDateBounds();
       const selectedDate=dateInput?.value||'';
@@ -2748,7 +2770,20 @@
           return;
         }
         document.querySelectorAll('.slot').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false')});b.classList.add('on');b.setAttribute('aria-pressed','true');track('slot_selected',{date:data.get('date'),time:s.time,party_size:party,status:s.status,is_private:isPrivate,guide_language:guideLanguage});patchSession({stage:'slot_selected',selected_date:data.get('date'),selected_time:s.time,slot_id:s.id,group_composition:composition,is_private:isPrivate,guide_language:guideLanguage});if(s.requestable&&isPrivate){status.innerHTML=`${t('This private group needs a quick confirmation. Send the requested date and time and we’ll check the available setup.','לקבוצה הפרטית הזו נדרש אישור קצר. שלחו את התאריך והשעה המבוקשים ונבדוק את האפשרויות הזמינות.')}<div class="status-actions"><a class="btn secondary" href="${whatsAppUrl('private_flexible',{experience_title:experience.title,date:String(data.get('date')),requested_time:s.time,riders:composition.riders_16_plus,children:composition.child_passengers_3_15,babies:composition.baby_passengers_1_2,is_private:true,guide_language:guideLanguage})}">WhatsApp</a></div>`;}else if(s.requestable)capacityRequestForm(s,composition,String(data.get('date')),experience,false,guideLanguage);else prepareStandardCheckout(s,composition,String(data.get('date')),experience,isPrivate,guideLanguage);};slots.appendChild(b)});
-      }catch(err){if(searchGeneration!==availabilitySearchGeneration)return;patchSession({stage:'availability_error',error_code:err?.code||String(err?.status||'availability_error')});status.innerHTML=rescueMarkup(t('Current availability could not be loaded. Please try again or contact us on WhatsApp.','לא הצלחנו לטעון כרגע את הזמינות. נסו שוב או פנו אלינו ב‑WhatsApp.'));bindInlineWhatsApp(status);}
+      }catch(err){
+        if(searchGeneration!==availabilitySearchGeneration)return;
+        const publicDenied=isPublicManualOnly423(err);
+        if(!publicDenied)patchSession({stage:'availability_error',error_code:err?.code||String(err?.status||'availability_error')});
+        status.innerHTML=rescueMarkup(publicDenied
+          ?publicManualOnly423Notice()
+          :t('Current availability could not be loaded. Please try again or contact us on WhatsApp.','לא הצלחנו לטעון כרגע את הזמינות. נסו שוב או פנו אלינו ב‑WhatsApp.'));
+        bindInlineWhatsApp(status);
+        if(publicDenied){
+          form.dataset.publicBookingDenied='true';
+          const submit=form.querySelector('button[type="submit"]');
+          if(submit)submit.disabled=true;
+        }
+      }
       }finally{
         // An older search cannot clear the new search's progress state.
         if(searchGeneration===availabilitySearchGeneration)slots.removeAttribute('aria-busy');
@@ -2855,6 +2890,17 @@
   }
 
   function checkoutFailureMessage(err,paymentMethod){
+    // This helper is also run in isolation by payment-outcome regression QA;
+    // keep its explicit policy classification and copy self-contained.
+    if(err?.status===423&&(
+      err?.code==='PUBLIC_BOOKING_MANUAL_ONLY'||
+      err?.data?.error==='PUBLIC_BOOKING_MANUAL_ONLY'||
+      err?.message==='PUBLIC_BOOKING_MANUAL_ONLY'
+    )){
+      if(locale==='he')return 'ההזמנות המקוונות מושבתות. לא הצלחנו לאמת הזמנה בבקשה זו; זו לא הזמנה מאושרת. אם בוצע ניסיון תשלום קודם, הצוות יסייע בבדיקת מצבו. פנו אלינו ב-WhatsApp ולא דרך שליחה חוזרת באתר.';
+      if(locale==='hu')return 'Az online foglalás szünetel. Nem tudtuk ellenőrizni vagy visszaigazolni a foglalást ezzel a kéréssel. Egy korábbi fizetés állapotát a csapat ellenőrizheti. Kérjük, írj nekünk WhatsAppon, ne küldd be újra az oldalon.';
+      return 'Online booking is paused. We could not verify or confirm a booking from this request. Our team can check any earlier payment status. Contact us on WhatsApp instead of submitting again on this site.';
+    }
     if(err?.code==='HOLD_EXPIRED')
       return t('The hold expired. Please select the departure again.','שמירת המקום פגה. יש לבחור יציאה מחדש.');
     if(err?.code==='STAFF_CONFIRMATION_REQUIRED')
@@ -2873,7 +2919,9 @@
 
   const checkoutForm=document.querySelector('#live-checkout-form');
   if(checkoutForm){checkoutForm.addEventListener('submit',async e=>{
-    e.preventDefault();const st=document.querySelector('[data-checkout-status]');
+    e.preventDefault();
+    if(checkoutForm.dataset.publicBookingDenied==='true')return;
+    const st=document.querySelector('[data-checkout-status]');
     const ancillary=document.querySelector('[data-ancillary-upsell]');
     if(ancillary?.getAttribute('aria-busy')==='true'){if(st)st.textContent=ancillaryText('updating');return;}
     if(checkoutForm.querySelector('[data-affiliate-coupon-panel]')?.getAttribute('aria-busy')==='true'){if(st)st.textContent=t('Please finish applying your coupon first.','יש להשלים את בדיקת הקופון לפני אישור ההזמנה.');return;}
@@ -2968,8 +3016,15 @@
       bindConfirmationActions(st,booking);st.querySelector('h3')?.focus({preventScroll:true});checkoutForm.querySelectorAll('input,select,button:not([data-copy-booking-ref])').forEach(el=>el.disabled=true);document.querySelector('.mobilebook')?.setAttribute('hidden','');
       track('booking_completed',{booking_value:booking.total,value_semantics:'booked_gmv',currency:booking.currency,payment_method:paymentMethod,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage,promo_code_applied:booking.promo_code_applied||bookingState.promoCode||null,discount:booking.discount||0});patchSession({stage:'booking_completed',booking_id:booking.id,booking_reference:booking.reference,is_private:Boolean(bookingState.isPrivate),guide_language:bookingState.guideLanguage});resetBookingStarted();
     }catch(err){
+      const publicDenied=isPublicManualOnly423(err);
       const holdExpired=err.code==='HOLD_EXPIRED';
-      patchSession({stage:holdExpired?'hold_expired':'booking_failed',error_code:err?.code||String(err?.status||'booking_failed')});
+      if(!publicDenied)patchSession({stage:holdExpired?'hold_expired':'booking_failed',error_code:err?.code||String(err?.status||'booking_failed')});
+      if(publicDenied){
+        // This explicit public-client rejection is not an ambiguous payment result.
+        // Keep the existing in-flight submission lock; never offer another public submit.
+        terminal=true;
+        checkoutForm.dataset.publicBookingDenied='true';
+      }
       if(holdExpired){
         terminal=true;
         recoverExpiredHold=true;
@@ -2994,6 +3049,9 @@
   });}
 
   function initPaymentReturnNotice(){
+    // Old cancelled Stripe redirects must never surface an actionable retry
+    // during a manual-only pilot; unknown payment status is never claimed.
+    if(manualOnly){clearPaymentRetry();document.querySelectorAll('[data-payment-retry]').forEach(link=>link.remove());return;}
     if(qs.get('payment')==='success'){clearPaymentRetry();resetBookingStarted();return;}
     if(!form||qs.get('payment')!=='cancelled')return;
     const retry=paymentRetryState();
