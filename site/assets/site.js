@@ -20,7 +20,10 @@
 })();
 
 (async function(){
-  const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
+  const sourceCfg=window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
+  // An isolated effective snapshot prevents a stale bookingEnabled=true
+  // from defeating manual-only, without mutating a shared runtime object.
+  const cfg=sourceCfg.manualOnly===true?{...sourceCfg,bookingEnabled:false}:sourceCfg;
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
   const page = document.body.dataset.page || location.pathname;
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
@@ -38,7 +41,7 @@
   // Manual-only is authoritative even when stale cached client configuration
   // still advertises bookingEnabled=true. This is UX defence, not server auth.
   const manualOnly=cfg.manualOnly===true;
-  const bookingEnabled=!!(!manualOnly&&!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
