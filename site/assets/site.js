@@ -20,7 +20,9 @@
 })();
 
 (async function(){
-  const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
+  const rawCfg=window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
+  const manualOnly=rawCfg.manualOnly===true;
+  const cfg=manualOnly?{...rawCfg,bookingEnabled:false}:rawCfg;
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
   const page = document.body.dataset.page || location.pathname;
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
@@ -1317,7 +1319,7 @@
   ensureSpecialRequestBuilder();
   // Budapest request-only pilot: language preference and explicit English
   // alternative consent are collected without exposing a private server key.
-  if(requestOnlyTourRoute){
+  if(requestOnlyTourRoute&&!manualOnly){
     const loader=document.createElement('script');
     loader.src='/assets/rtb-request.js?v=20261026r11';
     loader.defer=true;
@@ -2010,7 +2012,7 @@
       track('checkout_edit_selection',{page});patchSession({stage:'selection_edit'});
     });
   }
-  ensureCheckoutShell();
+  if(!manualOnly)ensureCheckoutShell();
 
   function paymentMethodHelp(method){
     const copy={
@@ -2639,7 +2641,34 @@
   }
 
   const form=document.querySelector('#availability-form');
-  if(form){
+  if(form&&manualOnly){
+    const status=form.querySelector('#availability-status');
+    for(const el of [...form.children]){
+      if(status&&(el===status||el.contains(status)))continue;
+      el.hidden=true;
+      el.style.display='none';
+    }
+    form.querySelectorAll('input,select,textarea,button').forEach(el=>{el.disabled=true;});
+    const heading=form.parentElement?.querySelector('h2');
+    if(heading)heading.textContent=locale==='he'?'בירור סיור עם הצוות'
+      :locale==='hu'?'Érdeklődés a csapatnál':'Ask the local team about a tour';
+    if(status){
+      status.hidden=false;
+      status.setAttribute('role','status');
+      status.setAttribute('aria-live','polite');
+      status.textContent=locale==='he'
+        ?'זו פנייה בלבד, לא הזמנה מאושרת. הצוות יאשר זמינות, שעה ומחיר.'
+        :locale==='hu'
+          ?'Ez csak érdeklődés, nem visszaigazolt foglalás. Csapatunk ellenőrzi az időpontot, az elérhetőséget és az árat.'
+          :'This is an enquiry, not a confirmed booking. Our team will confirm the time, availability and price.';
+      const contact=document.createElement('a');
+      contact.className='btn';
+      contact.href=whatsAppUrl('manual_only');
+      contact.textContent=locale==='he'?'פנייה לצוות ב-WhatsApp'
+        :locale==='hu'?'Kapcsolat WhatsAppon':'Contact the team on WhatsApp';
+      status.append(' ',contact);
+    }
+  }else if(form){
     const status=document.querySelector('#availability-status'), slots=document.querySelector('#slotlist');
     // The visual progress marker sits in the results, while status changes
     // must also be announced to keyboard and screen-reader users.
@@ -3260,8 +3289,28 @@
 
   // We never reconstruct a booking from browser storage. Only the last non-PII selection
   // can be restored, and live availability + price are always rechecked before checkout.
-  initSelectionRecovery();
-  initPaymentReturnNotice();
+  if(manualOnly){
+    delStore('voy_recovery_state');
+    document.querySelector('[data-resume-booking]')?.setAttribute('hidden','');
+    clearPaymentRetry();
+    if(qs.get('payment')==='cancelled'){
+      const notice=document.querySelector('#availability-status');
+      if(notice){
+        notice.textContent=locale==='he'
+          ?'לא ניתן לאמת כאן את מצב החיוב. ההזמנה המקוונת מושבתת; פנו לצוות לפני ניסיון נוסף.'
+          :locale==='hu'
+            ?'A fizetés állapota itt nem ellenőrizhető. Az online foglalás szünetel; újabb próbálkozás előtt lépjen kapcsolatba a csapattal.'
+            :'Payment status cannot be verified here. Online booking is paused; contact our team before another attempt.';
+        const contact=document.createElement('a');
+        contact.href=whatsAppUrl('payment_followup');
+        contact.textContent=locale==='he'?' פנייה ב-WhatsApp':locale==='hu'?' WhatsApp kapcsolat':' Contact via WhatsApp';
+        notice.append(contact);
+      }
+    }
+  }else{
+    initSelectionRecovery();
+    initPaymentReturnNotice();
+  }
 
   // The homepage Manage Booking CTA must never be covered by the floating
   // WhatsApp shortcut on narrow screens. The in-card contact options remain.
