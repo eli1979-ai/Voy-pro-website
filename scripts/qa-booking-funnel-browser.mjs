@@ -948,7 +948,7 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423,manage
         // No altered in-memory HTML: verify the generated Manage artifact
         // already contains exactly one bootstrap, then serve it unchanged.
         const actual=await readFile(join(root,'manage/index.html'),'utf8');
-        const directLoads=[...actual.matchAll(/\\bawait\\s+load\\(\\)\\s*;/g)].length;
+        const directLoads=[...actual.matchAll(/\bawait\s+load\(\)\s*;/g)].length;
         check(directLoads===1,label+' exact built Manage has one init');
         if(directLoads!==1)return route.abort('blockedbyclient');
         return route.continue();
