@@ -1324,7 +1324,10 @@
   ensureSpecialRequestBuilder();
   // Budapest request-only pilot: language preference and explicit English
   // alternative consent are collected without exposing a private server key.
-  if(requestOnlyTourRoute&&!manualOnly){
+  // The request-only pages do not all preload runtime-config.js. A missing
+  // authoritative config must never silently mount a public write form.
+  // Human WhatsApp anchors remain available independently of this gate.
+  if(requestOnlyTourRoute&&bookingEnabled&&!manualOnly){
     const loader=document.createElement('script');
     loader.src='/assets/rtb-request.js?v=20261026r11';
     loader.defer=true;
