@@ -945,22 +945,24 @@ async function serverDenyAudit(lang,path,{stage='availability',status=423,manage
     const req=route.request(),url=new URL(req.url());
     if(url.origin===local){
       if(managePatched&&url.pathname==='/manage/'){
-        // The production build is untouched. Replay exactly the missing
-        // trailing initialization in this ONE intercepted local HTML reply.
-        // This proves candidate behavior without editing the source/build.
+        // #764 restores the native terminal bootstrap in the exact built
+        // HTML. Reject an absent/duplicate bootstrap rather than injecting
+        // markup into this test or accepting a synthetic workaround.
         const built=await readFile(join(root,'manage/index.html'),'utf8');
-        const suffix='})();</script><script src="/assets/site.js"></script>';
-        if(built.includes(' await load();')||built.split(suffix).length!==2){
-          failures.push(label+' candidate HTML cannot prove unique startup injection');
+        const bootstrap='\n await load();\n})();</script>';
+        if(built.split(bootstrap).length!==2||
+          [...built.matchAll(/\bawait\s+load\(\)\s*;/g)].length!==1){
+          failures.push(label+' actual built Manage bootstrap is missing or duplicated');
           return route.abort('blockedbyclient');
         }
-        const candidate=built.replace(suffix,' await load();\n'+suffix);
-        return route.fulfill({status:200,contentType:'text/html',body:candidate});
+        return route.fulfill({status:200,contentType:'text/html',body:built});
       }
       if(url.pathname==='/assets/runtime-config.js')
         return route.fulfill({status:200,contentType:'text/javascript',
           body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
-            manualOnly:true,bookingEnabled:stage!=='manage-off',
+            // A stale/old public client must still handle a real server 423;
+            // manual-only UI tests above separately enforce manualOnly:true.
+            manualOnly:stage==='manage-off',bookingEnabled:stage!=='manage-off',
             apiRoot:fakeApi,clientKey:'server_deny_synthetic_public_key'
           })+';'});
       // A Vercel relay is never invoked in a way that could reach a server.
