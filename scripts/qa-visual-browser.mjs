@@ -877,6 +877,15 @@ try{
         'budapest-hu-narrow':'Bezárás módosítás nélkül'
       };
       if(consentCopies[name]){
+        const prefix=name==='marvao-pt-mobile'?'/pt':name==='marvao-he-mobile'?'/he':name==='budapest-hu-narrow'?'/hu':'';
+        const disclosure=page.locator('.consent-banner');
+        const privacyLinks=disclosure.locator('.consent-policy-links a');
+        check(await disclosure.innerText().then(t=>t.includes('Google Tag Manager')),
+          name+' consent text explicitly names Google Tag Manager');
+        check(await privacyLinks.count()===2 &&
+          await privacyLinks.nth(0).getAttribute('href')===prefix+'/legal/privacy/' &&
+          await privacyLinks.nth(1).getAttribute('href')===prefix+'/legal/cookies/',
+          name+' privacy and cookie notices linked in the correct language');
         const gtmScripts=page.locator('script[data-voy-gtm]');
         check(await gtmScripts.count()===0,
           name+' Google Tag Manager is not loaded without analytics opt-in');
