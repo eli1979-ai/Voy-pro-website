@@ -929,7 +929,7 @@ try{
         await opener.click();
         await bar.locator('[data-consent-analytics]').click();
         check(await gtmScripts.count()===1&&
-          (await gtmScripts.first().getAttribute('src'))==='https://www.googletagmanager.com/gtm.js?id=GTM-WKL2JNNX',
+          (await gtmScripts.first().getAttribute('src'))==='https://www.googletagmanager.com/gtm.js?id=GTM-5L8BJZQK',
           name+' analytics opt-in loads the correct GTM container exactly once');
         check(await page.evaluate(()=>window.dataLayer?.some(x=>x?.event==='gtm.js')),
           name+' GTM bootstrap registers standard gtm.js event');
