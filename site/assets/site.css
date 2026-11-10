@@ -1374,3 +1374,11 @@ body[data-page="/404/"] .consent-banner{
   margin:16px auto;
   max-width:980px;
 }
+
+/* 2026-11-10: desktop landing-page rhythm based on owner screenshots.
+   Halve oversized space between top-level sections on network/Budapest hubs;
+   mobile, individual tour pages, booking internals and other locations stay as-is. */
+@media (min-width:801px){
+  body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
+  main > .section{padding-block:32px}
+}
