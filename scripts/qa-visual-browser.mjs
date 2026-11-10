@@ -878,14 +878,6 @@ try{
       };
       if(consentCopies[name]){
         const prefix=name==='marvao-pt-mobile'?'/pt':name==='marvao-he-mobile'?'/he':name==='budapest-hu-narrow'?'/hu':'';
-        const disclosure=page.locator('.consent-banner');
-        const privacyLinks=disclosure.locator('.consent-policy-links a');
-        check(await disclosure.innerText().then(t=>t.includes('Google Tag Manager')),
-          name+' consent text explicitly names Google Tag Manager');
-        check(await privacyLinks.count()===2 &&
-          await privacyLinks.nth(0).getAttribute('href')===prefix+'/legal/privacy/' &&
-          await privacyLinks.nth(1).getAttribute('href')===prefix+'/legal/cookies/',
-          name+' privacy and cookie notices linked in the correct language');
         const gtmScripts=page.locator('script[data-voy-gtm]');
         check(await gtmScripts.count()===0,
           name+' Google Tag Manager is not loaded without analytics opt-in');
@@ -899,6 +891,13 @@ try{
         const opener=page.locator('footer [data-cookie-settings]').first();
         await opener.click();
         const bar=page.locator('.consent-banner');
+        const privacyLinks=bar.locator('.consent-policy-links a');
+        check((await bar.innerText()).includes('Google Tag Manager'),
+          name+' reopened consent text explicitly names Google Tag Manager');
+        check(await privacyLinks.count()===2 &&
+          await privacyLinks.nth(0).getAttribute('href')===prefix+'/legal/privacy/' &&
+          await privacyLinks.nth(1).getAttribute('href')===prefix+'/legal/cookies/',
+          name+' privacy and cookie notices linked in the correct language');
         const close=bar.locator('[data-consent-dismiss]');
         check(await bar.isVisible()&&await close.isVisible()&&
           (await close.innerText()).trim()===consentCopies[name],

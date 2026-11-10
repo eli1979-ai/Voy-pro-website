@@ -1363,3 +1363,14 @@ body[data-page$="/tours/heroes-square-city-ezraider-tour/"]
 .hero-card .hero-photo-frame img[src$="/heroes-square-riders-20261106.jpg"]{
   aspect-ratio:2048 / 1634!important;
 }
+
+
+/* On 404 recovery pages the footer support link must remain accessible even
+   while privacy choices are displayed. Keep the same consent controls, but
+   place the banner in document flow instead of covering recovery actions. */
+body[data-page="/404/"] .consent-banner{
+  position:static;
+  inset:auto;
+  margin:16px auto;
+  max-width:980px;
+}
