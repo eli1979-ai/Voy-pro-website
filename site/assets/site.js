@@ -70,7 +70,7 @@
   const analyticsAllowed=()=>consent.analytics===true;
   // One site-wide, consent-gated Google Tag Manager container. No tag is
   // requested, and no Google dataLayer is created, before analytics opt-in.
-  const GTM_CONTAINER_ID='GTM-WKL2JNNX';
+  const GTM_CONTAINER_ID='GTM-5L8BJZQK';
   let gtmRequested=false;
   function pushGtmConsent(command){
     window.dataLayer=window.dataLayer||[];
@@ -977,10 +977,10 @@
       ?{aria:'Preferências de cookies',title:'As suas escolhas de privacidade',essential:'Apenas essencial',analytics:'Permitir análise',close:'Fechar sem alterações'}
       :{aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
     const info={
-      en:{body:'Optional analytics includes Google Tag Manager (GTM-WKL2JNNX), loaded only if you allow analytics. Google Analytics may measure site visits if configured. This does not permit personalized advertising.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
-      he:{body:'אנליטיקה אופציונלית כוללת את Google Tag Manager ‏(GTM-WKL2JNNX), שנטען רק לאחר בחירה ב״לאפשר אנליטיקה״. אם יוגדר Google Analytics, ייתכן שייאספו נתוני שימוש. הבחירה אינה מתירה פרסום מותאם אישית.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
-      hu:{body:'Az opcionális analitika a Google Tag Managert (GTM-WKL2JNNX) is tartalmazza; csak az analitika engedélyezése után töltődik be. A Google Analytics mérheti a látogatásokat, ha be van állítva. Ez nem engedélyezi a személyre szabott hirdetéseket.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
-      pt:{body:'A análise opcional inclui o Google Tag Manager (GTM-WKL2JNNX), carregado apenas após consentimento. Se o Google Analytics estiver configurado, poderá medir as visitas. Esta escolha não autoriza publicidade personalizada.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
+      en:{body:'Optional analytics includes Google Tag Manager (GTM-5L8BJZQK), loaded only if you allow analytics. Google Analytics may measure site visits if configured. This does not permit personalized advertising.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
+      he:{body:'אנליטיקה אופציונלית כוללת את Google Tag Manager ‏(GTM-5L8BJZQK), שנטען רק לאחר בחירה ב״לאפשר אנליטיקה״. אם יוגדר Google Analytics, ייתכן שייאספו נתוני שימוש. הבחירה אינה מתירה פרסום מותאם אישית.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
+      hu:{body:'Az opcionális analitika a Google Tag Managert (GTM-5L8BJZQK) is tartalmazza; csak az analitika engedélyezése után töltődik be. A Google Analytics mérheti a látogatásokat, ha be van állítva. Ez nem engedélyezi a személyre szabott hirdetéseket.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
+      pt:{body:'A análise opcional inclui o Google Tag Manager (GTM-5L8BJZQK), carregado apenas após consentimento. Se o Google Analytics estiver configurado, poderá medir as visitas. Esta escolha não autoriza publicidade personalizada.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
     };
     return {...common,...(info[locale]||info.en)};
   }
