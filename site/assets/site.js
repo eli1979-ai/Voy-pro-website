@@ -68,6 +68,37 @@
   }
   let consent=readConsent();
   const analyticsAllowed=()=>consent.analytics===true;
+  // One site-wide, consent-gated Google Tag Manager container. No tag is
+  // requested, and no Google dataLayer is created, before analytics opt-in.
+  const GTM_CONTAINER_ID='GTM-WKL2JNNX';
+  let gtmRequested=false;
+  function pushGtmConsent(command){
+    window.dataLayer=window.dataLayer||[];
+    // GTM understands consent commands via the same arguments-array shape
+    // used by gtag(). Advertising remains denied (analytics-only opt-in).
+    window.dataLayer.push((function(){return arguments;})('consent',command,{
+      analytics_storage:analyticsAllowed()?'granted':'denied',
+      ad_storage:'denied',
+      ad_user_data:'denied',
+      ad_personalization:'denied'
+    }));
+  }
+  function syncGtmConsent(){
+    if(!analyticsAllowed()){
+      if(gtmRequested)pushGtmConsent('update');
+      return;
+    }
+    if(gtmRequested){pushGtmConsent('update');return;}
+    window.dataLayer=window.dataLayer||[];
+    pushGtmConsent('default');
+    window.dataLayer.push({'gtm.start':Date.now(),event:'gtm.js'});
+    const script=document.createElement('script');
+    script.async=true;
+    script.dataset.voyGtm=GTM_CONTAINER_ID;
+    script.src='https://www.googletagmanager.com/gtm.js?id='+encodeURIComponent(GTM_CONTAINER_ID);
+    gtmRequested=true;
+    document.head.appendChild(script);
+  }
   const getStore=(k)=>{
     if(ESSENTIAL_KEYS.has(k)){try{return localStorage.getItem(k)}catch(e){return memoryStore.get(k)||null}}
     if(!analyticsAllowed()) return memoryStore.get(k)||null;
@@ -140,6 +171,7 @@
     try{localStorage.setItem(CONSENT_KEY,JSON.stringify(consent))}catch(e){}
     if(!consent.analytics)clearAnalyticsState();
     document.documentElement.dataset.analyticsConsent=consent.analytics?'granted':'denied';
+    syncGtmConsent();
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const money=(amount,currency='EUR')=>new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency}).format(Number(amount||0));
@@ -982,6 +1014,7 @@
     }
   }
   function initConsent(){
+    syncGtmConsent(); // Reloading with an existing opt-in also initializes GTM.
     showConsentPreferences(false);
     document.querySelectorAll('[data-cookie-settings]').forEach(btn=>btn.addEventListener('click',()=>showConsentPreferences(true,btn)));
   }
