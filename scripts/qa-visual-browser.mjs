@@ -877,6 +877,10 @@ try{
         'budapest-hu-narrow':'Bezárás módosítás nélkül'
       };
       if(consentCopies[name]){
+        const prefix=name==='marvao-pt-mobile'?'/pt':name==='marvao-he-mobile'?'/he':name==='budapest-hu-narrow'?'/hu':'';
+        const gtmScripts=page.locator('script[data-voy-gtm]');
+        check(await gtmScripts.count()===0,
+          name+' Google Tag Manager is not loaded without analytics opt-in');
         const essential=page.locator('[data-consent-essential]');
         if(await essential.isVisible()){
           check(await essential.getAttribute('aria-pressed')===null&&
@@ -887,6 +891,13 @@ try{
         const opener=page.locator('footer [data-cookie-settings]').first();
         await opener.click();
         const bar=page.locator('.consent-banner');
+        const privacyLinks=bar.locator('.consent-policy-links a');
+        check((await bar.innerText()).includes('Google Tag Manager'),
+          name+' reopened consent text explicitly names Google Tag Manager');
+        check(await privacyLinks.count()===2 &&
+          await privacyLinks.nth(0).getAttribute('href')===prefix+'/legal/privacy/' &&
+          await privacyLinks.nth(1).getAttribute('href')===prefix+'/legal/cookies/',
+          name+' privacy and cookie notices linked in the correct language');
         const close=bar.locator('[data-consent-dismiss]');
         check(await bar.isVisible()&&await close.isVisible()&&
           (await close.innerText()).trim()===consentCopies[name],
@@ -917,6 +928,15 @@ try{
         // both saved decisions without creating any real tracking requests.
         await opener.click();
         await bar.locator('[data-consent-analytics]').click();
+        check(await gtmScripts.count()===1&&
+          (await gtmScripts.first().getAttribute('src'))==='https://www.googletagmanager.com/gtm.js?id=GTM-WKL2JNNX',
+          name+' analytics opt-in loads the correct GTM container exactly once');
+        check(await page.evaluate(()=>window.dataLayer?.some(x=>x?.event==='gtm.js')),
+          name+' GTM bootstrap registers standard gtm.js event');
+        check(await page.evaluate(()=>window.dataLayer?.some(x=>
+          x?.[0]==='consent'&&x?.[1]==='default'&&
+          x?.[2]?.analytics_storage==='granted'&&x?.[2]?.ad_storage==='denied')),
+          name+' analytics opt-in grants only analytics storage and denies ads');
         const analyticsRecord=await page.evaluate(()=>localStorage.getItem('voy_consent_v1'));
         check(Boolean(analyticsRecord)&&JSON.parse(analyticsRecord).analytics===true,
           name+' explicit local analytics preference is stored when chosen');
@@ -931,6 +951,15 @@ try{
         await bar.locator('[data-consent-essential]').click();
         check(await page.evaluate(()=>JSON.parse(localStorage.getItem('voy_consent_v1')).analytics)===false,
           name+' guest can revoke analytics and return to essential only');
+        check(await gtmScripts.count()===1&&await page.evaluate(()=>
+          window.dataLayer?.some(x=>x?.[0]==='consent'&&x?.[1]==='update'&&
+            x?.[2]?.analytics_storage==='denied')),
+          name+' revocation denies Google analytics without loading a second GTM container');
+        if(name==='home-mobile'){
+          await page.reload({waitUntil:'domcontentloaded'});
+          check(await page.locator('script[data-voy-gtm]').count()===0,
+            name+' persisted essential-only choice prevents GTM on next page load');
+        }
       }
       if(name==='guide-pt-mobile'){
         const expected='/pt/portugal/';

@@ -68,6 +68,37 @@
   }
   let consent=readConsent();
   const analyticsAllowed=()=>consent.analytics===true;
+  // One site-wide, consent-gated Google Tag Manager container. No tag is
+  // requested, and no Google dataLayer is created, before analytics opt-in.
+  const GTM_CONTAINER_ID='GTM-WKL2JNNX';
+  let gtmRequested=false;
+  function pushGtmConsent(command){
+    window.dataLayer=window.dataLayer||[];
+    // GTM understands consent commands via the same arguments-array shape
+    // used by gtag(). Advertising remains denied (analytics-only opt-in).
+    window.dataLayer.push((function(){return arguments;})('consent',command,{
+      analytics_storage:analyticsAllowed()?'granted':'denied',
+      ad_storage:'denied',
+      ad_user_data:'denied',
+      ad_personalization:'denied'
+    }));
+  }
+  function syncGtmConsent(){
+    if(!analyticsAllowed()){
+      if(gtmRequested)pushGtmConsent('update');
+      return;
+    }
+    if(gtmRequested){pushGtmConsent('update');return;}
+    window.dataLayer=window.dataLayer||[];
+    pushGtmConsent('default');
+    window.dataLayer.push({'gtm.start':Date.now(),event:'gtm.js'});
+    const script=document.createElement('script');
+    script.async=true;
+    script.dataset.voyGtm=GTM_CONTAINER_ID;
+    script.src='https://www.googletagmanager.com/gtm.js?id='+encodeURIComponent(GTM_CONTAINER_ID);
+    gtmRequested=true;
+    document.head.appendChild(script);
+  }
   const getStore=(k)=>{
     if(ESSENTIAL_KEYS.has(k)){try{return localStorage.getItem(k)}catch(e){return memoryStore.get(k)||null}}
     if(!analyticsAllowed()) return memoryStore.get(k)||null;
@@ -140,6 +171,7 @@
     try{localStorage.setItem(CONSENT_KEY,JSON.stringify(consent))}catch(e){}
     if(!consent.analytics)clearAnalyticsState();
     document.documentElement.dataset.analyticsConsent=consent.analytics?'granted':'denied';
+    syncGtmConsent();
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
   const money=(amount,currency='EUR')=>new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency}).format(Number(amount||0));
@@ -941,8 +973,16 @@
     });
   }
   function consentCopy(){
-    if(locale==='pt') return {aria:'Preferências de cookies',title:'As suas escolhas de privacidade',body:'O armazenamento essencial mantém as funções de reserva. A análise opcional ajuda-nos a perceber que páginas e campanhas levam a reservas.',essential:'Apenas essencial',analytics:'Permitir análise',close:'Fechar sem alterações'};
-    return {aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),body:t('Essential storage keeps booking features working. Optional analytics helps us understand which pages and campaigns lead to bookings.','אחסון חיוני מפעיל את תהליך ההזמנה. אנליטיקה אופציונלית עוזרת לנו להבין אילו עמודים וקמפיינים מובילים להזמנות.'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
+    const common=locale==='pt'
+      ?{aria:'Preferências de cookies',title:'As suas escolhas de privacidade',essential:'Apenas essencial',analytics:'Permitir análise',close:'Fechar sem alterações'}
+      :{aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
+    const info={
+      en:{body:'Optional analytics includes Google Tag Manager (GTM-WKL2JNNX), loaded only if you allow analytics. Google Analytics may measure site visits if configured. This does not permit personalized advertising.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
+      he:{body:'אנליטיקה אופציונלית כוללת את Google Tag Manager ‏(GTM-WKL2JNNX), שנטען רק לאחר בחירה ב״לאפשר אנליטיקה״. אם יוגדר Google Analytics, ייתכן שייאספו נתוני שימוש. הבחירה אינה מתירה פרסום מותאם אישית.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
+      hu:{body:'Az opcionális analitika a Google Tag Managert (GTM-WKL2JNNX) is tartalmazza; csak az analitika engedélyezése után töltődik be. A Google Analytics mérheti a látogatásokat, ha be van állítva. Ez nem engedélyezi a személyre szabott hirdetéseket.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
+      pt:{body:'A análise opcional inclui o Google Tag Manager (GTM-WKL2JNNX), carregado apenas após consentimento. Se o Google Analytics estiver configurado, poderá medir as visitas. Esta escolha não autoriza publicidade personalizada.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
+    };
+    return {...common,...(info[locale]||info.en)};
   }
   function showConsentPreferences(force=false,returnFocusTo=null){
     document.documentElement.dataset.analyticsConsent=analyticsAllowed()?'granted':'denied';
@@ -955,7 +995,8 @@
     // Only a returning guest with a saved decision can close preferences
     // without changing anything. First-time visitors still choose explicitly.
     const mayDismiss=Boolean(force&&consent.decided);
-    bar.innerHTML=`<div><b>${copy.title}</b><p>${copy.body}</p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${copy.essential}</button><button type="button" class="btn" data-consent-analytics>${copy.analytics}</button>${mayDismiss?`<button type="button" class="btn secondary consent-dismiss" data-consent-dismiss>${copy.close}</button>`:''}</div>`;
+    const legalPrefix=locale==='he'?'/he':locale==='hu'?'/hu':locale==='pt'?'/pt':'';
+    bar.innerHTML=`<div><b>${copy.title}</b><p>${copy.body}</p><p class="consent-policy-links"><a href="${legalPrefix}/legal/privacy/">${copy.privacy}</a> · <a href="${legalPrefix}/legal/cookies/">${copy.cookies}</a></p></div><div class="consent-actions"><button type="button" class="btn secondary" data-consent-essential>${copy.essential}</button><button type="button" class="btn" data-consent-analytics>${copy.analytics}</button>${mayDismiss?`<button type="button" class="btn secondary consent-dismiss" data-consent-dismiss>${copy.close}</button>`:''}</div>`;
     document.body.appendChild(bar);
     document.body.classList.add('consent-open');
     // A returning visitor should be able to SEE and HEAR which setting is
@@ -982,6 +1023,7 @@
     }
   }
   function initConsent(){
+    syncGtmConsent(); // Reloading with an existing opt-in also initializes GTM.
     showConsentPreferences(false);
     document.querySelectorAll('[data-cookie-settings]').forEach(btn=>btn.addEventListener('click',()=>showConsentPreferences(true,btn)));
   }
