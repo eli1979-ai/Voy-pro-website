@@ -407,6 +407,28 @@ try{
     'EZRaider optional video loading regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
+// RTL bidi: phone numbers in Hebrew text must be isolated as left-to-right data,
+// or their digit groups render reversed ("+36 30 099 3099" -> "3099 099 30 36+").
+{
+  const css=read(path.join(site,'assets','site.css'));
+  if(!/a\[href\^="tel:"\]\{[^}]*direction:ltr[^}]*unicode-bidi:isolate/.test(css))
+    fail('assets/site.css','tel: links must be isolated as LTR: a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}');
+  const phone=/\+\d{1,4}(?:[ -]\d{2,4}){2,}/g;
+  for(const [file,html] of htmlMap){
+    if(!/<html\b[^>]*\bdir="rtl"/i.test(html)) continue;
+    const body=html.replace(/<script\b[\s\S]*?<\/script>/gi,'').replace(/<style\b[\s\S]*?<\/style>/gi,'');
+    for(const m of body.matchAll(phone)){
+      const before=body.slice(0,m.index);
+      const tagStart=before.lastIndexOf('<'), tagEnd=before.lastIndexOf('>');
+      if(tagStart>tagEnd) continue; // inside an attribute value, not rendered text
+      const opening=before.slice(tagStart,tagEnd+1);
+      const startsElement=before.slice(tagEnd+1)==='';
+      const isolated=startsElement&&(/^<a\b[^>]*\bhref="tel:/i.test(opening)||/\bdir="ltr"/i.test(opening)||/^<bdi\b/i.test(opening));
+      if(!isolated) fail(file,'phone number "'+m[0]+'" in RTL text must start a tel: link, <bdi> or dir="ltr" element');
+    }
+  }
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){

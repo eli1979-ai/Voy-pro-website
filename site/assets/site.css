@@ -1382,3 +1382,8 @@ body[data-page="/404/"] .consent-banner{
   body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
   main > .section{padding-block:32px}
 }
+
+/* RTL bidi: phone numbers are left-to-right data. Inside a Hebrew paragraph the
+   spaces between digit groups otherwise take the RTL direction, so
+   "+36 30 099 3099" rendered as "3099 099 30 36+". Isolate every tel: link. */
+a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}
