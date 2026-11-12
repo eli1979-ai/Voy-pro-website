@@ -771,15 +771,27 @@
     }
   }
   const experiments={};
-  const runtimeExperiments=await loadRuntimeExperiments();
-  for(const experiment of runtimeExperiments){
-    const id=String(experiment?.key||'').trim();
-    const variants=Array.isArray(experiment?.variants)?experiment.variants:[];
-    if(!id||variants.length<2)continue;
-    const assigned=assignExperiment(id,variants);
-    if(assigned)experiments[id]=assigned;
-  }
-  if(analyticsAllowed()) setStore('voy_experiments',JSON.stringify(experiments));
+  // Marketing experiments must never hold up the navigation, booking controls,
+  // cookie dialog or the public catalog while an optional endpoint responds.
+  document.documentElement.dataset.trustVariant='default';
+  void loadRuntimeExperiments().then(runtimeExperiments=>{
+    for(const experiment of runtimeExperiments){
+      const id=String(experiment?.key||'').trim();
+      const variants=Array.isArray(experiment?.variants)?experiment.variants:[];
+      if(!id||variants.length<2)continue;
+      const assigned=assignExperiment(id,variants);
+      if(assigned)experiments[id]=assigned;
+    }
+    if(analyticsAllowed()) setStore('voy_experiments',JSON.stringify(experiments));
+    if(experiments.budapest_home_cta_v1==='route_first'){
+      const cta=document.querySelector('[data-personalize-cta]');
+      if(cta){
+        cta.textContent=t('See the most popular route','לצפייה במסלול הפופולרי');
+        cta.href=localeBudapestCore('tours/buda-castle-ezraider-tour/');
+      }
+    }
+    document.documentElement.dataset.trustVariant=experiments.trust_placement_v1||'default';
+  }).catch(()=>{/* Best-effort experimentation never prevents customer UI init. */});
 
   const SEGMENT_COPY = {
     family:{en:['FAMILY-FRIENDLY BUDAPEST','Check family availability','Child-seat options depend on seat availability for your departure.'],he:['בודפשט למשפחות','בדיקת זמינות למשפחה','אפשרויות לכיסאות ילדים תלויות בזמינות הכיסאות ליציאה שבחרתם.'],hu:['CSALÁDBARÁT BUDAPEST','Családi időpontok','A gyermekülés a kiválasztott indulás elérhetőségétől függ.']},
@@ -799,10 +811,6 @@
     const cta=document.querySelector('[data-personalize-cta]'); if(cta) cta.textContent=segCopy[1];
     const note=document.querySelector('[data-personalize-note]'); if(note){note.textContent=segCopy[2];note.hidden=false;}
   }
-  if(experiments.budapest_home_cta_v1==='route_first'){
-    const cta=document.querySelector('[data-personalize-cta]'); if(cta){cta.textContent=t('See the most popular route','לצפייה במסלול הפופולרי');cta.href=localeBudapestCore('tours/buda-castle-ezraider-tour/');}
-  }
-  document.documentElement.dataset.trustVariant=experiments.trust_placement_v1||'default';
   document.querySelectorAll('.language-picker .lang-switch.active, .language-picker .lang-switch.is-current').forEach(link=>link.setAttribute('aria-current','page'));
   enhanceMobileNavigation();
 
@@ -1050,10 +1058,33 @@
     }finally{if(timer)clearTimeout(timer);}
   }
 
+  // Launch independent, read-only Budapest bootstrap requests together,
+  // then consume each response where its existing UI state machine needs it.
+  // Re-query after 15 seconds rather than using a stale payment capability.
+  const bootstrapStartedAt=Date.now();
+  const prefetchPublic=(path)=>api(path,{method:'GET',timeoutMs:5000})
+    .then(value=>({ok:true,value}),error=>({ok:false,error}));
+  const bootstrapReads=bookingEnabled&&isBudapestPage
+    ?{
+      destination:prefetchPublic('/destinations/budapest'),
+      experiences:prefetchPublic('/experiences'),
+      capabilities:prefetchPublic('/payments/capabilities'),
+    }
+    :null;
+  async function readBootstrap(kind,path){
+    const cached=bootstrapReads?.[kind];
+    if(cached&&Date.now()-bootstrapStartedAt<15000){
+      const result=await cached;
+      if(!result.ok)throw result.error;
+      return result.value;
+    }
+    return api(path,{method:'GET',timeoutMs:5000});
+  }
+
   async function hydrateDestinationRuntime(){
     if(!bookingEnabled||!isBudapestPage)return null;
     try{
-      const data=await api('/destinations/budapest',{method:'GET',timeoutMs:5000});
+      const data=await readBootstrap('destination','/destinations/budapest');
       if(!data?.rider_policy||!data?.meeting_point)throw new Error('DESTINATION_CONFIG_INCOMPLETE');
       destinationRuntime=data;
       return data;
@@ -1946,7 +1977,7 @@
     }
 
     try{
-      const products=await api('/experiences',{method:'GET',timeoutMs:5000});
+      const products=await readBootstrap('experiences','/experiences');
       if(!Array.isArray(products)||!products.length)throw new Error('CATALOG_EMPTY');
 
       products.forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
@@ -2078,7 +2109,7 @@
     const paymentSelectionFrozen=()=>select.closest('#live-checkout-form')?.dataset.submitting==='true'||Boolean(select.closest('#live-checkout-shell')?.hasAttribute('data-submit-locked'));
     select.addEventListener('change',()=>{paymentSelectionTouched=true;sync();});
     try{
-      const caps=await api('/payments/capabilities',{method:'GET',timeoutMs:5000});
+      const caps=await readBootstrap('capabilities','/payments/capabilities');
       paymentCapabilities=caps||paymentCapabilities;
       if(paymentSelectionFrozen())return;
       const onlineReady=Boolean(caps?.online_card);
