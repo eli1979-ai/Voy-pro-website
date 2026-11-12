@@ -1382,3 +1382,9 @@ body[data-page="/404/"] .consent-banner{
   body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
   main > .section{padding-block:32px}
 }
+
+/* 2026-11-12 DRONE staffed service: consistent line icon and type badge. */
+.ancillary-visual .ancillary-service-icon{
+  display:block;width:32px;height:32px;stroke:currentColor;flex:none;
+}
+.ancillary-kind.service{background:#eaf4fb;color:#0d4d7c}
