@@ -1062,13 +1062,13 @@
   // then consume each response where its existing UI state machine needs it.
   // Re-query after 15 seconds rather than using a stale payment capability.
   const bootstrapStartedAt=Date.now();
-  const prefetchPublic=(path)=>api(path,{method:'GET',timeoutMs:5000})
+  const settleRead=(promise)=>promise
     .then(value=>({ok:true,value}),error=>({ok:false,error}));
   const bootstrapReads=bookingEnabled&&isBudapestPage
     ?{
-      destination:prefetchPublic('/destinations/budapest'),
-      experiences:prefetchPublic('/experiences'),
-      capabilities:prefetchPublic('/payments/capabilities'),
+      destination:settleRead(api('/destinations/budapest',{method:'GET',timeoutMs:5000})),
+      experiences:settleRead(api('/experiences',{method:'GET',timeoutMs:5000})),
+      capabilities:settleRead(api('/payments/capabilities',{method:'GET',timeoutMs:5000})),
     }
     :null;
   async function readBootstrap(kind,path){
