@@ -101,7 +101,7 @@ for(const root of roots){
     const approvedStarting= file.startsWith('site/he/')?'החל מ־€70'
       :file.startsWith('site/hu/')?'€70-tól':'From €70';
     const sourceToCheck=html.replace(
-      /<([a-z]+)([^>]*\\bdata-(?:runtime|tour)-price\\b[^>]*)>([^<]*)<\\/\\1>/gi,
+      /<([a-z]+)([^>]*\bdata-(?:runtime|tour)-price\b[^>]*)>([^<]*)<\/\1>/gi,
       (tag,_el,_attrs,value)=>value===approvedStarting
         ?tag.replace(value,'API_PRICE_FALLBACK')
         :tag
