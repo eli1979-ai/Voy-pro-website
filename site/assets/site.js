@@ -2258,7 +2258,7 @@
     en:{
       kicker:'MAKE THE RIDE YOURS',title:'Upgrade your ride before you go',
       intro:'Stay warmer, ride more comfortably and capture better memories with extras chosen for your tour.',
-      sale:'BUY',rental:'RENT',add:'Add',added:'Added',soldout:'Unavailable',
+      sale:'BUY',rental:'RENT',service:'SERVICE',add:'Add',added:'Added',soldout:'Unavailable',
       paymentNote:'Selected extras are included in your booking total and follow your selected payment method.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
       rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
@@ -2268,7 +2268,7 @@
     he:{
       kicker:'משדרגים את החוויה',title:'משדרגים את הרכיבה לפני שיוצאים',
       intro:'יותר חום, יותר נוחות וזיכרונות טובים יותר – תוספות שנבחרו במיוחד לסיור שלכם.',
-      sale:'קנייה',rental:'השכרה',add:'הוספה',added:'נוסף',soldout:'לא זמין',
+      sale:'קנייה',rental:'השכרה',service:'שירות',add:'הוספה',added:'נוסף',soldout:'לא זמין',
       paymentNote:'התוספות נכללות בסכום ההזמנה ומשולמות בהתאם לאמצעי התשלום שבחרתם.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
       rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
@@ -2278,7 +2278,7 @@
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Tedd még jobbá a túrát indulás előtt',
       intro:'Több meleg, nagyobb kényelem és jobb emlékek – a túrádhoz válogatott kiegészítőkkel.',
-      sale:'VÁSÁRLÁS',rental:'BÉRLÉS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
+      sale:'VÁSÁRLÁS',rental:'BÉRLÉS',service:'SZOLGÁLTATÁS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
       paymentNote:'A kiválasztott kiegészítők bekerülnek a foglalás végösszegébe, és a választott fizetési mód szerint fizetendők.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
@@ -2290,7 +2290,7 @@
   const ancillaryIcon=(offer)=>{
     const sku=String(offer?.sku||'').toUpperCase(),category=String(offer?.metadata?.category||'').toLowerCase();
     if(sku.includes('GOPRO'))return '🎥';
-    if(sku.includes('DRONE'))return '🚁';
+    if(sku.includes('DRONE'))return '<svg class="ancillary-service-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M9 9 6 6m9 3 3-3M9 15l-3 3m9-3 3 3M3 6a3 3 0 1 1 6 0m6 0a3 3 0 1 1 6 0M3 18a3 3 0 1 1 6 0m6 0a3 3 0 1 1 6 0"/></svg>';
     if(sku.includes('HAT'))return '🧢';
     if(sku.includes('SCARF'))return '🧣';
     if(sku.includes('WARMER')||category==='cold_weather')return '🧥';
@@ -2299,9 +2299,9 @@
   function ancillaryDisplayName(offer){
     const sku=String(offer?.sku||'').toUpperCase();
     const copy={
-      en:{GOPRO:'GoPro rental',WARMER:'Body warmer pack',HAT:'Fleece hat',SCARF:'Fleece scarf',DRONE:'Drone rental'},
-      he:{GOPRO:'השכרת GoPro',WARMER:'ערכת חימום לגוף',HAT:'כובע פליז',SCARF:'צעיף פליז',DRONE:'השכרת רחפן'},
-      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónbérlés'}
+      en:{GOPRO:'GoPro rental',WARMER:'Body warmer pack',HAT:'Fleece hat',SCARF:'Fleece scarf',DRONE:'Drone clip of your ride'},
+      he:{GOPRO:'השכרת GoPro',WARMER:'ערכת חימום לגוף',HAT:'כובע פליז',SCARF:'צעיף פליז',DRONE:'סרטון רחפן של הרכיבה'},
+      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónvideó a túrádról'}
     };
     const lang=copy[locale]||copy.en;
     if(sku.includes('GOPRO'))return lang.GOPRO;
@@ -2319,21 +2319,21 @@
         WARMER:'Cold outside? Add extra warmth and stay comfortable throughout the ride.',
         HAT:'Keep your head warm and stay comfortable on colder rides.',
         SCARF:'Block the chill around your neck and enjoy a warmer, more comfortable ride.',
-        DRONE:'Add a cinematic perspective to your Budapest memories — drone rental available where permitted.'
+        DRONE:'A small automatic drone (under 250 g) films you up close on a short, pre-approved scenic stretch. Our team launches and lands it, so you just ride.'
       },
       he:{
         GOPRO:'צלמו כמו מקצוענים – תעדו את הרכיבה עם GoPro. השימוש בטלפון אסור במהלך הרכיבה.',
         WARMER:'קר בחוץ? הוסיפו חימום נוסף ושמרו על נוחות לאורך כל הרכיבה.',
         HAT:'שמרו על הראש חם ותיהנו מרכיבה נוחה יותר בימים קרים.',
         SCARF:'חסמו את הקור באזור הצוואר ותיהנו מרכיבה חמה ונוחה יותר.',
-        DRONE:'הוסיפו זווית קולנועית לזיכרונות מבודפשט – השכרת רחפן זמינה במקומות שבהם הדבר מותר.'
+        DRONE:'רחפן אוטומטי קטן (פחות מ־250 גרם) מצלם אתכם מקרוב בקטע נוף קצר שאושר מראש. הצוות שלנו מפעיל ומנחית, אתם רק רוכבים.'
       },
       hu:{
         GOPRO:'Videózz profiként – örökítsd meg a túrát GoPróval. Menet közben a telefon használata nem megengedett.',
         WARMER:'Hideg van? Adj extra meleget, és maradj kényelmes az egész túra alatt.',
         HAT:'Tartsd melegen a fejed, és élvezd kényelmesebben a hidegebb túrákat.',
         SCARF:'Védd a nyakad a hidegtől, és élvezd melegebben, kényelmesebben a túrát.',
-        DRONE:'Adj filmes perspektívát a budapesti emlékeidhez – drónbérlés ott érhető el, ahol ez megengedett.'
+        DRONE:'Egy kis, automata drón (250 g alatt) közelről filmez egy rövid, előre jóváhagyott, látványos szakaszon. A csapatunk indítja és teszi le, neked csak vezetned kell.'
       }
     };
     const lang=copy[locale]||copy.en;
@@ -2347,9 +2347,9 @@
   function ancillaryCta(offer){
     const sku=String(offer?.sku||'').toUpperCase();
     const copy={
-      en:{GOPRO:'Rent GoPro',WARMER:'Add warmth',HAT:'Add hat',SCARF:'Add scarf',DRONE:'Rent drone'},
-      he:{GOPRO:'השכרת GoPro',WARMER:'הוספת חימום',HAT:'הוספת כובע',SCARF:'הוספת צעיף',DRONE:'השכרת רחפן'},
-      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drón bérlése'}
+      en:{GOPRO:'Rent GoPro',WARMER:'Add warmth',HAT:'Add hat',SCARF:'Add scarf',DRONE:'Add drone clip'},
+      he:{GOPRO:'השכרת GoPro',WARMER:'הוספת חימום',HAT:'הוספת כובע',SCARF:'הוספת צעיף',DRONE:'הוספת סרטון רחפן'},
+      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drónvideó hozzáadása'}
     };
     const lang=copy[locale]||copy.en;
     if(sku.includes('GOPRO'))return lang.GOPRO;
@@ -2459,14 +2459,19 @@
       const unavailable=max<=0;
       const price=money(Number(offer.price_minor||0)/100,offer.currency||bookingState.quote?.currency||'EUR');
       const category=String(offer?.metadata?.category||'').toLowerCase();
-      const kind=offer.product_kind==='rental'?'rental':'sale';
-      const badge=kind==='rental'?ancillaryText('rental'):ancillaryText('sale');
+      // DRONE is a staffed filming service, not a guest-held rental.
+      // Keep FBM's product_kind and quote/stock values unchanged pending
+      // a separately reviewed backend product-type classification update.
+      const droneClip=String(offer?.sku||'').toUpperCase().includes('DRONE');
+      const kind=droneClip?'service':offer.product_kind==='rental'?'rental':'sale';
+      const badge=kind==='service'?ancillaryText('service')
+        :kind==='rental'?ancillaryText('rental'):ancillaryText('sale');
       const note=ancillaryPitch(offer);
       const availabilityNote=ancillaryAvailabilityNote(offer);
       return `<article class="ancillary-card ${qty?'is-selected':''} ${unavailable?'is-unavailable':''}" data-ancillary-product="${escapeHTML(offer.product_id)}">
-        <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
+        <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(kind==='service'?ancillaryText('service'):category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
         <div class="ancillary-card-body">
-          <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
+          <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'||kind==='service'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
           <h4>${escapeHTML(ancillaryDisplayName(offer))}</h4><p>${escapeHTML(note)}</p>
           ${availabilityNote?`<div class="ancillary-availability" aria-label="${escapeHTML(availabilityNote)}">● ${escapeHTML(availabilityNote)}</div>`:''}
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
