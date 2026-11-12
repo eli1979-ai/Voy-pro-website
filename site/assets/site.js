@@ -1547,6 +1547,18 @@
       ?product.guideLanguages.map(x=>String(x).toLowerCase()).filter(Boolean)
       :[];
   }
+  // Client-facing tour facts use the same authoritative catalog as booking.
+  // Keep translated static fallbacks until the catalog is available.
+  function hydrateTourFactLabels(product){
+    const duration=liveDurationLabel(product?.durationMinutes)||
+      (locale==='he'?'שעתיים':locale==='hu'?'2 óra':'2 hours');
+    document.querySelectorAll('[data-api-tour-duration]').forEach(node=>{node.textContent=duration;});
+    const languages=guideLanguagesForProduct(product);
+    if(!languages.length)return;
+    const prefix=locale==='he'?'שפות הדרכה: ':locale==='hu'?'Idegenvezetés nyelve: ':'Guide languages: ';
+    const label=prefix+[...new Set(languages)].map(guideLanguageLabel).join(', ');
+    document.querySelectorAll('[data-api-guide-languages]').forEach(node=>{node.textContent=label;});
+  }
   function ensureGuideLanguageField(form){
     if(!form||form.querySelector('[data-guide-language-field]')) return;
     const dateField=form.querySelector('input[name="date"]')?.closest('.field');
@@ -1981,6 +1993,7 @@
       if(active){
         setStore('voy_experience_id',active.id);
         hydratePrice(active);
+        hydrateTourFactLabels(active);
         setSelectedTourHint(active);
         updatePrivateUpgrade(active);
         updateGuideLanguageField(active);
@@ -2722,7 +2735,7 @@
     });
     form.addEventListener('change',e=>{
       if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
-      if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
+      if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);hydrateTourFactLabels(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
       if(availabilitySelectionNames.has(e.target.name))invalidateAvailabilityResults({announce:true});
     });
     form.addEventListener('submit',async e=>{
