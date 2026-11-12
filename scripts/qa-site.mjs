@@ -18,6 +18,42 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+/* Request-only Budapest tours: grounded guest facts + localized breadcrumbs. */
+for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour']){
+  for(const lang of ['en','he','hu']){
+    const prefix=lang==='en'?'':lang+'/';
+    const file=prefix+'budapest/tours/'+slug+'/index.html';
+    const html=htmlMap.get(file);
+    if(!html){fail(file,'request-only customer page is missing');continue;}
+    const duration=lang==='he'?'שעתיים':lang==='hu'?'2 óra':'Approx. 2 hours';
+    const price=lang==='he'?'מ־€70 לרוכב · מחיר סופי באישור הצוות'
+      :lang==='hu'?'70 €-tól / fő · végső ár a csapattal egyeztetve'
+      :'From €70 per rider · final quote before booking';
+    if(!html.includes('data-customer-tour-facts')||
+       !html.includes('data-request-tour-duration')||!html.includes(duration)||
+       !html.includes('<span data-request-start-price="70">'+price+'</span>'))
+      fail(file,'qualified duration and approved starting price are missing');
+    if(html.includes('canonical booking system'))
+      fail(file,'internal booking implementation wording leaked to customers');
+    const scripts=[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    let breadcrumbs=[];
+    for(const script of scripts){
+      try{
+        const data=JSON.parse(script[1]);
+        if(data['@type']==='BreadcrumbList')breadcrumbs.push(data);
+      }catch{fail(file,'invalid JSON-LD for request-only tour');}
+    }
+    if(breadcrumbs.length!==1)fail(file,'exactly one BreadcrumbList is required');
+    else{
+      const items=breadcrumbs[0].itemListElement||[];
+      const expected='https://voy-pro.com/'+prefix+'budapest/tours/'+slug+'/';
+      if(items.length!==3||items[1]?.item!=='https://voy-pro.com/'+prefix+'budapest/'||
+         items[2]?.item!==expected||items[2]?.position!==3)
+        fail(file,'BreadcrumbList must point to the localized destination and tour');
+    }
+  }
+}
+
 // Accessible descriptions must match the Hebrew-language Budapest pages.
 // Empty alt is legal for purely decorative images; meaningful descriptions
 // must not silently regress to English as these pages evolve.
