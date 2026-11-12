@@ -3126,6 +3126,19 @@
       mapQuery:'Pombais Experience & Villas, Marvão, Portugal',
       mapZoom:16
     };
+    const mapConsentCopy=locale==='he'
+      ?{label:'הצגת מפה אינטראקטיבית',note:'המפה החיצונית תיטען רק לאחר לחיצה. ספק המפה עשוי לאסוף נתונים.'}
+      :locale==='hu'
+        ?{label:'Interaktív térkép betöltése',note:'A külső térkép csak kattintás után töltődik be. A térképszolgáltató adatokat gyűjthet.'}
+        :locale==='pt'
+          ?{label:'Carregar mapa interativo',note:'O mapa externo só é carregado depois do clique. O fornecedor do mapa pode recolher dados.'}
+          :{label:'Load interactive map',note:'The external map loads only after you click. The map provider may collect data.'};
+    const mapConsentMarkup=`<div class="meeting-map-consent" data-map-consent-placeholder>
+      <p>${escapeHTML(mapConsentCopy.note)}</p>
+      <button type="button" class="btn meeting-map-consent-button" data-map-consent-button>
+        ${escapeHTML(mapConsentCopy.label)}
+      </button>
+    </div>`;
     const section=document.createElement('section');
     section.className='section meeting-point-section';
     section.dataset.branchMeetingPoint='';
@@ -3138,15 +3151,17 @@
         <a class="btn secondary meeting-point-button" href="${escapeHTML(data.maps)}" target="_blank" rel="noopener" data-track="meeting_point_maps">${escapeHTML(copy.maps)}</a>
       </div>
       ${budapest?(officialGoogleEmbed?`<div class="meeting-map-card meeting-map-card--google">
+        ${mapConsentMarkup}
         <iframe class="meeting-map-frame"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
-          src="${escapeHTML(officialGoogleEmbed)}"
+          data-map-src="${escapeHTML(officialGoogleEmbed)}"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></div>
       </div>`:`<div class="meeting-map-card meeting-map-card--business">
+        ${mapConsentMarkup}
         <iframe class="meeting-map-frame meeting-map-frame--business"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
-          src="${escapeHTML(data.mapPreview)}"
+          data-map-src="${escapeHTML(data.mapPreview)}"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
         <a class="meeting-map-open" href="${escapeHTML(data.maps)}"
           target="_blank" rel="noopener noreferrer" data-track="meeting_point_maps"
@@ -3160,10 +3175,11 @@
         </a>
         <span class="meeting-map-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a></span>
       </div>`):`<div class="meeting-map-card">
+        ${mapConsentMarkup}
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
-          src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
+          data-map-src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen></iframe>
@@ -3171,6 +3187,31 @@
       </div>`}
     </div>`;
     document.querySelector('main')?.appendChild(section);
+    // Consent is explicit and per-page: no Google/OSM iframe URL is assigned
+    // before a visitor activates the map. External map links remain clickable.
+    section.querySelectorAll?.('[data-map-consent-button]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const card=button.closest('.meeting-map-card');
+        const frame=card?.querySelector('iframe.meeting-map-frame');
+        if(!frame||frame.hasAttribute('src'))return;
+        const candidate=String(frame.dataset.mapSrc||'');
+        let allowed=false;
+        try{
+          const url=new URL(candidate);
+          allowed=(url.origin==='https://www.google.com'&&(
+             (url.pathname==='/maps/embed' && budapest &&
+              (url.searchParams.get('pb')||'').includes('0x0:0xbfcd8e3fb5a649b5'))||
+             (url.pathname==='/maps' && portugal &&
+              url.searchParams.get('output')==='embed')))
+            ||(url.origin==='https://www.openstreetmap.org'&&
+               url.pathname==='/export/embed.html'&&budapest);
+        }catch(_error){allowed=false;}
+        if(!allowed)return;
+        frame.src=candidate;
+        card.classList.add('is-map-loaded');
+        button.closest('[data-map-consent-placeholder]')?.remove();
+      });
+    });
   }
 
   function routeVisualCoords(count,kind='generic'){
