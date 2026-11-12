@@ -442,7 +442,8 @@ await scenario('Budapest exact business map rendered using API fixture',
     const link=page.locator('[data-branch-meeting-point] .meeting-point-button');
     ok(await link.getAttribute('href')===EXPECTED_MAP,'official business link exact');
     const frame=page.locator('[data-branch-meeting-point] iframe.meeting-map-frame');
-    const raw=await frame.getAttribute('src');
+    ok(await frame.getAttribute('src')===null,'map does not contact Google before guest action');
+    const raw=await frame.getAttribute('data-map-src');
     const src=new URL(raw);
     ok(src.origin==='https://www.google.com'&&src.pathname==='/maps/embed',
       'Google embed is a business-specific map');
@@ -463,8 +464,10 @@ await scenario('Marvao public meeting map markup',
       EXPECTED_PORTUGAL_MAP,'Marvao direct business Maps link unchanged');
     const map=page.locator('[data-branch-meeting-point] iframe.meeting-map-frame');
     ok(await map.count()===1,'meeting map iframe created');
-    const raw=await map.getAttribute('src');
-    ok(Boolean(raw)&&/^https:\/\//.test(raw),'map iframe has HTTPS source (remote iframe deliberately blocked)');
+    ok(await map.getAttribute('src')===null,'Marvao map has no third-party request before action');
+    const raw=await map.getAttribute('data-map-src');
+    ok(Boolean(raw)&&/^https:\/\//.test(raw),'deferred map iframe uses HTTPS');
+    ok(await page.locator('[data-branch-meeting-point] [data-map-load]').count()===1,'explicit map load button available');
   });
 // Verify the *deployed* Marvão manual WhatsApp handoff copy and validation.
 // Never open WhatsApp or send the guest's message: only exercise a past-date
