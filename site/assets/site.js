@@ -771,15 +771,27 @@
     }
   }
   const experiments={};
-  const runtimeExperiments=await loadRuntimeExperiments();
-  for(const experiment of runtimeExperiments){
-    const id=String(experiment?.key||'').trim();
-    const variants=Array.isArray(experiment?.variants)?experiment.variants:[];
-    if(!id||variants.length<2)continue;
-    const assigned=assignExperiment(id,variants);
-    if(assigned)experiments[id]=assigned;
-  }
-  if(analyticsAllowed()) setStore('voy_experiments',JSON.stringify(experiments));
+  // Marketing experiments must never hold up the navigation, booking controls,
+  // cookie dialog or the public catalog while an optional endpoint responds.
+  document.documentElement.dataset.trustVariant='default';
+  void loadRuntimeExperiments().then(runtimeExperiments=>{
+    for(const experiment of runtimeExperiments){
+      const id=String(experiment?.key||'').trim();
+      const variants=Array.isArray(experiment?.variants)?experiment.variants:[];
+      if(!id||variants.length<2)continue;
+      const assigned=assignExperiment(id,variants);
+      if(assigned)experiments[id]=assigned;
+    }
+    if(analyticsAllowed()) setStore('voy_experiments',JSON.stringify(experiments));
+    if(experiments.budapest_home_cta_v1==='route_first'){
+      const cta=document.querySelector('[data-personalize-cta]');
+      if(cta){
+        cta.textContent=t('See the most popular route','לצפייה במסלול הפופולרי');
+        cta.href=localeBudapestCore('tours/buda-castle-ezraider-tour/');
+      }
+    }
+    document.documentElement.dataset.trustVariant=experiments.trust_placement_v1||'default';
+  }).catch(()=>{/* Best-effort experimentation never prevents customer UI init. */});
 
   const SEGMENT_COPY = {
     family:{en:['FAMILY-FRIENDLY BUDAPEST','Check family availability','Child-seat options depend on seat availability for your departure.'],he:['בודפשט למשפחות','בדיקת זמינות למשפחה','אפשרויות לכיסאות ילדים תלויות בזמינות הכיסאות ליציאה שבחרתם.'],hu:['CSALÁDBARÁT BUDAPEST','Családi időpontok','A gyermekülés a kiválasztott indulás elérhetőségétől függ.']},
@@ -799,11 +811,13 @@
     const cta=document.querySelector('[data-personalize-cta]'); if(cta) cta.textContent=segCopy[1];
     const note=document.querySelector('[data-personalize-note]'); if(note){note.textContent=segCopy[2];note.hidden=false;}
   }
-  if(experiments.budapest_home_cta_v1==='route_first'){
-    const cta=document.querySelector('[data-personalize-cta]'); if(cta){cta.textContent=t('See the most popular route','לצפייה במסלול הפופולרי');cta.href=localeBudapestCore('tours/buda-castle-ezraider-tour/');}
-  }
-  document.documentElement.dataset.trustVariant=experiments.trust_placement_v1||'default';
   document.querySelectorAll('.language-picker .lang-switch.active, .language-picker .lang-switch.is-current').forEach(link=>link.setAttribute('aria-current','page'));
+  // Language switch links may contain a different-script label from this page.
+  // Announce each target language explicitly to assistive technology.
+  document.querySelectorAll('.language-picker a.lang-switch[hreflang]').forEach(link=>{
+    const code=String(link.getAttribute('hreflang')||'').toLowerCase();
+    if(['he','hu','pt'].includes(code))link.lang=code;
+  });
   enhanceMobileNavigation();
 
   function compactStickyBookingWhatsapp(){
@@ -1050,10 +1064,33 @@
     }finally{if(timer)clearTimeout(timer);}
   }
 
+  // Launch independent, read-only Budapest bootstrap requests together,
+  // then consume each response where its existing UI state machine needs it.
+  // Re-query after 15 seconds rather than using a stale payment capability.
+  const bootstrapStartedAt=Date.now();
+  const settleRead=(promise)=>promise
+    .then(value=>({ok:true,value}),error=>({ok:false,error}));
+  const bootstrapReads=bookingEnabled&&isBudapestPage
+    ?{
+      destination:settleRead(api('/destinations/budapest',{method:'GET',timeoutMs:5000})),
+      experiences:settleRead(api('/experiences',{method:'GET',timeoutMs:5000})),
+      capabilities:settleRead(api('/payments/capabilities',{method:'GET',timeoutMs:5000})),
+    }
+    :null;
+  async function readBootstrap(kind,path){
+    const cached=bootstrapReads?.[kind];
+    if(cached&&Date.now()-bootstrapStartedAt<15000){
+      const result=await cached;
+      if(!result.ok)throw result.error;
+      return result.value;
+    }
+    return api(path,{method:'GET',timeoutMs:5000});
+  }
+
   async function hydrateDestinationRuntime(){
     if(!bookingEnabled||!isBudapestPage)return null;
     try{
-      const data=await api('/destinations/budapest',{method:'GET',timeoutMs:5000});
+      const data=await readBootstrap('destination','/destinations/budapest');
       if(!data?.rider_policy||!data?.meeting_point)throw new Error('DESTINATION_CONFIG_INCOMPLETE');
       destinationRuntime=data;
       return data;
@@ -1547,6 +1584,18 @@
       ?product.guideLanguages.map(x=>String(x).toLowerCase()).filter(Boolean)
       :[];
   }
+  // Client-facing tour facts use the same authoritative catalog as booking.
+  // Keep translated static fallbacks until the catalog is available.
+  function hydrateTourFactLabels(product){
+    const duration=liveDurationLabel(product?.durationMinutes)||
+      (locale==='he'?'שעתיים':locale==='hu'?'2 óra':'2 hours');
+    document.querySelectorAll('[data-api-tour-duration]').forEach(node=>{node.textContent=duration;});
+    const languages=guideLanguagesForProduct(product);
+    if(!languages.length)return;
+    const prefix=locale==='he'?'שפות הדרכה: ':locale==='hu'?'Idegenvezetés nyelve: ':'Guide languages: ';
+    const label=prefix+[...new Set(languages)].map(guideLanguageLabel).join(', ');
+    document.querySelectorAll('[data-api-guide-languages]').forEach(node=>{node.textContent=label;});
+  }
   function ensureGuideLanguageField(form){
     if(!form||form.querySelector('[data-guide-language-field]')) return;
     const dateField=form.querySelector('input[name="date"]')?.closest('.field');
@@ -1598,8 +1647,39 @@
     }
     return {valid:true,message:''};
   }
+  function updatePassengerPricePreview(product){
+    const hint=document.querySelector('[data-passenger-price-info]');
+    if(!hint)return;
+    const raw=product?.passengerPrice;
+    const amount=raw!==null&&raw!==undefined&&raw!==''?finiteNumber(raw):null;
+    if(amount===null||amount<0){
+      hint.dataset.priceVerified='false';
+      hint.textContent=locale==='he'?'מחיר נוסע ילד יאומת במערכת ההזמנות'
+        :locale==='hu'?'A gyermekutas árát a foglalási rendszer erősíti meg'
+        :'Child passenger price will be verified with the booking system';
+      return;
+    }
+    const currency=/^(EUR|HUF|USD)$/.test(String(product.currency||'EUR'))
+      ?String(product.currency||'EUR'):'EUR';
+    const formatted=new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':'en-IE',{
+      style:'currency',currency,minimumFractionDigits:0,
+      maximumFractionDigits:Number.isInteger(amount)?0:2
+    }).format(amount);
+    hint.dataset.priceVerified='true';
+    hint.textContent=locale==='he'?`נוסע ילד: ${formatted} לילד · המחיר הסופי יוצג בהמשך`
+      :locale==='hu'?`Gyermekutas: ${formatted} / fő · a végső ár később jelenik meg`
+      :`Child passenger: ${formatted} each · final total shown before confirmation`;
+  }
+
   function ensureGroupCompositionPreview(form){
     if(!form||form.querySelector('[data-group-composition-preview]'))return;
+    const childField=form.querySelector('select[name="children"]')?.closest('.field');
+    if(childField&&!childField.querySelector('[data-passenger-price-info]')){
+      const hint=document.createElement('small');hint.className='passenger-price-hint';
+      hint.dataset.passengerPriceInfo='';hint.setAttribute('aria-live','polite');
+      childField.appendChild(hint);
+      updatePassengerPricePreview(null);
+    }
     const lastField=form.querySelector('select[name="babies"]')?.closest('.field');
     if(!lastField)return;
     const preview=document.createElement('div');
@@ -1646,7 +1726,12 @@
     box.className='booking-mode-selector';box.dataset.privateUpgrade='';box.hidden=true;
     box.innerHTML=`<input type="hidden" name="is_private" value="false"><div class="booking-mode-head"><div><small>${t('TOUR STYLE','סוג הסיור')}</small><b>${t('Choose how you want to ride','בחרו איך תרצו לצאת')}</b></div><span data-booking-mode-note>${t('Final price is shown after you choose a departure.','המחיר הסופי מחושב בזמן אמת לאחר בחירת יציאה.')}</span></div><div class="booking-mode-grid" role="group" aria-label="${t('TOUR STYLE','סוג הסיור')}"><button type="button" class="booking-mode-card is-active" data-booking-mode="standard" aria-pressed="true"><span class="booking-mode-check" aria-hidden="true">✓</span><b>${t('Join a scheduled tour','להצטרף לסיור רגיל')}</b><small data-standard-mode-price>${t('Current rider price','מחיר נוכחי לרוכב')}</small><em>${t('Share the departure with other VOY PRO guests.','היציאה יכולה לכלול אורחי VOY PRO נוספים.')}</em></button><button type="button" class="booking-mode-card is-private" data-booking-mode="private" aria-pressed="false"><span class="booking-mode-check" aria-hidden="true">✓</span><b>${t('Private tour · your group only','סיור פרטי · רק הקבוצה שלכם')}</b><small data-private-price>${t('Private upgrade shown before confirmation','תוספת לסיור פרטי מוצגת לפני האישור')}</small><em data-private-min></em></button></div><div class="booking-mode-foot"><a href="#" data-special-request="private_flexible" data-private-flexible>${t('Need a different private start time? Send a request with your date and group','צריכים שעה אחרת לסיור פרטי? שלחו בקשה עם התאריך והקבוצה')}</a><span>${t('Private availability requires an empty departure.','זמינות פרטית דורשת יציאה שטרם הוזמנה.')}</span></div>`;
     experienceField.insertAdjacentElement('afterend',box);
-    const nudge=document.createElement('div');nudge.className='experience-nudge';nudge.dataset.experienceNudge='';nudge.hidden=true;box.insertAdjacentElement('afterend',nudge);
+    const nudge=document.createElement('div');nudge.className='experience-nudge';nudge.dataset.experienceNudge='';nudge.hidden=true;
+    // A related-route upsell belongs with departure choices (step 2),
+    // not among the required date/party controls in step 1.
+    const slotList=document.querySelector('#slotlist');
+    if(slotList)slotList.insertAdjacentElement('afterend',nudge);
+    else box.insertAdjacentElement('afterend',nudge);
     const hidden=box.querySelector('input[name="is_private"]');
     const setMode=(mode,{silent=false}={})=>{
       if(!silent&&document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
@@ -1677,9 +1762,10 @@
     const nudge=document.querySelector('[data-experience-nudge]');if(!nudge)return;
     const slug=String(product?.slug||'');
     const isCore=/buda-highlights|buda-castle|margaret-island/.test(slug);
-    if(!isCore){nudge.hidden=true;nudge.innerHTML='';return;}
+    if(!isCore){nudge.dataset.eligible='false';nudge.hidden=true;nudge.innerHTML='';return;}
     const href=localeBudapestCore('tours/buda-margaret-extended-tour/');
-    nudge.hidden=false;
+    nudge.dataset.eligible='true';
+    nudge.hidden=nudge.dataset.bookingStage!=='2';
     nudge.innerHTML=`<div><small>${t('MORE BUDAPEST','עוד מבודפשט')}</small><b>${t('Want Buda and Margaret Island in one longer experience?','רוצים את בודה ואת מרגיט בחוויה ארוכה אחת?')}</b><span>${t('See the Extended Buda + Margaret option before you choose a departure.','בדקו את אפשרות בודה + מרגיט הארוכה לפני בחירת היציאה.')}</span></div><a class="btn secondary" href="${href}" data-related>${t('See extended tour','לסיור הארוך')}</a>`;
     nudge.querySelector('a')?.addEventListener('click',()=>track('extended_route_nudge_clicked',{from_experience:product?.id||null,page}));
   }
@@ -1915,6 +2001,7 @@
       select.disabled=true;
     });
     setRuntimePriceState('unavailable');
+    updatePassengerPricePreview(null);
     const status=document.querySelector('#availability-status');
     if(status)status.textContent=locale==='he'
       ?'לא ניתן לאמת כרגע אפשרויות, מחיר או זמינות מול מערכת ההזמנות. נסו שוב בעוד רגע.'
@@ -1946,7 +2033,7 @@
     }
 
     try{
-      const products=await api('/experiences',{method:'GET',timeoutMs:5000});
+      const products=await readBootstrap('experiences','/experiences');
       if(!Array.isArray(products)||!products.length)throw new Error('CATALOG_EMPTY');
 
       products.forEach(p=>{productCache.bySlug[p.slug]=p;productCache.byId[p.id]=p;});
@@ -1981,6 +2068,8 @@
       if(active){
         setStore('voy_experience_id',active.id);
         hydratePrice(active);
+        hydrateTourFactLabels(active);
+        updatePassengerPricePreview(active);
         setSelectedTourHint(active);
         updatePrivateUpgrade(active);
         updateGuideLanguageField(active);
@@ -2025,7 +2114,7 @@
   function ensureCheckoutShell(){
     const booking=document.querySelector('#booking .booking-grid'); if(!booking||document.querySelector('#live-checkout-shell')) return;
     const shell=document.createElement('div');shell.id='live-checkout-shell';shell.className='live-checkout-shell';shell.hidden=true;
-    shell.innerHTML=`<div class="panel checkout-panel"><div class="checkout-title-row"><div><div class="eyebrow">${t('BOOKING','הזמנה')}</div><h3 data-checkout-heading tabindex="-1">${t('Complete your booking','השלמת ההזמנה')}</h3></div><button type="button" class="checkout-edit" data-checkout-edit>${t('Change selection','שינוי בחירה')}</button></div><div data-checkout-summary class="checkout-summary"></div><div class="checkout-assurance"><span>${t('Current price','מחיר נוכחי')}</span><span>${t('Places held while you finish','המקומות נשמרים בזמן השלמת ההזמנה')}</span><span>${t('Direct Budapest team','צוות בודפשט ישירות')}</span></div><div data-hold-timer class="hold-timer"></div><section data-ancillary-upsell class="ancillary-upsell" hidden></section><form id="live-checkout-form"><div class="checkout-fields"><div class="field"><label for="checkout-full-name">${t('Full name','שם מלא')}</label><input id="checkout-full-name" name="full_name" required autocomplete="name"></div><div class="field"><label for="checkout-email">Email</label><input id="checkout-email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="checkout-phone">${t('Phone','טלפון')}</label><input id="checkout-phone" name="phone" type="tel" required autocomplete="tel"></div><div class="field payment-field"><label for="checkout-payment-method">${t('Payment','תשלום')}</label><select id="checkout-payment-method" name="payment_method" aria-describedby="payment-method-help online-card-status"><option value="pay_now_card" disabled>${t('Pay now by card','תשלום מיידי בכרטיס')}</option><option value="pay_arrival_card">${t('Pay by card on arrival','תשלום בכרטיס במקום')}</option><option value="pay_arrival_cash">${t('Pay cash on arrival','תשלום במזומן במקום')}</option></select><small id="payment-method-help" class="payment-method-note" data-payment-method-note aria-live="polite">${escapeHTML(paymentMethodHelp('pay_arrival_card'))}</small><small id="online-card-status" class="payment-method-note" data-online-card-status aria-live="polite">${t('Online card payment is currently unavailable','תשלום מיידי בכרטיס אינו זמין כרגע')}</small></div></div><div class="checkout-legal" data-checkout-legal><label><input type="checkbox" name="legal_acceptance" required><span>${t('I accept the Terms of Use and confirm I have read the Privacy Notice.','אני מאשר/ת את תנאי השימוש ומאשר/ת שקראתי את הצהרת הפרטיות.')} <a href="${legalBasePath()}terms/" target="_blank" rel="noopener">${t('Terms of Use','תנאי שימוש')}</a> · <a href="${legalBasePath()}privacy/" target="_blank" rel="noopener">${t('Privacy Notice','הצהרת פרטיות')}</a></span></label></div><button class="btn checkout-confirm" type="submit">${t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום')}</button><div class="status" data-checkout-status role="status" aria-live="polite"></div></form></div>`;
+    shell.innerHTML=`<div class="panel checkout-panel"><div class="checkout-title-row"><div><div class="eyebrow">${t('BOOKING','הזמנה')}</div><h3 data-checkout-heading tabindex="-1">${t('Complete your booking','השלמת ההזמנה')}</h3></div><button type="button" class="checkout-edit" data-checkout-edit>${t('Change selection','שינוי בחירה')}</button></div><div data-checkout-summary class="checkout-summary"></div><div class="checkout-assurance"><span>${t('Current price','מחיר נוכחי')}</span><span>${t('Places held while you finish','המקומות נשמרים בזמן השלמת ההזמנה')}</span><span>${t('Direct Budapest team','צוות בודפשט ישירות')}</span></div><div data-hold-timer class="hold-timer"></div><section data-ancillary-upsell class="ancillary-upsell" hidden></section><form id="live-checkout-form"><div class="checkout-fields"><div class="field"><label for="checkout-full-name">${t('Full name','שם מלא')}</label><input id="checkout-full-name" name="full_name" required autocomplete="name"></div><div class="field"><label for="checkout-email">${locale==='he'?'דוא"ל':locale==='hu'?'E-mail':'Email'}</label><input id="checkout-email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="checkout-phone">${t('Phone','טלפון')}</label><input id="checkout-phone" name="phone" type="tel" required autocomplete="tel"></div><div class="field payment-field"><label for="checkout-payment-method">${t('Payment','תשלום')}</label><select id="checkout-payment-method" name="payment_method" aria-describedby="payment-method-help online-card-status"><option value="pay_now_card" disabled>${t('Pay now by card','תשלום מיידי בכרטיס')}</option><option value="pay_arrival_card">${t('Pay by card on arrival','תשלום בכרטיס במקום')}</option><option value="pay_arrival_cash">${t('Pay cash on arrival','תשלום במזומן במקום')}</option></select><small id="payment-method-help" class="payment-method-note" data-payment-method-note aria-live="polite">${escapeHTML(paymentMethodHelp('pay_arrival_card'))}</small><small id="online-card-status" class="payment-method-note" data-online-card-status aria-live="polite">${t('Online card payment is currently unavailable','תשלום מיידי בכרטיס אינו זמין כרגע')}</small></div></div><div class="checkout-legal" data-checkout-legal><label><input type="checkbox" name="legal_acceptance" required><span>${t('I accept the Terms of Use and confirm I have read the Privacy Notice.','אני מאשר/ת את תנאי השימוש ומאשר/ת שקראתי את הצהרת הפרטיות.')} <a href="${legalBasePath()}terms/" target="_blank" rel="noopener">${t('Terms of Use','תנאי שימוש')}</a> · <a href="${legalBasePath()}privacy/" target="_blank" rel="noopener">${t('Privacy Notice','הצהרת פרטיות')}</a></span></label></div><button class="btn checkout-confirm" type="submit">${t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום')}</button><div class="status" data-checkout-status role="status" aria-live="polite"></div></form></div>`;
     (booking.firstElementChild||booking).appendChild(shell);
     shell.querySelector('[data-checkout-edit]')?.addEventListener('click',()=>{
       setCheckoutSubmissionLock(false);
@@ -2078,7 +2167,7 @@
     const paymentSelectionFrozen=()=>select.closest('#live-checkout-form')?.dataset.submitting==='true'||Boolean(select.closest('#live-checkout-shell')?.hasAttribute('data-submit-locked'));
     select.addEventListener('change',()=>{paymentSelectionTouched=true;sync();});
     try{
-      const caps=await api('/payments/capabilities',{method:'GET',timeoutMs:5000});
+      const caps=await readBootstrap('capabilities','/payments/capabilities');
       paymentCapabilities=caps||paymentCapabilities;
       if(paymentSelectionFrozen())return;
       const onlineReady=Boolean(caps?.online_card);
@@ -2224,6 +2313,11 @@
       el.classList.toggle('is-done',n<step);
       if(n===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
     });
+    const nudge=document.querySelector('[data-experience-nudge]');
+    if(nudge){
+      nudge.dataset.bookingStage=String(step);
+      nudge.hidden=step!==2||nudge.dataset.eligible!=='true';
+    }
     const mobileCta=document.querySelector('.mobilebook .btn');
     if(mobileCta){
       if(step===3){mobileCta.textContent=t('Complete booking','השלמת הזמנה');mobileCta.setAttribute('href','#live-checkout-shell');}
@@ -2258,7 +2352,7 @@
     en:{
       kicker:'MAKE THE RIDE YOURS',title:'Upgrade your ride before you go',
       intro:'Stay warmer, ride more comfortably and capture better memories with extras chosen for your tour.',
-      sale:'BUY',rental:'RENT',add:'Add',added:'Added',soldout:'Unavailable',
+      sale:'BUY',rental:'RENT',service:'SERVICE',add:'Add',added:'Added',soldout:'Unavailable',
       paymentNote:'Selected extras are included in your booking total and follow your selected payment method.',
       updating:'Updating your total…',winter:'Winter comfort',gear:'Tour extra',
       rentalNote:'Rental for your tour',saleNote:'Yours to keep',perTour:'per tour',each:'each',
@@ -2268,7 +2362,7 @@
     he:{
       kicker:'משדרגים את החוויה',title:'משדרגים את הרכיבה לפני שיוצאים',
       intro:'יותר חום, יותר נוחות וזיכרונות טובים יותר – תוספות שנבחרו במיוחד לסיור שלכם.',
-      sale:'קנייה',rental:'השכרה',add:'הוספה',added:'נוסף',soldout:'לא זמין',
+      sale:'קנייה',rental:'השכרה',service:'שירות',add:'הוספה',added:'נוסף',soldout:'לא זמין',
       paymentNote:'התוספות נכללות בסכום ההזמנה ומשולמות בהתאם לאמצעי התשלום שבחרתם.',
       updating:'מעדכנים את המחיר…',winter:'נוחות לחורף',gear:'תוספת לסיור',
       rentalNote:'השכרה למשך הסיור',saleNote:'נשאר אצלכם',perTour:'לסיור',each:'ליחידה',
@@ -2278,7 +2372,7 @@
     hu:{
       kicker:'TEDD TELJESEBBÉ AZ ÉLMÉNYT',title:'Tedd még jobbá a túrát indulás előtt',
       intro:'Több meleg, nagyobb kényelem és jobb emlékek – a túrádhoz válogatott kiegészítőkkel.',
-      sale:'VÁSÁRLÁS',rental:'BÉRLÉS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
+      sale:'VÁSÁRLÁS',rental:'BÉRLÉS',service:'SZOLGÁLTATÁS',add:'Hozzáadás',added:'Hozzáadva',soldout:'Nem elérhető',
       paymentNote:'A kiválasztott kiegészítők bekerülnek a foglalás végösszegébe, és a választott fizetési mód szerint fizetendők.',
       updating:'Ár frissítése…',winter:'Téli kényelem',gear:'Túra kiegészítő',
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
@@ -2290,7 +2384,7 @@
   const ancillaryIcon=(offer)=>{
     const sku=String(offer?.sku||'').toUpperCase(),category=String(offer?.metadata?.category||'').toLowerCase();
     if(sku.includes('GOPRO'))return '🎥';
-    if(sku.includes('DRONE'))return '🚁';
+    if(sku.includes('DRONE'))return '<svg class="ancillary-service-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M9 9 6 6m9 3 3-3M9 15l-3 3m9-3 3 3M3 6a3 3 0 1 1 6 0m6 0a3 3 0 1 1 6 0M3 18a3 3 0 1 1 6 0m6 0a3 3 0 1 1 6 0"/></svg>';
     if(sku.includes('HAT'))return '🧢';
     if(sku.includes('SCARF'))return '🧣';
     if(sku.includes('WARMER')||category==='cold_weather')return '🧥';
@@ -2299,9 +2393,9 @@
   function ancillaryDisplayName(offer){
     const sku=String(offer?.sku||'').toUpperCase();
     const copy={
-      en:{GOPRO:'GoPro rental',WARMER:'Body warmer pack',HAT:'Fleece hat',SCARF:'Fleece scarf',DRONE:'Drone rental'},
-      he:{GOPRO:'השכרת GoPro',WARMER:'ערכת חימום לגוף',HAT:'כובע פליז',SCARF:'צעיף פליז',DRONE:'השכרת רחפן'},
-      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónbérlés'}
+      en:{GOPRO:'GoPro rental',WARMER:'Body warmer pack',HAT:'Fleece hat',SCARF:'Fleece scarf',DRONE:'Drone clip of your ride'},
+      he:{GOPRO:'השכרת GoPro',WARMER:'ערכת חימום לגוף',HAT:'כובע פליז',SCARF:'צעיף פליז',DRONE:'סרטון רחפן של הרכיבה'},
+      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónvideó a túrádról'}
     };
     const lang=copy[locale]||copy.en;
     if(sku.includes('GOPRO'))return lang.GOPRO;
@@ -2319,21 +2413,21 @@
         WARMER:'Cold outside? Add extra warmth and stay comfortable throughout the ride.',
         HAT:'Keep your head warm and stay comfortable on colder rides.',
         SCARF:'Block the chill around your neck and enjoy a warmer, more comfortable ride.',
-        DRONE:'Add a cinematic perspective to your Budapest memories — drone rental available where permitted.'
+        DRONE:'A small automatic drone (under 250 g) films you up close on a short, pre-approved scenic stretch. Our team launches and lands it, so you just ride.'
       },
       he:{
         GOPRO:'צלמו כמו מקצוענים – תעדו את הרכיבה עם GoPro. השימוש בטלפון אסור במהלך הרכיבה.',
         WARMER:'קר בחוץ? הוסיפו חימום נוסף ושמרו על נוחות לאורך כל הרכיבה.',
         HAT:'שמרו על הראש חם ותיהנו מרכיבה נוחה יותר בימים קרים.',
         SCARF:'חסמו את הקור באזור הצוואר ותיהנו מרכיבה חמה ונוחה יותר.',
-        DRONE:'הוסיפו זווית קולנועית לזיכרונות מבודפשט – השכרת רחפן זמינה במקומות שבהם הדבר מותר.'
+        DRONE:'רחפן אוטומטי קטן (פחות מ־250 גרם) מצלם אתכם מקרוב בקטע נוף קצר שאושר מראש. הצוות שלנו מפעיל ומנחית, אתם רק רוכבים.'
       },
       hu:{
         GOPRO:'Videózz profiként – örökítsd meg a túrát GoPróval. Menet közben a telefon használata nem megengedett.',
         WARMER:'Hideg van? Adj extra meleget, és maradj kényelmes az egész túra alatt.',
         HAT:'Tartsd melegen a fejed, és élvezd kényelmesebben a hidegebb túrákat.',
         SCARF:'Védd a nyakad a hidegtől, és élvezd melegebben, kényelmesebben a túrát.',
-        DRONE:'Adj filmes perspektívát a budapesti emlékeidhez – drónbérlés ott érhető el, ahol ez megengedett.'
+        DRONE:'Egy kis, automata drón (250 g alatt) közelről filmez egy rövid, előre jóváhagyott, látványos szakaszon. A csapatunk indítja és teszi le, neked csak vezetned kell.'
       }
     };
     const lang=copy[locale]||copy.en;
@@ -2347,9 +2441,9 @@
   function ancillaryCta(offer){
     const sku=String(offer?.sku||'').toUpperCase();
     const copy={
-      en:{GOPRO:'Rent GoPro',WARMER:'Add warmth',HAT:'Add hat',SCARF:'Add scarf',DRONE:'Rent drone'},
-      he:{GOPRO:'השכרת GoPro',WARMER:'הוספת חימום',HAT:'הוספת כובע',SCARF:'הוספת צעיף',DRONE:'השכרת רחפן'},
-      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drón bérlése'}
+      en:{GOPRO:'Rent GoPro',WARMER:'Add warmth',HAT:'Add hat',SCARF:'Add scarf',DRONE:'Add drone clip'},
+      he:{GOPRO:'השכרת GoPro',WARMER:'הוספת חימום',HAT:'הוספת כובע',SCARF:'הוספת צעיף',DRONE:'הוספת סרטון רחפן'},
+      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drónvideó hozzáadása'}
     };
     const lang=copy[locale]||copy.en;
     if(sku.includes('GOPRO'))return lang.GOPRO;
@@ -2459,14 +2553,19 @@
       const unavailable=max<=0;
       const price=money(Number(offer.price_minor||0)/100,offer.currency||bookingState.quote?.currency||'EUR');
       const category=String(offer?.metadata?.category||'').toLowerCase();
-      const kind=offer.product_kind==='rental'?'rental':'sale';
-      const badge=kind==='rental'?ancillaryText('rental'):ancillaryText('sale');
+      // DRONE is a staffed filming service, not a guest-held rental.
+      // Keep upstream product_kind and quote/stock values unchanged pending
+      // a separately reviewed backend product-type classification update.
+      const droneClip=String(offer?.sku||'').toUpperCase().includes('DRONE');
+      const kind=droneClip?'service':offer.product_kind==='rental'?'rental':'sale';
+      const badge=kind==='service'?ancillaryText('service')
+        :kind==='rental'?ancillaryText('rental'):ancillaryText('sale');
       const note=ancillaryPitch(offer);
       const availabilityNote=ancillaryAvailabilityNote(offer);
       return `<article class="ancillary-card ${qty?'is-selected':''} ${unavailable?'is-unavailable':''}" data-ancillary-product="${escapeHTML(offer.product_id)}">
-        <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
+        <div class="ancillary-visual"><span aria-hidden="true">${ancillaryIcon(offer)}</span><em>${escapeHTML(kind==='service'?ancillaryText('service'):category==='cold_weather'?ancillaryText('winter'):ancillaryText('gear'))}</em></div>
         <div class="ancillary-card-body">
-          <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
+          <div class="ancillary-card-top"><span class="ancillary-kind ${kind}">${escapeHTML(badge)}</span><strong class="ancillary-price"><span>${escapeHTML(price)}</span><small>${escapeHTML(kind==='rental'||kind==='service'?ancillaryText('perTour'):ancillaryText('each'))}</small></strong></div>
           <h4>${escapeHTML(ancillaryDisplayName(offer))}</h4><p>${escapeHTML(note)}</p>
           ${availabilityNote?`<div class="ancillary-availability" aria-label="${escapeHTML(availabilityNote)}">● ${escapeHTML(availabilityNote)}</div>`:''}
           ${unavailable?`<button type="button" class="ancillary-soldout" disabled>${escapeHTML(ancillaryText('soldout'))}</button>`:
@@ -2707,7 +2806,12 @@
     };
     if(dateInput){
       const today=refreshAvailabilityDateBounds();
-      if(!dateInput.value)dateInput.value=today;
+      // Default to the next Budapest calendar day, never the visitor's local today.
+      // Preserve any existing/restored customer-selected date.
+      if(!dateInput.value){
+        const nextDay=budapestDate(1);
+        dateInput.value=(!dateInput.max||nextDay<=dateInput.max)?nextDay:today;
+      }
       dateInput.addEventListener('focus',refreshAvailabilityDateBounds);
     }
     ensurePrivateUpgrade(form);
@@ -2722,7 +2826,7 @@
     });
     form.addEventListener('change',e=>{
       if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
-      if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
+      if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);hydrateTourFactLabels(p);updatePassengerPricePreview(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
       if(availabilitySelectionNames.has(e.target.name))invalidateAvailabilityResults({announce:true});
     });
     form.addEventListener('submit',async e=>{
@@ -3140,14 +3244,16 @@
       ${budapest?(officialGoogleEmbed?`<div class="meeting-map-card meeting-map-card--google">
         <iframe class="meeting-map-frame"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
-          src="${escapeHTML(officialGoogleEmbed)}"
+          data-map-src="${escapeHTML(officialGoogleEmbed)}"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
         <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></div>
       </div>`:`<div class="meeting-map-card meeting-map-card--business">
         <iframe class="meeting-map-frame meeting-map-frame--business"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
-          src="${escapeHTML(data.mapPreview)}"
+          data-map-src="${escapeHTML(data.mapPreview)}"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
         <a class="meeting-map-open" href="${escapeHTML(data.maps)}"
           target="_blank" rel="noopener noreferrer" data-track="meeting_point_maps"
           aria-label="${escapeHTML(copy.maps)} — ${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}">
@@ -3163,13 +3269,25 @@
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
-          src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
+          data-map-src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen></iframe>
+        <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
         <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></div>
       </div>`}
     </div>`;
+    // Do not contact Google Maps or OpenStreetMap before an explicit guest action.
+    // The external business listing remains available as a normal outbound link.
+    section.querySelectorAll?.('[data-map-load]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const frame=button.closest('.meeting-map-card')?.querySelector('iframe[data-map-src]');
+        const url=frame?.getAttribute('data-map-src')||'';
+        if(!/^https:\/\/(www\.google\.com\/maps\/|www\.openstreetmap\.org\/export\/)/.test(url))return;
+        frame.setAttribute('src',url);
+        button.hidden=true;
+      },{once:true});
+    });
     document.querySelector('main')?.appendChild(section);
   }
 
@@ -3198,7 +3316,7 @@
       <div class="route-schematic-canvas" aria-hidden="true">
         <svg viewBox="0 0 100 52" preserveAspectRatio="none" focusable="false">
           <path class="route-river-shape" d="${geoBuda?'M72 -8 C68 8 78 24 72 36 C68 47 76 56 73 62':'M48 -8 C38 9 60 17 48 31 C39 41 54 48 50 60'}"></path>
-          ${geoBuda?'<g class="route-buda-landmark-labels"><text x="13" y="48">${escapeHTML(copy.landmarkSides.buda)}</text><text x="87" y="48">${escapeHTML(copy.landmarkSides.pest)}</text><text x="78" y="12">${escapeHTML(copy.landmarkSides.danube)}</text></g>':''}
+          ${geoBuda?`<g class="route-buda-landmark-labels"><text x="13" y="48">${escapeHTML(copy.landmarkSides.buda)}</text><text x="87" y="48">${escapeHTML(copy.landmarkSides.pest)}</text><text x="78" y="12">${escapeHTML(copy.landmarkSides.danube)}</text></g>`:''}
           <polyline class="route-schematic-line" points="${points}"></polyline>
           <g class="route-schematic-nodes">${nodes}</g>
         </svg>
