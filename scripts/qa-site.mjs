@@ -18,14 +18,20 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
-// Reject unresolved JS-template delimiters from all published static HTML.
+// Reject unresolved interpolations in *rendered HTML* while preserving
+// legitimate template literals within inline <script> on the Manage page.
 const unrenderedTemplate=String.fromCharCode(36,123);
+const renderedMarkup=html=>html
+  .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi,'')
+  .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi,'');
 for(const [file,html] of htmlMap){
-  if(html.includes(unrenderedTemplate)) fail(file,'unrendered template interpolation');
+  if(renderedMarkup(html).includes(unrenderedTemplate))
+    fail(file,'unrendered interpolation in visible HTML');
 }
 if(fs.existsSync(path.join(root,'dist'))){
   for(const file of walk(path.join(root,'dist')).filter(p=>p.endsWith('.html'))){
-    if(read(file).includes(unrenderedTemplate)) fail(path.relative(root,file),'unrendered built HTML interpolation');
+    if(renderedMarkup(read(file)).includes(unrenderedTemplate))
+      fail(path.relative(root,file),'unrendered interpolation in built visible HTML');
   }
 }
 // Landmark names in the runtime Buda schematic must be actual escaped
