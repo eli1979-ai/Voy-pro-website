@@ -450,6 +450,10 @@ await scenario('Budapest exact business map rendered using API fixture',
     const pb=src.searchParams.get('pb')||'';
     ok(pb.includes('0x0:0xbfcd8e3fb5a649b5')&&pb.includes('47.4944')&&pb.includes('19.0552'),
       'correct Google business CID and coordinates');
+    await page.locator('[data-branch-meeting-point] [data-map-load]').click();
+    ok(await frame.getAttribute('src')===raw,'guest action assigns the validated Google embed');
+    ok(await page.locator('[data-branch-meeting-point] [data-map-load]').isHidden(),
+      'map activation button is hidden after loading');
     ok(await page.locator('[data-branch-meeting-point] .meeting-map-label').innerText()
       .then(x=>x.includes('EZRaider Budapest by Voy PRO')),
       'correct business label on displayed map');
