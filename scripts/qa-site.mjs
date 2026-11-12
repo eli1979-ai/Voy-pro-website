@@ -407,6 +407,22 @@ try{
     'EZRaider optional video loading regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
+// Official Thule images are third-party requests until self-hosting is approved.
+// Suppress the page URL in the Referer header without altering displayed photos.
+for(const page of [
+  'ezraider/index.html','he/ezraider/index.html','hu/ezraider/index.html',
+  'pt/ezraider/index.html','budapest/with-kids/index.html',
+  'he/budapest/with-kids/index.html','hu/budapest/with-kids/index.html'
+]){
+  const html=fs.readFileSync('site/'+page,'utf8');
+  const images=[...html.matchAll(/<img\b[^>]*\bsrc="https:\/\/www\.thule\.com\/[^"]+"[^>]*>/g)];
+  if(images.length!==2)fail(page,'Expected both official Thule seat photos');
+  for(const [index,img] of images.entries()){
+    if(!/\breferrerpolicy="no-referrer"/.test(img[0]))
+      fail(page,'Thule image '+(index+1)+' exposes page referrer');
+  }
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
