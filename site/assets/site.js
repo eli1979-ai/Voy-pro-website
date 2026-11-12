@@ -3140,14 +3140,16 @@
       ${budapest?(officialGoogleEmbed?`<div class="meeting-map-card meeting-map-card--google">
         <iframe class="meeting-map-frame"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
-          src="${escapeHTML(officialGoogleEmbed)}"
+          data-map-src="${escapeHTML(officialGoogleEmbed)}"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
         <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}</b><span>${escapeHTML(data.address)}</span></div>
       </div>`:`<div class="meeting-map-card meeting-map-card--business">
         <iframe class="meeting-map-frame meeting-map-frame--business"
           title="${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)} — ${escapeHTML(copy.exactPin)}"
-          src="${escapeHTML(data.mapPreview)}"
+          data-map-src="${escapeHTML(data.mapPreview)}"
           loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
         <a class="meeting-map-open" href="${escapeHTML(data.maps)}"
           target="_blank" rel="noopener noreferrer" data-track="meeting_point_maps"
           aria-label="${escapeHTML(copy.maps)} — ${escapeHTML(BUDAPEST_BUSINESS_DISPLAY_NAME)}">
@@ -3163,13 +3165,25 @@
         <iframe
           class="meeting-map-frame"
           title="${escapeHTML(data.name)} — ${escapeHTML(copy.exactPin)}"
-          src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
+          data-map-src="https://www.google.com/maps?q=${encodeURIComponent(data.mapQuery)}&amp;z=${data.mapZoom||16}&amp;output=embed"
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen></iframe>
+        <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
         <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></div>
       </div>`}
     </div>`;
+    // Do not contact Google Maps or OpenStreetMap before an explicit guest action.
+    // The external business listing remains available as a normal outbound link.
+    section.querySelectorAll?.('[data-map-load]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        const frame=button.closest('.meeting-map-card')?.querySelector('iframe[data-map-src]');
+        const url=frame?.getAttribute('data-map-src')||'';
+        if(!/^https:\/\/(www\.google\.com\/maps\/|www\.openstreetmap\.org\/export\/)/.test(url))return;
+        frame.setAttribute('src',url);
+        button.hidden=true;
+      },{once:true});
+    });
     document.querySelector('main')?.appendChild(section);
   }
 
