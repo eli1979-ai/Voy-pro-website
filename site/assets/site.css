@@ -1382,3 +1382,23 @@ body[data-page="/404/"] .consent-banner{
   body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
   main > .section{padding-block:32px}
 }
+
+/* 2026-11-12 accessibility prelaunch: readable CTAs, visible language controls
+   and legible mobile helper text without changing layout or booking rules. */
+.btn.alt{background:#126994;color:#fff}
+.btn,.btn.alt{font-size:14px}
+.language-picker a.lang-switch{display:inline-flex;align-items:center;justify-content:center;min-height:24px}
+@media(max-width:800px){
+  body{font-size:14px}
+  .btn,.btn.alt,.hero-actions .btn,.experience-nudge .btn,
+  .tour-choice-actions .btn,.navlinks .btn{font-size:14px!important}
+  .notice,.section p,.content-card p,.tour-choice-card>p,
+  .intent-hub-card p,.booking-mode-card b{font-size:14px}
+  small,.trust-sub,.tour-tag,.tour-duration,.tour-highlights span,
+  .tour-choice-bottom small,.tour-choice-bottom span,
+  .booking-mode-head small,.booking-mode-head>span,.booking-mode-card small,
+  .booking-mode-card em,.booking-mode-foot,.experience-nudge small,
+  .experience-nudge span,.route-compare-card small,.route-fit span,
+  .special-builder-grid label,.special-builder-note,.payment-method-note,
+  .facts span,.intent,.eyebrow{font-size:12px!important}
+}
