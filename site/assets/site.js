@@ -174,7 +174,7 @@
     syncGtmConsent();
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const money=(amount,currency='EUR')=>new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency}).format(Number(amount||0));
+  const money=(amount,currency='EUR')=>{const value=Number(amount||0);return new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency,minimumFractionDigits:0,maximumFractionDigits:Number.isInteger(value)?0:2}).format(value)};
   function liveDurationLabel(value){
     const total=Math.round(Number(value));
     if(!Number.isFinite(total)||total<=0)return null;
