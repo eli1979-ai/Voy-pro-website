@@ -22,8 +22,8 @@ const warn=(file,msg)=>warnings.push(file+': '+msg);
 // legitimate template literals within inline <script> on the Manage page.
 const unrenderedTemplate=String.fromCharCode(36,123);
 const renderedMarkup=html=>html
-  .replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi,'')
-  .replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi,'');
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
+  .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'');
 for(const [file,html] of htmlMap){
   if(renderedMarkup(html).includes(unrenderedTemplate))
     fail(file,'unrendered interpolation in visible HTML');
