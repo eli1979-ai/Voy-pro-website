@@ -2460,7 +2460,7 @@
       const price=money(Number(offer.price_minor||0)/100,offer.currency||bookingState.quote?.currency||'EUR');
       const category=String(offer?.metadata?.category||'').toLowerCase();
       // DRONE is a staffed filming service, not a guest-held rental.
-      // Keep FBM's product_kind and quote/stock values unchanged pending
+      // Keep upstream product_kind and quote/stock values unchanged pending
       // a separately reviewed backend product-type classification update.
       const droneClip=String(offer?.sku||'').toUpperCase().includes('DRONE');
       const kind=droneClip?'service':offer.product_kind==='rental'?'rental':'sale';
