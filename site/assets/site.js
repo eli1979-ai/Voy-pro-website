@@ -3198,7 +3198,7 @@
       <div class="route-schematic-canvas" aria-hidden="true">
         <svg viewBox="0 0 100 52" preserveAspectRatio="none" focusable="false">
           <path class="route-river-shape" d="${geoBuda?'M72 -8 C68 8 78 24 72 36 C68 47 76 56 73 62':'M48 -8 C38 9 60 17 48 31 C39 41 54 48 50 60'}"></path>
-          ${geoBuda?'<g class="route-buda-landmark-labels"><text x="13" y="48">${escapeHTML(copy.landmarkSides.buda)}</text><text x="87" y="48">${escapeHTML(copy.landmarkSides.pest)}</text><text x="78" y="12">${escapeHTML(copy.landmarkSides.danube)}</text></g>':''}
+          ${geoBuda?`<g class="route-buda-landmark-labels"><text x="13" y="48">${escapeHTML(copy.landmarkSides.buda)}</text><text x="87" y="48">${escapeHTML(copy.landmarkSides.pest)}</text><text x="78" y="12">${escapeHTML(copy.landmarkSides.danube)}</text></g>`:''}
           <polyline class="route-schematic-line" points="${points}"></polyline>
           <g class="route-schematic-nodes">${nodes}</g>
         </svg>
