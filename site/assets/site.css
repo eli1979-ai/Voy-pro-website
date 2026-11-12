@@ -1438,3 +1438,13 @@ a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}
   display:block;width:32px;height:32px;stroke:currentColor;flex:none;
 }
 .ancillary-kind.service{background:#eaf4fb;color:#0d4d7c}
+
+/* Owner-requested trust presentation: retain independently auditable
+   GetYourGuide data but do not display the six-rating platform tile. */
+.trust-grid .trust-item:has([data-review-count="getyourguide"]){display:none}
+@media(min-width:801px){
+  .trust-grid:has([data-review-count="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:800px){
+  .network-trust .trust-grid:has([data-review-count="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
+}

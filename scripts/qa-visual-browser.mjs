@@ -224,15 +224,18 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const grid=band?.querySelector('.trust-grid');
         const cards=[...(grid?.querySelectorAll('.trust-item')||[])];
         const bounds=grid?.getBoundingClientRect();
-        const items=cards.map(card=>card.getBoundingClientRect());
+        const visibleCards=cards.filter(card=>getComputedStyle(card).display!=='none');
+        const items=visibleCards.map(card=>card.getBoundingClientRect());
         const hero=document.querySelector('main .hero');
         const guide=document.querySelector('main .ez-vehicle-bridge');
         return {
           sectionCount:sections.length,
           count:cards.length,
+          visibleCount:visibleCards.length,
           sources:cards.map(card=>card.querySelector('.trust-source')?.textContent.trim()).join('|'),
+          visibleSources:visibleCards.map(card=>card.querySelector('.trust-source')?.textContent.trim()).join('|'),
           columns:grid?getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length:0,
-          row:items.length===3&&items.every(item=>Math.abs(item.top-items[0].top)<=2),
+          row:items.length===2&&items.every(item=>Math.abs(item.top-items[0].top)<=2),
           contained:!!bounds&&items.every(item=>item.width>0&&
             item.left>=bounds.left-2&&item.right<=bounds.right+2),
           attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
@@ -242,12 +245,13 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         };
       });
       check(homeRatings.sectionCount===1&&homeRatings.count===3&&
-        homeRatings.sources==='Google|Tripadvisor|GetYourGuide',
-        name+' one honest Budapest-only three-platform trust band');
+        homeRatings.sources==='Google|Tripadvisor|GetYourGuide'&&
+        homeRatings.visibleCount===2&&homeRatings.visibleSources==='Google|Tripadvisor',
+        name+' only Google and Tripadvisor tiles are visible while GYG audit data stays intact');
       check(homeRatings.attributed&&homeRatings.order,
         name+' root trust attribution and placement before EZRaider guide');
-      check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
-        name+' root trust stays in one contained three-column row at '+viewport.width+'px');
+      check(homeRatings.columns===2&&homeRatings.row&&homeRatings.contained,
+        name+' root trust stays in one contained two-column row at '+viewport.width+'px');
       const proof=await page.evaluate(()=>{
         const root=document.querySelector('.parent-hero-mosaic');
         const cards=[...document.querySelectorAll('.parent-hero-destination')];

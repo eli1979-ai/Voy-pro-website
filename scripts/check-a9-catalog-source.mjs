@@ -33,6 +33,9 @@ requireText("liveDurationLabel(p.durationMinutes)","tour-card duration must hydr
 requireText("isDurationPlaceholder(duration)","catalog failure must replace live-duration placeholders without overwriting non-live labels");
 requireText("durationUnavailableLabel()","catalog failure must expose a truthful unavailable duration state");
 
+requireText('currency,minimumFractionDigits:0,maximumFractionDigits:Number.isInteger(value)?0:2',
+  'integer euro prices must not display unnecessary .00 decimals');
+
 if(failures.length){
   console.error('A9.2b catalog source-of-truth guard failed.');
   for(const failure of failures)console.error('- '+failure);

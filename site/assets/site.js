@@ -174,7 +174,7 @@
     syncGtmConsent();
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const money=(amount,currency='EUR')=>new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency}).format(Number(amount||0));
+  const money=(amount,currency='EUR')=>{const value=Number(amount||0);return new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency,minimumFractionDigits:0,maximumFractionDigits:Number.isInteger(value)?0:2}).format(value)};
   function liveDurationLabel(value){
     const total=Math.round(Number(value));
     if(!Number.isFinite(total)||total<=0)return null;
@@ -623,7 +623,7 @@
       const mobileOriginBooking=mobileBudapest?mobileBudapestHome+'#booking':mobileMarvao?mobileMarvaoHome+'#request':'#choose-destination';
       const vehicleLabels={
         en:{heading:'Explore EZRaider',back:'Back to your destination',budapest:'Budapest · Hungary',marvao:'Portugal · Marvão',book:'Continue to availability',choose:'Choose destination',contact:'Contact the local team'},
-        he:{heading:'הכירו את איזיריידר',back:'חזרה ליעד שלכם',budapest:'בודפשט · הונגריה',marvao:'מרבאו · פורטוגל',book:'המשך לבדיקת זמינות',choose:'בחירת יעד',contact:'יצירת קשר עם הצוות המקומי'},
+        he:{heading:'הכירו את EZRaider',back:'חזרה ליעד שלכם',budapest:'בודפשט · הונגריה',marvao:'מרבאו · פורטוגל',book:'המשך לבדיקת זמינות',choose:'בחירת יעד',contact:'יצירת קשר עם הצוות המקומי'},
         hu:{heading:'Ismerd meg az EZRaidert',back:'Vissza a helyszínre',budapest:'Budapest · Magyarország',marvao:'Portugália · Marvão',book:'Tovább az időpontokhoz',choose:'Úti cél választása',contact:'Kapcsolat a helyi csapattal'},
         pt:{heading:'Conheça o EZRaider',back:'Voltar ao destino',budapest:'Budapeste · Hungria',marvao:'Portugal · Marvão',book:'Consultar disponibilidade',choose:'Escolher destino',contact:'Contactar a equipa local'}
       }[locale]||{heading:'Explore EZRaider',back:'Back',budapest:'Budapest',marvao:'Marvão',book:'Availability',choose:'Choose destination',contact:'Contact local team'};
