@@ -18,6 +18,11 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+// All customer-visible static pages must use the official support mailbox.
+for(const [file,html] of htmlMap){
+  if(/@gmail\.com/i.test(html)) fail(file,'consumer page contains Gmail address');
+}
+
 // Accessible descriptions must match the Hebrew-language Budapest pages.
 // Empty alt is legal for purely decorative images; meaningful descriptions
 // must not silently regress to English as these pages evolve.
