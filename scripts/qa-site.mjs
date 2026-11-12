@@ -407,6 +407,28 @@ try{
     'EZRaider optional video loading regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
 
+
+/* Keep site-owned Hebrew EZRaider branding canonical, without modifying
+   authentic customer testimonials in the reviewed JSON source. */
+for(const page of [
+  'he/ezraider/index.html','he/budapest/index.html',
+  'he/budapest/tours/citadella-advanced-ezraider-tour/index.html',
+  'he/budapest/first-day/index.html','he/budapest/private-tours/index.html',
+  'he/budapest/with-kids/index.html',
+  'he/budapest/tours/buda-castle-ezraider-tour/index.html',
+  'he/budapest/tours/margaret-island-ezraider-tour/index.html',
+  'he/budapest/buda-castle-without-walking/index.html',
+  'he/budapest/group-tours/index.html','he/budapest/where-to-stay/index.html',
+  'he/budapest/tours/heroes-square-city-ezraider-tour/index.html',
+  'he/budapest/unique-things-to-do/index.html',
+  'he/budapest/tours/buda-margaret-extended-tour/index.html'
+]){
+  if(/איזיריידר/.test(fs.readFileSync('site/'+page,'utf8')))
+    fail(page,'Use canonical EZRaider spelling in Hebrew marketing copy');
+}
+if(fs.readFileSync('site/assets/site.js','utf8').includes('הכירו את איזיריידר'))
+  fail('assets/site.js','Hebrew vehicle-guide label must use EZRaider');
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
