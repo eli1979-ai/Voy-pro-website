@@ -108,8 +108,12 @@ else{
    const html=render(path,meeting,demoEmbed);
    if(!html.includes('class="meeting-map-card meeting-map-card--google"'))
      failures.push(path+' cannot select the exact Google business embed');
-   if(!html.includes('www.google.com/maps/embed?pb='))
-     failures.push(path+' Google iframe src missing');
+   if(!html.includes('data-map-src="https://www.google.com/maps/embed?pb='))
+     failures.push(path+' deferred Google iframe URL missing');
+   if(/<iframe\b[^>]*\ssrc=/.test(html))
+     failures.push(path+' iframe must not load third-party map before user action');
+   if(!html.includes('data-map-load'))
+     failures.push(path+' explicit map loading control missing');
    if(html.includes('www.openstreetmap.org/export/embed.html'))
      failures.push(path+' OSM fallback should not render once official Google embed is configured');
    if(!html.includes('<b>EZRaider Budapest by Voy PRO</b>'))
@@ -141,8 +145,12 @@ else{
      failures.push(path+' Marvão Google Maps action must open the approved venue');
    if(portugal.split(marvaoBusinessMapsUrl).length-1!==1)
      failures.push(path+' Marvão Google Maps URL must appear exactly once');
-   if(!portugal.includes('src="'+marvaoEmbed+'"'))
+   if(!portugal.includes('data-map-src="'+marvaoEmbed+'"'))
      failures.push(path+' Marvão iframe must show the Pombais venue at the approved zoom');
+   if(/<iframe\b[^>]*\ssrc=/.test(portugal))
+     failures.push(path+' third-party iframe must be deferred');
+   if(!portugal.includes('data-map-load'))
+     failures.push(path+' manual map load control missing');
    if(!portugal.includes('title="Pombais Experience &amp; Villas — Exact meeting point"'))
      failures.push(path+' Marvão map iframe must have an accessible venue title');
    if(!portugal.includes('<div class="meeting-point-address"><b>Pombais Experience &amp; Villas</b><strong>Marvão, Portugal</strong></div>'))
@@ -153,6 +161,12 @@ else{
  if(render('/marvao/',null)!=='')
    failures.push('Noncanonical /marvao/ must not inject an unsupported meeting point');
 }
+
+// Source-side activation guard: no live-site assertion is changed by this PR.
+requireText("frame.setAttribute('src',url);",'explicit action must assign deferred src');
+requireText("button.addEventListener('click',()=>{",'map iframe may only be activated by a click');
+requireText("button.hidden=true;",'map load button must disappear after activation');
+requireText("const url=frame?.getAttribute('data-map-src')||'';",'map source must come from deferred attribute');
 
 const css=fs.readFileSync('site/assets/site.css','utf8');
 if(!css.includes('.meeting-map-card--business .meeting-map-frame--business{pointer-events:auto}'))

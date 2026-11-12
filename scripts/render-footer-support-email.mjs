@@ -1,5 +1,5 @@
-// Canonicalize only visible site-footer support contact in built HTML.
-// Do not rewrite the underlying legal notices, their body text or source files.
+// Canonicalize VOY PRO contact throughout built HTML (including legal contact sections).
+// Only update the obsolete business Gmail address; retain all other legal wording.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -18,21 +18,15 @@ function walk(dir){
     const source=fs.readFileSync(file,'utf8');
     if(!source.includes('<footer'))continue;
     withFooter++;
-    let rewrites=0;
-    const target=source.replace(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi,footer=>{
-      const n=footer.split(oldAddress).length-1;
-      if(n){rewrites+=n;return footer.split(oldAddress).join(supportAddress);}
-      return footer;
-    });
+    const rewrites=source.split(oldAddress).length-1;
     if(verify){
       const footers=[...source.matchAll(/<footer\b[^>]*>[\s\S]*?<\/footer>/gi)].map(x=>x[0]);
-      if(footers.some(x=>x.includes(oldAddress)))
-        failures.push(file+': obsolete footer email');
+      if(/@gmail\.com/i.test(source)) failures.push(file+': @gmail.com is not allowed in built HTML');
       if(footers.some(x=>x.includes('mailto:')&&!x.includes('mailto:'+supportAddress)))
         failures.push(file+': footer email link does not use canonical VOY PRO support');
       remaining+=rewrites;
     }else if(rewrites){
-      fs.writeFileSync(file,target,'utf8');
+      fs.writeFileSync(file,source.split(oldAddress).join(supportAddress),'utf8');
       changed++;
     }
   }
