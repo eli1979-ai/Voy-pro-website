@@ -1382,3 +1382,25 @@ body[data-page="/404/"] .consent-banner{
   body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
   main > .section{padding-block:32px}
 }
+
+/* 2026-11-12 booking step-two upsell and passenger price readability. */
+.passenger-price-hint{
+  display:block;margin-top:4px;color:var(--blue);
+  font-size:12px;line-height:1.5;font-weight:800;
+}
+.passenger-price-hint[data-price-verified="false"]{
+  color:var(--muted);font-weight:650;
+}
+#availability-form > .experience-nudge{
+  margin-top:15px;
+}
+#availability-form > .experience-nudge small,
+#availability-form > .experience-nudge span{
+  font-size:12px;
+}
+#availability-form > .experience-nudge .btn{
+  font-size:14px;
+}
+@media(max-width:600px){
+  #availability-form > .experience-nudge{flex-wrap:wrap}
+}
