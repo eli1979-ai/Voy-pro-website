@@ -1598,8 +1598,39 @@
     }
     return {valid:true,message:''};
   }
+  function updatePassengerPricePreview(product){
+    const hint=document.querySelector('[data-passenger-price-info]');
+    if(!hint)return;
+    const raw=product?.passengerPrice;
+    const amount=raw!==null&&raw!==undefined&&raw!==''?finiteNumber(raw):null;
+    if(amount===null||amount<0){
+      hint.dataset.priceVerified='false';
+      hint.textContent=locale==='he'?'מחיר נוסע ילד יאומת במערכת ההזמנות'
+        :locale==='hu'?'A gyermekutas árát a foglalási rendszer erősíti meg'
+        :'Child passenger price will be verified with the booking system';
+      return;
+    }
+    const currency=/^(EUR|HUF|USD)$/.test(String(product.currency||'EUR'))
+      ?String(product.currency||'EUR'):'EUR';
+    const formatted=new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':'en-IE',{
+      style:'currency',currency,minimumFractionDigits:0,
+      maximumFractionDigits:Number.isInteger(amount)?0:2
+    }).format(amount);
+    hint.dataset.priceVerified='true';
+    hint.textContent=locale==='he'?`נוסע ילד: ${formatted} לילד · המחיר הסופי יוצג בהמשך`
+      :locale==='hu'?`Gyermekutas: ${formatted} / fő · a végső ár később jelenik meg`
+      :`Child passenger: ${formatted} each · final total shown before confirmation`;
+  }
+
   function ensureGroupCompositionPreview(form){
     if(!form||form.querySelector('[data-group-composition-preview]'))return;
+    const childField=form.querySelector('select[name="children"]')?.closest('.field');
+    if(childField&&!childField.querySelector('[data-passenger-price-info]')){
+      const hint=document.createElement('small');hint.className='passenger-price-hint';
+      hint.dataset.passengerPriceInfo='';hint.setAttribute('aria-live','polite');
+      childField.appendChild(hint);
+      updatePassengerPricePreview(null);
+    }
     const lastField=form.querySelector('select[name="babies"]')?.closest('.field');
     if(!lastField)return;
     const preview=document.createElement('div');
@@ -1646,7 +1677,12 @@
     box.className='booking-mode-selector';box.dataset.privateUpgrade='';box.hidden=true;
     box.innerHTML=`<input type="hidden" name="is_private" value="false"><div class="booking-mode-head"><div><small>${t('TOUR STYLE','סוג הסיור')}</small><b>${t('Choose how you want to ride','בחרו איך תרצו לצאת')}</b></div><span data-booking-mode-note>${t('Final price is shown after you choose a departure.','המחיר הסופי מחושב בזמן אמת לאחר בחירת יציאה.')}</span></div><div class="booking-mode-grid" role="group" aria-label="${t('TOUR STYLE','סוג הסיור')}"><button type="button" class="booking-mode-card is-active" data-booking-mode="standard" aria-pressed="true"><span class="booking-mode-check" aria-hidden="true">✓</span><b>${t('Join a scheduled tour','להצטרף לסיור רגיל')}</b><small data-standard-mode-price>${t('Current rider price','מחיר נוכחי לרוכב')}</small><em>${t('Share the departure with other VOY PRO guests.','היציאה יכולה לכלול אורחי VOY PRO נוספים.')}</em></button><button type="button" class="booking-mode-card is-private" data-booking-mode="private" aria-pressed="false"><span class="booking-mode-check" aria-hidden="true">✓</span><b>${t('Private tour · your group only','סיור פרטי · רק הקבוצה שלכם')}</b><small data-private-price>${t('Private upgrade shown before confirmation','תוספת לסיור פרטי מוצגת לפני האישור')}</small><em data-private-min></em></button></div><div class="booking-mode-foot"><a href="#" data-special-request="private_flexible" data-private-flexible>${t('Need a different private start time? Send a request with your date and group','צריכים שעה אחרת לסיור פרטי? שלחו בקשה עם התאריך והקבוצה')}</a><span>${t('Private availability requires an empty departure.','זמינות פרטית דורשת יציאה שטרם הוזמנה.')}</span></div>`;
     experienceField.insertAdjacentElement('afterend',box);
-    const nudge=document.createElement('div');nudge.className='experience-nudge';nudge.dataset.experienceNudge='';nudge.hidden=true;box.insertAdjacentElement('afterend',nudge);
+    const nudge=document.createElement('div');nudge.className='experience-nudge';nudge.dataset.experienceNudge='';nudge.hidden=true;
+    // A related-route upsell belongs with departure choices (step 2),
+    // not among the required date/party controls in step 1.
+    const slotList=document.querySelector('#slotlist');
+    if(slotList)slotList.insertAdjacentElement('afterend',nudge);
+    else box.insertAdjacentElement('afterend',nudge);
     const hidden=box.querySelector('input[name="is_private"]');
     const setMode=(mode,{silent=false}={})=>{
       if(!silent&&document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
@@ -1677,9 +1713,10 @@
     const nudge=document.querySelector('[data-experience-nudge]');if(!nudge)return;
     const slug=String(product?.slug||'');
     const isCore=/buda-highlights|buda-castle|margaret-island/.test(slug);
-    if(!isCore){nudge.hidden=true;nudge.innerHTML='';return;}
+    if(!isCore){nudge.dataset.eligible='false';nudge.hidden=true;nudge.innerHTML='';return;}
     const href=localeBudapestCore('tours/buda-margaret-extended-tour/');
-    nudge.hidden=false;
+    nudge.dataset.eligible='true';
+    nudge.hidden=nudge.dataset.bookingStage!=='2';
     nudge.innerHTML=`<div><small>${t('MORE BUDAPEST','עוד מבודפשט')}</small><b>${t('Want Buda and Margaret Island in one longer experience?','רוצים את בודה ואת מרגיט בחוויה ארוכה אחת?')}</b><span>${t('See the Extended Buda + Margaret option before you choose a departure.','בדקו את אפשרות בודה + מרגיט הארוכה לפני בחירת היציאה.')}</span></div><a class="btn secondary" href="${href}" data-related>${t('See extended tour','לסיור הארוך')}</a>`;
     nudge.querySelector('a')?.addEventListener('click',()=>track('extended_route_nudge_clicked',{from_experience:product?.id||null,page}));
   }
@@ -1915,6 +1952,7 @@
       select.disabled=true;
     });
     setRuntimePriceState('unavailable');
+    updatePassengerPricePreview(null);
     const status=document.querySelector('#availability-status');
     if(status)status.textContent=locale==='he'
       ?'לא ניתן לאמת כרגע אפשרויות, מחיר או זמינות מול מערכת ההזמנות. נסו שוב בעוד רגע.'
@@ -1981,6 +2019,7 @@
       if(active){
         setStore('voy_experience_id',active.id);
         hydratePrice(active);
+        updatePassengerPricePreview(active);
         setSelectedTourHint(active);
         updatePrivateUpgrade(active);
         updateGuideLanguageField(active);
@@ -2224,6 +2263,11 @@
       el.classList.toggle('is-done',n<step);
       if(n===step)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current');
     });
+    const nudge=document.querySelector('[data-experience-nudge]');
+    if(nudge){
+      nudge.dataset.bookingStage=String(step);
+      nudge.hidden=step!==2||nudge.dataset.eligible!=='true';
+    }
     const mobileCta=document.querySelector('.mobilebook .btn');
     if(mobileCta){
       if(step===3){mobileCta.textContent=t('Complete booking','השלמת הזמנה');mobileCta.setAttribute('href','#live-checkout-shell');}
@@ -2707,7 +2751,12 @@
     };
     if(dateInput){
       const today=refreshAvailabilityDateBounds();
-      if(!dateInput.value)dateInput.value=today;
+      // Default to the next Budapest calendar day, never the visitor's local today.
+      // Preserve any existing/restored customer-selected date.
+      if(!dateInput.value){
+        const nextDay=budapestDate(1);
+        dateInput.value=(!dateInput.max||nextDay<=dateInput.max)?nextDay:today;
+      }
       dateInput.addEventListener('focus',refreshAvailabilityDateBounds);
     }
     ensurePrivateUpgrade(form);
@@ -2722,7 +2771,7 @@
     });
     form.addEventListener('change',e=>{
       if(document.querySelector('#live-checkout-shell')?.hasAttribute('data-submit-locked'))return;
-      if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
+      if(e.target.name==='experience'){const p=productCache.byId[e.target.value];if(p){setStore('voy_experience_id',p.id);hydratePrice(p);updatePassengerPricePreview(p);setSelectedTourHint(p);updatePrivateUpgrade(p);updateGuideLanguageField(p);}}
       if(availabilitySelectionNames.has(e.target.name))invalidateAvailabilityResults({announce:true});
     });
     form.addEventListener('submit',async e=>{
