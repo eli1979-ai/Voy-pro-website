@@ -96,14 +96,24 @@ for(const root of roots){
   for(const file of walk(root)){
     const html=readFileSync(file,'utf8');
     checked++;
+    // The owner-approved visible starting price is allowed only inside a
+    // catalog-bound price node. Every other static price remains forbidden.
+    const approvedStarting= file.startsWith('site/he/')?'החל מ־€70'
+      :file.startsWith('site/hu/')?'€70-tól':'From €70';
+    const sourceToCheck=html.replace(
+      /<([a-z]+)([^>]*\\bdata-(?:runtime|tour)-price\\b[^>]*)>([^<]*)<\\/\\1>/gi,
+      (tag,_el,_attrs,value)=>value===approvedStarting
+        ?tag.replace(value,'API_PRICE_FALLBACK')
+        :tag
+    );
     for(const [needle,label] of forbidden){
-      if(html.includes(needle) && !(needle==='From €70' && file==='site/budapest/index.html' && /data-tour-image="heroes"[^]*?<strong>From €70 per rider<\/strong>/.test(html)) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
+      if(sourceToCheck.includes(needle) && !(needle==='From €70' && file==='site/budapest/index.html' && /data-tour-image="heroes"[^]*?<strong>From €70 per rider<\/strong>/.test(html)) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
     }
     for(const [pattern,label] of forbiddenPatterns){
-      if(pattern.test(html))failures.push(file+': '+label+' remained: '+pattern);
+      if(pattern.test(sourceToCheck))failures.push(file+': '+label+' remained: '+pattern);
     }
     const priceMarker=/<[^>]+data-(?:runtime|tour)-price[^>]*>[^<]*€[^<]*<\//i;
-    if(priceMarker.test(html))failures.push(file+': price marker contains a static euro amount');
+    if(priceMarker.test(sourceToCheck))failures.push(file+': price marker contains a static euro amount');
     inspectJsonLd(file,html);
   }
 }
