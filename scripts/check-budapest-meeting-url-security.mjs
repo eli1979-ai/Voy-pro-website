@@ -35,6 +35,14 @@ requireText('marker=47.4944%2C19.0552',
   'Budapest map marker must stay pinned to the verified location');
 requireText('class="meeting-map-business-link"',
   'Budapest in-map click must use an owned full-map business link');
+requireText("button.addEventListener('click',()=>{",
+  'Map must require an explicit click before loading a third-party iframe');
+requireText("frame.src=candidate;",
+  'No map iframe should have a src before the click callback');
+requireText("url.origin==='https://www.google.com'",
+  'External Google Maps host must be validated before loading');
+requireText("url.origin==='https://www.openstreetmap.org'",
+  'OpenStreetMap fallback must be explicitly origin-validated');
 requireText('href="${escapeHTML(data.maps)}"',
   'In-map link must use the exact business URL');
 if(js.includes("mapQuery:'EZRaider Budapest by Voy PRO"))failures.push('Ambiguous name search must not return to Budapest map');
@@ -108,8 +116,12 @@ else{
    const html=render(path,meeting,demoEmbed);
    if(!html.includes('class="meeting-map-card meeting-map-card--google"'))
      failures.push(path+' cannot select the exact Google business embed');
-   if(!html.includes('www.google.com/maps/embed?pb='))
-     failures.push(path+' Google iframe src missing');
+   if(!html.includes('data-map-src="https://www.google.com/maps/embed?pb='))
+     failures.push(path+' deferred Google iframe URL missing');
+   if(!html.includes('data-map-consent-placeholder')||!html.includes('data-map-consent-button'))
+     failures.push(path+' explicit map activation placeholder missing');
+   if(/<iframe[^>]*\bsrc="/.test(html))
+     failures.push(path+' third-party map iframe loads before consent');
    if(html.includes('www.openstreetmap.org/export/embed.html'))
      failures.push(path+' OSM fallback should not render once official Google embed is configured');
    if(!html.includes('<b>EZRaider Budapest by Voy PRO</b>'))
@@ -141,8 +153,10 @@ else{
      failures.push(path+' Marvão Google Maps action must open the approved venue');
    if(portugal.split(marvaoBusinessMapsUrl).length-1!==1)
      failures.push(path+' Marvão Google Maps URL must appear exactly once');
-   if(!portugal.includes('src="'+marvaoEmbed+'"'))
-     failures.push(path+' Marvão iframe must show the Pombais venue at the approved zoom');
+   if(!portugal.includes('data-map-src="'+marvaoEmbed+'"'))
+     failures.push(path+' Marvão deferred iframe must target Pombais at the approved zoom');
+   if(/<iframe[^>]*\bsrc="/.test(portugal))
+     failures.push(path+' Marvão iframe loads before map consent');
    if(!portugal.includes('title="Pombais Experience &amp; Villas — Exact meeting point"'))
      failures.push(path+' Marvão map iframe must have an accessible venue title');
    if(!portugal.includes('<div class="meeting-point-address"><b>Pombais Experience &amp; Villas</b><strong>Marvão, Portugal</strong></div>'))
