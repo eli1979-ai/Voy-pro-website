@@ -18,6 +18,29 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+/* Booking UX contract — dates stay Budapest-local, related-route upsells
+   never interrupt stage 1, and the pre-checkout child rate is API-backed. */
+const bookingUxSource=read(path.join(site,'assets/site.js'));
+const bookingUxNeeds=[
+  ["const nextDay=budapestDate(1);",'the default selected date must be tomorrow in Budapest'],
+  ["if(!dateInput.value){",'an existing guest-selected date must be retained'],
+  ["slotList.insertAdjacentElement('afterend',nudge);",'Extended nudge must sit after departure results'],
+  ["nudge.hidden=step!==2||nudge.dataset.eligible!=='true';",'Extended nudge must only appear in stage 2'],
+  ["const raw=product?.passengerPrice;",'child passenger rate must come from the live product'],
+  ["hint.dataset.priceVerified='false';",'child rate must have an explicit unverified state'],
+  ["updatePassengerPricePreview(active);",'loaded product must update passenger price'],
+  ["updatePassengerPricePreview(p);",'changing the product must update passenger price'],
+  ["updatePassengerPricePreview(null);",'catalog failure must clear stale child price']
+];
+for(const [sourceMarker,description] of bookingUxNeeds){
+  if(!bookingUxSource.includes(sourceMarker))fail('assets/site.js',description);
+}
+if(bookingUxSource.includes('if(!dateInput.value)dateInput.value=today;'))
+  fail('assets/site.js','today must not be the default booking date');
+if(bookingUxSource.includes("nudge.hidden=false;"))
+  fail('assets/site.js','Extended nudge must not show during stage 1');
+
+
 // Accessible descriptions must match the Hebrew-language Budapest pages.
 // Empty alt is legal for purely decorative images; meaningful descriptions
 // must not silently regress to English as these pages evolve.
