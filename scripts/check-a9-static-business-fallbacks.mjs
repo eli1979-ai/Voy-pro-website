@@ -96,14 +96,28 @@ for(const root of roots){
   for(const file of walk(root)){
     const html=readFileSync(file,'utf8');
     checked++;
+    // These two request-only routes already advertise an owner-approved €70
+    // starting price on the Budapest destination cards. Allow that exact
+    // localized, visibly qualified marketing price in the tour hero only.
+    // All live-booking prices and other numeric business fallbacks stay banned.
+    const requestOnlyRoute=/^site\/(?:he\/|hu\/)?budapest\/tours\/(?:heroes-square-city-ezraider-tour|citadella-advanced-ezraider-tour)\/index\.html$/;
+    const approvedPrice=file.startsWith('site/he/')
+      ?'מ־€70 לרוכב · מחיר סופי באישור הצוות'
+      :file.startsWith('site/hu/')
+        ?'70 €-tól / fő · végső ár a csapattal egyeztetve'
+        :'From €70 per rider · final quote before booking';
+    const approvedMarkup='<span data-request-start-price="70">'+approvedPrice+'</span>';
+    const inspectedHtml=requestOnlyRoute.test(file)
+      ?html.replace(approvedMarkup,'APPROVED_REQUEST_ROUTE_START_PRICE')
+      :html;
     for(const [needle,label] of forbidden){
-      if(html.includes(needle) && !(needle==='From €70' && file==='site/budapest/index.html' && /data-tour-image="heroes"[^]*?<strong>From €70 per rider<\/strong>/.test(html)) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
+      if(inspectedHtml.includes(needle) && !(needle==='From €70' && file==='site/budapest/index.html' && /data-tour-image="heroes"[^]*?<strong>From €70 per rider<\/strong>/.test(html)) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
     }
     for(const [pattern,label] of forbiddenPatterns){
-      if(pattern.test(html))failures.push(file+': '+label+' remained: '+pattern);
+      if(pattern.test(inspectedHtml))failures.push(file+': '+label+' remained: '+pattern);
     }
     const priceMarker=/<[^>]+data-(?:runtime|tour)-price[^>]*>[^<]*€[^<]*<\//i;
-    if(priceMarker.test(html))failures.push(file+': price marker contains a static euro amount');
+    if(priceMarker.test(inspectedHtml))failures.push(file+': price marker contains a static euro amount');
     inspectJsonLd(file,html);
   }
 }
