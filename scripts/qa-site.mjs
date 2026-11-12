@@ -18,6 +18,28 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+/* Drone add-on is staffed filming, never a guest-operated rental. */
+const droneJs=read(path.join(site,'assets/site.js'));
+const droneCopy=[
+  "DRONE:'Drone clip of your ride'",
+  "DRONE:'סרטון רחפן של הרכיבה'",
+  "DRONE:'Drónvideó a túrádról'",
+  "DRONE:'Add drone clip'",
+  "DRONE:'הוספת סרטון רחפן'",
+  "DRONE:'Drónvideó hozzáadása'",
+  "A small automatic drone (under 250 g) films you up close on a short, pre-approved scenic stretch. Our team launches and lands it, so you just ride.",
+  "רחפן אוטומטי קטן (פחות מ־250 גרם) מצלם אתכם מקרוב בקטע נוף קצר שאושר מראש. הצוות שלנו מפעיל ומנחית, אתם רק רוכבים.",
+  "Egy kis, automata drón (250 g alatt) közelről filmez egy rövid, előre jóváhagyott, látványos szakaszon. A csapatunk indítja és teszi le, neked csak vezetned kell.",
+  "const kind=droneClip?'service':offer.product_kind==='rental'?'rental':'sale';",
+  "const badge=kind==='service'?ancillaryText('service')",
+  'class="ancillary-service-icon"',
+  "kind==='rental'||kind==='service'?ancillaryText('perTour')"
+];
+for(const required of droneCopy)if(!droneJs.includes(required))
+  fail('assets/site.js','Drone clip service copy/rendering is incomplete: '+required.slice(0,75));
+for(const banned of ["DRONE:'Drone rental'","DRONE:'Rent drone'","DRONE:'השכרת רחפן'","DRONE:'Drónbérlés'","if(sku.includes('DRONE'))return '🚁';"])
+  if(droneJs.includes(banned))fail('assets/site.js','Drone product still presented as rental: '+banned);
+
 // Accessible descriptions must match the Hebrew-language Budapest pages.
 // Empty alt is legal for purely decorative images; meaningful descriptions
 // must not silently regress to English as these pages evolve.
