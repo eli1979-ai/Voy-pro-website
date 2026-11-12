@@ -1382,3 +1382,24 @@ body[data-page="/404/"] .consent-banner{
   body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
   main > .section{padding-block:32px}
 }
+
+/* Click-to-load third-party maps: no iframe requests before explicit activation. */
+.meeting-map-frame:not([src]){visibility:hidden}
+.meeting-map-consent{
+  position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;padding:26px;
+  text-align:center;background:linear-gradient(140deg,#e7f2f8,#f5f9fb);
+}
+.meeting-map-consent p{font-size:14px;line-height:1.6;max-width:340px;margin:0;color:#294859}
+.meeting-map-consent-button{min-height:44px;font-size:14px}
+.meeting-map-consent-button:focus-visible{outline:3px solid #1478a8;outline-offset:4px}
+.meeting-map-card.is-map-loaded .meeting-map-consent{display:none}
+/* Neutral, first-party labels replace third-party manufacturer image requests. */
+.seat-model-placeholder{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;min-height:180px;width:100%;padding:16px;
+  text-align:center;background:linear-gradient(160deg,#e9f2f5,#f7f9fa);
+  border-radius:16px;color:#264c62;
+}
+.seat-model-placeholder strong{font-size:clamp(15px,1.7vw,20px);line-height:1.3}
+.seat-model-placeholder span{font-size:12px;letter-spacing:.05em;font-weight:750}
