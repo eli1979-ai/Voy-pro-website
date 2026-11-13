@@ -587,6 +587,12 @@ for(const page of [
 if(fs.readFileSync('site/assets/site.js','utf8').includes('הכירו את איזיריידר'))
   fail('assets/site.js','Hebrew vehicle-guide label must use EZRaider');
 
+// Photo strip #03 must never reuse the illustration used for #01.
+const routeJS=fs.readFileSync('site/assets/site.js','utf8');
+if(!routeJS.includes('route-photo-neutral')||
+   !routeJS.includes("buda:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg',null")||
+   !routeJS.includes("extended:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg',null"))
+  fail('assets/site.js','Buda and extended stop #03 must be a neutral tile, not duplicate img13');
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
