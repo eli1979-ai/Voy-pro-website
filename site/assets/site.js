@@ -40,7 +40,7 @@
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
   document.documentElement.lang=locale;
-  // Explicit pre-launch disclosure: do not imply the public staging build is live commerce.
+  // Explicit pre-launch disclosure: do not imply this preview is live commerce.
   if(!document.querySelector('[data-voy-preview-ribbon]')){
     const banner=document.createElement('div');
     banner.dataset.voyPreviewRibbon='';
