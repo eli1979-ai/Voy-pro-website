@@ -541,20 +541,29 @@ try{
   }
 }
 
-// Official Thule images are third-party requests until self-hosting is approved.
-// Suppress the page URL in the Referer header without altering displayed photos.
+// Thule images must not trigger third-party requests before guest action.
 for(const page of [
   'ezraider/index.html','he/ezraider/index.html','hu/ezraider/index.html',
   'pt/ezraider/index.html','budapest/with-kids/index.html',
   'he/budapest/with-kids/index.html','hu/budapest/with-kids/index.html'
 ]){
   const html=fs.readFileSync('site/'+page,'utf8');
-  const images=[...html.matchAll(/<img\b[^>]*\bsrc="https:\/\/www\.thule\.com\/[^"]+"[^>]*>/g)];
-  if(images.length!==2)fail(page,'Expected both official Thule seat photos');
-  for(const [index,img] of images.entries()){
-    if(!/\breferrerpolicy="no-referrer"/.test(img[0]))
-      fail(page,'Thule image '+(index+1)+' exposes page referrer');
+  const deferred=[...html.matchAll(/<img\b[^>]*\sdata-thule-src="https:\/\/www\.thule\.com\/-\/p\/[^"]+"[^>]*>/g)];
+  if(deferred.length!==2)fail(page,'Exactly two official Thule photos must be opt-in');
+  if(/<img\b[^>]*\ssrc="https:\/\/www\.thule\.com\//.test(html))
+    fail(page,'Thule photo contacted before visitor opt-in');
+  const buttons=[...html.matchAll(/<button\b[^>]*\sdata-thule-load(?:\s|>)/g)];
+  if(buttons.length!==2)fail(page,'Each official Thule photo needs an opt-in button');
+  for(const [index,image] of deferred.entries()){
+    if(!/\breferrerpolicy="no-referrer"/.test(image[0]))
+      fail(page,'Thule image '+(index+1)+' must not leak URL referrer');
   }
+}
+const thuleRuntime=fs.readFileSync('site/assets/site.js','utf8');
+if(!thuleRuntime.includes("document.querySelectorAll('[data-thule-load]')")||
+   !thuleRuntime.includes("photo.setAttribute('src',url)")||
+   !thuleRuntime.includes("parsed.hostname==='www.thule.com'")){
+  fail('assets/site.js','Remote Thule photos require a verified visitor click');
 }
 
 /* Keep site-owned Hebrew EZRaider branding canonical, without modifying
