@@ -1597,3 +1597,8 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
   body[data-page^="/he/budapest/"] .hero h1{font-size:33px}
   body[data-page^="/he/budapest/"] .section h2{font-size:27px}
 }
+
+/* Budapest policy summary alongside checkout, success and Manage Booking. */
+.budapest-booking-policy-note{margin:11px 0 8px;padding:10px 13px;border-inline-start:3px solid #11708b;background:#f0f7fa;color:#163e50;font-size:13px;line-height:1.6;font-weight:650;border-radius:4px}
+.budapest-booking-policy-note a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.budapest-booking-policy-contact{font-size:13px;line-height:1.55;color:#42586a;margin:4px 0 11px}
