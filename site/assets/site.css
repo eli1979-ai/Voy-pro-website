@@ -638,6 +638,21 @@ footer .brand{
   header .navlinks>.language-picker .lang-switch{padding:4px 3px;font-size:12px}
 }
 
+/* Accessibility at 320px: preserve larger text without expanding document width.
+   The language row stays keyboard-scrollable and readable at 12px. */
+@media(max-width:350px){
+  .portugal-page header .wrap.nav{padding-inline:10px;gap:4px;min-width:0}
+  .portugal-page header .navlinks{flex:1 1 auto;min-width:0;max-width:calc(100vw - 98px)}
+  .portugal-page header .navlinks>.language-picker{
+    display:flex!important;flex:1 1 auto;min-width:0;max-width:100%;
+    overflow-x:auto;overflow-y:hidden;overscroll-behavior-inline:contain;
+    scrollbar-width:thin
+  }
+  .portugal-page header .navlinks>.language-picker .lang-switch{
+    flex:0 0 auto;min-width:0;font-size:12px;white-space:nowrap;
+    padding-inline:3px
+  }
+}
 /* Citadella route gallery */
 .citadella-gallery-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .citadella-gallery-grid figure{margin:0;overflow:hidden;border-radius:16px;aspect-ratio:3/4;background:#e8eef1}
