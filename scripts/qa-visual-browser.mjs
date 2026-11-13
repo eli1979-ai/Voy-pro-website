@@ -132,15 +132,19 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const css=element=>element?getComputedStyle(element):null;
         return {
           font:css(document.body)?.fontFamily||'',
+          base:Number.parseFloat(css(document.body)?.fontSize||'0'),
           heading:Number.parseFloat(css(document.querySelector('.hero h1'))?.fontSize||'0'),
+          weight:Number.parseFloat(css(document.querySelector('.hero h1'))?.fontWeight||'0'),
           subheading:Number.parseFloat(css(document.querySelector('.section h2'))?.fontSize||'0'),
           body:Number.parseFloat(css(document.querySelector('.section p'))?.fontSize||'0')
         };
       });
-      check(type.font.includes('Arial'),name+' Hebrew typography uses one readable font stack');
-      check(type.heading>=32,name+' Hebrew H1 is large enough at this viewport');
-      if(type.subheading)check(type.subheading>=26,name+' Hebrew section heading remains readable');
-      if(type.body)check(type.body>=15,name+' Hebrew body copy remains readable');
+      check(type.font.startsWith('"Segoe UI"'),name+' Hebrew Budapest uses preferred modern platform font');
+      check(type.base>=17,name+' Hebrew baseline text is at least 17px');
+      check(type.heading>=33,name+' Hebrew H1 remains readable on narrow screens');
+      if(type.weight)check(type.weight<=750,name+' Hebrew heading avoids excessively heavy 900 weight');
+      if(type.subheading)check(type.subheading>=27,name+' Hebrew section heading is at least 27px');
+      if(type.body)check(type.body>=16.5,name+' Hebrew body copy remains at least 16.5px');
     }
 
     check(metrics.scrollWidth<=metrics.width+2,name+' no horizontal page overflow ('+metrics.scrollWidth+'/'+metrics.width+')');

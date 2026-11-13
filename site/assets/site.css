@@ -1510,3 +1510,90 @@ body[data-page^="/he/budapest/"] :is(.btn,.field label,.booking-mode-card b){
   body[data-page^="/he/budapest/"] .hero h1{font-size:32px}
   body[data-page^="/he/budapest/"] .section h2{font-size:26px}
 }
+
+
+/* Budapest Hebrew type refinement: restore comfortable reading rhythm and
+   consistent modern platform fonts without affecting Marvão or other locales.
+   System font first avoids external font services and a privacy request. */
+body[data-page^="/he/budapest/"]{
+  font-family:"Segoe UI","Noto Sans Hebrew",Tahoma,Arial,sans-serif;
+  font-size:17px;
+  line-height:1.72;
+  font-weight:400;
+  letter-spacing:0;
+  -webkit-font-smoothing:antialiased;
+}
+body[data-page^="/he/budapest/"] :is(h1,h2,h3,h4,p,li,dt,dd,label,button,input,select,textarea){
+  font-family:inherit;
+  letter-spacing:0;
+}
+body[data-page^="/he/budapest/"] .hero h1{
+  font-size:clamp(36px,4.2vw,50px);
+  line-height:1.22;
+  font-weight:750;
+  letter-spacing:0;
+}
+body[data-page^="/he/budapest/"] :is(.section h2,.meeting-point-section h2,.tour-detail-page h2){
+  font-size:clamp(28px,2.7vw,37px);
+  line-height:1.32;
+  font-weight:700;
+}
+body[data-page^="/he/budapest/"] :is(.tour-choice-card h3,.content-card h3,.related-card h3,.route-stop h3,.faq2 h3){
+  font-size:clamp(22px,2.1vw,27px);
+  line-height:1.38;
+  font-weight:700;
+}
+body[data-page^="/he/budapest/"] :is(.hero p,.section p,.tour-choice-card>p,.content-card p,.related-card p,.faq2 p,.route-stop p,.meeting-point-copy p){
+  font-size:17px;
+  line-height:1.75;
+  font-weight:400;
+}
+body[data-page^="/he/budapest/"] :is(.btn,.hero-actions .btn,.tour-choice-actions .btn,.booking-mode-card b,.field label){
+  font-size:16px;
+  line-height:1.55;
+  font-weight:650;
+}
+body[data-page^="/he/budapest/"] :is(.hero .facts span,.tour-tag,.tour-duration,.tour-highlights span,.eyebrow,.intent,.booking-mode-head small,.route-schematic-legend span){
+  font-size:14px!important;
+  line-height:1.55!important;
+  font-weight:600;
+  letter-spacing:0;
+}
+body[data-page^="/he/budapest/"] :is(.trust-source,.trust-sub,.quickinfo-item small,.booking-mode-foot,.tour-choice-bottom small,.tour-choice-bottom span){
+  font-size:13px!important;
+  line-height:1.52!important;
+  font-weight:600;
+  overflow-wrap:anywhere;
+}
+body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-card,.booking-mode-card){
+  text-wrap:pretty;
+}
+@media(max-width:600px){
+  body[data-page^="/he/budapest/"] .hero h1{
+    font-size:36px;
+    line-height:1.27;
+  }
+  body[data-page^="/he/budapest/"] :is(.section h2,.meeting-point-section h2,.tour-detail-page h2){
+    font-size:29px;
+    line-height:1.34;
+  }
+  body[data-page^="/he/budapest/"] :is(.tour-choice-card h3,.content-card h3,.related-card h3){
+    font-size:23px;
+    line-height:1.38;
+  }
+  body[data-page^="/he/budapest/"] :is(.hero p,.section p,.tour-choice-card>p,.content-card p,.related-card p,.faq2 p){
+    font-size:16.5px;
+    line-height:1.74;
+  }
+  body[data-page^="/he/budapest/"] :is(.btn,.field label){
+    font-size:15px;
+  }
+  body[data-page^="/he/budapest/"] :is(.facts span,.eyebrow,.tour-tag,.tour-duration,.tour-highlights span){
+    font-size:13px!important;
+    line-height:1.5!important;
+  }
+}
+@media(max-width:360px){
+  body[data-page^="/he/budapest/"] .hero h1{font-size:33px}
+  body[data-page^="/he/budapest/"] .section h2{font-size:27px}
+}
