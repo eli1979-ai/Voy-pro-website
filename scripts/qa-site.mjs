@@ -613,6 +613,28 @@ for(const lang of ['','he/','hu/']){
       fail(page,'Approved policy tiers or support contact absent');
   }
 }
+// Manage booking policy scope regression: use the verified, location-scoped
+// Budapest destination identity, never its address, title or selected language.
+const managePolicySource=fs.readFileSync('site/manage/index.html','utf8');
+const manageScopeExpression=managePolicySource.match(/const isBudapestManagedBooking=\(\)=>([^;]+);/);
+if(!manageScopeExpression){
+  fail('site/manage/index.html','Cannot find the Budapest booking policy scope function');
+}else{
+  const scoped=Function('pt','destinationRuntime','return ('+manageScopeExpression[1]+')');
+  const samples=[
+    [false,{id:'budapest',code:'BUD'},true,'confirmed Budapest destination'],
+    [false,{id:'marvao',code:'PT'},false,'Marvao destination'],
+    [false,{id:'marvao',code:'PT',meeting_point:{address:'Budapest'}},false,'forged Budapest address'],
+    [false,{id:'budapest',code:'PT'},false,'mismatched destination code'],
+    [false,{id:'unknown',code:'BUD'},false,'mismatched destination id'],
+    [false,null,false,'unavailable destination'],
+    [true,{id:'budapest',code:'BUD'},false,'Portuguese tokenless Manage']
+  ];
+  for(const [pt,destinationRuntime,wanted,label] of samples)
+    if(Boolean(scoped(pt,destinationRuntime))!==wanted)
+      fail('site/manage/index.html','Manage policy scope fails '+label);
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
