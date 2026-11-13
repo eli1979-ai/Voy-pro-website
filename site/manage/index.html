@@ -306,10 +306,10 @@
  }
  // Show Budapest terms only for a known Budapest product/location. Do not
  // apply them to a Marvão or unclassified booking; backend owns actual cancellation.
- const isBudapestManagedBooking=()=>!pt&&(
-   /buda|margaret|citadella|heroes-square|budapest/i.test(String(booking?.experience_slug||booking?.experience_title||''))||
-   /budapest/i.test(String(destinationRuntime?.meeting_point?.address||''))
- );
+ // Both public endpoints use the same location-scoped client key. FBM
+ // returns code BUD here only when that client belongs to Budapest; token
+ // reads are scoped to the same location. Do not guess from a title/address.
+ const isBudapestManagedBooking=()=>!pt&&destinationRuntime?.id==='budapest'&&destinationRuntime?.code==='BUD';
  const budapestManagedPolicy=()=>!isBudapestManagedBooking()?'':`
    <p class="budapest-booking-policy-note"><a href="${he?'/he/budapest/':hu?'/hu/budapest/':'/budapest/'}#cancellation-weather">${T(
      'Full refund 48+ h before · 50% refund 24–48 h before · full refund for justified reasons',
