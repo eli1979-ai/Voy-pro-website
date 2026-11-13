@@ -17,7 +17,13 @@ forbidText("durationMinutes:120,basePrice:70","runtime must not embed fallback d
 forbidText("privateSurchargePerRider:30","runtime must not embed fallback private-tour pricing");
 forbidText("maxIndependentRiders:12","runtime must not embed fallback rider capacity");
 
-requireText("const products=await api('/experiences'","Budapest catalog must come from the FBM public catalog endpoint");
+requireText("const products=await readBootstrap('experiences','/experiences')","Budapest catalog must consume a successful public catalog bootstrap read");
+requireText("experiences:settleRead(api('/experiences'","Catalog bootstrap must retain the audited FBM public endpoint");
+requireText("destination:settleRead(api('/destinations/budapest'","Destination bootstrap must start alongside the catalog");
+requireText("capabilities:settleRead(api('/payments/capabilities'","Payment capability bootstrap must start alongside the catalog");
+requireText("Date.now()-bootstrapStartedAt<15000","Prefetched capabilities and catalog cannot remain cached indefinitely");
+requireText("void loadRuntimeExperiments().then","Optional marketing experiments must run without blocking customer UI");
+forbidText("const runtimeExperiments=await loadRuntimeExperiments()","Marketing experiment response still blocks UI initialization");
 requireText("if(!Array.isArray(products)||!products.length)throw new Error('CATALOG_EMPTY')","empty catalog must fail closed");
 requireText("setCatalogUnavailableUI(selects)","catalog failure must switch to a truthful unavailable state");
 requireText("submit.disabled=true","booking submit must be disabled before/when canonical catalog is unavailable");
@@ -26,6 +32,9 @@ requireText("catalogUnavailableLabel()","runtime must show a neutral unavailable
 requireText("liveDurationLabel(p.durationMinutes)","tour-card duration must hydrate from the FBM catalog durationMinutes field");
 requireText("isDurationPlaceholder(duration)","catalog failure must replace live-duration placeholders without overwriting non-live labels");
 requireText("durationUnavailableLabel()","catalog failure must expose a truthful unavailable duration state");
+
+requireText('currency,minimumFractionDigits:0,maximumFractionDigits:Number.isInteger(value)?0:2',
+  'integer euro prices must not display unnecessary .00 decimals');
 
 if(failures.length){
   console.error('A9.2b catalog source-of-truth guard failed.');

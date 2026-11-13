@@ -18,6 +18,118 @@ const errors=[], warnings=[];
 const fail=(file,msg)=>errors.push(file+': '+msg);
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
+/* Booking UX contract — dates stay Budapest-local, related-route upsells
+   never interrupt stage 1, and the pre-checkout child rate is API-backed. */
+const bookingUxSource=read(path.join(site,'assets/site.js'));
+const bookingUxNeeds=[
+  ["const nextDay=budapestDate(1);",'the default selected date must be tomorrow in Budapest'],
+  ["if(!dateInput.value){",'an existing guest-selected date must be retained'],
+  ["slotList.insertAdjacentElement('afterend',nudge);",'Extended nudge must sit after departure results'],
+  ["nudge.hidden=step!==2||nudge.dataset.eligible!=='true';",'Extended nudge must only appear in stage 2'],
+  ["const raw=product?.passengerPrice;",'child passenger rate must come from the live product'],
+  ["hint.dataset.priceVerified='false';",'child rate must have an explicit unverified state'],
+  ["updatePassengerPricePreview(active);",'loaded product must update passenger price'],
+  ["updatePassengerPricePreview(p);",'changing the product must update passenger price'],
+  ["updatePassengerPricePreview(null);",'catalog failure must clear stale child price']
+];
+for(const [sourceMarker,description] of bookingUxNeeds){
+  if(!bookingUxSource.includes(sourceMarker))fail('assets/site.js',description);
+}
+if(bookingUxSource.includes('if(!dateInput.value)dateInput.value=today;'))
+  fail('assets/site.js','today must not be the default booking date');
+if(bookingUxSource.includes("nudge.hidden=false;"))
+  fail('assets/site.js','Extended nudge must not show during stage 1');
+
+
+/* Request-only Budapest tours: grounded guest facts + localized breadcrumbs. */
+for(const slug of ['heroes-square-city-ezraider-tour','citadella-advanced-ezraider-tour']){
+  for(const lang of ['en','he','hu']){
+    const prefix=lang==='en'?'':lang+'/';
+    const file=prefix+'budapest/tours/'+slug+'/index.html';
+    const html=htmlMap.get(file);
+    if(!html){fail(file,'request-only customer page is missing');continue;}
+    const duration=lang==='he'?'שעתיים':lang==='hu'?'2 óra':'Approx. 2 hours';
+    const price=lang==='he'?'מ־€70 לרוכב · מחיר סופי באישור הצוות'
+      :lang==='hu'?'70 €-tól / fő · végső ár a csapattal egyeztetve'
+      :'From €70 per rider · final quote before booking';
+    if(!html.includes('data-customer-tour-facts')||
+       !html.includes('data-request-tour-duration')||!html.includes(duration)||
+       !html.includes('<span data-request-start-price="70">'+price+'</span>'))
+      fail(file,'qualified duration and approved starting price are missing');
+    if(html.includes('canonical booking system'))
+      fail(file,'internal booking implementation wording leaked to customers');
+    const scripts=[...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    let breadcrumbs=[];
+    for(const script of scripts){
+      try{
+        const data=JSON.parse(script[1]);
+        if(data['@type']==='BreadcrumbList')breadcrumbs.push(data);
+      }catch{fail(file,'invalid JSON-LD for request-only tour');}
+    }
+    if(breadcrumbs.length!==1)fail(file,'exactly one BreadcrumbList is required');
+    else{
+      const items=breadcrumbs[0].itemListElement||[];
+      const expected='https://voy-pro.com/'+prefix+'budapest/tours/'+slug+'/';
+      if(items.length!==3||items[1]?.item!=='https://voy-pro.com/'+prefix+'budapest/'||
+         items[2]?.item!==expected||items[2]?.position!==3)
+        fail(file,'BreadcrumbList must point to the localized destination and tour');
+    }
+  }
+}
+
+/* Drone add-on is staffed filming, never a guest-operated rental. */
+const droneJs=read(path.join(site,'assets/site.js'));
+const droneCopy=[
+  "DRONE:'Drone clip of your ride'",
+  "DRONE:'סרטון רחפן של הרכיבה'",
+  "DRONE:'Drónvideó a túrádról'",
+  "DRONE:'Add drone clip'",
+  "DRONE:'הוספת סרטון רחפן'",
+  "DRONE:'Drónvideó hozzáadása'",
+  "A small automatic drone (under 250 g) films you up close on a short, pre-approved scenic stretch. Our team launches and lands it, so you just ride.",
+  "רחפן אוטומטי קטן (פחות מ־250 גרם) מצלם אתכם מקרוב בקטע נוף קצר שאושר מראש. הצוות שלנו מפעיל ומנחית, אתם רק רוכבים.",
+  "Egy kis, automata drón (250 g alatt) közelről filmez egy rövid, előre jóváhagyott, látványos szakaszon. A csapatunk indítja és teszi le, neked csak vezetned kell.",
+  "const kind=droneClip?'service':offer.product_kind==='rental'?'rental':'sale';",
+  "const badge=kind==='service'?ancillaryText('service')",
+  'class="ancillary-service-icon"',
+  "kind==='rental'||kind==='service'?ancillaryText('perTour')"
+];
+for(const required of droneCopy)if(!droneJs.includes(required))
+  fail('assets/site.js','Drone clip service copy/rendering is incomplete: '+required.slice(0,75));
+for(const banned of ["DRONE:'Drone rental'","DRONE:'Rent drone'","DRONE:'השכרת רחפן'","DRONE:'Drónbérlés'","if(sku.includes('DRONE'))return '🚁';"])
+  if(droneJs.includes(banned))fail('assets/site.js','Drone product still presented as rental: '+banned);
+
+// Reject unresolved interpolations in *rendered HTML* while preserving
+// legitimate template literals within inline <script> on the Manage page.
+const unrenderedTemplate=String.fromCharCode(36,123);
+const renderedMarkup=html=>html
+  .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')
+  .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'');
+for(const [file,html] of htmlMap){
+  if(renderedMarkup(html).includes(unrenderedTemplate))
+    fail(file,'unrendered interpolation in visible HTML');
+}
+if(fs.existsSync(path.join(root,'dist'))){
+  for(const file of walk(path.join(root,'dist')).filter(p=>p.endsWith('.html'))){
+    if(renderedMarkup(read(file)).includes(unrenderedTemplate))
+      fail(path.relative(root,file),'unrendered interpolation in built visible HTML');
+  }
+}
+// Landmark names in the runtime Buda schematic must be actual escaped
+// template interpolations, never single-quoted text shown to customers.
+const routeJs=read(path.join(site,'assets/site.js'));
+if(!routeJs.includes('geoBuda?`<g class="route-buda-landmark-labels">'))
+  fail('assets/site.js','Buda schematic landmark label interpolation is not a template literal');
+for(const name of ['buda','pest','danube']){
+  if(!routeJs.includes(unrenderedTemplate+'escapeHTML(copy.landmarkSides.'+name+')}'))
+    fail('assets/site.js','Missing escaped landmark interpolation for '+name);
+}
+
+// All customer-visible static pages must use the official support mailbox.
+for(const [file,html] of htmlMap){
+  if(/@gmail\.com/i.test(html)) fail(file,'consumer page contains Gmail address');
+}
+
 // Accessible descriptions must match the Hebrew-language Budapest pages.
 // Empty alt is legal for purely decorative images; meaningful descriptions
 // must not silently regress to English as these pages evolve.
@@ -406,6 +518,65 @@ try{
   fail('assets/ezraider-guide.js',
     'EZRaider optional video loading regression: '+String(error.stderr||error.message||error).slice(0,1100));
 }
+
+// RTL bidi: phone numbers in Hebrew text must be isolated as left-to-right data,
+// or their digit groups render reversed ("+36 30 099 3099" -> "3099 099 30 36+").
+{
+  const css=read(path.join(site,'assets','site.css'));
+  if(!/a\[href\^="tel:"\]\{[^}]*direction:ltr[^}]*unicode-bidi:isolate/.test(css))
+    fail('assets/site.css','tel: links must be isolated as LTR: a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}');
+  const phone=/\+\d{1,4}(?:[ -]\d{2,4}){2,}/g;
+  for(const [file,html] of htmlMap){
+    if(!/<html\b[^>]*\bdir="rtl"/i.test(html)) continue;
+    const body=html.replace(/<script\b[\s\S]*?<\/script>/gi,'').replace(/<style\b[\s\S]*?<\/style>/gi,'');
+    for(const m of body.matchAll(phone)){
+      const before=body.slice(0,m.index);
+      const tagStart=before.lastIndexOf('<'), tagEnd=before.lastIndexOf('>');
+      if(tagStart>tagEnd) continue; // inside an attribute value, not rendered text
+      const opening=before.slice(tagStart,tagEnd+1);
+      const startsElement=before.slice(tagEnd+1)==='';
+      const isolated=startsElement&&(/^<a\b[^>]*\bhref="tel:/i.test(opening)||/\bdir="ltr"/i.test(opening)||/^<bdi\b/i.test(opening));
+      if(!isolated) fail(file,'phone number "'+m[0]+'" in RTL text must start a tel: link, <bdi> or dir="ltr" element');
+    }
+  }
+}
+
+// Official Thule images are third-party requests until self-hosting is approved.
+// Suppress the page URL in the Referer header without altering displayed photos.
+for(const page of [
+  'ezraider/index.html','he/ezraider/index.html','hu/ezraider/index.html',
+  'pt/ezraider/index.html','budapest/with-kids/index.html',
+  'he/budapest/with-kids/index.html','hu/budapest/with-kids/index.html'
+]){
+  const html=fs.readFileSync('site/'+page,'utf8');
+  const images=[...html.matchAll(/<img\b[^>]*\bsrc="https:\/\/www\.thule\.com\/[^"]+"[^>]*>/g)];
+  if(images.length!==2)fail(page,'Expected both official Thule seat photos');
+  for(const [index,img] of images.entries()){
+    if(!/\breferrerpolicy="no-referrer"/.test(img[0]))
+      fail(page,'Thule image '+(index+1)+' exposes page referrer');
+  }
+}
+
+/* Keep site-owned Hebrew EZRaider branding canonical, without modifying
+   authentic customer testimonials in the reviewed JSON source. */
+for(const page of [
+  'he/ezraider/index.html','he/budapest/index.html',
+  'he/budapest/tours/citadella-advanced-ezraider-tour/index.html',
+  'he/budapest/first-day/index.html','he/budapest/private-tours/index.html',
+  'he/budapest/with-kids/index.html',
+  'he/budapest/tours/buda-castle-ezraider-tour/index.html',
+  'he/budapest/tours/margaret-island-ezraider-tour/index.html',
+  'he/budapest/buda-castle-without-walking/index.html',
+  'he/budapest/group-tours/index.html','he/budapest/where-to-stay/index.html',
+  'he/budapest/tours/heroes-square-city-ezraider-tour/index.html',
+  'he/budapest/unique-things-to-do/index.html',
+  'he/budapest/tours/buda-margaret-extended-tour/index.html'
+]){
+  if(/איזיריידר/.test(fs.readFileSync('site/'+page,'utf8')))
+    fail(page,'Use canonical EZRaider spelling in Hebrew marketing copy');
+}
+if(fs.readFileSync('site/assets/site.js','utf8').includes('הכירו את איזיריידר'))
+  fail('assets/site.js','Hebrew vehicle-guide label must use EZRaider');
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);

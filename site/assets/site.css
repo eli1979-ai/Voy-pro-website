@@ -474,6 +474,9 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 .meeting-point-button{display:inline-flex}
 .meeting-map-card{position:relative;min-height:285px;border:1px solid #dce6eb;border-radius:24px;overflow:hidden;color:var(--ink);background:#edf3f6;box-shadow:0 12px 30px rgba(13,21,29,.06)}
 .meeting-map-frame{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.meeting-map-load{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);z-index:4;max-width:85%;border:2px solid #126994;border-radius:12px;padding:12px 18px;background:#fff;color:#0c4c73;font:inherit;font-weight:800;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.meeting-map-load:hover,.meeting-map-load:focus-visible{outline:3px solid #126994;outline-offset:3px}
+.meeting-map-load[hidden]{display:none}
 .meeting-map-label{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:3;width:min(82%,420px);padding:12px 14px;text-align:center;background:rgba(255,255,255,.92);backdrop-filter:blur(7px);border:1px solid rgba(255,255,255,.88);border-radius:16px;box-shadow:0 12px 32px rgba(13,21,29,.12);pointer-events:none}
 .meeting-map-label small,.meeting-map-label span{display:block;color:var(--muted);font-size:11px;line-height:1.4}
 .meeting-map-label b{display:block;margin:2px 0 3px;font-size:15px}
@@ -1381,4 +1384,67 @@ body[data-page="/404/"] .consent-banner{
 @media (min-width:801px){
   body:is([data-page="/"],[data-page="/budapest/"],[data-page="/he/budapest/"],[data-page="/hu/budapest/"])
   main > .section{padding-block:32px}
+}
+
+/* 2026-11-12 accessibility prelaunch: readable CTAs, visible language controls
+   and legible mobile helper text without changing layout or booking rules. */
+.btn.alt{background:#126994;color:#fff}
+.btn,.btn.alt{font-size:14px}
+.language-picker a.lang-switch{display:inline-flex;align-items:center;justify-content:center;min-height:24px}
+@media(max-width:800px){
+  body{font-size:14px}
+  .btn,.btn.alt,.hero-actions .btn,.experience-nudge .btn,
+  .tour-choice-actions .btn,.navlinks .btn{font-size:14px!important}
+  .notice,.section p,.content-card p,.tour-choice-card>p,
+  .intent-hub-card p,.booking-mode-card b{font-size:14px}
+  small,.trust-sub,.tour-tag,.tour-duration,.tour-highlights span,
+  .tour-choice-bottom small,.tour-choice-bottom span,
+  .booking-mode-head small,.booking-mode-head>span,.booking-mode-card small,
+  .booking-mode-card em,.booking-mode-foot,.experience-nudge small,
+  .experience-nudge span,.route-compare-card small,.route-fit span,
+  .special-builder-grid label,.special-builder-note,.payment-method-note,
+  .facts span,.intent,.eyebrow{font-size:12px!important}
+}
+
+/* RTL bidi: phone numbers are left-to-right data. Inside a Hebrew paragraph the
+   spaces between digit groups otherwise take the RTL direction, so
+   "+36 30 099 3099" rendered as "3099 099 30 36+". Isolate every tel: link. */
+a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}
+
+/* 2026-11-12 booking step-two upsell and passenger price readability. */
+.passenger-price-hint{
+  display:block;margin-top:4px;color:var(--blue);
+  font-size:12px;line-height:1.5;font-weight:800;
+}
+.passenger-price-hint[data-price-verified="false"]{
+  color:var(--muted);font-weight:650;
+}
+#availability-form > .experience-nudge{
+  margin-top:15px;
+}
+#availability-form > .experience-nudge small,
+#availability-form > .experience-nudge span{
+  font-size:12px;
+}
+#availability-form > .experience-nudge .btn{
+  font-size:14px;
+}
+@media(max-width:600px){
+  #availability-form > .experience-nudge{flex-wrap:wrap}
+}
+
+/* 2026-11-12 DRONE staffed service: consistent line icon and type badge. */
+.ancillary-visual .ancillary-service-icon{
+  display:block;width:32px;height:32px;stroke:currentColor;flex:none;
+}
+.ancillary-kind.service{background:#eaf4fb;color:#0d4d7c}
+
+/* Owner-requested trust presentation: retain independently auditable
+   GetYourGuide data but do not display the six-rating platform tile. */
+.trust-grid .trust-item:has([data-review-count="getyourguide"]){display:none}
+@media(min-width:801px){
+  .trust-grid:has([data-review-count="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:800px){
+  .network-trust .trust-grid:has([data-review-count="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
 }
