@@ -3365,6 +3365,25 @@
     });
   }
 
+  // Official Thule seat photos are remote. Do not contact the image host until
+  // the visitor explicitly asks for an individual product photo.
+  document.querySelectorAll('[data-thule-load]').forEach(button=>{
+    const photo=button.parentElement?.querySelector('img[data-thule-src]');
+    if(!photo)return;
+    button.addEventListener('click',()=>{
+      const url=photo.getAttribute('data-thule-src')||'';
+      let approved=false;
+      try{
+        const parsed=new URL(url);
+        approved=parsed.protocol==='https:'&&parsed.hostname==='www.thule.com'&&
+          parsed.pathname.startsWith('/-/p/')&&!parsed.username&&!parsed.password;
+      }catch{}
+      if(!approved)return;
+      photo.setAttribute('src',url);
+      button.hidden=true;
+    });
+  });
+
   injectBranchMeetingPoint();
   injectTourRouteVisuals();
 
