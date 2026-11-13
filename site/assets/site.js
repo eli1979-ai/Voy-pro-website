@@ -3189,7 +3189,8 @@
   function injectBranchMeetingPoint(){
     const budapestHomes=new Set(['/budapest/','/he/budapest/','/hu/budapest/']);
     const portugalHomes=new Set(['/portugal/','/he/portugal/','/pt/portugal/']);
-    const budapest=budapestHomes.has(routePath),portugal=portugalHomes.has(routePath);
+    const budapestTour=/^\/(?:he\/|hu\/)?budapest\/tours\/[^/]+\/$/.test(routePath);
+    const budapest=budapestHomes.has(routePath)||budapestTour,portugal=portugalHomes.has(routePath);
     if((!budapest&&!portugal)||document.querySelector('[data-branch-meeting-point]'))return;
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
     const meeting=budapest?budapestMeetingPoint():null;
@@ -3300,7 +3301,11 @@
         button.hidden=true;
       },{once:true});
     });
-    document.querySelector('main')?.appendChild(section);
+    if(budapestTour){
+      const reviewStrip=document.querySelector('.tour-review-compact');
+      if(reviewStrip)reviewStrip.insertAdjacentElement('beforebegin',section);
+      else document.querySelector('main')?.appendChild(section);
+    }else document.querySelector('main')?.appendChild(section);
   }
 
   function routeVisualCoords(count,kind='generic'){
