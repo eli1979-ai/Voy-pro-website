@@ -587,6 +587,54 @@ for(const page of [
 if(fs.readFileSync('site/assets/site.js','utf8').includes('הכירו את איזיריידר'))
   fail('assets/site.js','Hebrew vehicle-guide label must use EZRaider');
 
+// Budapest cancellation summary is display-only; it must not change FBM refund rules.
+const bookingSource=fs.readFileSync('site/assets/site.js','utf8');
+const manageSource=fs.readFileSync('site/manage/index.html','utf8');
+if(!bookingSource.includes("const budapestCancellationSummary=()")||
+   !bookingSource.includes('${budapestPolicyMarkup()}<button class="btn checkout-confirm"')||
+   !bookingSource.includes('${budapestPolicyMarkup()}<p class="budapest-booking-policy-contact"'))
+  fail('assets/site.js','Budapest checkout and confirmation require an approved linked policy summary');
+if(!manageSource.includes('const isBudapestManagedBooking=()')||
+   !manageSource.includes('${budapestManagedPolicy()}<p>'))
+  fail('manage/index.html','Manage Booking must use Budapest-scoped policy only');
+// Owner-approved Budapest policy: every tour/home page displays the same 48h/24h tiers.
+for(const lang of ['','he/','hu/']){
+  const prefix=lang+'budapest/';
+  const pages=[...htmlMap.keys()].filter(p=>p===prefix+'index.html'||/^budapest\/tours\//.test(p.slice(lang.length))&&p.startsWith(prefix));
+  if(pages.length!==6)fail(prefix,'Expected six destination/tour policy pages, got '+pages.length);
+  for(const page of pages){
+    const html=htmlMap.get(page)||'';
+    if((html.match(/id="cancellation-weather"/g)||[]).length!==1)
+      fail(page,'Budapest cancellation section must appear exactly once');
+    if(!html.includes('class="cancellation-terms"')||!html.includes('class="cancellation-fact"')||
+       !html.includes('data-faq="control-test"'))
+      fail(page,'Full policy, key-fact summary or pre-ride control FAQ absent');
+    if(!html.includes('support@voy-pro.com')||!html.includes('24')||!html.includes('48'))
+      fail(page,'Approved policy tiers or support contact absent');
+  }
+}
+// Manage booking policy scope regression: use the verified, location-scoped
+// Budapest destination identity, never its address, title or selected language.
+const managePolicySource=fs.readFileSync('site/manage/index.html','utf8');
+const manageScopeExpression=managePolicySource.match(/const isBudapestManagedBooking=\(\)=>([^;]+);/);
+if(!manageScopeExpression){
+  fail('site/manage/index.html','Cannot find the Budapest booking policy scope function');
+}else{
+  const scoped=Function('pt','destinationRuntime','return ('+manageScopeExpression[1]+')');
+  const samples=[
+    [false,{id:'budapest',code:'BUD'},true,'confirmed Budapest destination'],
+    [false,{id:'marvao',code:'PT'},false,'Marvao destination'],
+    [false,{id:'marvao',code:'PT',meeting_point:{address:'Budapest'}},false,'forged Budapest address'],
+    [false,{id:'budapest',code:'PT'},false,'mismatched destination code'],
+    [false,{id:'unknown',code:'BUD'},false,'mismatched destination id'],
+    [false,null,false,'unavailable destination'],
+    [true,{id:'budapest',code:'BUD'},false,'Portuguese tokenless Manage']
+  ];
+  for(const [pt,destinationRuntime,wanted,label] of samples)
+    if(Boolean(scoped(pt,destinationRuntime))!==wanted)
+      fail('site/manage/index.html','Manage policy scope fails '+label);
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){

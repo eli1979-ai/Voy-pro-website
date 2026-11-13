@@ -1597,3 +1597,21 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
   body[data-page^="/he/budapest/"] .hero h1{font-size:33px}
   body[data-page^="/he/budapest/"] .section h2{font-size:27px}
 }
+
+/* Budapest policy summary alongside checkout, success and Manage Booking. */
+.budapest-booking-policy-note{margin:11px 0 8px;padding:10px 13px;border-inline-start:3px solid #11708b;background:#f0f7fa;color:#163e50;font-size:13px;line-height:1.6;font-weight:650;border-radius:4px}
+.budapest-booking-policy-note a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+.budapest-booking-policy-contact{font-size:13px;line-height:1.55;color:#42586a;margin:4px 0 11px}
+
+
+/* Owner-approved Budapest-only cancellation and weather disclosure. */
+.budapest-cancel-policy{scroll-margin-top:88px;background:#f4f8fa}
+.budapest-cancel-policy .wrap{max-width:1100px}
+.budapest-cancel-policy h2{margin-bottom:18px}
+.cancellation-terms{display:grid;gap:11px;margin:0;padding-inline-start:24px;color:#243b48;font-size:16px;line-height:1.68}
+.cancellation-terms li{padding-inline-start:5px}
+.cancellation-paid-note{margin-top:18px;font-size:14px;line-height:1.6;color:#425866}
+.cancellation-fact{max-width:100%;white-space:normal}
+.cancellation-fact a{color:inherit;text-underline-offset:3px}
+.budapest-policy-faq{scroll-margin-top:88px}
+@media(max-width:600px){.cancellation-terms{font-size:15px;line-height:1.7}.cancellation-paid-note{font-size:14px}}
