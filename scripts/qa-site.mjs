@@ -587,6 +587,16 @@ for(const page of [
 if(fs.readFileSync('site/assets/site.js','utf8').includes('הכירו את איזיריידר'))
   fail('assets/site.js','Hebrew vehicle-guide label must use EZRaider');
 
+// Budapest cancellation summary is display-only; it must not change FBM refund rules.
+const bookingSource=fs.readFileSync('site/assets/site.js','utf8');
+const manageSource=fs.readFileSync('site/manage/index.html','utf8');
+if(!bookingSource.includes("const budapestCancellationSummary=()")||
+   !bookingSource.includes('${budapestPolicyMarkup()}<button class="btn checkout-confirm"')||
+   !bookingSource.includes('${budapestPolicyMarkup()}<p class="budapest-booking-policy-contact"'))
+  fail('assets/site.js','Budapest checkout and confirmation require an approved linked policy summary');
+if(!manageSource.includes('const isBudapestManagedBooking=()')||
+   !manageSource.includes('${budapestManagedPolicy()}<p>'))
+  fail('manage/index.html','Manage Booking must use Budapest-scoped policy only');
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
