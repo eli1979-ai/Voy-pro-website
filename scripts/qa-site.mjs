@@ -639,6 +639,24 @@ if(!manageScopeExpression){
       fail('site/manage/index.html','Manage policy scope fails '+label);
 }
 
+// RC config safety: immutable caching applies only to named content-hashed assets.
+const candidateVercel=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+const hashedHeader=candidateVercel.headers.find(row=>
+  row.headers?.some(h=>h.key==='Cache-Control'&&h.value==='public, max-age=31536000, immutable'));
+if(!hashedHeader||!hashedHeader.source.includes('[a-f0-9]{16,}')||
+   hashedHeader.source==='/assets/(.*)')
+  fail('vercel.json','Only content-hashed assets may receive immutable browser caching');
+const managePrivate=candidateVercel.headers.find(row=>row.source==='/manage/(.*)');
+if(!managePrivate?.headers?.some(h=>h.key==='Cache-Control'&&h.value.includes('no-store')))
+  fail('vercel.json','Manage Booking must retain private no-store caching');
+for(const [source,destination] of [
+  ['/he/','/he/budapest/'],['/hu/','/hu/budapest/'],
+  ['/pt/','/pt/portugal/'],['/favicon.ico','/assets/brand/voy-pro-symbol.png']
+]){
+  if(!candidateVercel.redirects.some(r=>r.source===source&&r.destination===destination))
+    fail('vercel.json','Missing approved locale/favicon redirect '+source);
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
