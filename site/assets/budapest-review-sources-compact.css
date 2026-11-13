@@ -34,17 +34,17 @@
 .budapest-review-sources .review-source-card .trust-source{font-size:13px;font-weight:950}
 .budapest-review-sources .review-source-card .stars{font-size:13px;letter-spacing:1px}
 .budapest-review-sources .review-source-card .trust-score{font-size:20px;font-weight:950;margin:3px 0}
-.budapest-review-sources .review-source-card .trust-sub{font-size:11px;line-height:1.3;color:var(--muted);overflow-wrap:anywhere}
+.budapest-review-sources .review-source-card .trust-sub{font-size:12px;line-height:1.3;color:var(--muted);overflow-wrap:anywhere}
 .budapest-review-sources .review-source-card:hover{background:#f8fbfd;transform:none;box-shadow:none}
 .budapest-review-sources .review-source-card:focus-visible{outline:3px solid #08798b;outline-offset:-4px;background:#edf7fb}
 @media(max-width:800px){
   /* Never stack three tall cards: mirror the first mobile ratings strip. */
   .budapest-review-sources .review-source-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .budapest-review-sources .review-source-card{padding:11px 6px}
-  .budapest-review-sources .review-source-card .trust-source{font-size:10px}
-  .budapest-review-sources .review-source-card .stars{font-size:10px;letter-spacing:0}
+  .budapest-review-sources .review-source-card .trust-source{font-size:12px}
+  .budapest-review-sources .review-source-card .stars{font-size:12px;letter-spacing:0}
   .budapest-review-sources .review-source-card .trust-score{font-size:17px}
-  .budapest-review-sources .review-source-card .trust-sub{font-size:8px;line-height:1.25}
+  .budapest-review-sources .review-source-card .trust-sub{font-size:12px;line-height:1.25}
 }
 
 /* On mobile, the always-present fixed booking bar already offers the same

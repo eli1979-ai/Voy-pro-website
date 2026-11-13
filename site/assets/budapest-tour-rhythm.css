@@ -21,10 +21,10 @@
   .tour-detail-page .trust-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
   .tour-detail-page .trust-item{min-width:0;padding:11px 5px;border-bottom:0;border-inline-end:1px solid var(--line)}
   .tour-detail-page .trust-item:last-child{border-inline-end:0}
-  .tour-detail-page .trust-source{font-size:10px}
-  .tour-detail-page .stars{font-size:10px;letter-spacing:0}
+  .tour-detail-page .trust-source{font-size:12px}
+  .tour-detail-page .stars{font-size:12px;letter-spacing:0}
   .tour-detail-page .trust-score{font-size:17px}
-  .tour-detail-page .trust-sub{font-size:8px;line-height:1.25;overflow-wrap:anywhere}
+  .tour-detail-page .trust-sub{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
   .tour-detail-page .tour-review-compact{padding-block:12px 8px}
   .tour-detail-page .faq2{gap:10px}
   .tour-detail-page .faq2 details{padding:13px 15px}
