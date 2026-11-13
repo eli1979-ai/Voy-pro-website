@@ -639,6 +639,38 @@ if(!manageScopeExpression){
       fail('site/manage/index.html','Manage policy scope fails '+label);
 }
 
+// All Budapest informational pages must use the approved, localized policy.
+const outdatedBudapestPolicy=[
+  /terms shown during booking apply/i,
+  /policy shown for the booking governs/i,
+  /under the active booking policy/i,
+  /תנאי הביטול והשינוי המוצגים במהלך ההזמנה/,
+  /המדיניות המוצגת להזמנה היא הקובעת/,
+  /בהתאם למדיניות ההזמנה הפעילה/,
+  /A foglaláskor megjelenő feltételek érvényesek/i,
+  /A foglalás során megjelenő lemondási/i,
+  /az aktív foglalási szabályok szerint/i
+];
+for(const [page,html] of htmlMap){
+  if(!/^((he|hu)\/)?budapest\//.test(page))continue;
+  if(outdatedBudapestPolicy.some(pattern=>pattern.test(html)))
+    fail(page,'Outdated Budapest cancellation/weather policy text remains');
+}
+for(const lang of ['','he/','hu/']){
+  const root=lang+'budapest/';
+  for(const slug of ['buda-castle-without-walking','first-day','private-tours','unique-things-to-do','where-to-stay','with-kids']){
+    const path=root+slug+'/index.html',html=htmlMap.get(path)||'';
+    if(!html.includes('id="cancellation-weather"')||!html.includes('class="cancellation-terms"')||
+       (html.match(/<li>/g)||[]).length<4||!html.includes('data-faq="control-test"'))
+      fail(path,'Approved compact policy or pre-ride control FAQ missing');
+  }
+  for(const slug of ['group-tours','corporate-events']){
+    const path=root+slug+'/index.html',html=htmlMap.get(path)||'';
+    if(!html.includes('href="/'+root+'#cancellation-weather"'))
+      fail(path,'Group/corporate weather FAQ must link to Budapest policy');
+  }
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
