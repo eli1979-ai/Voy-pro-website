@@ -606,9 +606,13 @@ for(const lang of ['','he/','hu/']){
     const html=htmlMap.get(page)||'';
     if((html.match(/id="cancellation-weather"/g)||[]).length!==1)
       fail(page,'Budapest cancellation section must appear exactly once');
-    if(!html.includes('class="cancellation-terms"')||!html.includes('class="cancellation-fact"')||
-       !html.includes('data-faq="control-test"'))
-      fail(page,'Full policy, key-fact summary or pre-ride control FAQ absent');
+    if(!html.includes('class="cancellation-terms"')||!html.includes('data-faq="control-test"'))
+      fail(page,'Full lower policy or pre-ride control FAQ absent');
+    if(html.includes('class="cancellation-fact"'))
+      fail(page,'Cancellation policy must not appear in upper hero facts');
+    const policyList=html.match(/<ul class="cancellation-terms">([\s\S]*?)<\/ul>/);
+    if(!policyList||(policyList[1].match(/<li>/g)||[]).length!==4)
+      fail(page,'Compact cancellation section must contain four grouped policy rows');
     if(!html.includes('support@voy-pro.com')||!html.includes('24')||!html.includes('48'))
       fail(page,'Approved policy tiers or support contact absent');
   }
