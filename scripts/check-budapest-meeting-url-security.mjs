@@ -58,7 +58,7 @@ else{
    const labels={meeting:'Meeting point',budapestTitle:'Budapest',budapestBody:'Meet here',
      budapestName:'VOY PRO Budapest',maps:'Open in Google Maps',exactPin:'Exact meeting point',
      portugalTitle:'Marvão',portugalBody:'Meet here',portugalName:'Pombais Experience & Villas',
-     portugalAddress:'Marvão, Portugal'};
+     portugalAddress:'Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal'};
    const sourceEmbed=source.match(/const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='([^']*)';/);
    if(!sourceEmbed)throw new Error('Missing registered Google embed source');
    const simulated=source.replace(sourceEmbed[0],
@@ -135,7 +135,7 @@ else{
  // writes section.innerHTML, so inspect its actual injected child markup.
  const marvaoBusinessMapsUrl='https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac';
  const marvaoEmbed='https://www.google.com/maps?q='+
-   encodeURIComponent('Pombais Experience & Villas, Marvão, Portugal')+
+   encodeURIComponent('Pombais Experience, Ninho de Empresas de Marvão, Santo António das Areias, Portugal')+
    '&amp;z=16&amp;output=embed';
  for(const path of ['/portugal/','/he/portugal/','/pt/portugal/']){
    const portugal=render(path,null);
@@ -151,9 +151,9 @@ else{
      failures.push(path+' third-party iframe must be deferred');
    if(!portugal.includes('data-map-load'))
      failures.push(path+' manual map load control missing');
-   if(!portugal.includes('title="Pombais Experience &amp; Villas — Exact meeting point"'))
+   if(!portugal.includes('title="Pombais Experience &amp; Villas — Business location"'))
      failures.push(path+' Marvão map iframe must have an accessible venue title');
-   if(!portugal.includes('<div class="meeting-point-address"><b>Pombais Experience &amp; Villas</b><strong>Marvão, Portugal</strong></div>'))
+   if(!portugal.includes('<div class="meeting-point-address"><b>Pombais Experience &amp; Villas</b><strong>Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal</strong></div>'))
      failures.push(path+' Marvão meeting venue and address changed unexpectedly');
    if(portugal.includes(businessUrl)||portugal.includes('0xbfcd8e3fb5a649b5'))
      failures.push(path+' incorrectly points visitors to the Budapest Google Business');
@@ -167,6 +167,11 @@ requireText("frame.setAttribute('src',url);",'explicit action must assign deferr
 requireText("button.addEventListener('click',()=>{",'map iframe may only be activated by a click');
 requireText("button.hidden=true;",'map load button must disappear after activation');
 requireText("const url=frame?.getAttribute('data-map-src')||'';",'map source must come from deferred attribute');
+requireText("target.pathname==='/maps'&&target.searchParams.get('output')==='embed'",
+  'Marvão Google Maps query embed must activate after click');
+requireText("target.searchParams.get('q')===data.mapQuery",
+  'Marvão map iframe must remain restricted to verified partner query');
+requireText("if(!allowed)return;",'map URL must fail closed for unrecognized provider/path');
 
 const css=fs.readFileSync('site/assets/site.css','utf8');
 if(!css.includes('.meeting-map-card--business .meeting-map-frame--business{pointer-events:auto}'))

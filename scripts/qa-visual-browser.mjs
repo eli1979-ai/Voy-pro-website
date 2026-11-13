@@ -101,6 +101,43 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       ready:document.readyState
     }));
     check(metrics.heading.length>0,name+' visible semantic H1');
+
+    if(['/portugal/','/he/portugal/','/pt/portugal/'].includes(path)){
+      const map=page.locator('[data-branch-meeting-point] iframe[data-map-src]');
+      const load=page.locator('[data-branch-meeting-point] [data-map-load]');
+      check(await map.count()===1&&await load.count()===1,
+        name+' Marvão embedded map and explicit load button exist');
+      if(await map.count()===1&&await load.count()===1){
+        check(await map.getAttribute('src')===null,
+          name+' third-party Google map does not load before click');
+        await load.click();
+        const mapSrc=await map.getAttribute('src');
+        check(!!mapSrc&&mapSrc.startsWith('https://www.google.com/maps?q=')&&
+          mapSrc.includes('output=embed'),
+          name+' click activates the official Pombais map iframe');
+        check(await load.isHidden(),name+' load control hides after activation');
+        check((await page.locator('.meeting-point-address').innerText())
+          .includes('7330-215 Santo António das Areias'),
+          name+' Marvão full postal locality is visible');
+      }
+    }
+
+    if(path.startsWith('/he/budapest/')){
+      const type=await page.evaluate(()=>{
+        const css=element=>element?getComputedStyle(element):null;
+        return {
+          font:css(document.body)?.fontFamily||'',
+          heading:Number.parseFloat(css(document.querySelector('.hero h1'))?.fontSize||'0'),
+          subheading:Number.parseFloat(css(document.querySelector('.section h2'))?.fontSize||'0'),
+          body:Number.parseFloat(css(document.querySelector('.section p'))?.fontSize||'0')
+        };
+      });
+      check(type.font.includes('Arial'),name+' Hebrew typography uses one readable font stack');
+      check(type.heading>=32,name+' Hebrew H1 is large enough at this viewport');
+      if(type.subheading)check(type.subheading>=26,name+' Hebrew section heading remains readable');
+      if(type.body)check(type.body>=15,name+' Hebrew body copy remains readable');
+    }
+
     check(metrics.scrollWidth<=metrics.width+2,name+' no horizontal page overflow ('+metrics.scrollWidth+'/'+metrics.width+')');
     check(metrics.hasNav,name+' has navigation');
     check(await page.locator('footer').count()===1,name+' has exactly one footer');
