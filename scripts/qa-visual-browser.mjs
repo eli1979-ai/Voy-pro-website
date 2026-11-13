@@ -115,6 +115,11 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         check(!!mapSrc&&mapSrc.startsWith('https://www.google.com/maps?q=')&&
           mapSrc.includes('output=embed'),
           name+' click activates the official Pombais map iframe');
+        check(mapSrc?.includes('Pavilh%C3%A3o%206')&&
+          !mapSrc?.includes('Pombais%20Experience'),
+          name+' map targets one Pavilion 6 address, not a brand search');
+        check(await page.locator('[data-branch-meeting-point] .meeting-map-card .meeting-map-label').count()===0,
+          name+' no duplicate in-map meeting point badge');
         check(await load.isHidden(),name+' load control hides after activation');
         check((await page.locator('.meeting-point-address').innerText())
           .includes('7330-215 Santo António das Areias'),
