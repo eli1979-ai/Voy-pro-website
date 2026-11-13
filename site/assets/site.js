@@ -3166,22 +3166,22 @@
   const WEBSITE_VISUAL_COPY={
     en:{
       meeting:'MEETING POINT',budapestTitle:'Start in central Budapest.',budapestBody:'Please arrive about 15 minutes before departure for check-in, equipment fitting and riding instructions.',budapestName:'VOY PRO Budapest',
-      portugalTitle:'Start your Marvão experience here.',portugalBody:'Use the Google Maps pin for the exact meeting point before departure. The local experience is operated by Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal',
+      portugalTitle:'Start your Marvão experience here.',portugalBody:'Use the Google Maps pin for the exact meeting point before departure. The local experience is operated by Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Pavilhão 6, Ninho de Empresas de Marvão, Beco dos Outeiros, 7330-215 Santo António das Areias, Portugal',
       maps:'Open in Google Maps',exactPin:'Exact meeting point',pictures:'ROUTE IN PICTURES',schematic:'ROUTE SCHEMATIC',schematicNote:'Illustrative route — the exact sequence can vary.',landmarkRelativeNote:'Landmarks are positioned relatively; this is not a GPS trail.',landmarkSides:{buda:'BUDA',pest:'PEST',danube:'DANUBE'},photoIllustrationNote:'Photos of stops 1–4 show the Budapest riding experience; they are not verified photos of those exact stops.',illustrativeBudapestPhoto:'Illustrative EZRaider ride in Budapest'
     },
     he:{
       meeting:'נקודת מפגש',budapestTitle:'מתחילים במרכז בודפשט.',budapestBody:'נא להגיע כ־15 דקות לפני היציאה לצ׳ק-אין, התאמת ציוד ותדריך רכיבה.',budapestName:'VOY PRO Budapest',
-      portugalTitle:'מתחילים את חוויית מרבאו כאן.',portugalBody:'לפני היציאה השתמשו בסימון המדויק ב-Google Maps. החוויה המקומית מופעלת על ידי Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal',
+      portugalTitle:'מתחילים את חוויית מרבאו כאן.',portugalBody:'לפני היציאה השתמשו בסימון המדויק ב-Google Maps. החוויה המקומית מופעלת על ידי Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Pavilhão 6, Ninho de Empresas de Marvão, Beco dos Outeiros, 7330-215 Santo António das Areias, Portugal',
       maps:'פתיחה ב-Google Maps',exactPin:'נקודת המפגש המדויקת',pictures:'המסלול בתמונות',schematic:'תרשים המסלול',schematicNote:'המחשה בלבד — סדר המסלול בפועל עשוי להשתנות.',landmarkRelativeNote:'מיקום האתרים יחסי בלבד; התרשים אינו מסלול GPS.',landmarkSides:{buda:'בודה',pest:'פשט',danube:'דנובה'},photoIllustrationNote:'התמונות בנקודות 1–4 ממחישות רכיבה בבודפשט, ואינן מאומתות כתמונות שצולמו בנקודות אלה.',illustrativeBudapestPhoto:'צילום המחשה של רכיבת EZRaider בבודפשט'
     },
     hu:{
       meeting:'TALÁLKOZÁSI PONT',budapestTitle:'Indulás Budapest belvárosából.',budapestBody:'Kérjük, érkezz körülbelül 15 perccel indulás előtt a bejelentkezéshez, felszereléshez és a vezetési oktatáshoz.',budapestName:'VOY PRO Budapest',
-      portugalTitle:'Itt kezdődik a marvãói élmény.',portugalBody:'Indulás előtt használd a Google Maps pontos találkozási pontját. A helyi élményt a Pombais Experience & Villas üzemelteti.',portugalName:'Pombais Experience & Villas',portugalAddress:'Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal',
+      portugalTitle:'Itt kezdődik a marvãói élmény.',portugalBody:'Indulás előtt használd a Google Maps pontos találkozási pontját. A helyi élményt a Pombais Experience & Villas üzemelteti.',portugalName:'Pombais Experience & Villas',portugalAddress:'Pavilhão 6, Ninho de Empresas de Marvão, Beco dos Outeiros, 7330-215 Santo António das Areias, Portugal',
       maps:'Megnyitás a Google Térképen',exactPin:'Pontos találkozási pont',pictures:'AZ ÚTVONAL KÉPEKBEN',schematic:'ÚTVONALVÁZLAT',schematicNote:'Szemléltető útvonal — a pontos sorrend változhat.',landmarkRelativeNote:'A helyszínek egymáshoz viszonyított elhelyezkedése látható; nem GPS-nyomvonal.',landmarkSides:{buda:'BUDA',pest:'PEST',danube:'DUNA'},photoIllustrationNote:'Az 1–4. pont képei budapesti EZRaider-élményképek, nem hitelesített felvételek az adott megállókról.',illustrativeBudapestPhoto:'Illusztratív EZRaider-kép Budapesten'
     },
     pt:{
       meeting:'PONTO DE ENCONTRO',budapestTitle:'Partida no centro de Budapeste.',budapestBody:'Chegue cerca de 15 minutos antes da partida para check-in, ajuste do equipamento e instruções de condução.',budapestName:'VOY PRO Budapest',
-      portugalTitle:'A sua experiência em Marvão começa aqui.',portugalBody:'Antes da partida, utilize o ponto exato no Google Maps. A experiência local é operada pela Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal',
+      portugalTitle:'A sua experiência em Marvão começa aqui.',portugalBody:'Antes da partida, utilize o ponto exato no Google Maps. A experiência local é operada pela Pombais Experience & Villas.',portugalName:'Pombais Experience & Villas',portugalAddress:'Pavilhão 6, Ninho de Empresas de Marvão, Beco dos Outeiros, 7330-215 Santo António das Areias, Portugal',
       maps:'Abrir no Google Maps',exactPin:'Ponto de encontro exato',pictures:'PERCURSO EM IMAGENS',schematic:'ESQUEMA DO PERCURSO',schematicNote:'Esquema ilustrativo — a ordem exata pode variar.',landmarkRelativeNote:'Posições relativas, não um percurso GPS.',landmarkSides:{buda:'BUDA',pest:'PESTE',danube:'DANÚBIO'},photoIllustrationNote:'As fotografias dos pontos 1 a 4 são ilustrativas e não confirmam paragens específicas.',illustrativeBudapestPhoto:'Imagem ilustrativa de EZRaider em Budapeste'
     }
   };
@@ -3227,7 +3227,7 @@
     }:{
       title:copy.portugalTitle,body:copy.portugalBody,name:copy.portugalName,address:copy.portugalAddress,
       maps:'https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac',
-      mapQuery:'Pombais Experience, Ninho de Empresas de Marvão, Santo António das Areias, Portugal',
+      mapQuery:'Ninho de Empresas de Marvão, Pavilhão 6, Beco dos Outeiros, 7330-215 Santo António das Areias, Portugal',
       mapZoom:16
     };
     const section=document.createElement('section');
@@ -3274,7 +3274,7 @@
           referrerpolicy="no-referrer-when-downgrade"
           allowfullscreen></iframe>
         <button type="button" class="meeting-map-load" data-map-load>${escapeHTML(({he:"טעינת מפה אינטראקטיבית",hu:"Interaktív térkép betöltése",pt:"Carregar mapa interativo"})[locale]||"Load interactive map")}</button>
-        <div class="meeting-map-label"><small>${escapeHTML(copy.exactPin)}</small><b>${escapeHTML(data.name)}</b><span>${escapeHTML(data.address)}</span></div>
+        
       </div>`}
     </div>`;
     // Do not contact Google Maps or OpenStreetMap before an explicit guest action.
