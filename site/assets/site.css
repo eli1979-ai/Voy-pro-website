@@ -1597,3 +1597,7 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
   body[data-page^="/he/budapest/"] .hero h1{font-size:33px}
   body[data-page^="/he/budapest/"] .section h2{font-size:27px}
 }
+
+/* Never imply a photo documents a specific stop if no validated photo exists. */
+.route-photo-neutral{min-height:150px;aspect-ratio:4/3;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#173649,#456374);color:#fff}
+.route-photo-neutral span{font-size:34px;font-weight:700;letter-spacing:0.08em}
