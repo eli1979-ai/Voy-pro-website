@@ -639,6 +639,24 @@ if(!manageScopeExpression){
       fail('site/manage/index.html','Manage policy scope fails '+label);
 }
 
+// Photo strip #03 must never reuse the illustration used for #01.
+const routeJS=fs.readFileSync('site/assets/site.js','utf8');
+if(!routeJS.includes('route-photo-neutral')||
+   !routeJS.includes("buda:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg',null")||
+   !routeJS.includes("extended:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg',null"))
+  fail('assets/site.js','Buda and extended stop #03 must be a neutral tile, not duplicate img13');
+// RC prelaunch quick facts must not present vague business-policy placeholders.
+for(const [page,html] of htmlMap){
+  if(!/^((he|hu)\/)?budapest\//.test(page))continue;
+  const at=html.indexOf('class="quickinfo"');
+  const quick=at>=0?html.slice(at,html.indexOf('</section>',at)):'';
+  if(/Follows the current booking policy|לפי מדיניות ההזמנה העדכנית|Az aktuális foglalási szabályzat szerint|Shown during booking/i.test(quick))
+    fail(page,'Vague policy or price placeholder remains in rendered quick facts');
+}
+
+if(!fs.readFileSync('site/assets/site.js','utf8').includes('Independent riding ${standard}+ (${assessment} with assessment)'))
+  fail('assets/site.js','Hero eligibility must reflect source-backed standard and assessment ages');
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){

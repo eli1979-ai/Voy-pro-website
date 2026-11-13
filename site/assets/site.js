@@ -1193,14 +1193,19 @@
         node.dataset.runtimeState='unavailable';
         return;
       }
-      node.dataset.runtimeState='ready';
       const standard=Number(policy.standard_min_age);
       const assessment=Number(policy.assessment_min_age);
+      if(!Number.isInteger(standard)||standard<1||!Number.isInteger(assessment)||assessment<1){
+        node.textContent=riderPolicyUnavailableLabel();
+        node.dataset.runtimeState='unavailable';
+        return;
+      }
+      node.dataset.runtimeState='ready';
       node.textContent=locale==='he'
-        ?`רכיבה עצמאית בדרך כלל מגיל ${standard}; גיל ${assessment} בכפוף להערכת התאמה`
+        ?`רכיבה עצמאית ${standard}+ (גיל ${assessment} בכפוף להערכת התאמה)`
         :locale==='hu'
-          ?`Önálló vezetés általában ${standard}+; ${assessment} évesen alkalmassági felméréssel`
-          :`Independent riding is normally ${standard}+; age ${assessment} by suitability assessment`;
+          ?`Önálló vezetés ${standard}+ (${assessment} évesen alkalmassági felméréssel)`
+          :`Independent riding ${standard}+ (${assessment} with assessment)`;
     });
     const liveAgePolicyText=agePolicyText();
     document.querySelectorAll('[data-runtime-age-policy]').forEach(node=>{
