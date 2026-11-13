@@ -1597,3 +1597,15 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
   body[data-page^="/he/budapest/"] .hero h1{font-size:33px}
   body[data-page^="/he/budapest/"] .section h2{font-size:27px}
 }
+
+/* Owner-approved Budapest-only cancellation and weather disclosure. */
+.budapest-cancel-policy{scroll-margin-top:88px;background:#f4f8fa}
+.budapest-cancel-policy .wrap{max-width:1100px}
+.budapest-cancel-policy h2{margin-bottom:18px}
+.cancellation-terms{display:grid;gap:11px;margin:0;padding-inline-start:24px;color:#243b48;font-size:16px;line-height:1.68}
+.cancellation-terms li{padding-inline-start:5px}
+.cancellation-paid-note{margin-top:18px;font-size:14px;line-height:1.6;color:#425866}
+.cancellation-fact{max-width:100%;white-space:normal}
+.cancellation-fact a{color:inherit;text-underline-offset:3px}
+.budapest-policy-faq{scroll-margin-top:88px}
+@media(max-width:600px){.cancellation-terms{font-size:15px;line-height:1.7}.cancellation-paid-note{font-size:14px}}
