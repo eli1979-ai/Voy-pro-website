@@ -617,26 +617,29 @@ for(const lang of ['','he/','hu/']){
       fail(page,'Approved policy tiers or support contact absent');
   }
 }
-// Manage booking policy scope regression: use the verified, location-scoped
-// Budapest destination identity, never its address, title or selected language.
+// Manage booking cancellation copy must use the booking's own destination.
+// The publicly fetched Budapest config is client-scoped and must NOT
+// classify a token record from another or an unknown destination.
 const managePolicySource=fs.readFileSync('site/manage/index.html','utf8');
 const manageScopeExpression=managePolicySource.match(/const isBudapestManagedBooking=\(\)=>([^;]+);/);
 if(!manageScopeExpression){
-  fail('site/manage/index.html','Cannot find the Budapest booking policy scope function');
+  fail('site/manage/index.html','Cannot find booking-owned policy scope function');
 }else{
-  const scoped=Function('pt','destinationRuntime','return ('+manageScopeExpression[1]+')');
+  const scoped=Function('pt','booking','destinationRuntime','return ('+manageScopeExpression[1]+')');
   const samples=[
-    [false,{id:'budapest',code:'BUD'},true,'confirmed Budapest destination'],
-    [false,{id:'marvao',code:'PT'},false,'Marvao destination'],
-    [false,{id:'marvao',code:'PT',meeting_point:{address:'Budapest'}},false,'forged Budapest address'],
-    [false,{id:'budapest',code:'PT'},false,'mismatched destination code'],
-    [false,{id:'unknown',code:'BUD'},false,'mismatched destination id'],
-    [false,null,false,'unavailable destination'],
-    [true,{id:'budapest',code:'BUD'},false,'Portuguese tokenless Manage']
+    [false,{destination_code:'BUD'},null,true,'verified Budapest booking'],
+    [false,{destination_code:'BUD'},{id:'marvao',code:'PT'},true,'booking beats unrelated public config'],
+    [false,{destination_code:'PT'},{id:'budapest',code:'BUD'},false,'Marvao booking with Budapest public config'],
+    [false,{destination_code:'unknown'},{id:'budapest',code:'BUD'},false,'unknown booking'],
+    [false,{experience_slug:'buda'},{id:'budapest',code:'BUD'},false,'missing destination with Budapest-like title'],
+    [false,{},null,false,'missing booking destination'],
+    [false,null,{id:'budapest',code:'BUD'},false,'missing booking'],
+    [true,{destination_code:'BUD'},{id:'budapest',code:'BUD'},false,'Portugal page must not show Budapest']
   ];
-  for(const [pt,destinationRuntime,wanted,label] of samples)
-    if(Boolean(scoped(pt,destinationRuntime))!==wanted)
-      fail('site/manage/index.html','Manage policy scope fails '+label);
+  for(const [pt,booking,destinationRuntime,wanted,label] of samples){
+    if(Boolean(scoped(pt,booking,destinationRuntime))!==wanted)
+      fail('site/manage/index.html','Manage booking policy scope fails '+label);
+  }
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
