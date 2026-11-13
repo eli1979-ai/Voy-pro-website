@@ -306,7 +306,7 @@
  }
  // Show Budapest terms only for a known Budapest product/location. Do not
  // apply them to a Marvão or unclassified booking; backend owns actual cancellation.
- // Both public endpoints use the same location-scoped client key. FBM
+ // Both public endpoints use the same location-scoped client key. The API
  // returns code BUD here only when that client belongs to Budapest; token
  // reads are scoped to the same location. Do not guess from a title/address.
  const isBudapestManagedBooking=()=>!pt&&destinationRuntime?.id==='budapest'&&destinationRuntime?.code==='BUD';
