@@ -17,8 +17,8 @@ for(const file of files){
   if(!html.includes('data-voy-brand-icon="favicon"'))insert+=favicon;
   if(!html.includes('data-voy-brand-icon="apple-touch"'))insert+=apple;
   // Ensure the built EN language choice identifies the language to assistive tech.
-  const localized=html.replace(/<a\\b[^>]*\\bhreflang="en"[^>]*>/g,tag=>
-    /\\slang="en"/.test(tag)?tag:tag.replace('<a ','<a lang="en" '));
+  const localized=html.replace(/<a\b[^>]*\bhreflang="en"[^>]*>/g,tag=>
+    /\slang="en"/.test(tag)?tag:tag.replace('<a ','<a lang="en" '));
   const changedLanguage=localized!==html;
   html=localized;
   if(!insert&&!changedLanguage)continue;
