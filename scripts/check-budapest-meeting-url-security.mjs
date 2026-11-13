@@ -58,7 +58,7 @@ else{
    const labels={meeting:'Meeting point',budapestTitle:'Budapest',budapestBody:'Meet here',
      budapestName:'VOY PRO Budapest',maps:'Open in Google Maps',exactPin:'Exact meeting point',
      portugalTitle:'Marvão',portugalBody:'Meet here',portugalName:'Pombais Experience & Villas',
-     portugalAddress:'Marvão, Portugal'};
+     portugalAddress:'Ninho de Empresas de Marvão, 7330-215 Santo António das Areias, Marvão, Portugal'};
    const sourceEmbed=source.match(/const BUDAPEST_OFFICIAL_GOOGLE_EMBED_SRC='([^']*)';/);
    if(!sourceEmbed)throw new Error('Missing registered Google embed source');
    const simulated=source.replace(sourceEmbed[0],
