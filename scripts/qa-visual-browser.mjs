@@ -101,6 +101,23 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       ready:document.readyState
     }));
     check(metrics.heading.length>0,name+' visible semantic H1');
+
+    if(path.startsWith('/he/budapest/')){
+      const type=await page.evaluate(()=>{
+        const css=element=>element?getComputedStyle(element):null;
+        return {
+          font:css(document.body)?.fontFamily||'',
+          heading:Number.parseFloat(css(document.querySelector('.hero h1'))?.fontSize||'0'),
+          subheading:Number.parseFloat(css(document.querySelector('.section h2'))?.fontSize||'0'),
+          body:Number.parseFloat(css(document.querySelector('.section p'))?.fontSize||'0')
+        };
+      });
+      check(type.font.includes('Arial'),name+' Hebrew typography uses one readable font stack');
+      check(type.heading>=32,name+' Hebrew H1 is large enough at this viewport');
+      if(type.subheading)check(type.subheading>=26,name+' Hebrew section heading remains readable');
+      if(type.body)check(type.body>=15,name+' Hebrew body copy remains readable');
+    }
+
     check(metrics.scrollWidth<=metrics.width+2,name+' no horizontal page overflow ('+metrics.scrollWidth+'/'+metrics.width+')');
     check(metrics.hasNav,name+' has navigation');
     check(await page.locator('footer').count()===1,name+' has exactly one footer');
