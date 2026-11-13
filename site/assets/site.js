@@ -308,7 +308,7 @@
   const guideLanguageLabel=(code)=>{const key=String(code||'').toLowerCase();return GUIDE_LANGUAGE_NAMES[key]?.[locale]||GUIDE_LANGUAGE_NAMES[key]?.en||key.toUpperCase();};
   const localeBudapestHome=()=>locale==='he'?'/he/budapest/':locale==='hu'?'/hu/budapest/':'/budapest/';
   const localeBudapestBooking=()=>localeBudapestHome()+'#booking';
-  // Display-only Budapest policy. Never calculate a refund or override FBM eligibility.
+  // Budapest policy disclosure only; refund eligibility remains server-authoritative.
   const budapestCancellationLink=()=>localeBudapestHome()+'#cancellation-weather';
   const budapestCancellationSummary=()=>locale==='he'
     ?'החזר מלא 48 שעות ומעלה לפני הסיור · 50% בין 24 ל־48 שעות · החזר מלא מסיבה מוצדקת'
