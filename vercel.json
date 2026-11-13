@@ -54,6 +54,15 @@
           "value": "private, no-store, max-age=0"
         }
       ]
+    },
+    {
+      "source": "/assets/:asset(.*\\.[a-f0-9]{16,}\\.(?:js|css|woff2|webp|png))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "redirects": [
@@ -70,6 +79,26 @@
     {
       "source": "/hu/budapest/ezraider/",
       "destination": "/hu/ezraider/?from=budapest",
+      "permanent": true
+    },
+    {
+      "source": "/he/",
+      "destination": "/he/budapest/",
+      "permanent": false
+    },
+    {
+      "source": "/hu/",
+      "destination": "/hu/budapest/",
+      "permanent": false
+    },
+    {
+      "source": "/pt/",
+      "destination": "/pt/portugal/",
+      "permanent": false
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/assets/brand/voy-pro-symbol.png",
       "permanent": true
     }
   ]
