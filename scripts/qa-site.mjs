@@ -639,6 +639,14 @@ if(!manageScopeExpression){
       fail('site/manage/index.html','Manage policy scope fails '+label);
 }
 
+// Click-to-load third-party embed disclosure must exist in all four legal locales.
+for(const lang of ['','he/','hu/','pt/']){
+  const path=lang+'legal/cookies/index.html',html=htmlMap.get(path)||'';
+  if(!html.includes('youtube-nocookie.com')||!html.includes('Google')||
+     !html.includes('class="legal-card"')||!html.includes('14'))
+    fail(path,'Missing current click-to-load Google Maps / YouTube disclosure');
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
