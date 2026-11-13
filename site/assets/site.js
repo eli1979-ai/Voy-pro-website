@@ -3340,15 +3340,15 @@
 
   function buildRoutePictures(stops,images,copy,maxCards=6,kind='generic'){
     const visible=stops.slice(0,Math.min(maxCards,stops.length));
-    return `<div class="route-picture-panel"><div class="route-visual-label">${escapeHTML(copy.pictures)}</div><div class="route-photo-strip">${visible.map((name,i)=>`<figure class="route-photo-card"><img src="${escapeHTML(images[i%images.length])}" alt="${escapeHTML(kind==='buda'&&i<4?copy.illustrativeBudapestPhoto:name)}" loading="lazy" decoding="async"/><figcaption><span>${String(i+1).padStart(2,'0')}</span><b>${escapeHTML(name)}</b></figcaption></figure>`).join('')}</div>${kind==='buda'?'<small class="route-schematic-note">'+escapeHTML(copy.photoIllustrationNote)+'</small>':''}</div>`;
+    return `<div class="route-picture-panel"><div class="route-visual-label">${escapeHTML(copy.pictures)}</div><div class="route-photo-strip">${visible.map((name,i)=>`<figure class="route-photo-card">${images[i%images.length]?`<img src="${escapeHTML(images[i%images.length])}" alt="${escapeHTML((kind==='buda'||kind==='extended')?copy.illustrativeBudapestPhoto:name)}" loading="lazy" decoding="async"/>`:`<div class="route-photo-neutral" role="img" aria-label="${escapeHTML(locale==='he'?'תחנת מסלול':locale==='hu'?'Útvonalállomás':'Route stop')}"><span>${String(i+1).padStart(2,'0')}</span></div>`}<figcaption><span>${String(i+1).padStart(2,'0')}</span><b>${escapeHTML(name)}</b></figcaption></figure>`).join('')}</div>${kind==='buda'?'<small class="route-schematic-note">'+escapeHTML(copy.photoIllustrationNote)+'</small>':''}</div>`;
   }
 
   function injectTourRouteVisuals(){
     const copy=WEBSITE_VISUAL_COPY[locale]||WEBSITE_VISUAL_COPY.en;
     const budapestImages={
-      buda:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg','/assets/images/budapest/img13.jpg','/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img16.jpg'],
+      buda:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg',null,'/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img16.jpg'],
       margaret:['/assets/images/budapest/img02.jpg','/assets/images/budapest/img14.jpg','/assets/images/budapest/img15.jpg','/assets/images/budapest/img16.jpg','/assets/images/budapest/img14.jpg','/assets/images/budapest/img02.jpg'],
-      extended:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg','/assets/images/budapest/img13.jpg','/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img02.jpg']
+      extended:['/assets/images/budapest/img13.jpg','/assets/images/budapest/img17.jpg',null,'/assets/images/budapest/img08.jpg','/assets/images/budapest/img12.jpg','/assets/images/budapest/img02.jpg']
     };
     const intent=String(document.body?.dataset.intent||'').toLowerCase();
     const routeSection=document.querySelector('.route-itinerary');
