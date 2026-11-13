@@ -373,8 +373,14 @@ if(/fetch\((?!['"]\/api\/request-to-book['"])/.test(rtb))
 
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
-if(!/<option value="pay_now_card" disabled>/.test(js)) errors.push('assets/site.js: visible online-card payment option missing');
-if(!/const onlineReady=Boolean\(caps\?\.online_card\)/.test(js)) errors.push('assets/site.js: online-card capability gating missing');
+if(!/<option value="pay_now_card" disabled hidden>/.test(js)) errors.push('assets/site.js: online card option must be hidden before capability verification');
+if(!js.includes("caps?.mode==='live'")||!js.includes("caps?.readiness?.status==='ready'"))
+  errors.push('assets/site.js: online card must require live-mode and ready FBM capability');
+if(!js.includes("data.voyPreviewRibbon")&&!js.includes("voyPreviewRibbon"))
+  errors.push('assets/site.js: preview banner missing');
+const affiliateCode=fs.readFileSync('site/assets/affiliate-booking-widget.js','utf8');
+if(!affiliateCode.includes("capabilities?.mode==='live'"))
+  errors.push('assets/affiliate-booking-widget.js: test-mode card offering must be disabled');
 if(!/payNow\.disabled=!onlineReady/.test(js)) errors.push('assets/site.js: online-card disabled state is not tied to capability');
 if(!/location\.assign\(payment\.checkout_url\)/.test(js)) errors.push('assets/site.js: secure checkout redirect missing');
 if(!/const PAYMENT_RETRY_KEY='voy_payment_retry_v1'/.test(js)) errors.push('assets/site.js: Stripe checkout retry session key missing');

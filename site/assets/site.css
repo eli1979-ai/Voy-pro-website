@@ -1613,3 +1613,6 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
 .cancellation-paid-note{margin-top:10px;font-size:13px;line-height:1.5;color:#425866}
 .budapest-policy-faq{scroll-margin-top:88px}
 @media(max-width:600px){.section.budapest-cancel-policy{padding-block:22px}.cancellation-terms{font-size:14px;line-height:1.55}.cancellation-paid-note{font-size:13px}}
+
+/* Public pre-launch identity: never mistake this preview for active booking. */
+.voy-preview-ribbon{position:relative;z-index:10;padding:9px 16px;text-align:center;font-weight:700;font-size:13px;line-height:1.45;letter-spacing:.01em;background:#173649;color:#fff}

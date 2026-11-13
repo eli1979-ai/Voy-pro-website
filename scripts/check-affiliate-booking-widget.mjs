@@ -100,7 +100,7 @@ function mount({affiliate='TESTPARTNER',clientKey='public_fixture_key',apiRoot='
       const advertisesOnline=Boolean(onlinePayment||badCapabilities);
       const reply={
         online_card:advertisesOnline,provider:advertisesOnline?'stripe':null,
-        mode:'test',readiness:{status:advertisesOnline?'ready':'unavailable',
+        mode:onlinePayment?'live':'test',readiness:{status:advertisesOnline?'ready':'unavailable',
           reason:advertisesOnline?null:'provider_disabled'},
       };
       if(badCapabilities==='missing-readiness')delete reply.readiness;
@@ -595,7 +595,7 @@ for(const bookingSelectionOverride of changedSelections){
 // An incomplete or contradictory FBM capabilities response must never
 // unlock online card payment merely because online_card was advertised.
 for(const badCapabilities of ['missing-readiness','unavailable',
-  'wrong-provider','wrong-mode','unexpected-reason']){
+  'wrong-provider','wrong-mode','unexpected-reason','test-mode']){
   const app=mount({badCapabilities});
   await flush();
   assert(!app.customer.elements.payment.children.some(x=>x.value==='pay_now_card'),
@@ -605,7 +605,7 @@ for(const badCapabilities of ['missing-readiness','unavailable',
   const app=mount({onlinePayment:true});
   await flush();
   assert(app.customer.elements.payment.children.some(x=>x.value==='pay_now_card'),
-    'A fully ready FBM test-mode Stripe capability may offer secure online card');
+    'Only a verified FBM live-mode Stripe capability may offer secure online card');
 }
 // Online Stripe redirects must carry the exact quoted amount/currency
 // and a verifiable booking identity. The simulated URLs are never opened.
