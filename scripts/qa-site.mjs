@@ -16,6 +16,27 @@ const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
 
 const fail=(file,msg)=>errors.push(file+': '+msg);
+// Star glyphs are text. Assert >=4.5:1 contrast against light cards.
+const starColorFrom=(file,selector)=>{
+  const escaped='[.]'+selector.slice(1);
+  const css=read(path.join(site,'assets',file));
+  return css.match(new RegExp(escaped+'[{]color:(#[0-9a-fA-F]{6})'))?.[1]||null;
+};
+const starLuminance=hex=>{
+  const rgb=hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255)
+    .map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4);
+  return 0.2126*rgb[0]+0.7152*rgb[1]+0.0722*rgb[2];
+};
+const starContrast=(a,b)=>{
+  const x=starLuminance(a),y=starLuminance(b);
+  return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);
+};
+for(const [file,selector] of [['site.css','.stars'],['budapest-review-ticker.css','.vp-review-stars']]){
+  const value=starColorFrom(file,selector);
+  if(!value||starContrast(value,'#ffffff')<4.5||starContrast(value,'#f7f6f3')<4.5)
+    fail(file,selector+' must have at least 4.5:1 text contrast on light cards');
+}
+
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
 /* Booking UX contract — dates stay Budapest-local, related-route upsells
