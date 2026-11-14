@@ -194,7 +194,7 @@ for(const [prefix,label] of [
 }
 
 // Every Budapest tour language switcher: assistive technology must know
-// which localized route is current. Keep the existing strict 3-language
+// which localized route is current. Keep strict 4-language Budapest navigation
 // and exact-own-link checks for both legacy and newly introduced tours.
 for(const locale of ['', 'he/', 'hu/']){
   for(const slug of [
@@ -211,10 +211,10 @@ for(const locale of ['', 'he/', 'hu/']){
     const active=links.filter(link=>/class="[^"]*\bactive\b/.test(link));
     const current=links.filter(link=>/\baria-current="page"/.test(link));
     const expectedHref='/'+file.replace(/index\.html$/,'');
-    if(links.length!==3||active.length!==1||current.length!==1||active[0]!==current[0]||
+    if(links.length!==4||active.length!==1||current.length!==1||active[0]!==current[0]||
       !active[0].includes('href="'+expectedHref+'"')||
       (header.match(/\baria-current="page"/g)||[]).length!==1)
-      fail(file,'one current page must match the active locale link in the 3-language tour selector');
+      fail(file,'one current page must match the active locale link in the 4-language tour selector');
   }
 }
 
@@ -242,7 +242,7 @@ for(const file of editorialLocaleFiles){
     /\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
   const current=links.filter(link=>/\baria-current="page"/.test(link));
   const expectedHref=file==='index.html'?'/':'/'+file.replace(/index\.html$/,'');
-  if(links.length!==3||active.length!==1||current.length!==1||
+  if(links.length!==(file==='index.html'?3:4)||active.length!==1||current.length!==1||
     active[0]!==current[0]||!active[0].includes('href="'+expectedHref+'"')||
     (header.match(/\baria-current="page"/g)||[]).length!==1)
     fail(file,'home/editorial selected language must have one matching current-page link');
@@ -766,7 +766,7 @@ for(const slug of spanishBudapestSlugs){
      !html.includes('>Consultar por WhatsApp</a>'))
     fail(path,'Spanish page must offer a route-specific WhatsApp inquiry');
   for(const locale of ['', 'he/', 'hu/', 'es/']){
-    const translated='${locale}budapest/'+(slug?slug+'/':'')+'index.html';
+    const translated=locale+'budapest/'+(slug?slug+'/':'')+'index.html';
     const route='/'+locale+'budapest/'+(slug?slug+'/':'');
     const pageHtml=htmlMap.get(translated)||'';
     if(!pageHtml.includes('hreflang="es"')||
