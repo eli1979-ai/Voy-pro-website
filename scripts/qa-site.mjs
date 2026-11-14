@@ -728,6 +728,14 @@ for(const lang of ['','he/','hu/','pt/']){
 }
 
 
+// Unknown Spanish paths must recover to a localized Budapest preview,
+// never expose a booking or imply unverified legal-language coverage.
+const fallback404=htmlMap.get('404.html')||'';
+if(!fallback404.includes('(he|hu|pt|es)')||
+   !fallback404.includes('title:\'Página no encontrada')||
+   !fallback404.includes("budapest:['/es/budapest/'"))
+  fail('404.html','Missing safe Spanish 404 recovery');
+
 // Spanish Budapest content-only preview: complete route matrix and no live checkout.
 // The ES runtime/selector must not be enabled until an independent locale audit.
 const spanishBudapestSlugs=[

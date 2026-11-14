@@ -1196,7 +1196,8 @@ try{
   for(const cfg of [
     {code:'he',heading:'העמוד לא נמצא.',budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he',dir:'rtl'},
     {code:'hu',heading:'Ez az oldal nem található.',budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu',dir:'ltr'},
-    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt',dir:'ltr'}
+    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt',dir:'ltr'},
+    {code:'es',heading:'Esta página no existe.',budapest:'/es/budapest/',portugal:'/portugal/',manage:'/manage/',dir:'ltr'}
   ]){
     const name='404-locale-'+cfg.code;
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});
