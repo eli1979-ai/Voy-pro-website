@@ -1021,7 +1021,7 @@
       :{aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
     const info={
       en:{body:'Essential storage keeps the site working. Analytics is optional; details are in the Cookie Policy below.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
-      he:{body:'אחסון חיוני לתפעול האתר. אנליטיקה היא בחירה בלבד; פרטים במדיניות העוגיות למטה.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
+      he:{body:'אחסון חיוני מאפשר לאתר לפעול. אנליטיקה היא בחירה בלבד; פרטים במדיניות העוגיות למטה.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
       hu:{body:'A szükséges tárolás működteti az oldalt. Az analitika opcionális; részletek a sütiszabályzatban lent.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
       pt:{body:'O armazenamento essencial mantém o site funcional. A análise é opcional; detalhes na Política de cookies abaixo.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
     };
