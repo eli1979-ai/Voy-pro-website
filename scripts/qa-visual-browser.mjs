@@ -1422,6 +1422,15 @@ try{
       check(actual.robots==='noindex,nofollow'&&actual.preview.includes('No se aceptan reservas reales'),
         name+' visible preview and noindex');
       check(actual.rows===4&&!actual.activeBooking,name+' four approved policy rows and no live booking');
+      if(actual.overflow>2){
+        const offenders=await page.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>{
+          const r=el.getBoundingClientRect();
+          return {tag:el.tagName,cls:String(el.className||'').slice(0,75),
+            left:Math.round(r.left),right:Math.round(r.right),
+            width:Math.round(r.width),client:el.clientWidth,scroll:el.scrollWidth};
+        }).filter(x=>x.right>innerWidth+2||x.scroll>x.client+3).slice(0,16));
+        results.push('DIAG: '+name+' horizontal elements '+JSON.stringify(offenders));
+      }
       check(actual.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+actual.overflow+'px)');
       check(errors.length===0,name+' no browser script errors');
     }catch(error){
