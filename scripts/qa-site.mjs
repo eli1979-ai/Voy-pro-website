@@ -751,6 +751,12 @@ for(const slug of spanishBudapestSlugs){
   if(html.includes('/assets/site.js')||html.includes('data-track="booking_cta"')||
      html.includes('id="booking"')||html.includes('pay_now_card'))
     fail(path,'Spanish preview must not activate unlocalized booking/payment runtime');
+  // A local Spanish inquiry should reach the actual Budapest human support,
+  // with the page route included; never claim guide language availability.
+  if(!html.includes('https://wa.me/36300993099?text=')||
+     !html.includes(encodeURIComponent(url))||
+     !html.includes('>Consultar por WhatsApp</a>'))
+    fail(path,'Spanish page must offer a route-specific WhatsApp inquiry');
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');

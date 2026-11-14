@@ -1439,8 +1439,14 @@ try{
       catch{return route.abort();}
     });
     try{
-      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      const response=await page.goto(base+path,{waitUntil:'load',timeout:20000});
       check(response?.status()===200,name+' static page available');
+      // Earlier 29px transient existed at DOMContentLoaded, but vanished
+      // after the isolated Spanish stylesheet finished loading.
+      const cssReady=await page.evaluate(()=>[...document.styleSheets].some(sheet=>
+        sheet.href?.includes('/assets/spanish-budapest.css'))&&
+        getComputedStyle(document.body).marginLeft==='0px');
+      check(cssReady,name+' isolated Spanish CSS loaded before layout measurements');
       const actual=await page.evaluate(()=>({
         lang:document.documentElement.lang,
         title:document.querySelector('h1')?.textContent?.trim(),
@@ -1461,39 +1467,6 @@ try{
             left:Math.round(r.left),right:Math.round(r.right),
             width:Math.round(r.width),client:el.clientWidth,scroll:el.scrollWidth};
         }).filter(x=>x.right>innerWidth+2||x.scroll>x.client+3).slice(0,16));
-        const rootDiagnostic=await page.evaluate(()=>{
-          const root=document.documentElement,body=document.body;
-          const css=(el)=>{const st=getComputedStyle(el);return {width:st.width,minWidth:st.minWidth,
-            maxWidth:st.maxWidth,overflowX:st.overflowX,whiteSpace:st.whiteSpace}};
-          const ranges=[];
-          const walker=document.createTreeWalker(body,NodeFilter.SHOW_TEXT);
-          while(walker.nextNode()){
-            const node=walker.currentNode;
-            if(!node.textContent.trim())continue;
-            const range=document.createRange();
-            range.selectNodeContents(node);
-            for(const rect of range.getClientRects()){
-              if(rect.right>innerWidth+2||rect.left< -2)ranges.push({
-                text:node.textContent.trim().slice(0,85),
-                parent:node.parentElement?.tagName+'.'+String(node.parentElement?.className||'').slice(0,40),
-                left:Math.round(rect.left),right:Math.round(rect.right)});
-            }
-          }
-          const pseudos=[];
-          for(const el of document.querySelectorAll('body *')){
-            for(const pseudo of ['::before','::after']){
-              const st=getComputedStyle(el,pseudo);
-              if(st.content!=='none'&&st.content!=='normal'&&st.content!=='""')
-                pseudos.push({element:el.tagName,cls:String(el.className||'').slice(0,40),
-                  pseudo,content:st.content.slice(0,90),width:st.width,position:st.position});
-            }
-          }
-          return {innerWidth,visualViewport:visualViewport?.width,scroll:root.scrollWidth,
-            rootClient:root.clientWidth,bodyClient:body.clientWidth,bodyScroll:body.scrollWidth,
-            bodyBox:body.getBoundingClientRect().toJSON(),rootCSS:css(root),
-            bodyCSS:css(body),textRanges:ranges.slice(0,16),pseudos:pseudos.slice(0,10)};
-        });
-        results.push('DIAG-ROOT: '+name+' '+JSON.stringify(rootDiagnostic));
         results.push('DIAG: '+name+' horizontal elements '+JSON.stringify(offenders));
       }
       check(actual.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+actual.overflow+'px)');
