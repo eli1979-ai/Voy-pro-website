@@ -20,7 +20,7 @@ const server=createServer(async(req,res)=>{
     let path=decodeURIComponent(url.pathname);
     // Local-only simulated fallback for visual QA; this does NOT validate
     // Vercel's actual public 404 rewrite or response headers.
-    if(/^\/(?:(?:he|hu|pt)\/)?qa-not-found-visual-20261030\/$/.test(path)){
+    if(/^\/(?:(?:he|hu|pt|es)\/)?qa-not-found-visual-20261030\/$/.test(path)){
       const fallback=await readFile(resolve(root,'404.html'));
       res.writeHead(404,{'Content-Type':'text/html; charset=utf-8',
         'Cache-Control':'no-store'});
