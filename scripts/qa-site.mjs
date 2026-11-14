@@ -750,7 +750,7 @@ for(const slug of spanishBudapestSlugs){
   const path='es/budapest/'+(slug?slug+'/':'')+'index.html';
   const html=htmlMap.get(path)||'';
   if(!html.includes('<html lang="es">')||
-     !html.includes('content="noindex,nofollow"')||
+     !html.includes('content="index,follow"')||
      !html.includes('href="https://voy-pro.com'+url+'"')||
      !html.includes('id="cancellation-weather"')||
      !html.includes('support@voy-pro.com')||
@@ -765,6 +765,18 @@ for(const slug of spanishBudapestSlugs){
      !html.includes(encodeURIComponent(url))||
      !html.includes('>Consultar por WhatsApp</a>'))
     fail(path,'Spanish page must offer a route-specific WhatsApp inquiry');
+  for(const locale of ['', 'he/', 'hu/', 'es/']){
+    const translated='${locale}budapest/'+(slug?slug+'/':'')+'index.html';
+    const route='/'+locale+'budapest/'+(slug?slug+'/':'');
+    const pageHtml=htmlMap.get(translated)||'';
+    if(!pageHtml.includes('hreflang="es"')||
+       !pageHtml.includes('https://voy-pro.com'+url)||
+       !pageHtml.includes('hreflang="x-default"')||
+       !pageHtml.includes('href="'+(locale==='es/'?route:url)+'"'))
+      fail(translated,'Missing reciprocal ES / x-default / language navigation');
+  }
+  if(!sitemapUrls.includes('https://voy-pro.com'+url))
+    fail(path,'Spanish Budapest route missing from sitemap');
 }
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
