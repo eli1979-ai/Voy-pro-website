@@ -60,6 +60,15 @@ for(const rel of urls){
       if(!hasMeta(html,key,kind))
         tags+='<meta '+kind+'="'+key+'" content="'+encode(value)+'"/>';
     if(tags)html=html.replace('</head>',tags+'</head>');
+    if(!html.includes('type="application/ld+json"')){
+      const structured={
+        '@context':'https://schema.org','@type':'WebPage',
+        name:title,description:desc,url:canonical,inLanguage:'es',
+        isPartOf:{'@type':'WebSite',name:'VOY PRO',url:'https://voy-pro.com/'}
+      };
+      html=html.replace('</head>','<script type="application/ld+json">'+
+        JSON.stringify(structured).replace(/</g,'\\u003c')+'</script></head>');
+    }
   }
   const needOg=!hasMeta(html,'og:image','property');
   const needTw=!hasMeta(html,'twitter:image','name');
