@@ -16,7 +16,12 @@ for(const file of files){
   let insert='';
   if(!html.includes('data-voy-brand-icon="favicon"'))insert+=favicon;
   if(!html.includes('data-voy-brand-icon="apple-touch"'))insert+=apple;
-  if(!insert)continue;
+  // Ensure the built EN language choice identifies the language to assistive tech.
+  const localized=html.replace(/<a\b[^>]*\bhreflang="en"[^>]*>/g,tag=>
+    /\slang="en"/.test(tag)?tag:tag.replace('<a ','<a lang="en" '));
+  const changedLanguage=localized!==html;
+  html=localized;
+  if(!insert&&!changedLanguage)continue;
   if(!html.includes('</head>'))throw new Error('Missing </head> in '+file);
   html=html.replace('</head>',insert+'</head>');
   fs.writeFileSync(file,html);

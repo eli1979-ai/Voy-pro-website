@@ -166,12 +166,14 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           top:!!top,bottom:!!bottom,ticker:!!ticker,
           columns:computed?.gridTemplateColumns.trim().split(' ').length||0,
           sourceCount:bottom?.querySelectorAll('a[href^="https://"]').length||0,
+          visibleSources:[...(bottom?.querySelectorAll('a[href^="https://"]')||[])].filter(el=>getComputedStyle(el).display!=='none').length,
           topPadding:firstSection?parseFloat(getComputedStyle(firstSection).paddingTop):null,
           legacy:document.querySelectorAll('.review-source-grid').length
         };
       });
       check(compact.top&&compact.bottom&&compact.ticker,name+' has 2 compact ratings points + verified ticker');
       check(compact.sourceCount===3&&compact.legacy===1,name+' has precisely three verified platform links at bottom');
+            check(compact.visibleSources===2,name+' hides the six-rating GetYourGuide source card, preserving its audit link');
       if(viewport.width<=800){
         check(compact.columns===3,name+' shows all rating sources in one compact mobile row');
         check(compact.topPadding!==null&&compact.topPadding<=24,name+' mobile tour sections are tightened (<=24px top)');

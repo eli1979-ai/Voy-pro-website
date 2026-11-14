@@ -1613,3 +1613,17 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
 .cancellation-paid-note{margin-top:10px;font-size:13px;line-height:1.5;color:#425866}
 .budapest-policy-faq{scroll-margin-top:88px}
 @media(max-width:600px){.section.budapest-cancel-policy{padding-block:22px}.cancellation-terms{font-size:14px;line-height:1.55}.cancellation-paid-note{font-size:13px}}
+
+
+/* Retain the exact GetYourGuide audit metadata but hide the six-rating card
+   in the check-the-source section; present Google and TripAdvisor side by side. */
+.budapest-review-sources .review-source-card[data-review-source="getyourguide"]{display:none!important}
+.budapest-review-sources .review-source-grid:has(.review-source-card[data-review-source="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
+
+
+/* Never imply a photo documents a specific stop if no validated photo exists. */
+.route-photo-neutral{min-height:150px;aspect-ratio:4/3;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#173649,#456374);color:#fff}
+.route-photo-neutral span{font-size:34px;font-weight:700;letter-spacing:0.08em}
+
+/* Public pre-launch identity: never mistake this preview for active booking. */
+.voy-preview-ribbon{position:relative;z-index:10;padding:9px 16px;text-align:center;font-weight:700;font-size:13px;line-height:1.45;letter-spacing:.01em;background:#173649;color:#fff}

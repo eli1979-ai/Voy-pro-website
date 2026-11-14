@@ -1148,7 +1148,7 @@
         // complete ready contract, never on a partial/stale 200 response.
         readyForOnline=Boolean(capabilities?.online_card===true&&
           capabilities?.provider==='stripe'&&
-          (capabilities?.mode==='test'||capabilities?.mode==='live')&&
+          capabilities?.mode==='live'&&
           capabilities?.readiness?.status==='ready'&&
           capabilities.readiness.reason===null);
         if(readyForOnline){

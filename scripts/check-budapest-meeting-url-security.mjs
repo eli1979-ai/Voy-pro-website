@@ -133,6 +133,21 @@ else{
    failures.push('Invalid FBM Google Maps URL must still fail closed');
  // Regression coverage for each canonical Marvão locale. The renderer
  // writes section.innerHTML, so inspect its actual injected child markup.
+ // Individual Budapest tour pages must derive their departure location from
+ // the canonical destination runtime, not from a hardcoded marketing address.
+ for(const page of [
+  '/budapest/tours/buda-castle-ezraider-tour/',
+  '/he/budapest/tours/buda-castle-ezraider-tour/',
+  '/hu/budapest/tours/buda-castle-ezraider-tour/'
+ ]){
+   const html=render(page,meeting,'');
+   if(!html.includes('class="meeting-point-address"')||
+      !html.includes('Városház utca 14')||
+      !html.includes(businessUrl))
+     failures.push(page+' must show the canonical address and Maps link');
+   if(render(page,null,'')!=='')
+     failures.push(page+' must not invent a meeting point without runtime');
+ }
  const marvaoBusinessMapsUrl='https://maps.app.goo.gl/tfkNvDZNgaq3vN9LA?g_st=ac';
  const marvaoEmbed='https://www.google.com/maps?q='+
    encodeURIComponent('Ninho de Empresas de Marvão, Pavilhão 6, Beco dos Outeiros, 7330-215 Santo António das Areias, Portugal')+
