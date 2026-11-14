@@ -43,3 +43,12 @@
   .es-budapest .es-links{display:flex;flex-wrap:wrap;flex:1 1 100%;min-width:0}
   .es-budapest .es-links a{max-width:100%}
 }
+
+
+/* Chrome 320px smoke found a 29px root scroll region although NO descendant
+   DOM box exceeded the viewport. Contain that phantom horizontal scroll only
+   on the isolated ES preview; do not shorten text or conceal DOM content. */
+@media(max-width:400px){
+  html:has(>body.es-budapest){overflow-x:clip}
+  body.es-budapest{max-width:100%;overflow-x:clip}
+}
