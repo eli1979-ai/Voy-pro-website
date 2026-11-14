@@ -129,7 +129,7 @@ async function run(name,{mobile=false,staffRequest=false,staleLanguageRace=false
           guideLanguages:['en','hu'],privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
     else if(path==='/api/v1/payments/capabilities'){
       const advertise=Boolean(onlinePayment||badCapabilities);
-      data={online_card:advertise,provider:advertise?'stripe':null,mode:'test',
+      data={online_card:advertise,provider:advertise?'stripe':null,mode:onlinePayment?'live':'test',
         readiness:{status:advertise?'ready':'unavailable',
           reason:advertise?null:'provider_disabled'}};
       if(badCapabilities==='missing-readiness')delete data.readiness;
@@ -1089,6 +1089,7 @@ try{
   await run('desktop-stripe-wrong-provider',{badCapabilities:'wrong-provider'});
   await run('mobile-stripe-wrong-mode',{mobile:true,badCapabilities:'wrong-mode'});
   await run('desktop-stripe-unexpected-reason',{badCapabilities:'unexpected-reason'});
+  await run('mobile-stripe-test-mode-denied',{mobile:true,badCapabilities:'test-mode'});
   await run('desktop-availability-other-experience',{badAvailability:'wrong-experience'});
   await run('mobile-availability-wrong-date',{mobile:true,badAvailability:'wrong-date'});
   await run('desktop-availability-wrong-group',{badAvailability:'wrong-group'});

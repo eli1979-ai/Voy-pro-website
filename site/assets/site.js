@@ -40,6 +40,19 @@
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
   document.documentElement.lang=locale;
+  // Explicit pre-launch disclosure: do not imply this preview is live commerce.
+  if(!document.querySelector('[data-voy-preview-ribbon]')){
+    const banner=document.createElement('div');
+    banner.dataset.voyPreviewRibbon='';
+    banner.className='voy-preview-ribbon';
+    banner.setAttribute('role','status');
+    banner.textContent=locale==='he'?'תצוגה מקדימה – ההזמנות אינן אמיתיות'
+      :locale==='hu'?'Előnézet – a foglalások nem valódiak'
+        :locale==='pt'?'Pré-visualização – as reservas não são reais'
+          :'Preview – bookings are not real';
+    document.body.prepend(banner);
+  }
+
   if(locale==='he'){document.documentElement.dir='rtl';document.body?.classList.add('rtl')}else{document.documentElement.removeAttribute('dir');}
   const qs = new URLSearchParams(location.search);
   const campaignPromo=(qs.get('promo')||'').trim().toUpperCase()||null;
@@ -2135,7 +2148,7 @@
   function ensureCheckoutShell(){
     const booking=document.querySelector('#booking .booking-grid'); if(!booking||document.querySelector('#live-checkout-shell')) return;
     const shell=document.createElement('div');shell.id='live-checkout-shell';shell.className='live-checkout-shell';shell.hidden=true;
-    shell.innerHTML=`<div class="panel checkout-panel"><div class="checkout-title-row"><div><div class="eyebrow">${t('BOOKING','הזמנה')}</div><h3 data-checkout-heading tabindex="-1">${t('Complete your booking','השלמת ההזמנה')}</h3></div><button type="button" class="checkout-edit" data-checkout-edit>${t('Change selection','שינוי בחירה')}</button></div><div data-checkout-summary class="checkout-summary"></div><div class="checkout-assurance"><span>${t('Current price','מחיר נוכחי')}</span><span>${t('Places held while you finish','המקומות נשמרים בזמן השלמת ההזמנה')}</span><span>${t('Direct Budapest team','צוות בודפשט ישירות')}</span></div><div data-hold-timer class="hold-timer"></div><section data-ancillary-upsell class="ancillary-upsell" hidden></section><form id="live-checkout-form"><div class="checkout-fields"><div class="field"><label for="checkout-full-name">${t('Full name','שם מלא')}</label><input id="checkout-full-name" name="full_name" required autocomplete="name"></div><div class="field"><label for="checkout-email">${locale==='he'?'דוא"ל':locale==='hu'?'E-mail':'Email'}</label><input id="checkout-email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="checkout-phone">${t('Phone','טלפון')}</label><input id="checkout-phone" name="phone" type="tel" required autocomplete="tel"></div><div class="field payment-field"><label for="checkout-payment-method">${t('Payment','תשלום')}</label><select id="checkout-payment-method" name="payment_method" aria-describedby="payment-method-help online-card-status"><option value="pay_now_card" disabled>${t('Pay now by card','תשלום מיידי בכרטיס')}</option><option value="pay_arrival_card">${t('Pay by card on arrival','תשלום בכרטיס במקום')}</option><option value="pay_arrival_cash">${t('Pay cash on arrival','תשלום במזומן במקום')}</option></select><small id="payment-method-help" class="payment-method-note" data-payment-method-note aria-live="polite">${escapeHTML(paymentMethodHelp('pay_arrival_card'))}</small><small id="online-card-status" class="payment-method-note" data-online-card-status aria-live="polite">${t('Online card payment is currently unavailable','תשלום מיידי בכרטיס אינו זמין כרגע')}</small></div></div><div class="checkout-legal" data-checkout-legal><label><input type="checkbox" name="legal_acceptance" required><span>${t('I accept the Terms of Use and confirm I have read the Privacy Notice.','אני מאשר/ת את תנאי השימוש ומאשר/ת שקראתי את הצהרת הפרטיות.')} <a href="${legalBasePath()}terms/" target="_blank" rel="noopener">${t('Terms of Use','תנאי שימוש')}</a> · <a href="${legalBasePath()}privacy/" target="_blank" rel="noopener">${t('Privacy Notice','הצהרת פרטיות')}</a></span></label></div>${budapestPolicyMarkup()}<button class="btn checkout-confirm" type="submit">${t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום')}</button><div class="status" data-checkout-status role="status" aria-live="polite"></div></form></div>`;
+    shell.innerHTML=`<div class="panel checkout-panel"><div class="checkout-title-row"><div><div class="eyebrow">${t('BOOKING','הזמנה')}</div><h3 data-checkout-heading tabindex="-1">${t('Complete your booking','השלמת ההזמנה')}</h3></div><button type="button" class="checkout-edit" data-checkout-edit>${t('Change selection','שינוי בחירה')}</button></div><div data-checkout-summary class="checkout-summary"></div><div class="checkout-assurance"><span>${t('Current price','מחיר נוכחי')}</span><span>${t('Places held while you finish','המקומות נשמרים בזמן השלמת ההזמנה')}</span><span>${t('Direct Budapest team','צוות בודפשט ישירות')}</span></div><div data-hold-timer class="hold-timer"></div><section data-ancillary-upsell class="ancillary-upsell" hidden></section><form id="live-checkout-form"><div class="checkout-fields"><div class="field"><label for="checkout-full-name">${t('Full name','שם מלא')}</label><input id="checkout-full-name" name="full_name" required autocomplete="name"></div><div class="field"><label for="checkout-email">${locale==='he'?'דוא"ל':locale==='hu'?'E-mail':'Email'}</label><input id="checkout-email" name="email" type="email" required autocomplete="email"></div><div class="field"><label for="checkout-phone">${t('Phone','טלפון')}</label><input id="checkout-phone" name="phone" type="tel" required autocomplete="tel"></div><div class="field payment-field"><label for="checkout-payment-method">${t('Payment','תשלום')}</label><select id="checkout-payment-method" name="payment_method" aria-describedby="payment-method-help online-card-status"><option value="pay_now_card" disabled hidden>${t('Pay now by card','תשלום מיידי בכרטיס')}</option><option value="pay_arrival_card">${t('Pay by card on arrival','תשלום בכרטיס במקום')}</option><option value="pay_arrival_cash">${t('Pay cash on arrival','תשלום במזומן במקום')}</option></select><small id="payment-method-help" class="payment-method-note" data-payment-method-note aria-live="polite">${escapeHTML(paymentMethodHelp('pay_arrival_card'))}</small><small id="online-card-status" class="payment-method-note" data-online-card-status aria-live="polite">${t('Online card payment is currently unavailable','תשלום מיידי בכרטיס אינו זמין כרגע')}</small></div></div><div class="checkout-legal" data-checkout-legal><label><input type="checkbox" name="legal_acceptance" required><span>${t('I accept the Terms of Use and confirm I have read the Privacy Notice.','אני מאשר/ת את תנאי השימוש ומאשר/ת שקראתי את הצהרת הפרטיות.')} <a href="${legalBasePath()}terms/" target="_blank" rel="noopener">${t('Terms of Use','תנאי שימוש')}</a> · <a href="${legalBasePath()}privacy/" target="_blank" rel="noopener">${t('Privacy Notice','הצהרת פרטיות')}</a></span></label></div>${budapestPolicyMarkup()}<button class="btn checkout-confirm" type="submit">${t('Book now – payment obligation','אישור הזמנה – התחייבות לתשלום')}</button><div class="status" data-checkout-status role="status" aria-live="polite"></div></form></div>`;
     (booking.firstElementChild||booking).appendChild(shell);
     shell.querySelector('[data-checkout-edit]')?.addEventListener('click',()=>{
       setCheckoutSubmissionLock(false);
@@ -2191,9 +2204,13 @@
       const caps=await readBootstrap('capabilities','/payments/capabilities');
       paymentCapabilities=caps||paymentCapabilities;
       if(paymentSelectionFrozen())return;
-      const onlineReady=Boolean(caps?.online_card);
+      const onlineReady=Boolean(caps?.online_card===true&&caps?.mode==='live'&&
+        caps?.provider==='stripe'&&caps?.readiness?.status==='ready'&&
+        caps.readiness.reason===null);
       if(payNow){
         payNow.disabled=!onlineReady;
+        payNow.hidden=!onlineReady;
+        if(!onlineReady&&select.value==='pay_now_card')select.value='pay_arrival_card';
         if(onlineReady&&!paymentSelectionTouched){
           payNow.defaultSelected=true;
           payNow.selected=true;
@@ -2206,7 +2223,8 @@
       sync();
     }catch{
       if(paymentSelectionFrozen())return;
-      if(payNow)payNow.disabled=true;
+      if(payNow){payNow.disabled=true;payNow.hidden=true;}
+      if(select.value==='pay_now_card')select.value='pay_arrival_card';
       if(availability){
         availability.hidden=false;
         availability.textContent=t('Online card payment is currently unavailable','תשלום מיידי בכרטיס אינו זמין כרגע');

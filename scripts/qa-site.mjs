@@ -373,8 +373,14 @@ if(/fetch\((?!['"]\/api\/request-to-book['"])/.test(rtb))
 
 if(/data-mobile-nav-wa href="#"/.test(js)) errors.push('assets/site.js: mobile WhatsApp hash fallback remains');
 if(!/function enhanceFormLabels\(/.test(js)) errors.push('assets/site.js: form-label accessibility enhancement missing');
-if(!/<option value="pay_now_card" disabled>/.test(js)) errors.push('assets/site.js: visible online-card payment option missing');
-if(!/const onlineReady=Boolean\(caps\?\.online_card\)/.test(js)) errors.push('assets/site.js: online-card capability gating missing');
+if(!/<option value="pay_now_card" disabled hidden>/.test(js)) errors.push('assets/site.js: online card option must be hidden before capability verification');
+if(!js.includes("caps?.mode==='live'")||!js.includes("caps?.readiness?.status==='ready'"))
+  errors.push('assets/site.js: online card must require live-mode and ready FBM capability');
+if(!js.includes("data.voyPreviewRibbon")&&!js.includes("voyPreviewRibbon"))
+  errors.push('assets/site.js: preview banner missing');
+const affiliateCode=fs.readFileSync('site/assets/affiliate-booking-widget.js','utf8');
+if(!affiliateCode.includes("capabilities?.mode==='live'"))
+  errors.push('assets/affiliate-booking-widget.js: test-mode card offering must be disabled');
 if(!/payNow\.disabled=!onlineReady/.test(js)) errors.push('assets/site.js: online-card disabled state is not tied to capability');
 if(!/location\.assign\(payment\.checkout_url\)/.test(js)) errors.push('assets/site.js: secure checkout redirect missing');
 if(!/const PAYMENT_RETRY_KEY='voy_payment_retry_v1'/.test(js)) errors.push('assets/site.js: Stripe checkout retry session key missing');
@@ -617,27 +623,31 @@ for(const lang of ['','he/','hu/']){
       fail(page,'Approved policy tiers or support contact absent');
   }
 }
-// Manage booking policy scope regression: use the verified, location-scoped
-// Budapest destination identity, never its address, title or selected language.
+// Manage booking cancellation copy must use the booking's own destination.
+// The publicly fetched Budapest config is client-scoped and must NOT
+// classify a token record from another or an unknown destination.
 const managePolicySource=fs.readFileSync('site/manage/index.html','utf8');
 const manageScopeExpression=managePolicySource.match(/const isBudapestManagedBooking=\(\)=>([^;]+);/);
 if(!manageScopeExpression){
-  fail('site/manage/index.html','Cannot find the Budapest booking policy scope function');
+  fail('site/manage/index.html','Cannot find booking-owned policy scope function');
 }else{
-  const scoped=Function('pt','destinationRuntime','return ('+manageScopeExpression[1]+')');
+  const scoped=Function('pt','booking','destinationRuntime','return ('+manageScopeExpression[1]+')');
   const samples=[
-    [false,{id:'budapest',code:'BUD'},true,'confirmed Budapest destination'],
-    [false,{id:'marvao',code:'PT'},false,'Marvao destination'],
-    [false,{id:'marvao',code:'PT',meeting_point:{address:'Budapest'}},false,'forged Budapest address'],
-    [false,{id:'budapest',code:'PT'},false,'mismatched destination code'],
-    [false,{id:'unknown',code:'BUD'},false,'mismatched destination id'],
-    [false,null,false,'unavailable destination'],
-    [true,{id:'budapest',code:'BUD'},false,'Portuguese tokenless Manage']
+    [false,{destination_code:'BUD'},null,true,'verified Budapest booking'],
+    [false,{destination_code:'BUD'},{id:'marvao',code:'PT'},true,'booking beats unrelated public config'],
+    [false,{destination_code:'PT'},{id:'budapest',code:'BUD'},false,'Marvao booking with Budapest public config'],
+    [false,{destination_code:'unknown'},{id:'budapest',code:'BUD'},false,'unknown booking'],
+    [false,{experience_slug:'buda'},{id:'budapest',code:'BUD'},false,'missing destination with Budapest-like title'],
+    [false,{},null,false,'missing booking destination'],
+    [false,null,{id:'budapest',code:'BUD'},false,'missing booking'],
+    [true,{destination_code:'BUD'},{id:'budapest',code:'BUD'},false,'Portugal page must not show Budapest']
   ];
-  for(const [pt,destinationRuntime,wanted,label] of samples)
-    if(Boolean(scoped(pt,destinationRuntime))!==wanted)
-      fail('site/manage/index.html','Manage policy scope fails '+label);
+  for(const [pt,booking,destinationRuntime,wanted,label] of samples){
+    if(Boolean(scoped(pt,booking,destinationRuntime))!==wanted)
+      fail('site/manage/index.html','Manage booking policy scope fails '+label);
+  }
 }
+
 
 // Photo strip #03 must never reuse the illustration used for #01.
 const routeJS=fs.readFileSync('site/assets/site.js','utf8');
@@ -656,6 +666,48 @@ for(const [page,html] of htmlMap){
 
 if(!fs.readFileSync('site/assets/site.js','utf8').includes('Independent riding ${standard}+ (${assessment} with assessment)'))
   fail('assets/site.js','Hero eligibility must reflect source-backed standard and assessment ages');
+
+// All Budapest informational pages must use the approved, localized policy.
+const outdatedBudapestPolicy=[
+  /terms shown during booking apply/i,
+  /policy shown for the booking governs/i,
+  /under the active booking policy/i,
+  /תנאי הביטול והשינוי המוצגים במהלך ההזמנה/,
+  /המדיניות המוצגת להזמנה היא הקובעת/,
+  /בהתאם למדיניות ההזמנה הפעילה/,
+  /A foglaláskor megjelenő feltételek érvényesek/i,
+  /A foglalás során megjelenő lemondási/i,
+  /az aktív foglalási szabályok szerint/i
+];
+for(const [page,html] of htmlMap){
+  if(!/^((he|hu)\/)?budapest\//.test(page))continue;
+  if(outdatedBudapestPolicy.some(pattern=>pattern.test(html)))
+    fail(page,'Outdated Budapest cancellation/weather policy text remains');
+}
+for(const lang of ['','he/','hu/']){
+  const root=lang+'budapest/';
+  for(const slug of ['buda-castle-without-walking','first-day','private-tours','unique-things-to-do','where-to-stay','with-kids']){
+    const path=root+slug+'/index.html',html=htmlMap.get(path)||'';
+    if(!html.includes('id="cancellation-weather"')||!html.includes('class="cancellation-terms"')||
+       (html.match(/<li>/g)||[]).length<4||!html.includes('data-faq="control-test"'))
+      fail(path,'Approved compact policy or pre-ride control FAQ missing');
+  }
+  for(const slug of ['group-tours','corporate-events']){
+    const path=root+slug+'/index.html',html=htmlMap.get(path)||'';
+    if(!html.includes('href="/'+root+'#cancellation-weather"'))
+      fail(path,'Group/corporate weather FAQ must link to Budapest policy');
+  }
+}
+
+
+// Click-to-load third-party embed disclosure must exist in all four legal locales.
+for(const lang of ['','he/','hu/','pt/']){
+  const path=lang+'legal/cookies/index.html',html=htmlMap.get(path)||'';
+  if(!html.includes('youtube-nocookie.com')||!html.includes('Google')||
+     !html.includes('class="legal-card"')||!html.includes('14'))
+    fail(path,'Missing current click-to-load Google Maps / YouTube disclosure');
+}
+
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
