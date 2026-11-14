@@ -16,6 +16,13 @@ const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
 
 const fail=(file,msg)=>errors.push(file+': '+msg);
+// Static tour fact fallbacks must be readable before FBM hydration.
+// Canonical live duration, if present, still replaces these client-side.
+for(const [file,html] of htmlMap){
+  if(/>\s*(?:Live (?:duration|tour duration|price)|משך חי|Élő időtartam)\s*</i.test(html))
+    fail(file,'placeholder Live duration/price text shipped in static HTML');
+}
+
 const warn=(file,msg)=>warnings.push(file+': '+msg);
 
 /* Booking UX contract — dates stay Budapest-local, related-route upsells
