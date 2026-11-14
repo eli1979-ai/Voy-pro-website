@@ -156,15 +156,15 @@ async function test(){
     ['https://voy-pro.com/','Home'],['https://voy-pro.com/budapest/','Budapest'],
     ['https://www.voy-pro.com/','www alias'],['https://voy-pro.com/robots.txt','Robots']
   ];
-  assert.equal(CANONICAL_PAGES.length,50,'Current public sitemap contains 50 pages');
+  assert.equal(CANONICAL_PAGES.length,64,'Current public sitemap contains 64 pages');
   assert.equal(LIVE_PROBES.filter(([url])=>url==='https://voy-pro.com/').length,1,
     'No duplicate homepage requests');
   assert.throws(()=>sitemapProbes('<?xml version="1.0"?><urlset><url><loc>https://evil.example/</loc></url></urlset>'),
     'Unexpected sitemap host or truncated page count fails closed');
-  const sample='<urlset>'+Array.from({length:50},(_,i)=>
+  const sample='<urlset>'+Array.from({length:64},(_,i)=>
     '<url><loc>https://voy-pro.com/page-'+i+'/</loc></url>').join('')+'</urlset>';
   const validSample='<?xml version="1.0"?>'+sample;
-  assert.equal(sitemapProbes(validSample).length,50);
+  assert.equal(sitemapProbes(validSample).length,64);
   assert.throws(()=>sitemapProbes(validSample.replace('https://voy-pro.com/page-1/',
     'https://evil.example/page-1/')),'Sitemap cannot introduce off-host requests');
   assert.throws(()=>sitemapProbes(validSample.replace('https://voy-pro.com/page-1/',
