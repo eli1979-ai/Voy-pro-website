@@ -16,6 +16,28 @@ const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
 
 const fail=(file,msg)=>errors.push(file+': '+msg);
+// Star glyphs carry review ratings and must meet WCAG AA text contrast on
+// both the white and paper-light review card backgrounds.
+const getStarColor=(file,selector)=>{
+  const contents=read(path.join(site,'assets',file));
+  return contents.match(new RegExp('[.]'+selector.slice(1)+'[{]color:(#[0-9a-fA-F]{6})'))?.[1]||null;
+};
+const luminance=hex=>{
+  const rgb=hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255)
+    .map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);
+  return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
+};
+const contrast=(a,b)=>{
+  const u=luminance(a),v=luminance(b);
+  return (Math.max(u,v)+.05)/(Math.min(u,v)+.05);
+};
+for(const [file,selector] of [['site.css','.stars'],['budapest-review-ticker.css','.vp-review-stars']]){
+  const color=getStarColor(file,selector);
+  if(!color||contrast(color,'#ffffff')<4.5||contrast(color,'#f7f6f3')<4.5)
+    fail('assets/'+file,selector+' rating stars must meet contrast >=4.5:1 on light cards');
+}
+
+
 // Regression guard: JavaScript-style // comments are invalid in plain CSS.
 // They can swallow subsequent selectors (e.g. SVG route stop labels) without
 // causing npm build to fail. Scan the shipped source CSS, not scripts or URLs.
