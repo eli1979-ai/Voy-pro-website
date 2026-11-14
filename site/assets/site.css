@@ -1629,3 +1629,21 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
 .cancellation-paid-note{margin-top:10px;font-size:13px;line-height:1.5;color:#425866}
 .budapest-policy-faq{scroll-margin-top:88px}
 @media(max-width:600px){.section.budapest-cancel-policy{padding-block:22px}.cancellation-terms{font-size:14px;line-height:1.55}.cancellation-paid-note{font-size:13px}}
+
+
+/* Final narrow-header fit: 12px language labels remain accessible within a
+   horizontally scrollable row rather than increasing the page scrollWidth. */
+@media(max-width:400px){
+  header .wrap.nav{min-width:0;padding-inline:10px;gap:4px}
+  header .brand{width:108px;max-width:108px;height:38px;flex:0 0 108px;background-size:116% auto}
+  header .nav-menu-toggle{flex:0 0 44px;min-width:44px}
+  header .navlinks{display:flex;flex:1 1 0;min-width:0;max-width:calc(100vw - 180px);gap:2px;margin-inline-start:auto}
+  header .navlinks>.language-picker{
+    display:flex!important;flex:1 1 0;min-width:0;max-width:100%;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;
+    overscroll-behavior-inline:contain
+  }
+  header .navlinks>.language-picker .lang-switch{
+    flex:0 0 auto;min-width:0;padding-inline:3px;font-size:12px;white-space:nowrap
+  }
+}
