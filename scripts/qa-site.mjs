@@ -639,6 +639,31 @@ if(!manageScopeExpression){
       fail('site/manage/index.html','Manage policy scope fails '+label);
 }
 
+// Spanish Budapest content-only preview: complete route matrix and no live checkout.
+// The ES runtime/selector must not be enabled until an independent locale audit.
+const spanishBudapestSlugs=[
+  '','tours/buda-castle-ezraider-tour','tours/buda-margaret-extended-tour',
+  'tours/margaret-island-ezraider-tour','tours/heroes-square-city-ezraider-tour',
+  'tours/citadella-advanced-ezraider-tour','buda-castle-without-walking',
+  'first-day','private-tours','group-tours','corporate-events',
+  'unique-things-to-do','where-to-stay','with-kids'
+];
+for(const slug of spanishBudapestSlugs){
+  const url='/es/budapest/'+(slug?slug+'/':'');
+  const path='es/budapest/'+(slug?slug+'/':'')+'index.html';
+  const html=htmlMap.get(path)||'';
+  if(!html.includes('<html lang="es">')||
+     !html.includes('content="noindex,nofollow"')||
+     !html.includes('href="https://voy-pro.com'+url+'"')||
+     !html.includes('id="cancellation-weather"')||
+     !html.includes('support@voy-pro.com')||
+     !html.includes('No se aceptan reservas reales'))
+    fail(path,'Spanish preview needs truthful metadata, policy and no-real-booking notice');
+  if(html.includes('/assets/site.js')||html.includes('data-track="booking_cta"')||
+     html.includes('id="booking"')||html.includes('pay_now_card'))
+    fail(path,'Spanish preview must not activate unlocalized booking/payment runtime');
+}
+
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);
 if(errors.length){
