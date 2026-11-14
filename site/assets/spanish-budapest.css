@@ -30,3 +30,16 @@
 .es-budapest footer a{color:#fff}
 .es-budapest :focus-visible{outline:3px solid #d78a23;outline-offset:3px}
 @media(max-width:700px){.es-budapest .es-nav{flex-wrap:wrap;padding-block:14px}.es-budapest .es-links{width:100%;gap:10px}.es-budapest .es-hero{padding:48px 0}.es-budapest .es-hero p{font-size:16px}.es-budapest .es-grid{grid-template-columns:1fr}.es-budapest .wrap{padding-inline:16px}}
+
+/* 320px source fix: allow all Spanish text/grid children to wrap instead of
+   increasing document scrollWidth. Do not clip or hide the content. */
+.es-budapest .wrap,.es-budapest .es-nav,.es-budapest .es-links,
+.es-budapest .es-grid,.es-budapest .es-card{min-width:0;max-width:100%}
+.es-budapest p,.es-budapest h1,.es-budapest h2,.es-budapest h3,
+.es-budapest li,.es-budapest a{overflow-wrap:anywhere}
+.es-budapest .es-grid>*{min-width:0}
+@media(max-width:400px){
+  .es-budapest .es-nav{gap:8px}
+  .es-budapest .es-links{display:flex;flex-wrap:wrap;flex:1 1 100%;min-width:0}
+  .es-budapest .es-links a{max-width:100%}
+}
