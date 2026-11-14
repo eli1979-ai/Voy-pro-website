@@ -1458,8 +1458,8 @@ try{
         overflow:document.documentElement.scrollWidth-innerWidth
       }));
       check(actual.lang==='es'&&actual.title?.length>10,name+' Spanish page identity and heading');
-      check(actual.robots==='noindex,nofollow'&&actual.preview.includes('No se aceptan reservas reales'),
-        name+' visible preview and noindex');
+      check(actual.robots==='index,follow'&&actual.preview.includes('No se aceptan reservas reales'),
+        name+' visible preview and published-locale SEO metadata');
       check(actual.rows===4&&!actual.activeBooking,name+' four approved policy rows and no live booking');
       if(actual.overflow>2){
         const offenders=await page.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>{
