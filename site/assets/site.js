@@ -1020,10 +1020,10 @@
       ?{aria:'Preferências de cookies',title:'As suas escolhas de privacidade',essential:'Apenas essencial',analytics:'Permitir análise',close:'Fechar sem alterações'}
       :{aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
     const info={
-      en:{body:'Optional analytics includes Google Tag Manager (GTM-WKL2JNNX), loaded only if you allow analytics. Google Analytics may measure site visits if configured. This does not permit personalized advertising.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
-      he:{body:'אנליטיקה אופציונלית כוללת את Google Tag Manager ‏(GTM-WKL2JNNX), שנטען רק לאחר בחירה ב״לאפשר אנליטיקה״. אם יוגדר Google Analytics, ייתכן שייאספו נתוני שימוש. הבחירה אינה מתירה פרסום מותאם אישית.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
-      hu:{body:'Az opcionális analitika a Google Tag Managert (GTM-WKL2JNNX) is tartalmazza; csak az analitika engedélyezése után töltődik be. A Google Analytics mérheti a látogatásokat, ha be van állítva. Ez nem engedélyezi a személyre szabott hirdetéseket.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
-      pt:{body:'A análise opcional inclui o Google Tag Manager (GTM-WKL2JNNX), carregado apenas após consentimento. Se o Google Analytics estiver configurado, poderá medir as visitas. Esta escolha não autoriza publicidade personalizada.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
+      en:{body:'Essential storage keeps the site working. Analytics is optional; details are in the Cookie Policy below.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
+      he:{body:'אחסון חיוני לתפעול האתר. אנליטיקה היא בחירה בלבד; פרטים במדיניות העוגיות למטה.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
+      hu:{body:'A szükséges tárolás működteti az oldalt. Az analitika opcionális; részletek a sütiszabályzatban lent.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
+      pt:{body:'O armazenamento essencial mantém o site funcional. A análise é opcional; detalhes na Política de cookies abaixo.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
     };
     return {...common,...(info[locale]||info.en)};
   }
