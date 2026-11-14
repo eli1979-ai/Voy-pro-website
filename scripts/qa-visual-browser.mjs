@@ -1392,6 +1392,43 @@ try{
     }finally{await page.close();}
   }
 
+
+  // Spanish informational route smoke: no active bookings or unlocalized JS.
+  for(const [name,path,viewport] of [
+    ['es-home-320','/es/budapest/',{width:320,height:700}],
+    ['es-buda-390','/es/budapest/tours/buda-castle-ezraider-tour/',{width:390,height:844}],
+    ['es-family-320','/es/budapest/with-kids/',{width:320,height:700}]
+  ]){
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+      check(response?.status()===200,name+' static page available');
+      const actual=await page.evaluate(()=>({
+        lang:document.documentElement.lang,
+        title:document.querySelector('h1')?.textContent?.trim(),
+        robots:document.querySelector('meta[name="robots"]')?.content,
+        preview:document.querySelector('.es-preview')?.textContent||'',
+        rows:document.querySelectorAll('#cancellation-weather li').length,
+        activeBooking:!!document.querySelector('script[src*="site.js"],[data-track="booking_cta"],#booking'),
+        overflow:document.documentElement.scrollWidth-innerWidth
+      }));
+      check(actual.lang==='es'&&actual.title?.length>10,name+' Spanish page identity and heading');
+      check(actual.robots==='noindex,nofollow'&&actual.preview.includes('No se aceptan reservas reales'),
+        name+' visible preview and noindex');
+      check(actual.rows===4&&!actual.activeBooking,name+' four approved policy rows and no live booking');
+      check(actual.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+actual.overflow+'px)');
+      check(errors.length===0,name+' no browser script errors');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' browser error '+String(error).slice(0,700));
+    }finally{await page.close();}
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');
