@@ -734,6 +734,9 @@ try{
   // RTL, 320px narrow screens, classic booking, RTB and B2B enquiry.
   // These are smoke checks, not real payment/availability/API integrations.
   const scenarios=[
+    ['budapest-firstscreen-en','/budapest/',{width:375,height:812},{}],
+    ['budapest-firstscreen-he','/he/budapest/',{width:375,height:812},{}],
+    ['budapest-firstscreen-hu','/hu/budapest/',{width:375,height:812},{}],
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
@@ -779,6 +782,33 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name.startsWith('budapest-firstscreen-')){
+        const banner=page.locator('.consent-banner');
+        const bannerBox=await banner.boundingBox();
+        check(Boolean(bannerBox)&&bannerBox.height<=viewport.height*.35,
+          name+' mobile cookie consent occupies <=35% of viewport height');
+        const essential=page.locator('[data-consent-essential]');
+        if(await essential.isVisible())await essential.click();
+        await page.evaluate(()=>window.scrollTo(0,0));
+        const firstScreen=await page.evaluate(()=>{
+          const primary=document.querySelector('.hero-actions [data-track="booking_cta"]');
+          const preview=document.querySelector('.voy-preview-ribbon');
+          const chips=[...document.querySelectorAll('.budapest-hero-facts>span')];
+          const b=primary?.getBoundingClientRect();
+          const rects=chips.map(node=>node.getBoundingClientRect());
+          return {preview:!!preview&&getComputedStyle(preview).display!=='none'&&preview.getBoundingClientRect().height>0,
+            count:chips.length,inline:rects.length===3&&rects.every(x=>Math.abs(x.top-rects[0].top)<3),
+            cta:!!b&&b.top>=0&&b.bottom<=innerHeight,
+            consentClosed:!document.querySelector('.consent-banner'),
+            noOverflow:document.documentElement.scrollWidth<=innerWidth+2};
+        });
+        check(firstScreen.preview,name+' preview ribbon remains visible');
+        check(firstScreen.count===3&&firstScreen.inline,
+          name+' hero has exactly three facts on one line');
+        check(firstScreen.consentClosed&&firstScreen.cta,
+          name+' primary CTA is fully on first 375x812 screen after consent closes');
+        check(firstScreen.noOverflow,name+' no mobile horizontal overflow');
+      }
       // Marvão floating and mobile-menu WhatsApp links must reflect the most
       // recent PUBLIC request selections. The browser uses the locally built
       // artifact; external WhatsApp, FBM and tracking requests are blocked.
@@ -944,8 +974,8 @@ try{
         await opener.click();
         const bar=page.locator('.consent-banner');
         const privacyLinks=bar.locator('.consent-policy-links a');
-        check((await bar.innerText()).includes('Google Tag Manager'),
-          name+' reopened consent text explicitly names Google Tag Manager');
+        check(!(await bar.innerText()).includes('Google Tag Manager'),
+          name+' compact consent keeps technical GTM details on cookie policy page');
         check(await privacyLinks.count()===2 &&
           await privacyLinks.nth(0).getAttribute('href')===prefix+'/legal/privacy/' &&
           await privacyLinks.nth(1).getAttribute('href')===prefix+'/legal/cookies/',
