@@ -24,7 +24,7 @@ function localImage(html){
 function spanishBudapestImage(rel){
   if(!rel.startsWith('es/budapest/'))return null;
   const en=fs.readFileSync(pagePath(rel.slice(3)),'utf8');
-  const og=[...en.matchAll(/<meta\\b[^>]*>/gi)]
+  const og=[...en.matchAll(/<meta\b[^>]*>/gi)]
     .map(x=>x[0])
     .find(x=>/property="og:image"/i.test(x));
   const canonical=og?.match(/content="([^"]+)"/i)?.[1]||null;
