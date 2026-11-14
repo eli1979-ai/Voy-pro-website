@@ -1,6 +1,6 @@
 {
   "name": "voy-pro-website-v2",
-  "version": "1.48.99",
+  "version": "1.49.0",
   "private": true,
   "scripts": {
     "cutover:status": "node scripts/report-public-cutover.mjs",

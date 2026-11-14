@@ -13,7 +13,7 @@ if(!/@media\(max-width:800px\)\{[\s\S]*header \.navlinks>\.language-picker\{disp
 if(!/@media\(max-width:520px\)\{\s*header \.location-switcher\{display:none\}\s*\}/m.test(css)){
   failures.push('narrow mobile header must move the destination selector into the menu before language controls can overflow');
 }
-if(!/@media\(max-width:380px\)\{[\s\S]*header \.navlinks>\.language-picker \.lang-switch\{padding:5px 4px;font-size:9px\}/m.test(css)){
+if(!/@media\(max-width:380px\)\{[\s\S]*header \.navlinks>\.language-picker \.lang-switch\{padding:5px 4px;font-size:12px\}/m.test(css)){
   failures.push('very narrow header must compact language chips instead of hiding them');
 }
 if(!/document\.querySelectorAll\('\.language-picker \.lang-switch'\)/.test(js) || !/data-mobile-language-row/.test(js)){
