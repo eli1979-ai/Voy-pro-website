@@ -16,6 +16,18 @@ const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
 
 const fail=(file,msg)=>errors.push(file+': '+msg);
+// Regression guard: JavaScript-style // comments are invalid in plain CSS.
+// They can swallow subsequent selectors (e.g. SVG route stop labels) without
+// causing npm build to fail. Scan the shipped source CSS, not scripts or URLs.
+for(const cssFile of walk(site).filter(p=>p.endsWith('.css'))){
+  const contents=read(cssFile);
+  const match=/^[ \t]*\/\//m.exec(contents);
+  if(match){
+    const line=contents.slice(0,match.index).split('\n').length;
+    fail(rel(cssFile),'invalid CSS // comment at line '+line+'; use /* ... */');
+  }
+}
+
 // Static tour fact fallbacks must be readable before FBM hydration.
 // Canonical live duration, if present, still replaces these client-side.
 for(const [file,html] of htmlMap){
