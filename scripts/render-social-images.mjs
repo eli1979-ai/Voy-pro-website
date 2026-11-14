@@ -20,13 +20,29 @@ function localImage(html){
   if(!src)return null;
   return src.startsWith('/')?'https://voy-pro.com'+src:src;
 }
+
+function spanishBudapestImage(rel){
+  if(!rel.startsWith('es/budapest/'))return null;
+  const en=fs.readFileSync(pagePath(rel.slice(3)),'utf8');
+  const og=[...en.matchAll(/<meta\\b[^>]*>/gi)]
+    .map(x=>x[0])
+    .find(x=>/property="og:image"/i.test(x));
+  const canonical=og?.match(/content="([^"]+)"/i)?.[1]||null;
+  const candidate=canonical||localImage(en);
+  if(!candidate)return null;
+  const uri=new URL(candidate,'https://voy-pro.com');
+  // No external vendor image URLs may enter Spanish social cards.
+  if(uri.origin!=='https://voy-pro.com'||!uri.pathname.startsWith('/assets/'))
+    throw new Error('Spanish social image must be a local VOY PRO asset: '+rel);
+  return uri.href;
+}
 for(const rel of urls){
   const file=pagePath(rel);
   let html=fs.readFileSync(file,'utf8');
   const needOg=!hasMeta(html,'og:image','property');
   const needTw=!hasMeta(html,'twitter:image','name');
   if(!needOg&&!needTw)continue;
-  const image=localImage(html);
+  const image=localImage(html)||spanishBudapestImage(rel);
   if(!image)throw new Error('No local VOY PRO image available for '+file);
   let insert='';
   if(needOg)insert+='<meta content="'+image+'" property="og:image"/>';
