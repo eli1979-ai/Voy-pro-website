@@ -41,9 +41,9 @@ for(const rel of urls){
   let html=fs.readFileSync(file,'utf8');
 
   if(rel.startsWith('es/budapest/')){
-    const title=(html.match(/<title>([^<]+)<\\/title>/i)||[])[1]||'';
+    const title=(html.match(/<title>([^<]+)<[/]title>/i)||[])[1]||'';
     const desc=(html.match(/<meta[^>]*name="description"[^>]*content="([^"]+)"/i)||[])[1]||'';
-    const canonical='https://voy-pro.com/'+rel.replace(/\\/?$/,'/');
+    const canonical='https://voy-pro.com/'+rel;
     if(!title||!desc||!html.includes('href="'+canonical+'"'))
       throw new Error('Spanish social metadata missing canonical/title/description: '+rel);
     const encode=value=>String(value).replace(/&/g,'&amp;').replace(/"/g,'&quot;')
