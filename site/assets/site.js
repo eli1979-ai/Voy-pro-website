@@ -25,7 +25,7 @@
   const page = document.body.dataset.page || location.pathname;
   const declaredLang=(document.documentElement.lang||'en').toLowerCase();
   const routePath=(location.pathname||'/').toLowerCase();
-  const routeLocale=routePath.startsWith('/he/')?'he':routePath.startsWith('/hu/')?'hu':routePath.startsWith('/pt/')?'pt':null;
+  const routeLocale=routePath.startsWith('/he/')?'he':routePath.startsWith('/hu/')?'hu':routePath.startsWith('/pt/')?'pt':routePath.startsWith('/es/')?'es':null;
   const isPortugalPage=routePath.includes('/portugal/');
   const isBudapestPage=routePath.includes('/budapest/');
   const isLegalPage=routePath.includes('/legal/');
@@ -49,6 +49,7 @@
     banner.textContent=locale==='he'?'תצוגה מקדימה – ההזמנות אינן אמיתיות'
       :locale==='hu'?'Előnézet – a foglalások nem valódiak'
         :locale==='pt'?'Pré-visualização – as reservas não são reais'
+          :locale==='es'?'Vista previa – no se aceptan reservas reales'
           :'Preview – bookings are not real';
     document.body.prepend(banner);
   }
@@ -1018,12 +1019,15 @@
   function consentCopy(){
     const common=locale==='pt'
       ?{aria:'Preferências de cookies',title:'As suas escolhas de privacidade',essential:'Apenas essencial',analytics:'Permitir análise',close:'Fechar sem alterações'}
-      :{aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
+      :locale==='es'
+        ?{aria:'Preferencias de cookies',title:'Tus opciones de privacidad',essential:'Solo esenciales',analytics:'Permitir analítica',close:'Cerrar sin cambios'}
+        :{aria:t('Cookie preferences','העדפות עוגיות'),title:t('Your privacy choices','בחירות הפרטיות שלך'),essential:t('Essential only','חיוני בלבד'),analytics:t('Allow analytics','לאפשר אנליטיקה'),close:t('Close without changes','סגירה ללא שינוי')};
     const info={
       en:{body:'Essential storage keeps the site working. Analytics is optional; details are in the Cookie Policy below.',privacy:'Privacy Notice',cookies:'Cookie Policy'},
       he:{body:'אחסון חיוני מאפשר לאתר לפעול. אנליטיקה היא בחירה בלבד; פרטים במדיניות העוגיות למטה.',privacy:'הצהרת פרטיות',cookies:'מדיניות עוגיות'},
       hu:{body:'A szükséges tárolás működteti az oldalt. Az analitika opcionális; részletek a sütiszabályzatban lent.',privacy:'Adatkezelési tájékoztató',cookies:'Süti tájékoztató'},
-      pt:{body:'O armazenamento essencial mantém o site funcional. A análise é opcional; detalhes na Política de cookies abaixo.',privacy:'Aviso de privacidade',cookies:'Política de cookies'}
+      pt:{body:'O armazenamento essencial mantém o site funcional. A análise é opcional; detalhes na Política de cookies abaixo.',privacy:'Aviso de privacidade',cookies:'Política de cookies'},
+      es:{body:'El almacenamiento esencial permite que funcione el sitio. La analítica es opcional; consulta los detalles en la política de cookies (en inglés).',privacy:'Privacidad (en inglés)',cookies:'Cookies (en inglés)'}
     };
     return {...common,...(info[locale]||info.en)};
   }
