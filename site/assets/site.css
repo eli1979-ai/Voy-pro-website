@@ -331,7 +331,7 @@ header .destination-switch{display:none!important}
 
 
 /* v1.34.0 — conversion funnel */
-.party-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0}.party-fields .field{margin:0;min-width:0}.party-fields label{min-height:30px;display:flex;align-items:flex-end}.booking-form-assurance{margin:9px 0 2px;text-align:center;font-size:12px;font-weight:800;color:var(--muted);line-height:1.45}.booking-form-assurance:before{content:'✓';color:#1f7a4d;font-weight:950;margin-inline-end:6px}#availability-form>button[type="submit"]{width:100%;min-height:49px;margin-top:10px}.hero .facts [data-home-live-price]{background:rgba(42,145,213,.16);border-color:rgba(131,199,239,.42)}
+.party-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0}.party-fields .field{margin:0;min-width:0;display:flex;flex-direction:column}.party-fields .field select{margin-top:auto}.party-fields label{min-height:30px;display:flex;align-items:flex-end}.booking-form-assurance{margin:9px 0 2px;text-align:center;font-size:12px;font-weight:800;color:var(--muted);line-height:1.45}.booking-form-assurance:before{content:'✓';color:#1f7a4d;font-weight:950;margin-inline-end:6px}#availability-form>button[type="submit"]{width:100%;min-height:49px;margin-top:10px}.hero .facts [data-home-live-price]{background:rgba(42,145,213,.16);border-color:rgba(131,199,239,.42)}
 @media(max-width:800px){.party-fields{gap:6px}.party-fields .field input,.party-fields .field select{min-width:0}.party-fields label{font-size:12px;line-height:1.2;min-height:34px}.photo-gallery-section{padding-top:28px!important}.tour-picker+.booking{border-top:0}.hero-actions .btn.alt{order:-1}}
 @media(max-width:360px){.party-fields{grid-template-columns:1fr}.party-fields label{min-height:0}.booking-form-assurance{text-align:start}}
 
@@ -1429,7 +1429,7 @@ a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}
 
 /* 2026-11-12 booking step-two upsell and passenger price readability. */
 .passenger-price-hint{
-  display:block;margin-top:4px;color:var(--blue);
+  display:block;margin:4px 0 6px;color:var(--blue);
   font-size:12px;line-height:1.5;font-weight:800;
 }
 .passenger-price-hint[data-price-verified="false"]{

@@ -76,6 +76,17 @@ const bookingUxNeeds=[
 for(const [sourceMarker,description] of bookingUxNeeds){
   if(!bookingUxSource.includes(sourceMarker))fail('assets/site.js',description);
 }
+
+// Participant count labels use canonical policy ages, and price hints sit above selects.
+for(const label of ["riders:`רוכבים עצמאיים מגיל ${riderAge}+`,","children:`ילדים בגיל ${childMin}–${childMax}`,","babies:`תינוקות בגיל ${babyMin}–${babyMax}`,","riders:`Önálló vezetők ${riderAge} éves kortól`,","children:`Gyermekek ${childMin}–${childMax} éves korig`,","babies:`Kisgyermekek ${babyMin}–${babyMax} éves korig`,","riders:`Independent riders age ${riderAge}+`,","children:`Children ages ${childMin}–${childMax}`,","babies:`Babies ages ${babyMin}–${babyMax}`,"]){
+  if(!bookingUxSource.includes(label))fail('assets/site.js','Missing localized age label '+label);
+}
+if(!bookingUxSource.includes("childField.insertBefore(hint,childField.querySelector('select[name=\"children\"]'))")||bookingUxSource.includes('childField.appendChild(hint);'))
+  fail('assets/site.js','Child rate must precede the child count select');
+const partyLayoutCss=read(path.join(site,'assets/site.css'));
+if(!partyLayoutCss.includes('.party-fields .field select{margin-top:auto}')||!partyLayoutCss.includes('.party-fields .field{margin:0;min-width:0;display:flex;flex-direction:column}'))
+  fail('assets/site.css','Participant selector alignment rule missing');
+
 if(bookingUxSource.includes('if(!dateInput.value)dateInput.value=today;'))
   fail('assets/site.js','today must not be the default booking date');
 if(bookingUxSource.includes("nudge.hidden=false;"))

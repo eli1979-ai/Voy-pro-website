@@ -1154,19 +1154,19 @@
     const childMin=Number(policy.child_passenger_min_age),childMax=Number(policy.child_passenger_max_age);
     const babyMin=Number(policy.baby_passenger_min_age),babyMax=Number(policy.baby_passenger_max_age);
     if(locale==='he')return {
-      riders:`רוכבים עצמאיים ${riderAge}+`,
-      children:`ילדים ${childMin}–${childMax}`,
-      babies:`פעוטות ${babyMin}–${babyMax}`,
+      riders:`רוכבים עצמאיים מגיל ${riderAge}+`,
+      children:`ילדים בגיל ${childMin}–${childMax}`,
+      babies:`תינוקות בגיל ${babyMin}–${babyMax}`,
     };
     if(locale==='hu')return {
-      riders:`Önálló vezetők ${riderAge}+`,
-      children:`Gyermekek ${childMin}–${childMax}`,
-      babies:`Kisgyermekek ${babyMin}–${babyMax}`,
+      riders:`Önálló vezetők ${riderAge} éves kortól`,
+      children:`Gyermekek ${childMin}–${childMax} éves korig`,
+      babies:`Kisgyermekek ${babyMin}–${babyMax} éves korig`,
     };
     return {
-      riders:`Independent riders ${riderAge}+`,
-      children:`Children ${childMin}–${childMax}`,
-      babies:`Babies ${babyMin}–${babyMax}`,
+      riders:`Independent riders age ${riderAge}+`,
+      children:`Children ages ${childMin}–${childMax}`,
+      babies:`Babies ages ${babyMin}–${babyMax}`,
     };
   }
   function riderPolicyUnavailableLabel(){
@@ -1715,7 +1715,8 @@
     if(childField&&!childField.querySelector('[data-passenger-price-info]')){
       const hint=document.createElement('small');hint.className='passenger-price-hint';
       hint.dataset.passengerPriceInfo='';hint.setAttribute('aria-live','polite');
-      childField.appendChild(hint);
+      // Display the API-backed child price before the selector, not after it.
+      childField.insertBefore(hint,childField.querySelector('select[name="children"]'));
       updatePassengerPricePreview(null);
     }
     const lastField=form.querySelector('select[name="babies"]')?.closest('.field');
