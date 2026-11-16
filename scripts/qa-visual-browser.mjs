@@ -1478,6 +1478,71 @@ try{
   }
 
 
+  // Spanish parity release gate: all 14 pages at 375px, then real two-column hero at 1440px.
+  // No external calls, bookings, payments or deployment; existing local Chromium runner.
+  const spanishParityPaths=[
+    '/es/budapest/','/es/budapest/with-kids/','/es/budapest/private-tours/',
+    '/es/budapest/group-tours/','/es/budapest/corporate-events/',
+    '/es/budapest/first-day/','/es/budapest/where-to-stay/',
+    '/es/budapest/unique-things-to-do/','/es/budapest/buda-castle-without-walking/',
+    '/es/budapest/tours/buda-castle-ezraider-tour/',
+    '/es/budapest/tours/margaret-island-ezraider-tour/',
+    '/es/budapest/tours/buda-margaret-extended-tour/',
+    '/es/budapest/tours/citadella-advanced-ezraider-tour/',
+    '/es/budapest/tours/heroes-square-city-ezraider-tour/'
+  ];
+  for(const routePath of spanishParityPaths){
+    const page=await browser.newPage({viewport:{width:375,height:812},deviceScaleFactor:1,reducedMotion:'reduce'});
+    await page.route('**/*',r=>{
+      try{return new URL(r.request().url()).origin===base?r.continue():r.abort();}
+      catch{return r.abort();}
+    });
+    try{
+      const response=await page.goto(base+routePath,{waitUntil:'load',timeout:20000});
+      check(response?.status()===200,'es-parity '+routePath+' local route 200');
+      const v=await page.evaluate(()=>{
+        const hero=document.querySelector('.es-feature-media img');
+        const gallery=[...document.querySelectorAll('.es-photo-grid img')];
+        const cards=[...document.querySelectorAll('.es-detail-card')];
+        const box=hero?.getBoundingClientRect();
+        return {sections:document.querySelectorAll('main section').length,
+          gallery:gallery.length,faq:document.querySelectorAll('.es-faq details').length,
+          cards:cards.length,photoLoaded:!!hero?.complete&&hero?.naturalWidth>0,
+          photoVisible:!!box&&box.width>180&&box.height>100,
+          overflow:document.documentElement.scrollWidth-innerWidth,
+          payment:!!document.querySelector('#booking,script[src*="site.js"],form[action*="checkout"]')};
+      });
+      check(v.sections>=10&&v.gallery>=3&&v.faq>=4&&v.cards>=3,
+        'es-parity '+routePath+' editorial, FAQ, route cards and gallery');
+      check(v.photoLoaded&&v.photoVisible,
+        'es-parity '+routePath+' actual hero image loaded and visible');
+      check(v.overflow<=2&&!v.payment,
+        'es-parity '+routePath+' mobile width safe, no active checkout');
+    }catch(error){
+      failures++;results.push('FAIL: es-parity '+routePath+' '+String(error).slice(0,500));
+    }finally{await page.close();}
+  }
+  for(const routePath of ['/es/budapest/','/es/budapest/tours/buda-castle-ezraider-tour/']){
+    const page=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1,reducedMotion:'reduce'});
+    await page.route('**/*',r=>{
+      try{return new URL(r.request().url()).origin===base?r.continue():r.abort();}
+      catch{return r.abort();}
+    });
+    try{
+      await page.goto(base+routePath,{waitUntil:'load',timeout:20000});
+      const v=await page.evaluate(()=>{
+        const title=document.querySelector('.es-hero h1')?.getBoundingClientRect();
+        const image=document.querySelector('.es-hero .es-feature-media img')?.getBoundingClientRect();
+        return {right:!!title&&!!image&&image.left>title.right+10,
+          visible:!!image&&image.width>240&&image.height>250,
+          overflow:document.documentElement.scrollWidth-innerWidth};
+      });
+      check(v.right&&v.visible&&v.overflow<=2,'es-parity '+routePath+' desktop split hero');
+    }catch(error){
+      failures++;results.push('FAIL: es-parity desktop '+routePath+' '+String(error).slice(0,500));
+    }finally{await page.close();}
+  }
+
   // RC839-01: the 320px header must never show a half-clipped Hebrew label
   // or a misleading partial fourth language; all four must remain reachable
   // in the existing mobile navigation menu.
