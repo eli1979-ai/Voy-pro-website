@@ -1477,6 +1477,51 @@ try{
     }finally{await page.close();}
   }
 
+
+  // RC839-01: the 320px header must never show a half-clipped Hebrew label
+  // or a misleading partial fourth language; all four must remain reachable
+  // in the existing mobile navigation menu.
+  for(const [name,route] of [
+    ['en','/budapest/'],['he','/he/budapest/'],['hu','/hu/budapest/']
+  ]){
+    const page=await browser.newPage({viewport:{width:320,height:812},
+      deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.route('**/*',request=>{
+      try{return new URL(request.request().url()).origin===base
+        ?request.continue():request.abort();}
+      catch{return request.abort();}
+    });
+    try{
+      const response=await page.goto(base+route,{waitUntil:'load',timeout:20000});
+      check(response?.status()===200,'rc839-01 '+name+' route HTTP 200');
+      const hdr=await page.evaluate(()=>{
+        const picker=document.querySelector('header .language-picker');
+        const links=[...(picker?.querySelectorAll('.lang-switch')||[])];
+        const active=links.filter(a=>a.getAttribute('aria-current')==='page');
+        const visible=links.filter(a=>getComputedStyle(a).display!=='none');
+        const item=active[0]?.getBoundingClientRect();
+        const holder=picker?.getBoundingClientRect();
+        return {total:links.length,visible:visible.length,active:active.length,
+          activeFullyVisible:!!(item&&holder&&item.left>=holder.left-1&&
+            item.right<=holder.right+1&&item.width>0),
+          overflow:document.documentElement.scrollWidth-innerWidth};
+      });
+      check(hdr.total===4&&hdr.active===1&&hdr.visible===1&&hdr.activeFullyVisible,
+        'rc839-01 '+name+' one unclipped active header language at 320px');
+      check(hdr.overflow<=2,'rc839-01 '+name+' no horizontal page overflow');
+      const trigger=page.locator('.nav-menu-toggle').first();
+      check(await trigger.isVisible(),'rc839-01 '+name+' mobile navigation toggle available');
+      await trigger.click();
+      const menuCount=await page.locator('[data-mobile-language-row] .lang-switch').count();
+      check(menuCount===4,'rc839-01 '+name+' all four languages accessible in mobile menu');
+      check(errors.length===0,'rc839-01 '+name+' no browser exceptions');
+    }catch(error){
+      failures++;results.push('FAIL: rc839-01 '+name+' '+String(error).slice(0,550));
+    }finally{await page.close();}
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');
