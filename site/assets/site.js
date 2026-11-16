@@ -1688,7 +1688,7 @@
     return {valid:true,message:''};
   }
   function updatePassengerPricePreview(product){
-    // FBM exposes a single canonical passenger price shared by children and
+    // The catalog exposes one canonical passenger price shared by children and
     // babies. Display it for both groups; never infer it from UI defaults.
     const hints=[...document.querySelectorAll('[data-passenger-price-info]')];
     if(!hints.length)return;
@@ -1729,7 +1729,7 @@
       if(field&&!field.querySelector('[data-passenger-price-info]')){
         const hint=document.createElement('small');hint.className='passenger-price-hint';
         hint.dataset.passengerPriceInfo=name;hint.setAttribute('aria-live','polite');
-        // Show each canonical FBM passenger price before its count selector.
+        // Show the canonical passenger rate before each count selector.
         field.insertBefore(hint,field.querySelector('select[name="'+name+'"]'));
       }
     }
