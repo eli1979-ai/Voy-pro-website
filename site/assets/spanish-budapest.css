@@ -120,3 +120,29 @@ body.es-budapest{margin:0;min-width:0;max-width:100%;font-size:16px;line-height:
   .es-budapest .es-hero{padding-top:36px}
   .es-budapest .es-detail-card{padding:18px}
 }
+
+/* Match the English landing/tour hero: copy and photography side by side on desktop. */
+@media(min-width:801px){
+  .es-budapest .es-hero>.wrap{
+    display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
+    grid-template-rows:auto auto auto auto;column-gap:36px;row-gap:8px;align-items:center
+  }
+  .es-budapest .es-hero>.wrap>.eyebrow,
+  .es-budapest .es-hero>.wrap>h1,
+  .es-budapest .es-hero>.wrap>p:not(.eyebrow),
+  .es-budapest .es-hero>.wrap>.es-hero-actions{grid-column:1;min-width:0}
+  .es-budapest .es-hero>.wrap>h1{margin:0}
+  .es-budapest .es-hero>.wrap>p:not(.eyebrow){margin:0}
+  .es-budapest .es-hero>.wrap>.es-hero-actions{margin-top:12px}
+  .es-budapest .es-hero>.wrap>.es-feature-media{
+    grid-column:2;grid-row:1 / 5;align-self:center;
+    width:100%;max-width:none;margin:0;padding:0;min-width:0
+  }
+  .es-budapest .es-hero>.wrap>.es-feature-media img{
+    aspect-ratio:4/5;max-height:470px;min-height:320px;object-fit:cover
+  }
+}
+@media(max-width:800px){
+  .es-budapest .es-hero>.wrap>.es-feature-media{margin:24px 0 0;padding:0;max-width:100%}
+  .es-budapest .es-hero>.wrap>.es-feature-media img{aspect-ratio:16/10;max-height:330px}
+}
