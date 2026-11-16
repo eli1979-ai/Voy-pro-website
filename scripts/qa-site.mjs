@@ -16,6 +16,28 @@ const htmlMap=new Map(htmlFiles.map(p=>[rel(p),read(p)]));
 const errors=[], warnings=[];
 
 const fail=(file,msg)=>errors.push(file+': '+msg);
+// Star glyphs carry review ratings and must meet WCAG AA text contrast on
+// both the white and paper-light review card backgrounds.
+const getStarColor=(file,selector)=>{
+  const contents=read(path.join(site,'assets',file));
+  return contents.match(new RegExp('[.]'+selector.slice(1)+'[{]color:(#[0-9a-fA-F]{6})'))?.[1]||null;
+};
+const luminance=hex=>{
+  const rgb=hex.slice(1).match(/../g).map(x=>parseInt(x,16)/255)
+    .map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);
+  return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2];
+};
+const contrast=(a,b)=>{
+  const u=luminance(a),v=luminance(b);
+  return (Math.max(u,v)+.05)/(Math.min(u,v)+.05);
+};
+for(const [file,selector] of [['site.css','.stars'],['budapest-review-ticker.css','.vp-review-stars']]){
+  const color=getStarColor(file,selector);
+  if(!color||contrast(color,'#ffffff')<4.5||contrast(color,'#f7f6f3')<4.5)
+    fail('assets/'+file,selector+' rating stars must meet contrast >=4.5:1 on light cards');
+}
+
+
 // Regression guard: JavaScript-style // comments are invalid in plain CSS.
 // They can swallow subsequent selectors (e.g. SVG route stop labels) without
 // causing npm build to fail. Scan the shipped source CSS, not scripts or URLs.
@@ -194,7 +216,7 @@ for(const [prefix,label] of [
 }
 
 // Every Budapest tour language switcher: assistive technology must know
-// which localized route is current. Keep the existing strict 3-language
+// which localized route is current. Keep strict 4-language Budapest navigation
 // and exact-own-link checks for both legacy and newly introduced tours.
 for(const locale of ['', 'he/', 'hu/']){
   for(const slug of [
@@ -211,10 +233,10 @@ for(const locale of ['', 'he/', 'hu/']){
     const active=links.filter(link=>/class="[^"]*\bactive\b/.test(link));
     const current=links.filter(link=>/\baria-current="page"/.test(link));
     const expectedHref='/'+file.replace(/index\.html$/,'');
-    if(links.length!==3||active.length!==1||current.length!==1||active[0]!==current[0]||
+    if(links.length!==4||active.length!==1||current.length!==1||active[0]!==current[0]||
       !active[0].includes('href="'+expectedHref+'"')||
       (header.match(/\baria-current="page"/g)||[]).length!==1)
-      fail(file,'one current page must match the active locale link in the 3-language tour selector');
+      fail(file,'one current page must match the active locale link in the 4-language tour selector');
   }
 }
 
@@ -242,7 +264,7 @@ for(const file of editorialLocaleFiles){
     /\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
   const current=links.filter(link=>/\baria-current="page"/.test(link));
   const expectedHref=file==='index.html'?'/':'/'+file.replace(/index\.html$/,'');
-  if(links.length!==3||active.length!==1||current.length!==1||
+  if(links.length!==(file==='index.html'?3:4)||active.length!==1||current.length!==1||
     active[0]!==current[0]||!active[0].includes('href="'+expectedHref+'"')||
     (header.match(/\baria-current="page"/g)||[]).length!==1)
     fail(file,'home/editorial selected language must have one matching current-page link');
@@ -727,6 +749,57 @@ for(const lang of ['','he/','hu/','pt/']){
     fail(path,'Missing current click-to-load Google Maps / YouTube disclosure');
 }
 
+
+// Unknown Spanish paths must recover to a localized Budapest preview,
+// never expose a booking or imply unverified legal-language coverage.
+const fallback404=htmlMap.get('404.html')||'';
+if(!fallback404.includes('(he|hu|pt|es)')||
+   !fallback404.includes('title:\'Página no encontrada')||
+   !fallback404.includes("budapest:['/es/budapest/'"))
+  fail('404.html','Missing safe Spanish 404 recovery');
+
+// Spanish Budapest content-only preview: complete route matrix and no live checkout.
+// The ES runtime/selector must not be enabled until an independent locale audit.
+const spanishBudapestSlugs=[
+  '','tours/buda-castle-ezraider-tour','tours/buda-margaret-extended-tour',
+  'tours/margaret-island-ezraider-tour','tours/heroes-square-city-ezraider-tour',
+  'tours/citadella-advanced-ezraider-tour','buda-castle-without-walking',
+  'first-day','private-tours','group-tours','corporate-events',
+  'unique-things-to-do','where-to-stay','with-kids'
+];
+for(const slug of spanishBudapestSlugs){
+  const url='/es/budapest/'+(slug?slug+'/':'');
+  const path='es/budapest/'+(slug?slug+'/':'')+'index.html';
+  const html=htmlMap.get(path)||'';
+  if(!html.includes('<html lang="es">')||
+     !html.includes('content="index,follow"')||
+     !html.includes('href="https://voy-pro.com'+url+'"')||
+     !html.includes('id="cancellation-weather"')||
+     !html.includes('support@voy-pro.com')||
+     !html.includes('No se aceptan reservas reales'))
+    fail(path,'Spanish preview needs truthful metadata, policy and no-real-booking notice');
+  if(html.includes('/assets/site.js')||html.includes('data-track="booking_cta"')||
+     html.includes('id="booking"')||html.includes('pay_now_card'))
+    fail(path,'Spanish preview must not activate unlocalized booking/payment runtime');
+  // A local Spanish inquiry should reach the actual Budapest human support,
+  // with the page route included; never claim guide language availability.
+  if(!html.includes('https://wa.me/36300993099?text=')||
+     !html.includes(encodeURIComponent(url))||
+     !html.includes('>Consultar por WhatsApp</a>'))
+    fail(path,'Spanish page must offer a route-specific WhatsApp inquiry');
+  for(const locale of ['', 'he/', 'hu/', 'es/']){
+    const translated=locale+'budapest/'+(slug?slug+'/':'')+'index.html';
+    const route='/'+locale+'budapest/'+(slug?slug+'/':'');
+    const pageHtml=htmlMap.get(translated)||'';
+    if(!pageHtml.includes('hreflang="es"')||
+       !pageHtml.includes('https://voy-pro.com'+url)||
+       !pageHtml.includes('hreflang="x-default"')||
+       !pageHtml.includes('href="'+(locale==='es/'?route:url)+'"'))
+      fail(translated,'Missing reciprocal ES / x-default / language navigation');
+  }
+  if(!sitemapUrls.includes('https://voy-pro.com'+url))
+    fail(path,'Spanish Budapest route missing from sitemap');
+}
 
 console.log('QA scanned',htmlFiles.length,'HTML files and',sitemapUrls.length,'sitemap URLs.');
 for(const w of warnings) console.log('WARNING:',w);

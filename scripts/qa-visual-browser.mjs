@@ -20,7 +20,7 @@ const server=createServer(async(req,res)=>{
     let path=decodeURIComponent(url.pathname);
     // Local-only simulated fallback for visual QA; this does NOT validate
     // Vercel's actual public 404 rewrite or response headers.
-    if(/^\/(?:(?:he|hu|pt)\/)?qa-not-found-visual-20261030\/$/.test(path)){
+    if(/^\/(?:(?:he|hu|pt|es)\/)?qa-not-found-visual-20261030\/$/.test(path)){
       const fallback=await readFile(resolve(root,'404.html'));
       res.writeHead(404,{'Content-Type':'text/html; charset=utf-8',
         'Cache-Control':'no-store'});
@@ -1196,7 +1196,8 @@ try{
   for(const cfg of [
     {code:'he',heading:'העמוד לא נמצא.',budapest:'/he/budapest/',portugal:'/he/portugal/',manage:'/manage/?lang=he',dir:'rtl'},
     {code:'hu',heading:'Ez az oldal nem található.',budapest:'/hu/budapest/',portugal:'/portugal/',manage:'/manage/?lang=hu',dir:'ltr'},
-    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt',dir:'ltr'}
+    {code:'pt',heading:'Esta página não existe.',budapest:'/budapest/',portugal:'/pt/portugal/',manage:'/manage/?lang=pt',dir:'ltr'},
+    {code:'es',heading:'Esta página no existe.',budapest:'/es/budapest/',portugal:'/portugal/',manage:'/manage/',dir:'ltr'}
   ]){
     const name='404-locale-'+cfg.code;
     const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'});
@@ -1421,6 +1422,103 @@ try{
       check(errors.length===0,name+' no page errors');
     }catch(error){
       failures++;results.push('FAIL: '+name+' '+String(error).slice(0,700));
+    }finally{await page.close();}
+  }
+
+
+  // Spanish informational route smoke: no active bookings or unlocalized JS.
+  for(const [name,path,viewport] of [
+    ['es-home-320','/es/budapest/',{width:320,height:700}],
+    ['es-buda-390','/es/budapest/tours/buda-castle-ezraider-tour/',{width:390,height:844}],
+    ['es-family-320','/es/budapest/with-kids/',{width:320,height:700}]
+  ]){
+    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    await page.route('**/*',route=>{
+      try{return new URL(route.request().url()).origin===base?route.continue():route.abort();}
+      catch{return route.abort();}
+    });
+    try{
+      const response=await page.goto(base+path,{waitUntil:'load',timeout:20000});
+      check(response?.status()===200,name+' static page available');
+      // Earlier 29px transient existed at DOMContentLoaded, but vanished
+      // after the isolated Spanish stylesheet finished loading.
+      const cssReady=await page.evaluate(()=>[...document.styleSheets].some(sheet=>
+        sheet.href?.includes('/assets/spanish-budapest.css'))&&
+        getComputedStyle(document.body).marginLeft==='0px');
+      check(cssReady,name+' isolated Spanish CSS loaded before layout measurements');
+      const actual=await page.evaluate(()=>({
+        lang:document.documentElement.lang,
+        title:document.querySelector('h1')?.textContent?.trim(),
+        robots:document.querySelector('meta[name="robots"]')?.content,
+        preview:document.querySelector('.es-preview')?.textContent||'',
+        rows:document.querySelectorAll('#cancellation-weather li').length,
+        activeBooking:!!document.querySelector('script[src*="site.js"],[data-track="booking_cta"],#booking'),
+        overflow:document.documentElement.scrollWidth-innerWidth
+      }));
+      check(actual.lang==='es'&&actual.title?.length>10,name+' Spanish page identity and heading');
+      check(actual.robots==='index,follow'&&actual.preview.includes('No se aceptan reservas reales'),
+        name+' visible preview and published-locale SEO metadata');
+      check(actual.rows===4&&!actual.activeBooking,name+' four approved policy rows and no live booking');
+      if(actual.overflow>2){
+        const offenders=await page.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>{
+          const r=el.getBoundingClientRect();
+          return {tag:el.tagName,cls:String(el.className||'').slice(0,75),
+            left:Math.round(r.left),right:Math.round(r.right),
+            width:Math.round(r.width),client:el.clientWidth,scroll:el.scrollWidth};
+        }).filter(x=>x.right>innerWidth+2||x.scroll>x.client+3).slice(0,16));
+        results.push('DIAG: '+name+' horizontal elements '+JSON.stringify(offenders));
+      }
+      check(actual.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+actual.overflow+'px)');
+      check(errors.length===0,name+' no browser script errors');
+    }catch(error){
+      failures++;results.push('FAIL: '+name+' browser error '+String(error).slice(0,700));
+    }finally{await page.close();}
+  }
+
+
+  // RC839-01: the 320px header must never show a half-clipped Hebrew label
+  // or a misleading partial fourth language; all four must remain reachable
+  // in the existing mobile navigation menu.
+  for(const [name,route] of [
+    ['en','/budapest/'],['he','/he/budapest/'],['hu','/hu/budapest/']
+  ]){
+    const page=await browser.newPage({viewport:{width:320,height:812},
+      deviceScaleFactor:1,reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',error=>errors.push(String(error)));
+    await page.route('**/*',request=>{
+      try{return new URL(request.request().url()).origin===base
+        ?request.continue():request.abort();}
+      catch{return request.abort();}
+    });
+    try{
+      const response=await page.goto(base+route,{waitUntil:'load',timeout:20000});
+      check(response?.status()===200,'rc839-01 '+name+' route HTTP 200');
+      const hdr=await page.evaluate(()=>{
+        const picker=document.querySelector('header .language-picker');
+        const links=[...(picker?.querySelectorAll('.lang-switch')||[])];
+        const active=links.filter(a=>a.getAttribute('aria-current')==='page');
+        const visible=links.filter(a=>getComputedStyle(a).display!=='none');
+        const item=active[0]?.getBoundingClientRect();
+        const holder=picker?.getBoundingClientRect();
+        return {total:links.length,visible:visible.length,active:active.length,
+          activeFullyVisible:!!(item&&holder&&item.left>=holder.left-1&&
+            item.right<=holder.right+1&&item.width>0),
+          overflow:document.documentElement.scrollWidth-innerWidth};
+      });
+      check(hdr.total===4&&hdr.active===1&&hdr.visible===1&&hdr.activeFullyVisible,
+        'rc839-01 '+name+' one unclipped active header language at 320px');
+      check(hdr.overflow<=2,'rc839-01 '+name+' no horizontal page overflow');
+      const trigger=page.locator('.nav-menu-toggle').first();
+      check(await trigger.isVisible(),'rc839-01 '+name+' mobile navigation toggle available');
+      await trigger.click();
+      const menuCount=await page.locator('[data-mobile-language-row] .lang-switch').count();
+      check(menuCount===4,'rc839-01 '+name+' all four languages accessible in mobile menu');
+      check(errors.length===0,'rc839-01 '+name+' no browser exceptions');
+    }catch(error){
+      failures++;results.push('FAIL: rc839-01 '+name+' '+String(error).slice(0,550));
     }finally{await page.close();}
   }
 

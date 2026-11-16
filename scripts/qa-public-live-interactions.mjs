@@ -443,9 +443,13 @@ await scenario('Budapest exact business map rendered using API fixture',
     ok(await link.getAttribute('href')===EXPECTED_MAP,'official business link exact');
     const frame=page.locator('[data-branch-meeting-point] iframe.meeting-map-frame');
     const raw=await frame.getAttribute('src');
-    const src=new URL(raw);
+    ok(raw===null,'Google iframe is not requested before explicit visitor action');
+    ok(await page.locator('[data-branch-meeting-point] [data-map-load]').count()===1,
+      'visitor has an explicit Google map load control');
+    const deferred=await frame.getAttribute('data-map-src');
+    const src=new URL(deferred);
     ok(src.origin==='https://www.google.com'&&src.pathname==='/maps/embed',
-      'Google embed is a business-specific map');
+      'deferred Google embed uses the exact business pin');
     const pb=src.searchParams.get('pb')||'';
     ok(pb.includes('0x0:0xbfcd8e3fb5a649b5')&&pb.includes('47.4944')&&pb.includes('19.0552'),
       'correct Google business CID and coordinates');
@@ -464,7 +468,14 @@ await scenario('Marvao public meeting map markup',
     const map=page.locator('[data-branch-meeting-point] iframe.meeting-map-frame');
     ok(await map.count()===1,'meeting map iframe created');
     const raw=await map.getAttribute('src');
-    ok(Boolean(raw)&&/^https:\/\//.test(raw),'map iframe has HTTPS source (remote iframe deliberately blocked)');
+    ok(raw===null,'Marvao iframe is not requested before explicit visitor action');
+    ok(await page.locator('[data-branch-meeting-point] [data-map-load]').count()===1,
+      'visitor has an explicit Marvao map load control');
+    const deferred=await map.getAttribute('data-map-src');
+    const url=new URL(deferred);
+    ok(url.origin==='https://www.google.com'&&url.pathname==='/maps'&&
+      url.searchParams.get('output')==='embed',
+      'deferred Marvao map uses the approved HTTPS Google embed');
   });
 // Verify the *deployed* Marvão manual WhatsApp handoff copy and validation.
 // Never open WhatsApp or send the guest's message: only exercise a past-date

@@ -99,17 +99,18 @@ requireText(css,'.network-support-action:focus-visible','network support keyboar
 
 
 // The single network 404 must adapt its human-facing recovery to known
-// HE/HU/PT prefix URLs without changing robots, Vercel rules or booking flow.
+// HE/HU/PT/ES prefix URLs without changing robots, Vercel rules or booking flow.
 for(const marker of [
   'data-404-skip','data-404-heading','data-404-intro',
   'data-404-budapest','data-404-portugal','data-404-manage',
   'data-404-help','data-404-support',
-  'const locale404=(location.pathname.match(/^\\/(he|hu|pt)\\//)',
+  'const locale404=(location.pathname.match(/^\\/(he|hu|pt|es)\\//)',
   "if(locale404==='he')",
   "document.documentElement.dir='rtl'",
   "'/he/budapest/'","'/he/portugal/'",
   "'/hu/budapest/'","'/pt/portugal/'",
   "'/manage/?lang=he'","'/manage/?lang=hu'",
+  "'/es/budapest/'","title:'Página no encontrada",
   "if(!copy)return;"
 ]){
   requireText(notFound,marker,'404 locale recovery marker missing: '+marker);

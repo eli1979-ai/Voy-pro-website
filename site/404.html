@@ -11,8 +11,17 @@
 /* Network recovery stays English by default; localize only established
    first-path language prefixes, without touching booking or 404 routing. */
 (function(){
-  const locale404=(location.pathname.match(/^\/(he|hu|pt)\//)||[])[1];
+  const locale404=(location.pathname.match(/^\/(he|hu|pt|es)\//)||[])[1];
   const translations={
+    es:{
+      title:'Página no encontrada | VOY PRO',description:'No encontramos la página solicitada.',
+      skip:'Ir al contenido principal',heading:'Esta página no existe.',
+      intro:'Consulta las experiencias de Budapest o contacta con el equipo; las reservas se confirman personalmente.',
+      budapest:['/es/budapest/','Explorar Budapest en español'],
+      portugal:['/portugal/','Explorar Marvão (en inglés)'],
+      manage:['/manage/','Gestionar una reserva (en inglés)'],
+      help:'¿Necesitas ayuda? ',support:'Escribir al soporte de VOY PRO'
+    },
     he:{
       title:'העמוד לא נמצא | VOY PRO',description:'העמוד המבוקש לא נמצא.',
       skip:'דלגו לתוכן הראשי',heading:'העמוד לא נמצא.',
@@ -64,4 +73,4 @@
   for(const key of ['budapest','portugal','manage'])setLink(key,copy[key]);
 })();
 </script>
-<script src="/assets/runtime-config.js"></script><script src="/assets/site.js"></script></body></html>
+<script src="/assets/runtime-config.js"></script><script src="/assets/site.js"></script><script>if(/^\/es\//.test(location.pathname))document.documentElement.lang="es";</script></body></html>

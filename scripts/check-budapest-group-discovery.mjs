@@ -21,10 +21,10 @@ for(const locale of ['', 'he/', 'hu/']){
     const active=links.filter(link=>/\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
     const current=links.filter(link=>/\baria-current="page"/.test(link));
     const expected='href="/'+locale+'budapest/'+slug+'/"';
-    if(links.length!==3||active.length!==1||current.length!==1||
+    if(links.length!==4||active.length!==1||current.length!==1||
       active[0]!==current[0]||!active[0].includes(expected)||
       (header.match(/\baria-current="page"/g)||[]).length!==1)
-      failures.push(file+': service page needs one active/current own-language link across EN/HE/HU');
+      failures.push(file+': service page needs one active/current own-language link across EN/HE/HU/ES');
   }
 }
 
