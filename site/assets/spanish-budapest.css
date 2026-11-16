@@ -2,8 +2,8 @@
    Layout, components and responsive behaviour come from the shared English
    stylesheets (site.css and the Budapest add-ons). This file only styles the
    Spanish-only static replacements for runtime features: the no-JS mobile
-   menu, the WhatsApp inquiry panel, the static meeting-point card, the
-   group/corporate WhatsApp checklist and the opt-in-free Thule placeholder. */
+   menu, the WhatsApp inquiry panel, the static meeting-point card and the
+   group/corporate WhatsApp checklist. */
 
 /* No-JS mobile menu: same trigger styling and breakpoints as the English
    runtime menu (.nav-menu-toggle), rendered with <details>/<summary>. */
@@ -38,10 +38,6 @@
 .es-b2b-whatsapp h3{margin:0 0 10px}
 .es-b2b-whatsapp ul{margin:0 0 16px;padding-inline-start:20px;line-height:1.7}
 .es-b2b-whatsapp .btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px}
-
-/* Thule seat cards: no third-party image request on Spanish pages. */
-.es-budapest .es-seat-neutral{background:linear-gradient(135deg,#173649,#456374);color:#fff;border-radius:14px}
-.es-budapest .es-seat-neutral span{font-size:20px;font-weight:850;letter-spacing:.02em;text-align:center}
 
 /* Tap targets: language pills ≥ 24px; FAQ questions get a 44px hit area
    (padding offset by negative margin, so the visual layout is unchanged). */

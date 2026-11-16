@@ -1564,6 +1564,83 @@ try{
     }finally{await page.close();}
   }
 
+  // Issue #826: the official Thule seat photos are first-party assets. On the four
+  // EZRaider locales and the four Budapest family pages both photos must load from
+  // /assets/images/thule/, decode and display at 320/390/1440 with zero requests to
+  // any Thule host, no remote-photo opt-in control left, and no horizontal overflow.
+  // The EZRaider video player (its own consent flow) must stay in place.
+  const thulePages=[
+    ['ezraider-en','/ezraider/'],['ezraider-he','/he/ezraider/'],
+    ['ezraider-hu','/hu/ezraider/'],['ezraider-pt','/pt/ezraider/'],
+    ['with-kids-en','/budapest/with-kids/'],['with-kids-he','/he/budapest/with-kids/'],
+    ['with-kids-hu','/hu/budapest/with-kids/'],['with-kids-es','/es/budapest/with-kids/']
+  ];
+  const thuleSize={'yepp-2-maxi.webp':500,'yepp-junior.webp':560};
+  for(const width of [320,390,1440]){
+    for(const [slug,route] of thulePages){
+      const page=await browser.newPage({viewport:{width,height:width===1440?900:812},
+        deviceScaleFactor:1,reducedMotion:'reduce'});
+      const thuleRequests=[],assetStatus={},errors=[];
+      page.on('pageerror',error=>errors.push(String(error)));
+      page.on('response',response=>{
+        const match=response.url().match(/\/assets\/images\/thule\/([a-z0-9-]+\.webp)$/);
+        if(match)assetStatus[match[1]]=response.status();
+      });
+      await page.route('**/*',request=>{
+        try{
+          const url=new URL(request.request().url());
+          if(/(^|\.)thule\.com$/i.test(url.hostname))thuleRequests.push(url.href);
+          return url.origin===base?request.continue():request.abort();
+        }catch{return request.abort();}
+      });
+      try{
+        const response=await page.goto(base+route,{waitUntil:'load',timeout:20000});
+        check(response?.status()===200,'thule '+width+' '+slug+' route 200');
+        const facts=await page.evaluate(async()=>{
+          const photos=[];
+          for(const img of document.querySelectorAll('img[src^="/assets/images/thule/"]')){
+            img.scrollIntoView({block:'center'});
+            if(!img.complete)await new Promise(done=>{
+              img.addEventListener('load',done,{once:true});
+              img.addEventListener('error',done,{once:true});setTimeout(done,8000);});
+            let decoded=false;try{await img.decode();decoded=true;}catch{}
+            const box=img.getBoundingClientRect(),style=getComputedStyle(img);
+            photos.push({file:img.getAttribute('src').split('/').pop(),natural:img.naturalWidth,decoded,
+              w:Math.round(box.width),h:Math.round(box.height),
+              shown:style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)>0,
+              alt:(img.getAttribute('alt')||'').trim().length>0,lazy:img.getAttribute('loading')==='lazy'});
+          }
+          return {photos,
+            leftovers:document.querySelectorAll('img[data-thule-src],[data-thule-load],.thule-image-opt-in').length,
+            remoteImages:[...document.images].filter(img=>/thule\.com/i.test(img.currentSrc||img.src)).length,
+            video:document.querySelectorAll('[data-ez-video-player]').length,
+            overflow:document.documentElement.scrollWidth-innerWidth};
+        });
+        const files=facts.photos.map(photo=>photo.file).sort().join(',');
+        check(files==='yepp-2-maxi.webp,yepp-junior.webp',
+          'thule '+width+' '+slug+' both first-party seat photos present ('+files+')');
+        for(const photo of facts.photos)
+          check(photo.natural===thuleSize[photo.file]&&photo.decoded&&photo.shown&&photo.w>=100&&
+            photo.h>=100&&photo.alt&&photo.lazy&&assetStatus[photo.file]===200,
+            'thule '+width+' '+slug+' '+photo.file+' HTTP '+assetStatus[photo.file]+', decoded '+
+            photo.natural+'px, displayed '+photo.w+'x'+photo.h);
+        check(thuleRequests.length===0&&facts.remoteImages===0,'thule '+width+' '+slug+
+          ' zero Thule network requests'+(thuleRequests.length?' ('+thuleRequests.join(', ')+')':''));
+        check(facts.leftovers===0,'thule '+width+' '+slug+' no remote-photo opt-in control left');
+        if(slug.startsWith('ezraider'))
+          check(facts.video===1,'thule '+width+' '+slug+' EZRaider video player still present');
+        check(facts.overflow<=2&&errors.length===0,
+          'thule '+width+' '+slug+' no horizontal overflow, no page errors');
+        const grid=page.locator(slug.startsWith('ezraider')?'.ez-seat-grid':'.family-seat-grid').first();
+        await grid.scrollIntoViewIfNeeded();
+        await grid.screenshot({path:join(out,'thule-'+width+'-'+slug+'.png'),animations:'disabled'});
+        results.push('SCREENSHOT: thule-'+width+'-'+slug+'.png | '+width+'px | Thule seat cards');
+      }catch(error){
+        failures++;results.push('FAIL: thule '+width+' '+slug+' '+String(error).slice(0,500));
+      }finally{await page.close();}
+    }
+  }
+
 }finally{
   await browser.close();await new Promise(done=>server.close(done));
   const report=['# VOY PRO browser visual smoke report','','Local Chromium + built static dist. External API, WhatsApp, video and analytics calls intentionally blocked.','','','- Total failed checks: '+failures,'','',...results,''].join('\n');
