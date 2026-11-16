@@ -845,7 +845,8 @@ for(const slug of spanishBudapestSlugs){
     fail(path,'Spanish page must keep the approved refund-on-paid-amounts sentence');
   const heroSrc=html.match(/<div class="hero-photo-frame[^"]*"[^>]*>\s*<img[^>]*src="([^"]+)"|<figure class="hero-photo-frame"><img[^>]*src="([^"]+)"/)?.slice(1).find(Boolean);
   const enHeroSrc=enHtml.match(/<div class="hero-photo-frame[^"]*"[^>]*>\s*<img[^>]*src="([^"]+)"|<figure class="hero-photo-frame"><img[^>]*src="([^"]+)"/)?.slice(1).find(Boolean);
-  if(enHeroSrc&&heroSrc!==enHeroSrc)
+  const sameAsset=v=>String(v||'').replace('https://voy-pro.com','');
+  if(enHeroSrc&&sameAsset(heroSrc)!==sameAsset(enHeroSrc))
     fail(path,'Spanish hero photo must match the English hero ('+enHeroSrc+')');
   // Visible copy must be Spanish: no untranslated English sentences.
   const visible=mainOf(html).replace(/<[^>]+>/g,'\n').split('\n').map(t=>t.trim()).filter(t=>t.length>18);

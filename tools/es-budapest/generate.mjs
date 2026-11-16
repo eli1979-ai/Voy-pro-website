@@ -200,6 +200,8 @@ function transform(r) {
   //    Private page: the approved Spanish private price (70 € + 30 € suplemento).
   if (r === 'private-tours/') body = body.replace(/(<div class="facts[^"]*"><span data-runtime-price="">)From €70(<\/span>)/, '$1From €100 per rider$2');
 
+  // Same image files, served same-origin (works offline in QA and on previews).
+  body = body.replace(/(<img\b[^>]*\bsrc=")https:\/\/voy-pro\.com(\/assets\/)/g, '$1$2');
   body = stripJsAttributes(rewriteLinks(body, r));
   body = translateHtml(body, dict, missing, ctx);
 
