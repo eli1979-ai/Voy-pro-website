@@ -83,3 +83,40 @@ body.es-budapest{margin:0;min-width:0;max-width:100%;font-size:16px;line-height:
 .es-budapest .es-faq summary{font-weight:750;cursor:pointer;list-style-position:inside}
 .es-budapest .es-faq details p{padding:0 16px}
 @media(max-width:700px){.es-budapest .es-photo-grid,.es-budapest .es-journey-grid{grid-template-columns:1fr}.es-budapest .es-photo-grid{gap:12px}}
+
+/* Parity pass — source-matched route/guide cards and English-theme alignment. */
+.es-budapest{background:#f7f6f3;color:#101820}
+.es-budapest header{position:sticky;top:0;z-index:20;border-bottom:1px solid #dbe2e6}
+.es-budapest .es-preview{background:#fff0bd;color:#604b00;font-weight:850;letter-spacing:.02em}
+.es-budapest .es-hero{background:#0d151d;padding:60px 0 48px}
+.es-budapest .es-hero .eyebrow{color:#83c7ef}
+.es-budapest .es-hero h1{letter-spacing:-.035em}
+.es-budapest .es-feature-media{margin-top:34px}
+.es-budapest .es-feature-media img{border:1px solid rgba(255,255,255,.15);box-shadow:0 20px 55px rgba(0,0,0,.22)}
+.es-budapest .es-detail-parity{background:#f2f6f8}
+.es-budapest .es-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
+.es-budapest .es-detail-card{background:#fff;border:1px solid #dbe2e6;border-radius:18px;padding:22px;min-width:0}
+.es-budapest .es-detail-card h3{font-size:20px;line-height:1.3;margin:0 0 10px}
+.es-budapest .es-detail-card p{font-size:15px;color:#435766;margin:0}
+.es-budapest .es-detail-card a{display:inline-block;margin-top:12px;font-weight:850;color:#0d4d7c;text-underline-offset:3px}
+.es-budapest .es-proof-links{background:#fff}
+.es-budapest .es-proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.es-budapest .es-proof-grid a{display:block;background:#fff;border:1px solid #dbe2e6;border-radius:16px;padding:20px;text-decoration:none;font-weight:850;color:#0d4d7c}
+.es-budapest .es-proof-grid a span{display:block;margin-top:5px;font-size:13px;font-weight:450;color:#435766}
+.es-budapest .es-quickfacts{margin:0;padding:0;background:#fff}
+.es-budapest .es-facts-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #dbe2e6;border-radius:16px;overflow:hidden;transform:translateY(-10px);background:#fff;box-shadow:0 10px 24px rgba(16,24,32,.07)}
+.es-budapest .es-facts-grid div{padding:16px;border-inline-end:1px solid #dbe2e6}
+.es-budapest .es-facts-grid div:last-child{border-inline-end:0}
+.es-budapest .es-facts-grid strong{display:block;font-size:14px}
+.es-budapest .es-facts-grid small{display:block;margin-top:5px;font-size:12px;color:#435766}
+@media(max-width:800px){
+  .es-budapest .es-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .es-budapest .es-facts-grid{grid-template-columns:repeat(2,minmax(0,1fr));transform:none}
+  .es-budapest .es-facts-grid div{border-bottom:1px solid #dbe2e6}
+  .es-budapest .es-proof-grid{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+  .es-budapest .es-detail-grid{grid-template-columns:1fr}
+  .es-budapest .es-hero{padding-top:36px}
+  .es-budapest .es-detail-card{padding:18px}
+}
