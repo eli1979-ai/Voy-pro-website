@@ -418,6 +418,51 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           name+' booking form includes '+key);
       }
     }
+    // Focused P1 participant-count visual regression (no real booking/provider calls).
+    // The child passenger price note must sit above its count control and all
+    // three selects must share a baseline in the desktop/3-column mobile grid.
+    if(booking&&['budapest-en-desktop','budapest-en-mobile',
+                 'budapest-he-mobile','budapest-hu-narrow'].includes(name)){
+      try{
+        await page.waitForSelector('#availability-form [data-passenger-price-info]',{timeout:5000});
+        const layout=await page.evaluate(()=>{
+          const form=document.querySelector('#availability-form');
+          const names=['adults','children','babies'];
+          const selects=names.map(n=>form?.querySelector('.party-fields select[name="'+n+'"]'));
+          const hint=form?.querySelector('.party-fields [data-passenger-price-info]');
+          const parent=hint?.closest('.field');
+          const row=form?.querySelector('.party-fields');
+          const tops=selects.map(x=>x?.getBoundingClientRect().top);
+          return {
+            fields:selects.every(Boolean),
+            hintBeforeSelect:!!hint&&!!parent&&hint.nextElementSibling===selects[1],
+            hintVisible:!!hint&&hint.getBoundingClientRect().height>0,
+            hintText:(hint?.textContent||'').trim(),
+            rowColumns:getComputedStyle(row).gridTemplateColumns.split(' ').length,
+            controlTops:tops,
+            pageOverflow:document.documentElement.scrollWidth>window.innerWidth+1,
+            labelText:names.map(n=>form?.querySelector('.party-fields select[name="'+n+'"]')?.closest('.field')?.querySelector('label')?.textContent?.trim()||'')
+          };
+        });
+        check(layout.fields&&layout.hintBeforeSelect&&layout.hintVisible&&layout.hintText.length>0,
+          name+' child price hint visible immediately before child selector');
+        check(!layout.pageOverflow,name+' participant grid has no horizontal overflow');
+        check(layout.labelText.every(Boolean),name+' participant controls retain accessible visible labels');
+        if(viewport.width>360){
+          check(layout.rowColumns===3&&layout.controlTops.every(t=>Number.isFinite(t))&&
+            Math.max(...layout.controlTops)-Math.min(...layout.controlTops)<=2,
+            name+' three participant selectors share a vertical baseline');
+        }else{
+          check(layout.rowColumns===1,name+' 320px participant selectors stack safely');
+        }
+        const party=page.locator('#availability-form .party-fields');
+        await party.scrollIntoViewIfNeeded();
+        await party.screenshot({path:join(out,'participant-'+name+'.png'),animations:'disabled'});
+        results.push('SCREENSHOT: participant-'+name+'.png | '+viewport.width+'px | participant count controls');
+      }catch(error){
+        failures++;results.push('FAIL: participant '+name+' '+String(error).slice(0,380));
+      }
+    }
     if(request){
       const requestForm=page.locator('#request [data-portugal-request-form]');
       check(await requestForm.count()===1,
