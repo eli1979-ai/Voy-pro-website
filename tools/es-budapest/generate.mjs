@@ -36,11 +36,16 @@ function waHref(r) {
 
 function rewriteLinks(html, r) {
   // Internal Budapest routes that exist in Spanish → Spanish equivalents.
-  html = html.replace(/href="(?:https:\/\/voy-pro\.com)?\/budapest\/([^"#?]*)(#[^"]*)?"/g, (all, rest, hash) => {
-    const target = rest && !rest.endsWith('/') ? rest + '/' : rest;
-    if (!ROUTES.includes(target)) return all;
-    const h = hash === '#booking' ? '#consulta' : (hash || '');
-    return 'href="' + esPath(target) + h + '"';
+  // Rewrite editorial links only. Explicit locale selectors (especially EN)
+  // must keep their target route instead of being converted back into ES.
+  html = html.replace(/<a\b[^>]*>/g, tag => {
+    if (/\bclass="[^"]*\blang-switch\b/.test(tag)) return tag;
+    return tag.replace(/href="(?:https:\/\/voy-pro\.com)?\/budapest\/([^"#?]*)(#[^"]*)?"/g, (all, rest, hash) => {
+      const target = rest && !rest.endsWith('/') ? rest + '/' : rest;
+      if (!ROUTES.includes(target)) return all;
+      const h = hash === '#booking' ? '#consulta' : (hash || '');
+      return 'href="' + esPath(target) + h + '"';
+    });
   });
   html = html.replace(/href="#booking"/g, 'href="#consulta"');
   // English-only destinations stay English but are announced as such.
