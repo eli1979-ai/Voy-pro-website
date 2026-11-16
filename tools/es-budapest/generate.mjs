@@ -202,6 +202,11 @@ function transform(r) {
 
   // Same image files, served same-origin (works offline in QA and on previews).
   body = body.replace(/(<img\b[^>]*\bsrc=")https:\/\/voy-pro\.com(\/assets\/)/g, '$1$2');
+  // EN sometimes embeds an absolute URL to this same site's static assets.
+  // Keep photos identical while allowing no-egress Chromium and preview hosts to
+  // load the shipped asset instead of making an unnecessary Production request.
+  body = body.replace(/https:\/\/voy-pro\.com(?=\/assets\/)/g, '');
+
   body = stripJsAttributes(rewriteLinks(body, r));
   body = translateHtml(body, dict, missing, ctx);
 
