@@ -823,6 +823,24 @@ for(const slug of spanishBudapestSlugs){
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
   if(ids.length!==new Set(ids).size)
     fail(path,'Duplicate IDs on Spanish page');
+  // Claude P1 regressions: real tour photography, approved rain wording and static decision facts.
+  if(!html.includes('Con lluvia o nieve ligera, el tour se realiza y proporcionamos chaquetas impermeables.'))
+    fail(path,'Spanish rain FAQ must match approved light-rain/light-snow policy');
+  if(html.includes('Con lluvia ligera el tour normalmente continúa'))
+    fail(path,'Spanish FAQ must not weaken approved rain/snow policy');
+  if(!html.includes('class="es-commercial-facts"')||
+     !html.includes('Punto de encuentro: centro de Pest'))
+    fail(path,'Spanish page must show approved static price/duration and meeting-point facts');
+  const galleryBlock=html.match(/<div class="es-photo-grid">([\s\S]*?)<\/div>/)?.[1]||'';
+  const photos=[...galleryBlock.matchAll(/<img[^>]*src="([^"]+)"/g)].map(m=>m[1]);
+  if(photos.length!==3||photos.length!==new Set(photos).size)
+    fail(path,'Spanish gallery must show three distinct images');
+  const heroSrc=html.match(/<figure class="es-feature-media"><img src="([^"]+)"/)?.[1];
+  if(heroSrc&&photos.includes(heroSrc))
+    fail(path,'Spanish hero and gallery must not repeat the same photo');
+  if(slug==='tours/heroes-square-city-ezraider-tour'&&
+    heroSrc!=='/assets/images/budapest/heroes-square-riders-20261106.jpg')
+    fail(path,'Heroes Square page must use its corresponding English hero image');
   if(!sitemapUrls.includes('https://voy-pro.com'+url))
     fail(path,'Spanish Budapest route missing from sitemap');
 }
