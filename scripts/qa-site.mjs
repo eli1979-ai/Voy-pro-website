@@ -797,6 +797,32 @@ for(const slug of spanishBudapestSlugs){
        !pageHtml.includes('href="'+(locale==='es/'?route:url)+'"'))
       fail(translated,'Missing reciprocal ES / x-default / language navigation');
   }
+  // ES editorial parity guard: all localized routes must have visible media,
+  // source-matched planning/itinerary, accessible FAQ and independently linked trust.
+  for(const selector of ['es-feature-media','es-quickfacts','es-visual-stories','es-photo-grid',
+                          'es-detail-parity','es-journey','es-faq','es-proof-links']){
+    if(!html.includes(selector)) fail(path,'Spanish page missing parity component: '+selector);
+  }
+  if((html.match(/<img\\b/g)||[]).length<4)
+    fail(path,'Spanish page must include a hero image and at least three gallery photographs');
+  if((html.match(/<details\\b/g)||[]).length<4)
+    fail(path,'Spanish page must include accessible native FAQ entries');
+  if(!html.includes('assets/spanish-budapest.css'))
+    fail(path,'Spanish responsive stylesheet missing');
+  const joinSiteAsset=src=>site+src;
+  const imageTags=[...html.matchAll(/<img\\b[^>]*>/g)].map(m=>m[0]);
+  for(const tag of imageTags){
+    const src=tag.match(/\\bsrc="([^"]+)"/)?.[1];
+    if(!src||!src.startsWith('/assets/images/'))
+      fail(path,'Spanish photo missing valid local src: '+tag.slice(0,80));
+    else if(!fs.existsSync(joinSiteAsset(src)))
+      fail(path,'Spanish page references missing image: '+src);
+    if(!/\\balt="[^"]*"/.test(tag))
+      fail(path,'Spanish photo missing accessible alt attribute');
+  }
+  const ids=[...html.matchAll(/\\bid="([^"]+)"/g)].map(m=>m[1]);
+  if(ids.length!==new Set(ids).size)
+    fail(path,'Duplicate IDs on Spanish page');
   if(!sitemapUrls.includes('https://voy-pro.com'+url))
     fail(path,'Spanish Budapest route missing from sitemap');
 }
