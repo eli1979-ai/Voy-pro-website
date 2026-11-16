@@ -77,12 +77,31 @@ for(const [sourceMarker,description] of bookingUxNeeds){
   if(!bookingUxSource.includes(sourceMarker))fail('assets/site.js',description);
 }
 
+// First-paint labels must be age-explicit even before FBM destination hydration.
+for(const [page,labels] of [
+  ['budapest/index.html',['Independent riders age 16+','Children ages 3–15','Babies ages 1–2']],
+  ['he/budapest/index.html',['רוכבים עצמאיים מגיל 16+','ילדים בגיל 3–15','תינוקות בגיל 1–2']],
+  ['hu/budapest/index.html',['Önálló vezetők 16 éves kortól','Gyermekek 3–15 éves korig','Kisgyermekek 1–2 éves korig']]
+]){
+  const source=htmlMap.get(page)||'';
+  for(const label of labels)if(!source.includes('>'+label+'</label>'))fail(page,'Initial participant age label missing: '+label);
+}
 // Participant count labels use canonical policy ages, and price hints sit above selects.
 for(const label of ["riders:`רוכבים עצמאיים מגיל ${riderAge}+`,","children:`ילדים בגיל ${childMin}–${childMax}`,","babies:`תינוקות בגיל ${babyMin}–${babyMax}`,","riders:`Önálló vezetők ${riderAge} éves kortól`,","children:`Gyermekek ${childMin}–${childMax} éves korig`,","babies:`Kisgyermekek ${babyMin}–${babyMax} éves korig`,","riders:`Independent riders age ${riderAge}+`,","children:`Children ages ${childMin}–${childMax}`,","babies:`Babies ages ${babyMin}–${babyMax}`,"]){
   if(!bookingUxSource.includes(label))fail('assets/site.js','Missing localized age label '+label);
 }
-if(!bookingUxSource.includes("childField.insertBefore(hint,childField.querySelector('select[name=\"children\"]'))")||bookingUxSource.includes('childField.appendChild(hint);'))
-  fail('assets/site.js','Child rate must precede the child count select');
+if(!bookingUxSource.includes("for(const name of ['children','babies'])")||
+   !bookingUxSource.includes('field.insertBefore(hint,field.querySelector(\'select[name="\'+name+\'"]\'))')||
+   bookingUxSource.includes('childField.appendChild(hint);'))
+  fail('assets/site.js','Both passenger rates must precede their count selects');
+if(!bookingUxSource.includes("hint.dataset.passengerPriceInfo==='babies'")||
+   !bookingUxSource.includes("const raw=product?.passengerPrice;"))
+  fail('assets/site.js','Child and baby prices must share FBM passengerPrice and remain fail-closed');
+for(const label of ['רוכבים עצמאיים מגיל 16+','ילדים בגיל 3–15','תינוקות בגיל 1–2',
+                    'Independent riders age 16+','Children ages 3–15','Babies ages 1–2',
+                    'Önálló vezetők 16 éves kortól','Gyermekek 3–15 éves korig','Kisgyermekek 1–2 éves korig']){
+  if(!bookingUxSource.includes(label))fail('assets/site.js','Missing initial age label '+label);
+}
 const partyLayoutCss=read(path.join(site,'assets/site.css'));
 if(!partyLayoutCss.includes('.party-fields .field select{margin-top:auto}')||!partyLayoutCss.includes('.party-fields .field{margin:0;min-width:0;display:flex;flex-direction:column}'))
   fail('assets/site.css','Participant selector alignment rule missing');

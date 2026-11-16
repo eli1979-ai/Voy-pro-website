@@ -429,23 +429,24 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           const form=document.querySelector('#availability-form');
           const names=['adults','children','babies'];
           const selects=names.map(n=>form?.querySelector('.party-fields select[name="'+n+'"]'));
-          const hint=form?.querySelector('.party-fields [data-passenger-price-info]');
+          const hints=['children','babies'].map(n=>form?.querySelector('.party-fields select[name="'+n+'"]')?.closest('.field')?.querySelector('[data-passenger-price-info]'));
+          const hint=hints[0];
           const parent=hint?.closest('.field');
           const row=form?.querySelector('.party-fields');
           const tops=selects.map(x=>x?.getBoundingClientRect().top);
           return {
             fields:selects.every(Boolean),
-            hintBeforeSelect:!!hint&&!!parent&&hint.nextElementSibling===selects[1],
-            hintVisible:!!hint&&hint.getBoundingClientRect().height>0,
-            hintText:(hint?.textContent||'').trim(),
+            hintBeforeSelect:hints.every((h,i)=>!!h&&h.parentElement===selects[i+1]?.closest('.field')&&h.nextElementSibling===selects[i+1]),
+            hintVisible:hints.every(h=>!!h&&h.getBoundingClientRect().height>0),
+            hintText:hints.map(h=>(h?.textContent||'').trim()),
             rowColumns:getComputedStyle(row).gridTemplateColumns.split(' ').length,
             controlTops:tops,
             pageOverflow:document.documentElement.scrollWidth>window.innerWidth+1,
             labelText:names.map(n=>form?.querySelector('.party-fields select[name="'+n+'"]')?.closest('.field')?.querySelector('label')?.textContent?.trim()||'')
           };
         });
-        check(layout.fields&&layout.hintBeforeSelect&&layout.hintVisible&&layout.hintText.length>0,
-          name+' child price hint visible immediately before child selector');
+        check(layout.fields&&layout.hintBeforeSelect&&layout.hintVisible&&layout.hintText.length===2&&layout.hintText.every(Boolean),
+          name+' child and baby prices visible above their selectors');
         check(!layout.pageOverflow,name+' participant grid has no horizontal overflow');
         check(layout.labelText.every(Boolean),name+' participant controls retain accessible visible labels');
         if(viewport.width>360){
