@@ -588,30 +588,33 @@ try{
   }
 }
 
-// Thule images must not trigger third-party requests before guest action.
+// Thule manufacturer images are approved first-party assets. Remote photos
+// must never be fetched, so there is no opt-in button for these two images.
 for(const page of [
   'ezraider/index.html','he/ezraider/index.html','hu/ezraider/index.html',
   'pt/ezraider/index.html','budapest/with-kids/index.html',
-  'he/budapest/with-kids/index.html','hu/budapest/with-kids/index.html'
+  'he/budapest/with-kids/index.html','hu/budapest/with-kids/index.html',
+  'es/budapest/with-kids/index.html'
 ]){
   const html=fs.readFileSync('site/'+page,'utf8');
-  const deferred=[...html.matchAll(/<img\b[^>]*\sdata-thule-src="https:\/\/www\.thule\.com\/-\/p\/[^"]+"[^>]*>/g)];
-  if(deferred.length!==2)fail(page,'Exactly two official Thule photos must be opt-in');
-  if(/<img\b[^>]*\ssrc="https:\/\/www\.thule\.com\//.test(html))
-    fail(page,'Thule photo contacted before visitor opt-in');
-  const buttons=[...html.matchAll(/<button\b[^>]*\sdata-thule-load(?:\s|>)/g)];
-  if(buttons.length!==2)fail(page,'Each official Thule photo needs an opt-in button');
-  for(const [index,image] of deferred.entries()){
-    if(!/\breferrerpolicy="no-referrer"/.test(image[0]))
-      fail(page,'Thule image '+(index+1)+' must not leak URL referrer');
+  for(const model of ['yepp-2-maxi.webp','yepp-junior.webp']){
+    const escaped=model.replace(/\./g,'\\.');
+    const re=new RegExp('<img\\b[^>]*\\bsrc="/assets/images/thule/'+escaped+'"[^>]*>','g');
+    const photos=[...html.matchAll(re)];
+    if(photos.length!==1)fail(page,'Expected one self-hosted Thule product photo '+model);
+    if(photos.length&&(!/\balt="[^"]+"/.test(photos[0][0])||!/\bloading="lazy"/.test(photos[0][0])))
+      fail(page,'Self-hosted Thule photo requires informative alt and lazy loading');
   }
+  if(/data-thule-src|data-thule-load|<img\b[^>]*\bsrc="https:\/\/www\.thule\.com\//.test(html))
+    fail(page,'Remote Thule photo / opt-in control remains');
+}
+for(const model of ['yepp-2-maxi.webp','yepp-junior.webp']){
+  if(!fs.existsSync('site/assets/images/thule/'+model))
+    fail('assets/images/thule/'+model,'Required first-party Thule image is missing');
 }
 const thuleRuntime=fs.readFileSync('site/assets/site.js','utf8');
-if(!thuleRuntime.includes("document.querySelectorAll('[data-thule-load]')")||
-   !thuleRuntime.includes("photo.setAttribute('src',url)")||
-   !thuleRuntime.includes("parsed.hostname==='www.thule.com'")){
-  fail('assets/site.js','Remote Thule photos require a verified visitor click');
-}
+if(thuleRuntime.includes("document.querySelectorAll('[data-thule-load]')"))
+  fail('assets/site.js','Old remote Thule loader must be removed');
 
 /* Keep site-owned Hebrew EZRaider branding canonical, without modifying
    authentic customer testimonials in the reviewed JSON source. */

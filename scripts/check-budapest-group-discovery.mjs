@@ -242,9 +242,10 @@ for(const {locale,prefix,home} of vehicleFiles){
     failures.push(path+': expected exactly one interactive video player');
   const seats=(html.match(/<article class="ez-card ez-seat-model"[\s\S]*?<\/article>/g)||[]);
   if(seats.length!==2)failures.push(path+': both child seats must have separate product cards');
-  for(const [model,label] of [['maxi','Thule Yepp 2 Maxi Rack Mount'],['junior','Thule Yepp Junior']]){
+  // Official Thule product photos are first-party assets (issue #826): no remote image URL.
+  for(const [model,label,photo] of [['maxi','Thule Yepp 2 Maxi Rack Mount','yepp-2-maxi.webp'],['junior','Thule Yepp Junior','yepp-junior.webp']]){
     const card=seats.find(card=>card.includes('data-ez-child-seat="'+model+'"'))||'';
-    if(!card.includes(label)||!card.includes('class="ez-seat-model-image"')||!/<img[^>]*src="https:\/\/www\.thule\.com\//.test(card))
+    if(!card.includes(label)||!card.includes('class="ez-seat-model-image"')||!card.includes('src="/assets/images/thule/'+photo+'"')||/thule\.com\/-\/p\//.test(card))
       failures.push(path+': '+model+' child seat product image and label are missing');
     if(!/<img[^>]*alt="[^"]+"/.test(card))
       failures.push(path+': '+model+' child seat image missing descriptive alt');

@@ -177,12 +177,7 @@ function transform(r) {
   // 4b. JS-only controls get static, privacy-first equivalents.
   //  - Cookie settings: Spanish pages set no optional cookies or analytics.
   body = body.replace(/(?:<br\/>)?<button type="button" class="footer-link-button" data-cookie-settings>[\s\S]*?<\/button>/g, '');
-  //  - Thule product photos load from thule.com only after opt-in (JS); show a neutral frame.
-  body = body.replace(/<div class="family-seat-media"><img\b[^>]*\balt="([^"]*)"[^>]*>\s*<button[^>]*data-thule-load[^>]*>[\s\S]*?<\/button><\/div>/g,
-    (all, alt) => `<div class="family-seat-media es-seat-neutral" role="img" aria-label="${alt}"><span>${/Junior/.test(alt) ? 'Thule Yepp Junior' : 'Thule Yepp 2 Maxi'}</span></div>`);
-  //    No product image is shown, so drop the image credit (keep the model number).
-  body = body.replace(/Thule model 12041302 · Product image: Thule/g, 'Thule model 12041302')
-    .replace(/<span class="family-seat-source">Product image: Thule<\/span>/g, '');
+  //  - Local first-party Thule photos: preserve EN image markup and credit.
   //  - Group / corporate enquiry planner (JS form) → static WhatsApp checklist.
   body = body.replace(/<form\b[^>]*>[\s\S]*?<\/form>/g, () => b2bPanel(r));
   //  - Review counts in Spanish number style (1327, not 1,327).
