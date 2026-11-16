@@ -146,3 +146,12 @@ body.es-budapest{margin:0;min-width:0;max-width:100%;font-size:16px;line-height:
   .es-budapest .es-hero>.wrap>.es-feature-media{margin:24px 0 0;padding:0;max-width:100%}
   .es-budapest .es-hero>.wrap>.es-feature-media img{aspect-ratio:16/10;max-height:330px}
 }
+
+/* P1 editorial acceptance: visible EN-aligned static tour facts, no booking API. */
+.es-budapest .es-commercial-facts{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 4px;grid-column:1;min-width:0}
+.es-budapest .es-commercial-facts .es-fact{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.36);border-radius:999px;color:#fff;background:rgba(255,255,255,.07);font-size:12px;line-height:1.4;font-weight:750;padding:8px 12px;max-width:100%}
+.es-budapest .es-links a{display:inline-flex;align-items:center;min-height:34px;padding:5px 6px}
+@media(min-width:801px){.es-budapest .es-hero>.wrap{grid-template-rows:auto auto auto auto auto}
+.es-budapest .es-hero>.wrap>.es-commercial-facts{grid-column:1;grid-row:auto}
+.es-budapest .es-hero>.wrap>.es-feature-media{grid-row:1 / -1}}
+@media(max-width:700px){.es-budapest .es-commercial-facts{gap:6px;margin-top:14px}.es-budapest .es-commercial-facts .es-fact{font-size:12px;padding:7px 10px}}
