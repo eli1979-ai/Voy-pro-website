@@ -800,6 +800,28 @@ for(const slug of spanishBudapestSlugs){
        !pageHtml.includes('href="'+(locale==='es/'?route:url)+'"'))
       fail(translated,'Missing reciprocal ES / x-default / language navigation');
   }
+  // Both visible locale selectors must navigate to the matching route;
+  // EN must not point back at the current Spanish page.
+  const localeSwitchTargets=[
+    ['en','/budapest/'+(slug?slug+'/':'')],
+    ['hu','/hu/budapest/'+(slug?slug+'/':'')],
+    ['he','/he/budapest/'+(slug?slug+'/':'')],
+    ['es',url]
+  ];
+  for(const [label,pattern] of [
+    ['desktop',/<span aria-label="Idioma" class="language-picker">([\s\S]*?)<\/span>/],
+    ['mobile',/<div class="mobile-language-row" aria-label="Idioma">([\s\S]*?)<\/div>/]
+  ]){
+    const picker=html.match(pattern)?.[1]||'';
+    const links=[...picker.matchAll(/<a\b[^>]*class="[^"]*\blang-switch\b[^"]*"[^>]*>/g)].map(m=>m[0]);
+    if(links.length!==4){fail(path,label+' Spanish locale switch must have four links');continue;}
+    for(const [lang,href] of localeSwitchTargets){
+      const matches=links.filter(tag=>tag.includes('lang="'+lang+'"'));
+      if(matches.length!==1||!matches[0].includes('href="'+href+'"')||
+         !matches[0].includes('hreflang="'+lang+'"'))
+        fail(path,label+' '+lang+' locale switch must navigate to '+href);
+    }
+  }
   // ES ↔ EN parity guard (VOY-ES-PARITY-02): every Spanish page is generated from
   // its English source by tools/es-budapest/generate.mjs. Keep the same photography
   // and editorial structure, keep the approved Spanish policy wording, and keep the
