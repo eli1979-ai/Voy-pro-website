@@ -1,64 +1,51 @@
-/* Isolated Spanish preview has its own reset: it MUST NOT inherit the global booking/nav layouts. */
-*,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body.es-budapest{margin:0;min-width:0;max-width:100%;font-size:16px;line-height:1.55}
-.es-budapest .wrap{max-width:1160px;margin-inline:auto;padding-inline:24px;min-width:0}
-.es-budapest a{color:inherit}
-.es-budapest .skip-link{position:absolute;left:12px;top:-100px;background:#fff;color:#173649;padding:12px;z-index:1000}
-.es-budapest .skip-link:focus{top:8px}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+/* Spanish Budapest preview pages.
+   Layout, components and responsive behaviour come from the shared English
+   stylesheets (site.css and the Budapest add-ons). This file only styles the
+   Spanish-only static replacements for runtime features: the no-JS mobile
+   menu, the WhatsApp inquiry panel, the static meeting-point card, the
+   group/corporate WhatsApp checklist and the opt-in-free Thule placeholder. */
 
-/* Spanish Budapest informational preview — no booking, no API writes. */
-.es-budapest{background:#f7f8f8;color:#132b3b;font-family:Inter,Arial,sans-serif}
-.es-budapest .es-preview{background:#173649;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:750}
-.es-budapest header{position:relative;background:#fff}
-.es-budapest .es-nav{display:flex;align-items:center;justify-content:space-between;gap:15px;min-height:72px}
-.es-budapest .es-logo{font-size:24px;font-weight:900;letter-spacing:-1px;text-decoration:none;white-space:nowrap;color:#12354c}
-.es-budapest .es-logo span{color:#126994;margin-inline-start:5px;font-size:16px}
-.es-budapest .es-links{display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:14px}
-.es-budapest .es-links a{font-weight:700;text-underline-offset:4px}
-.es-budapest .es-language{font-size:12px;white-space:nowrap}
-.es-budapest .es-hero{padding:76px 0 68px;color:#fff;background:linear-gradient(125deg,#103047,#175475)}
-.es-budapest .es-hero .eyebrow{color:#cee9f9;font-size:13px}
-.es-budapest .es-hero h1{max-width:840px;font-size:clamp(32px,5.4vw,56px);line-height:1.09;margin:14px 0 20px;overflow-wrap:break-word}
-.es-budapest .es-hero p{max-width:790px;font-size:18px;line-height:1.65;color:#f2f8fc}
-.es-budapest .es-hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
-.es-budapest .es-hero-actions a{padding:13px 20px;border-radius:999px;text-decoration:none;background:#fff;color:#103b57;font-weight:800}
-.es-budapest .es-hero-actions a.secondary{background:transparent;border:1px solid #fff;color:#fff}
-.es-budapest .es-section{padding:46px 0}
-.es-budapest .es-section h2{margin-bottom:17px;font-size:clamp(24px,3.7vw,34px)}
-.es-budapest .es-section p,.es-budapest .es-section li{font-size:16px;line-height:1.7}
-.es-budapest .es-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.es-budapest .es-card{padding:22px;border:1px solid #d8e5ea;background:#fff;border-radius:18px}
-.es-budapest .es-card h3{margin:0 0 8px;font-size:19px}
-.es-budapest .es-card p{margin:0;color:#435766}
-.es-budapest .es-card a{display:inline-block;margin-top:13px;font-weight:800;color:#0d4d7c}
-.es-budapest .es-policy{background:#eaf4f7}
-.es-budapest .es-policy ul{padding-inline-start:22px;display:grid;gap:8px}
-.es-budapest .es-support{background:#fff}
-.es-budapest footer{padding:30px 0;background:#173649;color:#fff}
-.es-budapest footer a{color:#fff}
-.es-budapest :focus-visible{outline:3px solid #d78a23;outline-offset:3px}
-@media(max-width:700px){.es-budapest .es-nav{flex-wrap:wrap;padding-block:14px}.es-budapest .es-links{width:100%;gap:10px}.es-budapest .es-hero{padding:48px 0}.es-budapest .es-hero p{font-size:16px}.es-budapest .es-grid{grid-template-columns:1fr}.es-budapest .wrap{padding-inline:16px}}
-
-/* 320px source fix: allow all Spanish text/grid children to wrap instead of
-   increasing document scrollWidth. Do not clip or hide the content. */
-.es-budapest .wrap,.es-budapest .es-nav,.es-budapest .es-links,
-.es-budapest .es-grid,.es-budapest .es-card{min-width:0;max-width:100%}
-.es-budapest p,.es-budapest h1,.es-budapest h2,.es-budapest h3,
-.es-budapest li,.es-budapest a{overflow-wrap:anywhere}
-.es-budapest .es-grid>*{min-width:0}
-@media(max-width:400px){
-  .es-budapest .es-nav{gap:8px}
-  .es-budapest .es-links{display:flex;flex-wrap:wrap;flex:1 1 100%;min-width:0}
-  .es-budapest .es-links a{max-width:100%}
+/* No-JS mobile menu: same trigger styling and breakpoints as the English
+   runtime menu (.nav-menu-toggle), rendered with <details>/<summary>. */
+.es-budapest .es-mobile-menu{display:none}
+.es-budapest .es-mobile-menu>summary{list-style:none;cursor:pointer}
+.es-budapest .es-mobile-menu>summary::-webkit-details-marker{display:none}
+.es-budapest .es-mobile-menu>summary:focus-visible{outline:3px solid #2a8fd6;outline-offset:2px}
+.es-budapest .es-mobile-menu[open]>summary{background:var(--blue);border-color:var(--blue);color:#fff}
+.es-budapest .es-mobile-menu .mobile-nav-card{position:absolute;inset-inline:12px;top:calc(100% + 6px);z-index:60;
+  display:grid;gap:2px;max-height:calc(100dvh - 140px);border-radius:18px;padding:18px 18px 20px;
+  box-shadow:0 18px 44px rgba(5,12,18,.28)}
+.es-budapest .es-mobile-menu .mobile-nav-card>b{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:0 3px 4px}
+.es-budapest .es-mobile-menu .mobile-nav-card>.btn{margin-top:8px;min-height:44px;display:flex;align-items:center;justify-content:center}
+.es-budapest .es-mobile-menu .mobile-language-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+.es-budapest .es-mobile-menu .mobile-language-row .lang-switch{min-height:40px}
+@media(max-width:1180px){
+  .es-budapest .es-mobile-menu{display:block}
+  .es-budapest .es-mobile-menu>summary.nav-menu-toggle{display:inline-flex;min-height:44px;min-width:44px;align-items:center;justify-content:center;box-sizing:border-box}
 }
 
+/* WhatsApp inquiry panel (replaces the English live booking widget). */
+.es-inquiry .es-commercial-facts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.es-inquiry .es-fact{display:inline-flex;align-items:center;padding:8px 12px;border-radius:12px;background:#edf6fb;color:#0d4d7c;font-size:14px;font-weight:800;line-height:1.35}
+.es-inquiry .es-inquiry-panel p{line-height:1.6}
+.es-inquiry .es-inquiry-whatsapp{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin:6px 0 4px}
 
-/* Chrome 320px smoke found a 29px root scroll region although NO descendant
-   DOM box exceeded the viewport. Contain that phantom horizontal scroll only
-   on the isolated ES preview; do not shorten text or conceal DOM content. */
-@media(max-width:400px){
-  html:has(>body.es-budapest){overflow-x:clip}
-  body.es-budapest{max-width:100%;overflow-x:clip}
+/* Static meeting-point card (the English page loads a map only on request). */
+.es-budapest .meeting-map-card .meeting-map-label{top:50%;bottom:auto;transform:translate(-50%,-50%)}
+
+/* Group / corporate WhatsApp checklist (replaces the scripted enquiry form). */
+.es-b2b-whatsapp{margin-top:18px}
+.es-b2b-whatsapp h3{margin:0 0 10px}
+.es-b2b-whatsapp ul{margin:0 0 16px;padding-inline-start:20px;line-height:1.7}
+.es-b2b-whatsapp .btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px}
+
+/* Thule seat cards: no third-party image request on Spanish pages. */
+.es-budapest .es-seat-neutral{background:linear-gradient(135deg,#173649,#456374);color:#fff;border-radius:14px}
+.es-budapest .es-seat-neutral span{font-size:20px;font-weight:850;letter-spacing:.02em;text-align:center}
+
+/* Tap targets: language pills ≥ 24px; FAQ questions get a 44px hit area
+   (padding offset by negative margin, so the visual layout is unchanged). */
+@media(max-width:800px){
+  .es-budapest header .language-picker .lang-switch{min-height:24px}
+  .es-budapest details[data-faq]>summary{padding-block:12px;margin-block:-12px}
 }
