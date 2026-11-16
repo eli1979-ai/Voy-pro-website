@@ -797,25 +797,36 @@ for(const slug of spanishBudapestSlugs){
        !pageHtml.includes('href="'+(locale==='es/'?route:url)+'"'))
       fail(translated,'Missing reciprocal ES / x-default / language navigation');
   }
-  // ES editorial parity guard: all localized routes must have visible media,
-  // source-matched planning/itinerary, accessible FAQ and independently linked trust.
-  for(const selector of ['es-feature-media','es-quickfacts','es-visual-stories','es-photo-grid',
-                          'es-detail-parity','es-journey','es-faq','es-proof-links']){
-    if(!html.includes(selector)) fail(path,'Spanish page missing parity component: '+selector);
-  }
-  if((html.match(/<img\b/g)||[]).length<4)
-    fail(path,'Spanish page must include a hero image and at least three gallery photographs');
-  if((html.match(/<details\b/g)||[]).length<4)
-    fail(path,'Spanish page must include accessible native FAQ entries');
+  // ES ↔ EN parity guard (VOY-ES-PARITY-02): every Spanish page is generated from
+  // its English source by tools/es-budapest/generate.mjs. Keep the same photography
+  // and editorial structure, keep the approved Spanish policy wording, and keep the
+  // page fully static (no scripts, forms, iframes, checkout, payment or FBM calls).
+  const enHtml=htmlMap.get('budapest/'+(slug?slug+'/':'')+'index.html')||'';
+  const mainOf=s=>(s.split(/<main\b[^>]*>/)[1]||'').split('</main>')[0];
+  const photos=s=>[...mainOf(s).matchAll(/<img\b[^>]*\bsrc="([^"]+)"/g)].map(m=>m[1].replace('https://voy-pro.com',''))
+    .filter(src=>src.startsWith('/assets/images/'));
+  const esPhotos=photos(html), enPhotos=photos(enHtml);
+  const missingPhotos=enPhotos.filter(src=>!esPhotos.includes(src));
+  if(missingPhotos.length)
+    fail(path,'Spanish page must keep the English photography: missing '+missingPhotos.join(', '));
+  const sections=s=>(mainOf(s).match(/<section\b/g)||[]).length;
+  const faqs=s=>(mainOf(s).match(/<details\b[^>]*data-faq=/g)||[]).length;
+  if(sections(html)<sections(enHtml)-2)
+    fail(path,'Spanish page lost English sections ('+sections(html)+' vs '+sections(enHtml)+')');
+  if(faqs(html)!==faqs(enHtml))
+    fail(path,'Spanish FAQ count must match English ('+faqs(html)+' vs '+faqs(enHtml)+')');
+  if(/<script\b(?![^>]*application\/ld\+json)/.test(html)||/<(form|iframe|input|select|button)\b/.test(html))
+    fail(path,'Spanish preview must stay static: no scripts, forms, iframes or interactive runtime');
+  if(!html.includes('class="voy-preview-ribbon"')||!html.includes('id="consulta"')||
+     !html.includes('class="es-mobile-menu"')||!html.includes('assets/site.css'))
+    fail(path,'Spanish page must use the shared English layout with preview ribbon, inquiry panel and mobile menu');
   if(!html.includes('assets/spanish-budapest.css'))
     fail(path,'Spanish responsive stylesheet missing');
-  const joinSiteAsset=src=>site+src;
-  const imageTags=[...html.matchAll(/<img\b[^>]*>/g)].map(m=>m[0]);
-  for(const tag of imageTags){
-    const src=tag.match(/\bsrc="([^"]+)"/)?.[1];
-    if(!src||!src.startsWith('/assets/images/'))
-      fail(path,'Spanish photo missing valid local src: '+tag.slice(0,80));
-    else if(!fs.existsSync(joinSiteAsset(src)))
+  for(const tag of [...html.matchAll(/<img\b[^>]*>/g)].map(m=>m[0])){
+    const src=tag.match(/\bsrc="([^"]+)"/)?.[1]?.replace('https://voy-pro.com','');
+    if(!src||!src.startsWith('/assets/'))
+      fail(path,'Spanish photo must be a local asset: '+tag.slice(0,80));
+    else if(!fs.existsSync(site+src.split('?')[0]))
       fail(path,'Spanish page references missing image: '+src);
     if(!/\balt="[^"]*"/.test(tag))
       fail(path,'Spanish photo missing accessible alt attribute');
@@ -823,24 +834,27 @@ for(const slug of spanishBudapestSlugs){
   const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);
   if(ids.length!==new Set(ids).size)
     fail(path,'Duplicate IDs on Spanish page');
-  // Claude P1 regressions: real tour photography, approved rain wording and static decision facts.
+  // Claude P1 regressions: approved rain wording, static decision facts, Heroes' Square hero.
   if(!html.includes('Con lluvia o nieve ligera, el tour se realiza y proporcionamos chaquetas impermeables.'))
     fail(path,'Spanish rain FAQ must match approved light-rain/light-snow policy');
-  if(html.includes('Con lluvia ligera el tour normalmente continúa'))
+  if(/lluvia ligera el tour normalmente|normalmente contin/.test(html))
     fail(path,'Spanish FAQ must not weaken approved rain/snow policy');
-  if(!html.includes('class="es-commercial-facts"')||
-     !html.includes('Punto de encuentro: centro de Pest'))
+  if(!html.includes('class="es-commercial-facts"')||!html.includes('Punto de encuentro: centro de Pest'))
     fail(path,'Spanish page must show approved static price/duration and meeting-point facts');
-  const galleryBlock=html.match(/<div class="es-photo-grid">([\s\S]*?)<\/div>/)?.[1]||'';
-  const photos=[...galleryBlock.matchAll(/<img[^>]*src="([^"]+)"/g)].map(m=>m[1]);
-  if(photos.length!==3||photos.length!==new Set(photos).size)
-    fail(path,'Spanish gallery must show three distinct images');
-  const heroSrc=html.match(/<figure class="es-feature-media"><img src="([^"]+)"/)?.[1];
-  if(heroSrc&&photos.includes(heroSrc))
-    fail(path,'Spanish hero and gallery must not repeat the same photo');
-  if(slug==='tours/heroes-square-city-ezraider-tour'&&
-    heroSrc!=='/assets/images/budapest/heroes-square-riders-20261106.jpg')
-    fail(path,'Heroes Square page must use its corresponding English hero image');
+  if(!html.includes('Los porcentajes de reembolso se aplican únicamente a los importes efectivamente pagados.'))
+    fail(path,'Spanish page must keep the approved refund-on-paid-amounts sentence');
+  const heroSrc=html.match(/<div class="hero-photo-frame[^"]*"[^>]*>\s*<img[^>]*src="([^"]+)"|<figure class="hero-photo-frame"><img[^>]*src="([^"]+)"/)?.slice(1).find(Boolean);
+  const enHeroSrc=enHtml.match(/<div class="hero-photo-frame[^"]*"[^>]*>\s*<img[^>]*src="([^"]+)"|<figure class="hero-photo-frame"><img[^>]*src="([^"]+)"/)?.slice(1).find(Boolean);
+  if(enHeroSrc&&heroSrc!==enHeroSrc)
+    fail(path,'Spanish hero photo must match the English hero ('+enHeroSrc+')');
+  // Visible copy must be Spanish: no untranslated English sentences.
+  const visible=mainOf(html).replace(/<[^>]+>/g,'\n').split('\n').map(t=>t.trim()).filter(t=>t.length>18);
+  const english=visible.filter(t=>/\b(the|and|your|with|before|booking|availability)\b/i.test(t)&&
+    !/^(EZRaider Budapest by Voy PRO|Travelers’ Choice)/.test(t));
+  if(english.length)
+    fail(path,'Untranslated English copy on Spanish page: '+english.slice(0,2).join(' | ').slice(0,160));
+  if((html.match(/<meta name="description" content="([^"]*)"/)?.[1]||'').length>160)
+    warn(path,'Spanish meta description longer than 160 characters');
   if(!sitemapUrls.includes('https://voy-pro.com'+url))
     fail(path,'Spanish Budapest route missing from sitemap');
 }

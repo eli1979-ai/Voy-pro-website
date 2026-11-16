@@ -1426,120 +1426,97 @@ try{
   }
 
 
-  // Spanish informational route smoke: no active bookings or unlocalized JS.
-  for(const [name,path,viewport] of [
-    ['es-home-320','/es/budapest/',{width:320,height:700}],
-    ['es-buda-390','/es/budapest/tours/buda-castle-ezraider-tour/',{width:390,height:844}],
-    ['es-family-320','/es/budapest/with-kids/',{width:320,height:700}]
-  ]){
-    const page=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
-    const errors=[];
-    page.on('pageerror',e=>errors.push(String(e)));
-    await page.route('**/*',route=>{
-      try{return new URL(route.request().url()).origin===base?route.continue():route.abort();}
-      catch{return route.abort();}
-    });
-    try{
-      const response=await page.goto(base+path,{waitUntil:'load',timeout:20000});
-      check(response?.status()===200,name+' static page available');
-      // Earlier 29px transient existed at DOMContentLoaded, but vanished
-      // after the isolated Spanish stylesheet finished loading.
-      const cssReady=await page.evaluate(()=>[...document.styleSheets].some(sheet=>
-        sheet.href?.includes('/assets/spanish-budapest.css'))&&
-        getComputedStyle(document.body).marginLeft==='0px');
-      check(cssReady,name+' isolated Spanish CSS loaded before layout measurements');
-      const actual=await page.evaluate(()=>({
-        lang:document.documentElement.lang,
-        title:document.querySelector('h1')?.textContent?.trim(),
-        robots:document.querySelector('meta[name="robots"]')?.content,
-        preview:document.querySelector('.es-preview')?.textContent||'',
-        rows:document.querySelectorAll('#cancellation-weather li').length,
-        activeBooking:!!document.querySelector('script[src*="site.js"],[data-track="booking_cta"],#booking'),
-        overflow:document.documentElement.scrollWidth-innerWidth
-      }));
-      check(actual.lang==='es'&&actual.title?.length>10,name+' Spanish page identity and heading');
-      check(actual.robots==='index,follow'&&actual.preview.includes('No se aceptan reservas reales'),
-        name+' visible preview and published-locale SEO metadata');
-      check(actual.rows===4&&!actual.activeBooking,name+' four approved policy rows and no live booking');
-      if(actual.overflow>2){
-        const offenders=await page.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>{
-          const r=el.getBoundingClientRect();
-          return {tag:el.tagName,cls:String(el.className||'').slice(0,75),
-            left:Math.round(r.left),right:Math.round(r.right),
-            width:Math.round(r.width),client:el.clientWidth,scroll:el.scrollWidth};
-        }).filter(x=>x.right>innerWidth+2||x.scroll>x.client+3).slice(0,16));
-        results.push('DIAG: '+name+' horizontal elements '+JSON.stringify(offenders));
-      }
-      check(actual.overflow<=2,name+' no horizontal overflow at '+viewport.width+'px ('+actual.overflow+'px)');
-      check(errors.length===0,name+' no browser script errors');
-    }catch(error){
-      failures++;results.push('FAIL: '+name+' browser error '+String(error).slice(0,700));
-    }finally{await page.close();}
-  }
-
-
-  // Spanish parity release gate: all 14 pages at 375px, then real two-column hero at 1440px.
-  // No external calls, bookings, payments or deployment; existing local Chromium runner.
-  const spanishParityPaths=[
-    '/es/budapest/','/es/budapest/with-kids/','/es/budapest/private-tours/',
-    '/es/budapest/group-tours/','/es/budapest/corporate-events/',
-    '/es/budapest/first-day/','/es/budapest/where-to-stay/',
-    '/es/budapest/unique-things-to-do/','/es/budapest/buda-castle-without-walking/',
-    '/es/budapest/tours/buda-castle-ezraider-tour/',
-    '/es/budapest/tours/margaret-island-ezraider-tour/',
-    '/es/budapest/tours/buda-margaret-extended-tour/',
-    '/es/budapest/tours/citadella-advanced-ezraider-tour/',
-    '/es/budapest/tours/heroes-square-city-ezraider-tour/'
+  // Spanish Budapest parity gate (VOY-ES-PARITY-02). Each Spanish page is generated
+  // from its English source (tools/es-budapest) and must keep the same photography,
+  // section structure and responsive behaviour, while staying static: no site.js,
+  // no forms, no availability/checkout/payment, human WhatsApp inquiry only.
+  // Screenshots of every EN/ES pair are written to the artifact for human review.
+  const spanishParityRoutes=[
+    '','tours/buda-castle-ezraider-tour/','tours/margaret-island-ezraider-tour/',
+    'tours/buda-margaret-extended-tour/','tours/heroes-square-city-ezraider-tour/',
+    'tours/citadella-advanced-ezraider-tour/','private-tours/','with-kids/','group-tours/',
+    'corporate-events/','first-day/','where-to-stay/','unique-things-to-do/',
+    'buda-castle-without-walking/'
   ];
-  for(const routePath of spanishParityPaths){
-    const page=await browser.newPage({viewport:{width:375,height:812},deviceScaleFactor:1,reducedMotion:'reduce'});
-    await page.route('**/*',r=>{
-      try{return new URL(r.request().url()).origin===base?r.continue():r.abort();}
-      catch{return r.abort();}
-    });
-    try{
-      const response=await page.goto(base+routePath,{waitUntil:'load',timeout:20000});
-      check(response?.status()===200,'es-parity '+routePath+' local route 200');
-      const v=await page.evaluate(()=>{
-        const hero=document.querySelector('.es-feature-media img');
-        const gallery=[...document.querySelectorAll('.es-photo-grid img')];
-        const cards=[...document.querySelectorAll('.es-detail-card')];
-        const box=hero?.getBoundingClientRect();
-        return {sections:document.querySelectorAll('main section').length,
-          gallery:gallery.length,faq:document.querySelectorAll('.es-faq details').length,
-          cards:cards.length,photoLoaded:!!hero?.complete&&hero?.naturalWidth>0,
-          photoVisible:!!box&&box.width>180&&box.height>100,
-          overflow:document.documentElement.scrollWidth-innerWidth,
-          payment:!!document.querySelector('#booking,script[src*="site.js"],form[action*="checkout"]')};
-      });
-      check(v.sections>=10&&v.gallery>=3&&v.faq>=4&&v.cards>=3,
-        'es-parity '+routePath+' editorial, FAQ, route cards and gallery');
-      check(v.photoLoaded&&v.photoVisible,
-        'es-parity '+routePath+' actual hero image loaded and visible');
-      check(v.overflow<=2&&!v.payment,
-        'es-parity '+routePath+' mobile width safe, no active checkout');
-    }catch(error){
-      failures++;results.push('FAIL: es-parity '+routePath+' '+String(error).slice(0,500));
-    }finally{await page.close();}
+  const sameOrigin=async page=>page.route('**/*',r=>{
+    try{return new URL(r.request().url()).origin===base?r.continue():r.abort();}
+    catch{return r.abort();}
+  });
+  const pageFacts=page=>page.evaluate(()=>{
+    const main=document.querySelector('main');
+    const imgs=[...main.querySelectorAll('img')].map(i=>(i.getAttribute('src')||'').replace('https://voy-pro.com',''))
+      .filter(src=>src.startsWith('/assets/images/'));
+    const hero=document.querySelector('.hero .hero-photo-frame img, .hero img');
+    const h1=document.querySelector('.hero h1')?.getBoundingClientRect();
+    const box=hero?.getBoundingClientRect();
+    return {lang:document.documentElement.lang,imgs,sections:main.querySelectorAll(':scope > section').length,
+      h2:main.querySelectorAll('h2').length,faq:main.querySelectorAll('details[data-faq]').length,
+      heroLoaded:!!hero?.complete&&hero.naturalWidth>0,heroVisible:!!box&&box.width>150&&box.height>100,
+      heroBeside:!!box&&!!h1&&(box.left>=h1.right-2||h1.left>=box.right-2),
+      overflow:document.documentElement.scrollWidth-innerWidth,
+      runtime:!!document.querySelector('script[src],form,iframe,#booking,[data-track="booking_cta"]'),
+      preview:document.querySelector('.voy-preview-ribbon')?.textContent||'',
+      policyRows:document.querySelectorAll('#cancellation-weather li').length};
+  });
+  for(const [label,viewport] of [['375',{width:375,height:812}],['1440',{width:1440,height:900}]]){
+    for(const route of spanishParityRoutes){
+      const slug=(route||'home').replace(/\/$/,'').replace(/\//g,'-');
+      const en=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+      const es=await browser.newPage({viewport,deviceScaleFactor:1,reducedMotion:'reduce'});
+      const errors=[];
+      es.on('pageerror',e=>errors.push(String(e)));
+      await sameOrigin(en);await sameOrigin(es);
+      try{
+        await en.goto(base+'/budapest/'+route,{waitUntil:'load',timeout:20000});
+        const response=await es.goto(base+'/es/budapest/'+route,{waitUntil:'load',timeout:20000});
+        check(response?.status()===200,'es-parity '+label+' '+slug+' route 200');
+        for(const p of [en,es])await p.evaluate(()=>Promise.all([...document.images].map(i=>{
+          i.loading='eager';return i.complete?0:new Promise(r=>{i.onload=i.onerror=r;setTimeout(r,4000);});})));
+        const e=await pageFacts(en), s=await pageFacts(es);
+        const missing=e.imgs.filter(src=>!s.imgs.includes(src));
+        check(s.lang==='es'&&s.preview.includes('No se aceptan reservas reales')&&s.policyRows===4,
+          'es-parity '+label+' '+slug+' Spanish identity, preview notice and approved policy');
+        check(missing.length===0,'es-parity '+label+' '+slug+' same photography as English'+
+          (missing.length?' (missing '+missing.join(', ')+')':''));
+        check(s.sections>=e.sections-2&&s.h2>=e.h2-2&&s.faq===e.faq,
+          'es-parity '+label+' '+slug+' section/heading/FAQ structure matches English ('+
+          s.sections+'/'+e.sections+' sections, '+s.h2+'/'+e.h2+' h2, '+s.faq+'/'+e.faq+' FAQ)');
+        check(s.heroLoaded&&s.heroVisible,'es-parity '+label+' '+slug+' hero photo loaded and visible');
+        if(label==='1440')check(s.heroBeside===e.heroBeside,'es-parity 1440 '+slug+' desktop hero layout matches English');
+        check(s.overflow<=2&&!s.runtime&&errors.length===0,
+          'es-parity '+label+' '+slug+' no overflow, no scripts/forms/booking, no page errors');
+        await en.evaluate(()=>window.scrollTo(0,0));await es.evaluate(()=>window.scrollTo(0,0));
+        await en.screenshot({path:join(out,'es-pair-'+label+'-'+slug+'-en.png'),fullPage:false,animations:'disabled'});
+        await es.screenshot({path:join(out,'es-pair-'+label+'-'+slug+'-es.png'),fullPage:false,animations:'disabled'});
+        results.push('SCREENSHOT: es-pair-'+label+'-'+slug+'-{en,es}.png | '+viewport.width+'x'+viewport.height+' | EN/ES first screen');
+      }catch(error){
+        failures++;results.push('FAIL: es-parity '+label+' '+slug+' '+String(error).slice(0,500));
+      }finally{await en.close();await es.close();}
+    }
   }
-  for(const routePath of ['/es/budapest/','/es/budapest/tours/buda-castle-ezraider-tour/']){
-    const page=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1,reducedMotion:'reduce'});
-    await page.route('**/*',r=>{
-      try{return new URL(r.request().url()).origin===base?r.continue():r.abort();}
-      catch{return r.abort();}
-    });
+  // No-JS Spanish mobile menu: opens, lists all four languages and the inquiry CTA.
+  for(const width of [320,390]){
+    const page=await browser.newPage({viewport:{width,height:812},deviceScaleFactor:1,reducedMotion:'reduce'});
+    await sameOrigin(page);
     try{
-      await page.goto(base+routePath,{waitUntil:'load',timeout:20000});
-      const v=await page.evaluate(()=>{
-        const title=document.querySelector('.es-hero h1')?.getBoundingClientRect();
-        const image=document.querySelector('.es-hero .es-feature-media img')?.getBoundingClientRect();
-        return {right:!!title&&!!image&&image.left>title.right+10,
-          visible:!!image&&image.width>240&&image.height>250,
-          overflow:document.documentElement.scrollWidth-innerWidth};
+      await page.goto(base+'/es/budapest/tours/buda-castle-ezraider-tour/',{waitUntil:'load',timeout:20000});
+      const toggle=page.locator('.es-mobile-menu > summary');
+      check(await toggle.isVisible(),'es-menu '+width+' toggle visible');
+      await toggle.click();
+      const menu=await page.evaluate(()=>{
+        const card=document.querySelector('.es-mobile-menu[open] .mobile-nav-card');
+        const r=card?.getBoundingClientRect();
+        const langs=[...(card?.querySelectorAll('.mobile-language-row .lang-switch')||[])].map(a=>a.getAttribute('hreflang'));
+        return {open:!!card,inView:!!r&&r.left>=0&&r.right<=innerWidth+1,langs,
+          active:card?.querySelector('[aria-current="page"]')?.getAttribute('hreflang'),
+          cta:!!card?.querySelector('a[href="#consulta"]'),overflow:document.documentElement.scrollWidth-innerWidth};
       });
-      check(v.right&&v.visible&&v.overflow<=2,'es-parity '+routePath+' desktop split hero');
+      check(menu.open&&menu.inView&&menu.overflow<=2,'es-menu '+width+' opens inside the viewport');
+      check(menu.langs.join(',')==='en,hu,he,es'&&menu.active==='es'&&menu.cta,'es-menu '+width+' four languages and inquiry CTA');
+      await page.screenshot({path:join(out,'es-menu-'+width+'.png'),fullPage:false});
+      results.push('SCREENSHOT: es-menu-'+width+'.png | '+width+'x812 | Spanish no-JS mobile menu open');
     }catch(error){
-      failures++;results.push('FAIL: es-parity desktop '+routePath+' '+String(error).slice(0,500));
+      failures++;results.push('FAIL: es-menu '+width+' '+String(error).slice(0,500));
     }finally{await page.close();}
   }
 

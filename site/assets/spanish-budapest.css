@@ -1,157 +1,51 @@
-/* Isolated Spanish preview has its own reset: it MUST NOT inherit the global booking/nav layouts. */
-*,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body.es-budapest{margin:0;min-width:0;max-width:100%;font-size:16px;line-height:1.55}
-.es-budapest .wrap{max-width:1160px;margin-inline:auto;padding-inline:24px;min-width:0}
-.es-budapest a{color:inherit}
-.es-budapest .skip-link{position:absolute;left:12px;top:-100px;background:#fff;color:#173649;padding:12px;z-index:1000}
-.es-budapest .skip-link:focus{top:8px}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+/* Spanish Budapest preview pages.
+   Layout, components and responsive behaviour come from the shared English
+   stylesheets (site.css and the Budapest add-ons). This file only styles the
+   Spanish-only static replacements for runtime features: the no-JS mobile
+   menu, the WhatsApp inquiry panel, the static meeting-point card, the
+   group/corporate WhatsApp checklist and the opt-in-free Thule placeholder. */
 
-/* Spanish Budapest informational preview — no booking, no API writes. */
-.es-budapest{background:#f7f8f8;color:#132b3b;font-family:Inter,Arial,sans-serif}
-.es-budapest .es-preview{background:#173649;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:750}
-.es-budapest header{position:relative;background:#fff}
-.es-budapest .es-nav{display:flex;align-items:center;justify-content:space-between;gap:15px;min-height:72px}
-.es-budapest .es-logo{font-size:24px;font-weight:900;letter-spacing:-1px;text-decoration:none;white-space:nowrap;color:#12354c}
-.es-budapest .es-logo span{color:#126994;margin-inline-start:5px;font-size:16px}
-.es-budapest .es-links{display:flex;align-items:center;flex-wrap:wrap;gap:12px;font-size:14px}
-.es-budapest .es-links a{font-weight:700;text-underline-offset:4px}
-.es-budapest .es-language{font-size:12px;white-space:nowrap}
-.es-budapest .es-hero{padding:76px 0 68px;color:#fff;background:linear-gradient(125deg,#103047,#175475)}
-.es-budapest .es-hero .eyebrow{color:#cee9f9;font-size:13px}
-.es-budapest .es-hero h1{max-width:840px;font-size:clamp(32px,5.4vw,56px);line-height:1.09;margin:14px 0 20px;overflow-wrap:break-word}
-.es-budapest .es-hero p{max-width:790px;font-size:18px;line-height:1.65;color:#f2f8fc}
-.es-budapest .es-hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
-.es-budapest .es-hero-actions a{padding:13px 20px;border-radius:999px;text-decoration:none;background:#fff;color:#103b57;font-weight:800}
-.es-budapest .es-hero-actions a.secondary{background:transparent;border:1px solid #fff;color:#fff}
-.es-budapest .es-section{padding:46px 0}
-.es-budapest .es-section h2{margin-bottom:17px;font-size:clamp(24px,3.7vw,34px)}
-.es-budapest .es-section p,.es-budapest .es-section li{font-size:16px;line-height:1.7}
-.es-budapest .es-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.es-budapest .es-card{padding:22px;border:1px solid #d8e5ea;background:#fff;border-radius:18px}
-.es-budapest .es-card h3{margin:0 0 8px;font-size:19px}
-.es-budapest .es-card p{margin:0;color:#435766}
-.es-budapest .es-card a{display:inline-block;margin-top:13px;font-weight:800;color:#0d4d7c}
-.es-budapest .es-policy{background:#eaf4f7}
-.es-budapest .es-policy ul{padding-inline-start:22px;display:grid;gap:8px}
-.es-budapest .es-support{background:#fff}
-.es-budapest footer{padding:30px 0;background:#173649;color:#fff}
-.es-budapest footer a{color:#fff}
-.es-budapest :focus-visible{outline:3px solid #d78a23;outline-offset:3px}
-@media(max-width:700px){.es-budapest .es-nav{flex-wrap:wrap;padding-block:14px}.es-budapest .es-links{width:100%;gap:10px}.es-budapest .es-hero{padding:48px 0}.es-budapest .es-hero p{font-size:16px}.es-budapest .es-grid{grid-template-columns:1fr}.es-budapest .wrap{padding-inline:16px}}
-
-/* 320px source fix: allow all Spanish text/grid children to wrap instead of
-   increasing document scrollWidth. Do not clip or hide the content. */
-.es-budapest .wrap,.es-budapest .es-nav,.es-budapest .es-links,
-.es-budapest .es-grid,.es-budapest .es-card{min-width:0;max-width:100%}
-.es-budapest p,.es-budapest h1,.es-budapest h2,.es-budapest h3,
-.es-budapest li,.es-budapest a{overflow-wrap:anywhere}
-.es-budapest .es-grid>*{min-width:0}
-@media(max-width:400px){
-  .es-budapest .es-nav{gap:8px}
-  .es-budapest .es-links{display:flex;flex-wrap:wrap;flex:1 1 100%;min-width:0}
-  .es-budapest .es-links a{max-width:100%}
+/* No-JS mobile menu: same trigger styling and breakpoints as the English
+   runtime menu (.nav-menu-toggle), rendered with <details>/<summary>. */
+.es-budapest .es-mobile-menu{display:none}
+.es-budapest .es-mobile-menu>summary{list-style:none;cursor:pointer}
+.es-budapest .es-mobile-menu>summary::-webkit-details-marker{display:none}
+.es-budapest .es-mobile-menu>summary:focus-visible{outline:3px solid #2a8fd6;outline-offset:2px}
+.es-budapest .es-mobile-menu[open]>summary{background:var(--blue);border-color:var(--blue);color:#fff}
+.es-budapest .es-mobile-menu .mobile-nav-card{position:absolute;inset-inline:12px;top:calc(100% + 6px);z-index:60;
+  display:grid;gap:2px;max-height:calc(100dvh - 140px);border-radius:18px;padding:18px 18px 20px;
+  box-shadow:0 18px 44px rgba(5,12,18,.28)}
+.es-budapest .es-mobile-menu .mobile-nav-card>b{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:0 3px 4px}
+.es-budapest .es-mobile-menu .mobile-nav-card>.btn{margin-top:8px;min-height:44px;display:flex;align-items:center;justify-content:center}
+.es-budapest .es-mobile-menu .mobile-language-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+.es-budapest .es-mobile-menu .mobile-language-row .lang-switch{min-height:40px}
+@media(max-width:1180px){
+  .es-budapest .es-mobile-menu{display:block}
+  .es-budapest .es-mobile-menu>summary.nav-menu-toggle{display:inline-flex;min-height:44px;min-width:44px;align-items:center;justify-content:center;box-sizing:border-box}
 }
 
+/* WhatsApp inquiry panel (replaces the English live booking widget). */
+.es-inquiry .es-commercial-facts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.es-inquiry .es-fact{display:inline-flex;align-items:center;padding:8px 12px;border-radius:12px;background:#edf6fb;color:#0d4d7c;font-size:14px;font-weight:800;line-height:1.35}
+.es-inquiry .es-inquiry-panel p{line-height:1.6}
+.es-inquiry .es-inquiry-whatsapp{display:inline-flex;align-items:center;justify-content:center;min-height:48px;margin:6px 0 4px}
 
-/* Chrome 320px smoke found a 29px root scroll region although NO descendant
-   DOM box exceeded the viewport. Contain that phantom horizontal scroll only
-   on the isolated ES preview; do not shorten text or conceal DOM content. */
-@media(max-width:400px){
-  html:has(>body.es-budapest){overflow-x:clip}
-  body.es-budapest{max-width:100%;overflow-x:clip}
-}
+/* Static meeting-point card (the English page loads a map only on request). */
+.es-budapest .meeting-map-card .meeting-map-label{top:50%;bottom:auto;transform:translate(-50%,-50%)}
 
-/* Media parity: reuse each English page's existing Budapest photograph. */
-.es-budapest .es-feature-media{max-width:1160px;margin:34px auto 0;padding:0 24px}
-.es-budapest .es-feature-media img{display:block;width:100%;height:auto;max-height:520px;object-fit:cover;aspect-ratio:16/9;border-radius:20px;box-shadow:0 16px 35px rgba(0,0,0,.19)}
-@media(max-width:700px){.es-budapest .es-feature-media{margin-top:24px;padding:0 16px}.es-budapest .es-feature-media img{border-radius:14px}}
+/* Group / corporate WhatsApp checklist (replaces the scripted enquiry form). */
+.es-b2b-whatsapp{margin-top:18px}
+.es-b2b-whatsapp h3{margin:0 0 10px}
+.es-b2b-whatsapp ul{margin:0 0 16px;padding-inline-start:20px;line-height:1.7}
+.es-b2b-whatsapp .btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px}
 
-/* Spanish editorial gallery, guided-journey and keyboard-accessible FAQs */
-.es-budapest .es-visual-stories{background:#fff}
-.es-budapest .es-eyebrow{text-transform:uppercase;letter-spacing:.11em;color:#376f8b;font-size:12px;font-weight:800}
-.es-budapest .es-photo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
-.es-budapest .es-photo-grid figure{margin:0;min-width:0}
-.es-budapest .es-photo-grid img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:16px}
-.es-budapest .es-journey{background:#eaf4f7}
-.es-budapest .es-journey-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.es-budapest .es-journey-grid article{background:#fff;border-radius:16px;padding:24px;min-width:0}
-.es-budapest .es-journey-grid span{font-size:28px;font-weight:850;color:#17608c}
-.es-budapest .es-journey-grid h3{margin:10px 0}
-.es-budapest .es-faq details{padding:18px 0;border-bottom:1px solid #cbd9e0}
-.es-budapest .es-faq summary{font-weight:750;cursor:pointer;list-style-position:inside}
-.es-budapest .es-faq details p{padding:0 16px}
-@media(max-width:700px){.es-budapest .es-photo-grid,.es-budapest .es-journey-grid{grid-template-columns:1fr}.es-budapest .es-photo-grid{gap:12px}}
+/* Thule seat cards: no third-party image request on Spanish pages. */
+.es-budapest .es-seat-neutral{background:linear-gradient(135deg,#173649,#456374);color:#fff;border-radius:14px}
+.es-budapest .es-seat-neutral span{font-size:20px;font-weight:850;letter-spacing:.02em;text-align:center}
 
-/* Parity pass — source-matched route/guide cards and English-theme alignment. */
-.es-budapest{background:#f7f6f3;color:#101820}
-.es-budapest header{position:sticky;top:0;z-index:20;border-bottom:1px solid #dbe2e6}
-.es-budapest .es-preview{background:#fff0bd;color:#604b00;font-weight:850;letter-spacing:.02em}
-.es-budapest .es-hero{background:#0d151d;padding:60px 0 48px}
-.es-budapest .es-hero .eyebrow{color:#83c7ef}
-.es-budapest .es-hero h1{letter-spacing:-.035em}
-.es-budapest .es-feature-media{margin-top:34px}
-.es-budapest .es-feature-media img{border:1px solid rgba(255,255,255,.15);box-shadow:0 20px 55px rgba(0,0,0,.22)}
-.es-budapest .es-detail-parity{background:#f2f6f8}
-.es-budapest .es-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:24px}
-.es-budapest .es-detail-card{background:#fff;border:1px solid #dbe2e6;border-radius:18px;padding:22px;min-width:0}
-.es-budapest .es-detail-card h3{font-size:20px;line-height:1.3;margin:0 0 10px}
-.es-budapest .es-detail-card p{font-size:15px;color:#435766;margin:0}
-.es-budapest .es-detail-card a{display:inline-block;margin-top:12px;font-weight:850;color:#0d4d7c;text-underline-offset:3px}
-.es-budapest .es-proof-links{background:#fff}
-.es-budapest .es-proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-.es-budapest .es-proof-grid a{display:block;background:#fff;border:1px solid #dbe2e6;border-radius:16px;padding:20px;text-decoration:none;font-weight:850;color:#0d4d7c}
-.es-budapest .es-proof-grid a span{display:block;margin-top:5px;font-size:13px;font-weight:450;color:#435766}
-.es-budapest .es-quickfacts{margin:0;padding:0;background:#fff}
-.es-budapest .es-facts-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #dbe2e6;border-radius:16px;overflow:hidden;transform:translateY(-10px);background:#fff;box-shadow:0 10px 24px rgba(16,24,32,.07)}
-.es-budapest .es-facts-grid div{padding:16px;border-inline-end:1px solid #dbe2e6}
-.es-budapest .es-facts-grid div:last-child{border-inline-end:0}
-.es-budapest .es-facts-grid strong{display:block;font-size:14px}
-.es-budapest .es-facts-grid small{display:block;margin-top:5px;font-size:12px;color:#435766}
+/* Tap targets: language pills ≥ 24px; FAQ questions get a 44px hit area
+   (padding offset by negative margin, so the visual layout is unchanged). */
 @media(max-width:800px){
-  .es-budapest .es-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .es-budapest .es-facts-grid{grid-template-columns:repeat(2,minmax(0,1fr));transform:none}
-  .es-budapest .es-facts-grid div{border-bottom:1px solid #dbe2e6}
-  .es-budapest .es-proof-grid{grid-template-columns:1fr}
+  .es-budapest header .language-picker .lang-switch{min-height:24px}
+  .es-budapest details[data-faq]>summary{padding-block:12px;margin-block:-12px}
 }
-@media(max-width:520px){
-  .es-budapest .es-detail-grid{grid-template-columns:1fr}
-  .es-budapest .es-hero{padding-top:36px}
-  .es-budapest .es-detail-card{padding:18px}
-}
-
-/* Match the English landing/tour hero: copy and photography side by side on desktop. */
-@media(min-width:801px){
-  .es-budapest .es-hero>.wrap{
-    display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
-    grid-template-rows:auto auto auto auto;column-gap:36px;row-gap:8px;align-items:center
-  }
-  .es-budapest .es-hero>.wrap>.eyebrow,
-  .es-budapest .es-hero>.wrap>h1,
-  .es-budapest .es-hero>.wrap>p:not(.eyebrow),
-  .es-budapest .es-hero>.wrap>.es-hero-actions{grid-column:1;min-width:0}
-  .es-budapest .es-hero>.wrap>h1{margin:0}
-  .es-budapest .es-hero>.wrap>p:not(.eyebrow){margin:0}
-  .es-budapest .es-hero>.wrap>.es-hero-actions{margin-top:12px}
-  .es-budapest .es-hero>.wrap>.es-feature-media{
-    grid-column:2;grid-row:1 / 5;align-self:center;
-    width:100%;max-width:none;margin:0;padding:0;min-width:0
-  }
-  .es-budapest .es-hero>.wrap>.es-feature-media img{
-    aspect-ratio:4/5;max-height:470px;min-height:320px;object-fit:cover
-  }
-}
-@media(max-width:800px){
-  .es-budapest .es-hero>.wrap>.es-feature-media{margin:24px 0 0;padding:0;max-width:100%}
-  .es-budapest .es-hero>.wrap>.es-feature-media img{aspect-ratio:16/10;max-height:330px}
-}
-
-/* P1 editorial acceptance: visible EN-aligned static tour facts, no booking API. */
-.es-budapest .es-commercial-facts{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 4px;grid-column:1;min-width:0}
-.es-budapest .es-commercial-facts .es-fact{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.36);border-radius:999px;color:#fff;background:rgba(255,255,255,.07);font-size:12px;line-height:1.4;font-weight:750;padding:8px 12px;max-width:100%}
-.es-budapest .es-links a{display:inline-flex;align-items:center;min-height:34px;padding:5px 6px}
-@media(min-width:801px){.es-budapest .es-hero>.wrap{grid-template-rows:auto auto auto auto auto}
-.es-budapest .es-hero>.wrap>.es-commercial-facts{grid-column:1;grid-row:auto}
-.es-budapest .es-hero>.wrap>.es-feature-media{grid-row:1 / -1}}
-@media(max-width:700px){.es-budapest .es-commercial-facts{gap:6px;margin-top:14px}.es-budapest .es-commercial-facts .es-fact{font-size:12px;padding:7px 10px}}
