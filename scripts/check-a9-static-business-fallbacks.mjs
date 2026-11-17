@@ -115,9 +115,29 @@ for(const root of roots){
         ?'70 €-tól / fő · végső ár a csapattal egyeztetve'
         :'From €70 per rider · final quote before booking';
     const approvedMarkup='<span data-request-start-price="70">'+approvedPrice+'</span>';
+    // Exception only for the three established FBM booking category labels,
+    // on the three Budapest landing pages. These are categories, NOT a claim
+    // that runtime eligibility was confirmed; the live policy still replaces
+    // the text on hydration and retains fail-closed booking checks.
+    const initialCategoryLabels={
+      'site/budapest/index.html':['Independent riders age 16+','Children ages 3–15','Babies ages 1–2'],
+      'site/he/budapest/index.html':['רוכבים עצמאיים מגיל 16+','ילדים בגיל 3–15','תינוקות בגיל 1–2'],
+      'site/hu/budapest/index.html':['Önálló vezetők 16 éves kortól','Gyermekek 3–15 éves korig','Kisgyermekek 1–2 éves korig']
+    };
+    let sourceWithCategories=sourceToCheck;
+    if(initialCategoryLabels[file]){
+      for(const [i,name] of ['adults','children','babies'].entries()){
+        const label=initialCategoryLabels[file][i];
+        const literal='<label for="budapest-booking-'+name+'">'+label+'</label>';
+        if(sourceWithCategories.split(literal).length!==2)
+          failures.push(file+': initial category label missing or duplicated: '+name);
+        sourceWithCategories=sourceWithCategories.replace(literal,
+          '<label for="budapest-booking-'+name+'">API_BOUND_CATEGORY_LABEL</label>');
+      }
+    }
     const inspectedHtml=requestOnlyRoute.test(file)
-      ?sourceToCheck.replace(approvedMarkup,'APPROVED_REQUEST_ROUTE_START_PRICE')
-      :sourceToCheck;
+      ?sourceWithCategories.replace(approvedMarkup,'APPROVED_REQUEST_ROUTE_START_PRICE')
+      :sourceWithCategories;
     for(const [needle,label] of forbidden){
       if(inspectedHtml.includes(needle) && !(needle==='From €70' && file==='site/budapest/index.html' && /data-tour-image="heroes"[^]*?<strong>From €70 per rider<\/strong>/.test(html)) && !(needle==='€120' && ['site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html'].includes(file) && /data-tour-image="extended"[^]*?<strong>(?:(?:From )?€120 per rider|(?:מ־)?€120 לרוכב|120 €(?:-tól)? \/ fő)<\/strong>/.test(html)))failures.push(file+': '+label+' remained: '+needle);
     }

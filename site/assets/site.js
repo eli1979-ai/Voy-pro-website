@@ -1144,29 +1144,31 @@
   function riderPolicyLabels(){
     const policy=budapestPolicy();
     if(!policy){
+      // Established public booking categories, not an eligibility verdict.
+      // Actual eligibility still requires the canonical destination policy.
       return locale==='he'
-        ?{riders:'רוכבים עצמאיים',children:'נוסעים ילדים',babies:'נוסעים פעוטות'}
+        ?{riders:'רוכבים עצמאיים מגיל 16+',children:'ילדים בגיל 3–15',babies:'תינוקות בגיל 1–2'}
         :locale==='hu'
-          ?{riders:'Önálló vezetők',children:'Gyermek utasok',babies:'Kisgyermek utasok'}
-          :{riders:'Independent riders',children:'Child passengers',babies:'Baby passengers'};
+          ?{riders:'Önálló vezetők 16 éves kortól',children:'Gyermekek 3–15 éves korig',babies:'Kisgyermekek 1–2 éves korig'}
+          :{riders:'Independent riders age 16+',children:'Children ages 3–15',babies:'Babies ages 1–2'};
     }
     const riderAge=Number(policy.standard_min_age);
     const childMin=Number(policy.child_passenger_min_age),childMax=Number(policy.child_passenger_max_age);
     const babyMin=Number(policy.baby_passenger_min_age),babyMax=Number(policy.baby_passenger_max_age);
     if(locale==='he')return {
-      riders:`רוכבים עצמאיים ${riderAge}+`,
-      children:`ילדים ${childMin}–${childMax}`,
-      babies:`פעוטות ${babyMin}–${babyMax}`,
+      riders:`רוכבים עצמאיים מגיל ${riderAge}+`,
+      children:`ילדים בגיל ${childMin}–${childMax}`,
+      babies:`תינוקות בגיל ${babyMin}–${babyMax}`,
     };
     if(locale==='hu')return {
-      riders:`Önálló vezetők ${riderAge}+`,
-      children:`Gyermekek ${childMin}–${childMax}`,
-      babies:`Kisgyermekek ${babyMin}–${babyMax}`,
+      riders:`Önálló vezetők ${riderAge} éves kortól`,
+      children:`Gyermekek ${childMin}–${childMax} éves korig`,
+      babies:`Kisgyermekek ${babyMin}–${babyMax} éves korig`,
     };
     return {
-      riders:`Independent riders ${riderAge}+`,
-      children:`Children ${childMin}–${childMax}`,
-      babies:`Babies ${babyMin}–${babyMax}`,
+      riders:`Independent riders age ${riderAge}+`,
+      children:`Children ages ${childMin}–${childMax}`,
+      babies:`Babies ages ${babyMin}–${babyMax}`,
     };
   }
   function riderPolicyUnavailableLabel(){
@@ -1686,15 +1688,22 @@
     return {valid:true,message:''};
   }
   function updatePassengerPricePreview(product){
-    const hint=document.querySelector('[data-passenger-price-info]');
-    if(!hint)return;
+    // The catalog exposes one canonical passenger price shared by children and
+    // babies. Display it for both groups; never infer it from UI defaults.
+    const hints=[...document.querySelectorAll('[data-passenger-price-info]')];
+    if(!hints.length)return;
     const raw=product?.passengerPrice;
     const amount=raw!==null&&raw!==undefined&&raw!==''?finiteNumber(raw):null;
     if(amount===null||amount<0){
-      hint.dataset.priceVerified='false';
-      hint.textContent=locale==='he'?'מחיר נוסע ילד יאומת במערכת ההזמנות'
-        :locale==='hu'?'A gyermekutas árát a foglalási rendszer erősíti meg'
-        :'Child passenger price will be verified with the booking system';
+      for(const hint of hints){
+        hint.dataset.priceVerified='false';
+        const baby=hint.dataset.passengerPriceInfo==='babies';
+        hint.textContent=locale==='he'
+          ?(baby?'מחיר תינוק יאומת במערכת ההזמנות':'מחיר ילד יאומת במערכת ההזמנות')
+          :locale==='hu'
+            ?(baby?'A kisgyermek árát a foglalási rendszer erősíti meg':'A gyermek árát a foglalási rendszer erősíti meg')
+            :(baby?'Baby price will be verified with the booking system':'Child price will be verified with the booking system');
+      }
       return;
     }
     const currency=/^(EUR|HUF|USD)$/.test(String(product.currency||'EUR'))
@@ -1703,21 +1712,28 @@
       style:'currency',currency,minimumFractionDigits:0,
       maximumFractionDigits:Number.isInteger(amount)?0:2
     }).format(amount);
-    hint.dataset.priceVerified='true';
-    hint.textContent=locale==='he'?`נוסע ילד: ${formatted} לילד · המחיר הסופי יוצג בהמשך`
-      :locale==='hu'?`Gyermekutas: ${formatted} / fő · a végső ár később jelenik meg`
-      :`Child passenger: ${formatted} each · final total shown before confirmation`;
+    for(const hint of hints){
+      const baby=hint.dataset.passengerPriceInfo==='babies';
+      hint.dataset.priceVerified='true';
+      hint.textContent=locale==='he'
+        ?(baby?`תינוק: ${formatted} לתינוק · המחיר הסופי יוצג בהמשך`:`ילד: ${formatted} לילד · המחיר הסופי יוצג בהמשך`)
+        :locale==='hu'
+          ?(baby?`Kisgyermek: ${formatted} / fő · a végső ár később jelenik meg`:`Gyermek: ${formatted} / fő · a végső ár később jelenik meg`)
+          :(baby?`Baby passenger: ${formatted} each · final total shown before confirmation`:`Child passenger: ${formatted} each · final total shown before confirmation`);
+    }
   }
-
   function ensureGroupCompositionPreview(form){
     if(!form||form.querySelector('[data-group-composition-preview]'))return;
-    const childField=form.querySelector('select[name="children"]')?.closest('.field');
-    if(childField&&!childField.querySelector('[data-passenger-price-info]')){
-      const hint=document.createElement('small');hint.className='passenger-price-hint';
-      hint.dataset.passengerPriceInfo='';hint.setAttribute('aria-live','polite');
-      childField.appendChild(hint);
-      updatePassengerPricePreview(null);
+    for(const name of ['children','babies']){
+      const field=form.querySelector('select[name="'+name+'"]')?.closest('.field');
+      if(field&&!field.querySelector('[data-passenger-price-info]')){
+        const hint=document.createElement('small');hint.className='passenger-price-hint';
+        hint.dataset.passengerPriceInfo=name;hint.setAttribute('aria-live','polite');
+        // Show the canonical passenger rate before each count selector.
+        field.insertBefore(hint,field.querySelector('select[name="'+name+'"]'));
+      }
     }
+    updatePassengerPricePreview(null);
     const lastField=form.querySelector('select[name="babies"]')?.closest('.field');
     if(!lastField)return;
     const preview=document.createElement('div');

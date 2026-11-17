@@ -418,6 +418,52 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           name+' booking form includes '+key);
       }
     }
+    // Focused P1 participant-count visual regression (no real booking/provider calls).
+    // The child passenger price note must sit above its count control and all
+    // three selects must share a baseline in the desktop/3-column mobile grid.
+    if(booking&&['budapest-en-desktop','budapest-en-mobile',
+                 'budapest-he-mobile','budapest-hu-narrow'].includes(name)){
+      try{
+        await page.waitForSelector('#availability-form [data-passenger-price-info]',{timeout:5000});
+        const layout=await page.evaluate(()=>{
+          const form=document.querySelector('#availability-form');
+          const names=['adults','children','babies'];
+          const selects=names.map(n=>form?.querySelector('.party-fields select[name="'+n+'"]'));
+          const hints=['children','babies'].map(n=>form?.querySelector('.party-fields select[name="'+n+'"]')?.closest('.field')?.querySelector('[data-passenger-price-info]'));
+          const hint=hints[0];
+          const parent=hint?.closest('.field');
+          const row=form?.querySelector('.party-fields');
+          const tops=selects.map(x=>x?.getBoundingClientRect().top);
+          return {
+            fields:selects.every(Boolean),
+            hintBeforeSelect:hints.every((h,i)=>!!h&&h.parentElement===selects[i+1]?.closest('.field')&&h.nextElementSibling===selects[i+1]),
+            hintVisible:hints.every(h=>!!h&&h.getBoundingClientRect().height>0),
+            hintText:hints.map(h=>(h?.textContent||'').trim()),
+            rowColumns:getComputedStyle(row).gridTemplateColumns.split(' ').length,
+            controlTops:tops,
+            pageOverflow:document.documentElement.scrollWidth>window.innerWidth+1,
+            labelText:names.map(n=>form?.querySelector('.party-fields select[name="'+n+'"]')?.closest('.field')?.querySelector('label')?.textContent?.trim()||'')
+          };
+        });
+        check(layout.fields&&layout.hintBeforeSelect&&layout.hintVisible&&layout.hintText.length===2&&layout.hintText.every(Boolean),
+          name+' child and baby prices visible above their selectors');
+        check(!layout.pageOverflow,name+' participant grid has no horizontal overflow');
+        check(layout.labelText.every(Boolean),name+' participant controls retain accessible visible labels');
+        if(viewport.width>360){
+          check(layout.rowColumns===3&&layout.controlTops.every(t=>Number.isFinite(t))&&
+            Math.max(...layout.controlTops)-Math.min(...layout.controlTops)<=2,
+            name+' three participant selectors share a vertical baseline');
+        }else{
+          check(layout.rowColumns===1,name+' 320px participant selectors stack safely');
+        }
+        const party=page.locator('#availability-form .party-fields');
+        await party.scrollIntoViewIfNeeded();
+        await party.screenshot({path:join(out,'participant-'+name+'.png'),animations:'disabled'});
+        results.push('SCREENSHOT: participant-'+name+'.png | '+viewport.width+'px | participant count controls');
+      }catch(error){
+        failures++;results.push('FAIL: participant '+name+' '+String(error).slice(0,380));
+      }
+    }
     if(request){
       const requestForm=page.locator('#request [data-portugal-request-form]');
       check(await requestForm.count()===1,
@@ -1639,6 +1685,83 @@ try{
         failures++;results.push('FAIL: thule '+width+' '+slug+' '+String(error).slice(0,500));
       }finally{await page.close();}
     }
+  }
+
+
+  // Local-only catalog simulation: prove both visible rates and age copy before
+  // any guest selects a quantity. No provider or public-site requests allowed.
+  const fakeOrigin='https://booking-visual-fixture.invalid';
+  for(const [lang,route,labels] of [
+    ['en','/budapest/',['Independent riders age 16+','Children ages 3–15','Babies ages 1–2']],
+    ['he','/he/budapest/',['רוכבים עצמאיים מגיל 16+','ילדים בגיל 3–15','תינוקות בגיל 1–2']],
+    ['hu','/hu/budapest/',['Önálló vezetők 16 éves kortól','Gyermekek 3–15 éves korig','Kisgyermekek 1–2 éves korig']]
+  ]){
+    const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+    const errors=[];
+    page.on('pageerror',e=>errors.push(String(e)));
+    await page.route('**/*',async routeRequest=>{
+      const req=routeRequest.request(),u=new URL(req.url());
+      if(u.origin===base&&u.pathname==='/assets/runtime-config.js'){
+        return routeRequest.fulfill({status:200,contentType:'text/javascript',
+          body:'window.VOY_RUNTIME_CONFIG={bookingEnabled:true,apiRoot:"'+fakeOrigin+'/api/v1",clientKey:"visual_fixture_only"};'});
+      }
+      if(u.origin===base)return routeRequest.continue();
+      if(u.origin!==fakeOrigin||!u.pathname.startsWith('/api/v1/')||
+         !['GET','OPTIONS'].includes(req.method()))return routeRequest.abort();
+      const cors={'access-control-allow-origin':base,
+        'access-control-allow-methods':'GET,OPTIONS',
+        'access-control-allow-headers':'content-type,x-voy-client-key,x-voy-client'};
+      if(req.method()==='OPTIONS')
+        return routeRequest.fulfill({status:204,headers:cors,body:''});
+      const endpoint=u.pathname.slice('/api/v1'.length);
+      let value={ok:true};
+      if(endpoint==='/destinations/budapest'){
+        value={id:'budapest',booking_horizon_days:21,
+          rider_policy:{standard_min_age:16,assessment_min_age:15,
+            child_passenger_min_age:3,child_passenger_max_age:15,
+            baby_passenger_min_age:1,baby_passenger_max_age:2},
+          meeting_point:{address:'Budapest',maps_url:'https://maps.example.invalid/'}};
+      }else if(endpoint==='/experiences'){
+        value=[{id:'exp_visual_buda',slug:'buda-highlights',title:'Buda Highlights',
+          bookingEnabled:true,priceFrom:70,passengerPrice:30,currency:'EUR',
+          durationMinutes:120,guideLanguages:['en','he','hu'],
+          privateAllowed:true,privateMinRiders:2,maxIndependentRiders:12}];
+      }else if(endpoint==='/payments/capabilities')value={online_card:false};
+      else if(endpoint==='/marketing/experiments')value={experiments:[]};
+      return routeRequest.fulfill({status:200,headers:{...cors,'content-type':'application/json'},
+        body:JSON.stringify(value)});
+    });
+    try{
+      await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:20000});
+      await page.waitForFunction(()=>[...document.querySelectorAll('#availability-form [data-passenger-price-info]')]
+        .filter(e=>e.dataset.priceVerified==='true').length===2,null,{timeout:12000});
+      const state=await page.evaluate(()=>{
+        const form=document.querySelector('#availability-form');
+        const controls=['adults','children','babies'].map(name=>form.querySelector('select[name="'+name+'"]'));
+        const hints=['children','babies'].map(name=>
+          form.querySelector('select[name="'+name+'"]').closest('.field').querySelector('[data-passenger-price-info]'));
+        return {labels:controls.map(c=>c.closest('.field').querySelector('label').textContent.trim()),
+          prices:hints.map(h=>h.textContent.trim()),verified:hints.every(h=>h.dataset.priceVerified==='true'),
+          before:hints.every((h,i)=>h.nextElementSibling===controls[i+1]),
+          aligned:Math.max(...controls.map(x=>x.getBoundingClientRect().top))-
+            Math.min(...controls.map(x=>x.getBoundingClientRect().top))<=2,
+          overflow:document.documentElement.scrollWidth-window.innerWidth};
+      });
+      check(JSON.stringify(state.labels)===JSON.stringify(labels),
+        'price-fixture '+lang+' age-qualified labels');
+      check(state.verified&&state.prices.length===2&&
+        state.prices.every(x=>x.includes('30')&&/€|EUR/.test(x)),
+        'price-fixture '+lang+' both canonical €30 passenger prices');
+      check(state.before&&state.aligned&&state.overflow<=2&&errors.length===0,
+        'price-fixture '+lang+' both hints above aligned controls, no overflow/errors');
+      const grid=page.locator('#availability-form .party-fields');
+      await grid.scrollIntoViewIfNeeded();
+      await grid.screenshot({path:join(out,'participant-price-fixture-'+lang+'.png'),
+        animations:'disabled'});
+      results.push('SCREENSHOT: participant-price-fixture-'+lang+'.png | mocked canonical €30, local-only');
+    }catch(err){
+      failures++;results.push('FAIL: price-fixture '+lang+' '+String(err).slice(0,350));
+    }finally{await page.close();}
   }
 
 }finally{
