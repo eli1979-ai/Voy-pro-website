@@ -1455,15 +1455,6 @@ a[href^="tel:"]{direction:ltr;unicode-bidi:isolate}
 }
 .ancillary-kind.service{background:#eaf4fb;color:#0d4d7c}
 
-/* Owner-requested trust presentation: retain independently auditable
-   GetYourGuide data but do not display the six-rating platform tile. */
-.trust-grid .trust-item:has([data-review-count="getyourguide"]){display:none}
-@media(min-width:801px){
-  .trust-grid:has([data-review-count="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:800px){
-  .network-trust .trust-grid:has([data-review-count="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
-}
 
 /* Hebrew Budapest readability — scoped to destination and tour pages only.
    Reuse a single system Hebrew font stack; do not affect Marvão or other locales. */
@@ -1637,10 +1628,6 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
 }
 
 
-/* Retain the exact GetYourGuide audit metadata but hide the six-rating card
-   in the check-the-source section; present Google and TripAdvisor side by side. */
-.budapest-review-sources .review-source-card[data-review-source="getyourguide"]{display:none!important}
-.budapest-review-sources .review-source-grid:has(.review-source-card[data-review-source="getyourguide"]){grid-template-columns:repeat(2,minmax(0,1fr))}
 
 
 /* Never imply a photo documents a specific stop if no validated photo exists. */
