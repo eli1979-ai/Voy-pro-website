@@ -5,6 +5,20 @@ import path from 'node:path';
 const snapshot=JSON.parse(fs.readFileSync('site/assets/budapest-reputation.json','utf8'));
 const roots=['site/budapest','site/he/budapest','site/hu/budapest'];
 const failures=[];
+const css=fs.readFileSync('site/assets/site.css','utf8');
+const compactCss=fs.readFileSync('site/assets/budapest-review-sources-compact.css','utf8');
+// All three audited platforms must remain visually present on both summary
+// strips. A future two-column override must fail QA, not silently hide GYG.
+if(/\.trust-grid\s+\.trust-item:has\(\[data-review-count=["']getyourguide["']\]\)\s*\{[^}]*display\s*:\s*none/i.test(css)||
+   /\.review-source-card\[data-review-source=["']getyourguide["']\]\s*\{[^}]*display\s*:\s*none/i.test(css)||
+   /\.trust-grid:has\(\[data-review-count=["']getyourguide["']\]\)\s*\{[^}]*grid-template-columns\s*:\s*repeat\(2,/i.test(css)||
+   /\.review-source-grid:has\(\.review-source-card\[data-review-source=["']getyourguide["']\]\)\s*\{[^}]*grid-template-columns\s*:\s*repeat\(2,/i.test(css)){
+  failures.push('GetYourGuide rating is hidden or a 2-column override remains');
+}
+if(!css.includes('.trust-grid{display:grid;grid-template-columns:repeat(3,1fr)')||
+   !compactCss.includes('grid-template-columns:repeat(3,minmax(0,1fr))')){
+  failures.push('Google / Tripadvisor / GetYourGuide must render as three columns');
+}
 
 function walk(dir){
   return fs.readdirSync(dir,{withFileTypes:true}).flatMap(ent=>{
