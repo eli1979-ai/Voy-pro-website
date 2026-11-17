@@ -173,7 +173,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       });
       check(compact.top&&compact.bottom&&compact.ticker,name+' has 2 compact ratings points + verified ticker');
       check(compact.sourceCount===3&&compact.legacy===1,name+' has precisely three verified platform links at bottom');
-            check(compact.visibleSources===2,name+' hides the six-rating GetYourGuide source card, preserving its audit link');
+            check(compact.visibleSources===3,name+' displays Google, Tripadvisor and GetYourGuide source cards');
       if(viewport.width<=800){
         check(compact.columns===3,name+' shows all rating sources in one compact mobile row');
         check(compact.topPadding!==null&&compact.topPadding<=24,name+' mobile tour sections are tightened (<=24px top)');
@@ -283,7 +283,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           sources:cards.map(card=>card.querySelector('.trust-source')?.textContent.trim()).join('|'),
           visibleSources:visibleCards.map(card=>card.querySelector('.trust-source')?.textContent.trim()).join('|'),
           columns:grid?getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length:0,
-          row:items.length===2&&items.every(item=>Math.abs(item.top-items[0].top)<=2),
+          row:items.length===3&&items.every(item=>Math.abs(item.top-items[0].top)<=2),
           contained:!!bounds&&items.every(item=>item.width>0&&
             item.left>=bounds.left-2&&item.right<=bounds.right+2),
           attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
@@ -294,12 +294,12 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       });
       check(homeRatings.sectionCount===1&&homeRatings.count===3&&
         homeRatings.sources==='Google|Tripadvisor|GetYourGuide'&&
-        homeRatings.visibleCount===2&&homeRatings.visibleSources==='Google|Tripadvisor',
-        name+' only Google and Tripadvisor tiles are visible while GYG audit data stays intact');
+        homeRatings.visibleCount===3&&homeRatings.visibleSources==='Google|Tripadvisor|GetYourGuide',
+        name+' visibly presents all three audited rating platforms');
       check(homeRatings.attributed&&homeRatings.order,
         name+' root trust attribution and placement before EZRaider guide');
-      check(homeRatings.columns===2&&homeRatings.row&&homeRatings.contained,
-        name+' root trust stays in one contained two-column row at '+viewport.width+'px');
+      check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
+        name+' root trust stays in one contained three-column row at '+viewport.width+'px');
       const proof=await page.evaluate(()=>{
         const root=document.querySelector('.parent-hero-mosaic');
         const cards=[...document.querySelectorAll('.parent-hero-destination')];
