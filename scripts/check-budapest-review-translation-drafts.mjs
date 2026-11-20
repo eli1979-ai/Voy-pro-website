@@ -34,7 +34,16 @@ for(let i=0;i<draft.reviews.length;i++){
   assert.equal(visible.rating,review.rating);
   assert.equal(visible.approved,true);
   assert.equal(visible.translations_approved,true);
-  assert.deepEqual(visible.translations,review.translations);
+  // The October 22 owner authorization covers exactly EN/HE/HU; do not
+  // retroactively claim that the new Spanish editorial draft was approved.
+  assert.deepEqual(Object.fromEntries(languages.map(lang=>[lang,visible.translations[lang]])),review.translations);
+  assert.deepEqual(Object.keys(visible.translations).sort(),['en','he','hu','es'].sort(),
+    'ES is the only additional language allowed in this change: '+review.id);
+  assert.equal(typeof visible.translations.es,'string');
+  assert(visible.translations.es.trim().length>=Math.max(35,review.translations.en.trim().length*.30),
+    'Spanish editorial draft must cover the full review: '+review.id);
+  assert.equal(visible.es_translation_basis,'approved English rendition; machine-assisted editorial draft',
+    'Spanish translation must preserve source and draft provenance: '+review.id);
   assert.equal(review.full_text,source.source_evidence?.operator_original_text_evidence?.original_text,
     'The original must match the source evidence exactly: '+review.id);
   assert.equal(review.language,source.source_evidence?.operator_original_text_evidence?.source_text_language,

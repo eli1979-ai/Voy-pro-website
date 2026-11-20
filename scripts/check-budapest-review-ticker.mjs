@@ -32,8 +32,9 @@ const reviewValid=(review)=>review?.approved===true
   &&typeof review.author==='string'&&review.author.trim().length>=2
   &&typeof review.full_text==='string'&&review.full_text.trim().length>=35
   &&review.translations_approved===true&&review.translations&&
-    ['en','he','hu'].every(lang=>typeof review.translations[lang]==='string'&&
+    ['en','he','hu','es'].every(lang=>typeof review.translations[lang]==='string'&&
       review.translations[lang].trim().length>=35)
+  &&typeof review.es_translation_basis==='string'&&review.es_translation_basis.includes('approved English rendition')
   &&(!['en','he','hu'].includes(review.language)||review.translations[review.language]===review.full_text)
   &&(review.date===null||/^\d{4}-\d{2}-\d{2}$/.test(review.date||''))
   &&['review','listing'].includes(review.link_kind)
@@ -92,6 +93,28 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
+// The Spanish tours share the reviewed read-only review ticker without introducing checkout.
+const spanishRoutes=['','tours/buda-castle-ezraider-tour/',
+  'tours/margaret-island-ezraider-tour/','tours/buda-margaret-extended-tour/',
+  'tours/heroes-square-city-ezraider-tour/','tours/citadella-advanced-ezraider-tour/',
+  'private-tours/','with-kids/','group-tours/','corporate-events/',
+  'first-day/','where-to-stay/','unique-things-to-do/','buda-castle-without-walking/'];
+for(const suffix of spanishRoutes){
+  const page='site/es/budapest/'+suffix+'index.html';
+  const html=fs.readFileSync(page,'utf8');
+  assert(html.includes('<html lang="es">'),page+': expected Spanish HTML locale');
+  assert((html.match(/data-vp-reviews-root hidden/g)||[]).length===1,page+': exactly one safe ticker');
+  for(const token of ['data-vp-reviews-left','data-vp-reviews-right','data-vp-reviews-track',
+    '/assets/budapest-review-ticker.js?v=20261029r1',
+    '/assets/budapest-review-ticker.css?v=20261023r6','Reseñas traducidas al español']){
+    assert(html.includes(token),page+': missing Spanish review component '+token);
+  }
+  assert(!html.includes('/assets/site.js')&&!html.includes('id="availability-form"')
+    &&!html.includes('id="live-checkout-form"'),page+': preserve Spanish no-booking safety');
+}
+assert(manifest.reviews.every(review=>review.translations.es!==review.translations.en),
+  'Spanish text must not silently use English fallback');
+
 for(const marker of ['.vp-reviews-nav svg{display:block;width:18px;height:18px',
   'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
@@ -191,8 +214,10 @@ for(const review of sample){
   review.translations={
     en:review.full_text,
     he:'זהו נוסח בדיקה בעברית עבור '+review.id+' בלבד. הטקסט הזה לא יתפרסם באתר והוא נועד לאימות בחירת השפה.',
-    hu:'Ez kizárólag tesztszöveg magyarul, azonosító: '+review.id+'. Ez a szöveg nem jelenik meg az éles honlapon.'
+    hu:'Ez kizárólag tesztszöveg magyarul, azonosító: '+review.id+'. Ez a szöveg nem jelenik meg az éles honlapon.',
+    es:'Texto de prueba de una reseña sintética para '+review.id+'. No se publica en la página web de clientes.'
   };
+  review.es_translation_basis='approved English rendition; machine-assisted editorial draft';
 }
 for(let i=10;i<20;i++){
   sample[i].source=i<17?'google':'getyourguide';
@@ -212,7 +237,7 @@ assert(approved.root.hidden===false,'approved 20-item list must activate the tic
 // two endless-scroll replicas are aria-hidden even though their buttons
 // intentionally remain pointer-clickable. Closing a replica's modal must
 // never return keyboard focus to an accessibility-hidden subtree.
-for(const language of ['en','he','hu']){
+for(const language of ['en','he','hu','es']){
   const state=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
   const expandIn=groupIndex=>{
     const group=state.track.children[groupIndex];
@@ -260,7 +285,7 @@ for(const language of ['en','he','hu']){
 // Keyboard focus on a review quote, expansion button or source link must
 // pause the moving strip. Merely focusing outside review cards (including
 // the distinct Resume control) must never cancel a user's choice to resume.
-for(const language of ['en','he','hu']){
+for(const language of ['en','he','hu','es']){
   const keyboard=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
   assert(typeof keyboard.viewport.events.focusin==='function',
     language+' review viewport must listen for keyboard focus');
@@ -274,7 +299,7 @@ for(const language of ['en','he','hu']){
     language+' review-card keyboard focus must pause automatic scrolling');
   assert(keyboard.pause.attrs['aria-pressed']==='true',
     language+' focus-triggered pause must expose the pressed state');
-  assert(keyboard.pause.textContent===({en:'Resume reviews',he:'המשך גלילת ביקורות',hu:'Értékelések folytatása'}[language]),
+  assert(keyboard.pause.textContent===({en:'Resume reviews',he:'המשך גלילת ביקורות',hu:'Értékelések folytatása',es:'Reanudar opiniones'}[language]),
     language+' pause control must show the localized Resume label');
   const initialFrame=keyboard.frames[0];
   initialFrame?.(1000);
@@ -293,7 +318,7 @@ for(const language of ['en','he','hu']){
 // Respect the user's OS accessibility setting without burning animation
 // frames for a strip that must never scroll automatically. Manual navigation
 // and the real text/source links remain available to all three locales.
-for(const language of ['en','he','hu']){
+for(const language of ['en','he','hu','es']){
   const motionOff=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language,true);
   assert(motionOff.root.hidden===false,language+' reduced-motion reviews must remain visible');
   assert(motionOff.pause.hidden===false&&motionOff.root.classList.states.has('is-paused'),
@@ -326,7 +351,7 @@ assert(approved.track.children.length===3,'review track must contain a real grou
 // Switching the OS preference while the website is open must cancel *old*
 // queued animation frames, never produce parallel loops, and never silently
 // restart the moving ribbon without a user's explicit Resume action.
-for(const language of ['en','he','hu']){
+for(const language of ['en','he','hu','es']){
   const liveMotion=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
   assertStrict.equal(liveMotion.frames.length,1,language+' starts with one scheduled frame');
   const oldFrame=liveMotion.frames[0];
@@ -366,7 +391,7 @@ for(const language of ['en','he','hu']){
 
 // A background tab must not queue animation frames. Returning must create
 // one fresh loop, without silently clearing an explicit Pause.
-for(const language of ['en','he','hu']){
+for(const language of ['en','he','hu','es']){
   const active=await simulate({schema_version:1,expected_count:20,status:'approved',reviews:sample},language);
   assertStrict.equal(active.frames.length,1,language+' initially schedules exactly one frame');
   const initial=active.viewport.scrollLeft;

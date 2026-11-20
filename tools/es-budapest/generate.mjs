@@ -8,7 +8,8 @@
 // pages.json (approved Spanish title/description/facts/WhatsApp text) and
 // route-visuals/*.html (the English route photo strip + schematic that
 // site.js renders on the three tour pages, captured from a local build).
-// Output pages load no JavaScript: no availability, checkout, FBM or payment.
+// Output pages allow only the audited, read-only review ticker JavaScript; no live
+// availability, checkout, FBM, analytics or payment runtime.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -132,6 +133,7 @@ function buildHead(enHtml, r) {
     .map(m => `<link href="${m[1]}" hreflang="${m[2]}" rel="alternate"/>`).join('');
   const styles = [...enHead.matchAll(/<link\b[^>]*stylesheet[^>]*>/g)].map(m => m[0])
     .filter(t => !/budapest-review-ticker\.css/.test(t)).join('');
+  const tickerStyles='<link rel="stylesheet" href="/assets/budapest-review-ticker.css?v=20261023r6"/>';
   const canonical = 'https://voy-pro.com' + esPath(r);
   const h1 = meta.title.replace(/ \| VOY PRO$/, '');
   const crumbs = [{ name: 'VOY PRO', item: 'https://voy-pro.com/' }, { name: 'Budapest', item: 'https://voy-pro.com/es/budapest/' }];
@@ -144,7 +146,7 @@ function buildHead(enHtml, r) {
   return `<head><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>` +
     `<meta content="#0d151d" name="theme-color"/><meta content="light" name="color-scheme"/><meta content="index,follow" name="robots"/>` +
     `<title>${esc(meta.title)}</title><meta name="description" content="${esc(meta.description)}"/>` +
-    `<link href="${canonical}" rel="canonical"/>${hreflangs}${styles}<link rel="stylesheet" href="/assets/spanish-budapest.css"/>${ld}</head>`;
+    `<link href="${canonical}" rel="canonical"/>${hreflangs}${styles}${tickerStyles}<link rel="stylesheet" href="/assets/spanish-budapest.css"/>${ld}</head>`;
 }
 
 function transform(r) {
@@ -224,7 +226,18 @@ function transform(r) {
     .replace(/>$/, ' data-es-page="' + esPath(r) + '">');
   const ribbon = '<div class="voy-preview-ribbon" role="note">Vista previa · No se aceptan reservas reales desde estas páginas</div>';
   const withRibbon = body.replace(/(<a class="skip-link"[^>]*>[^<]*<\/a>)/, '$1' + ribbon);
-  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withRibbon}</body></html>\n`;
+  // One source of truth for presentation: reuse the Spanish network homepage
+  // ribbon without recreating or translating individual reviews here.
+  const networkHome=fs.readFileSync(path.join(repo,'site','es','index.html'),'utf8');
+  const networkRibbon=networkHome.match(/<section class="vp-reviews network-review-ribbon"[\s\S]*?<\/section>/)?.[0];
+  if(!networkRibbon)throw Error('Missing Spanish home review ribbon');
+  const reviewRibbon=networkRibbon.replace('class="vp-reviews network-review-ribbon"','class="vp-reviews"');
+  let inserted=0;
+  const withReviews=withRibbon.replace(/(<section class="section budapest-review-sources[^"]*"[\s\S]*?<\/section>)/,
+    match=>{inserted++;return match+reviewRibbon;});
+  if(inserted!==1)throw Error('Need one source section for Spanish review ribbon: '+r);
+  // Only this allowlisted review JavaScript is permitted on Spanish pages.
+  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withReviews}<script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n`;
 }
 
 const outputs = ROUTES.map(r => [r, transform(r)]);

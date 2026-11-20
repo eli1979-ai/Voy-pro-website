@@ -16,11 +16,12 @@
     en:{pause:'Pause reviews',play:'Resume reviews',source:'View original review on ',listing:'Browse reviews on ',translated:'Translated from the original',read:'Full review by ',stars:'out of 5 stars',expand:'Read full review',close:'Close review'},
     he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית ב־',listing:'לכל הביקורות באתר ',translated:'תורגם מהמקור',read:'ביקורת מלאה מאת ',stars:'מתוך 5 כוכבים',expand:'קריאת הביקורת המלאה',close:'סגירת הביקורת'},
     hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',read:'Teljes értékelés: ',stars:'az 5 csillagból',expand:'Teljes értékelés',close:'Értékelés bezárása'},
-    es:{pause:'Pausar opiniones',play:'Reanudar opiniones',source:'Ver la reseña original en ',listing:'Ver opiniones en ',translated:'Mostrada en inglés; traducida del original cuando corresponde',read:'Reseña completa de ',stars:'de 5 estrellas',expand:'Leer reseña completa',close:'Cerrar reseña'}
+    es:{pause:'Pausar opiniones',play:'Reanudar opiniones',source:'Ver la reseña original en ',listing:'Ver opiniones en ',translated:'Traducida del original',read:'Reseña completa de ',stars:'de 5 estrellas',expand:'Leer reseña completa',close:'Cerrar reseña'}
   };
   const t=texts[locale]||texts.en;
-  // ES reviews display the already verified EN translations, not new unofficial translations.
-  const reviewTextLocale=locale==='es'?'en':locale;
+  // Spanish is now an editorial translation of the same verified original set.
+  // Original/source metadata and author are never translated or replaced.
+  const reviewTextLocale=['en','he','hu','es'].includes(locale)?locale:'en';
   const validUrl=(value,source)=>{
     try{
       const url=new URL(value);
@@ -34,8 +35,9 @@
     &&typeof item.author==='string'&&item.author.trim().length>=2
     &&typeof item.full_text==='string'&&item.full_text.trim().length>=35
     &&item.translations_approved===true
-    &&item.translations&&['en','he','hu'].every(lang=>
+    &&item.translations&&['en','he','hu','es'].every(lang=>
       typeof item.translations[lang]==='string'&&item.translations[lang].trim().length>=35)
+    &&typeof item.es_translation_basis==='string'&&item.es_translation_basis.includes('approved English rendition')
     &&(!['en','he','hu'].includes(item.language)||item.translations[item.language]===item.full_text)
     &&(item.date===null||(typeof item.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(item.date)))
     &&['review','listing'].includes(item.link_kind)
@@ -91,7 +93,7 @@
     const quote=make('blockquote','vp-review-dialog-text',item.translations[reviewTextLocale]);
     quote.lang=reviewTextLocale;
     quote.dir=locale==='he'?'rtl':'ltr';
-    if(locale==='es'||item.language!==locale){
+    if(item.language!==locale){
       const original=make('span','vp-review-dialog-translation',t.translated);
       info.append(original);
     }
@@ -138,13 +140,13 @@
     if(location)byline.append(make('span','vp-review-location',location));
     if(item.date){
       const day=new Date(item.date+'T12:00:00Z');
-      const displayDate=new Intl.DateTimeFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':'en-GB',
+      const displayDate=new Intl.DateTimeFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='es'?'es-ES':'en-GB',
         {timeZone:'UTC',year:'numeric',month:'short',day:'numeric'}).format(day);
       const date=make('time','vp-review-date',displayDate);
       date.dateTime=item.date;
       byline.append(date);
     }
-    if(locale==='es'||locale!==item.language)byline.append(make('span','vp-review-translated',t.translated));
+    if(locale!==item.language)byline.append(make('span','vp-review-translated',t.translated));
     const expand=make('button','vp-review-expand',t.expand);
     expand.type='button';
     expand.tabIndex=duplicate?-1:0;

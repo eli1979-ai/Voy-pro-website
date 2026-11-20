@@ -791,7 +791,7 @@ if(!fallback404.includes('(he|hu|pt|es)')||
    !fallback404.includes("budapest:['/es/budapest/'"))
   fail('404.html','Missing safe Spanish 404 recovery');
 
-// Spanish Budapest content-only preview: complete route matrix and no live checkout.
+// Spanish Budapest: complete route matrix, read-only reviews, no live checkout.
 // The ES runtime/selector must not be enabled until an independent locale audit.
 const spanishBudapestSlugs=[
   '','tours/buda-castle-ezraider-tour','tours/buda-margaret-extended-tour',
@@ -870,8 +870,16 @@ for(const slug of spanishBudapestSlugs){
     fail(path,'Spanish page lost English sections ('+sections(html)+' vs '+sections(enHtml)+')');
   if(faqs(html)!==faqs(enHtml))
     fail(path,'Spanish FAQ count must match English ('+faqs(html)+' vs '+faqs(enHtml)+')');
-  if(/<script\b(?![^>]*application\/ld\+json)/.test(html)||/<(form|iframe|input|select|button)\b/.test(html))
-    fail(path,'Spanish preview must stay static: no scripts, forms, iframes or interactive runtime');
+  // Only the verified source-review ribbon may execute JS on Spanish
+  // informational pages. Booking/payment/analytics runtimes remain forbidden.
+  const executableScripts=[...html.matchAll(/<script\b(?![^>]*application\/ld\+json)([^>]*)>/g)].map(m=>m[1]);
+  if(executableScripts.length!==1||!/\bsrc="\/assets\/budapest-review-ticker\.js\?v=20261029r1"/.test(executableScripts[0]))
+    fail(path,'Spanish route may execute only the approved read-only review ticker');
+  const withoutTicker=html.replace(/<section class="vp-reviews"[^>]*>[\s\S]*?<\/section>/,'');
+  if(/<(form|iframe|input|select|button)\b/.test(withoutTicker))
+    fail(path,'Spanish informational routes must not expose booking/payment forms or other interactive runtime');
+  if((html.match(/data-vp-reviews-root hidden/g)||[]).length!==1)
+    fail(path,'Spanish route must contain exactly one source-backed review ribbon');
   if(!html.includes('class="voy-preview-ribbon"')||!html.includes('id="consulta"')||
      !html.includes('class="es-mobile-menu"')||!html.includes('assets/site.css'))
     fail(path,'Spanish page must use the shared English layout with preview ribbon, inquiry panel and mobile menu');
