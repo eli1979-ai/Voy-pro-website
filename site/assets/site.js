@@ -1746,6 +1746,8 @@
           ?(baby?'מחיר תינוק יאומת במערכת ההזמנות':'מחיר ילד יאומת במערכת ההזמנות')
           :locale==='hu'
             ?(baby?'A kisgyermek árát a foglalási rendszer erősíti meg':'A gyermek árát a foglalási rendszer erősíti meg')
+            :locale==='es'
+              ?(baby?'El precio del bebé se verificará con el sistema de reservas':'El precio del niño se verificará con el sistema de reservas')
             :(baby?'Baby price will be verified with the booking system':'Child price will be verified with the booking system');
       }
       return;
@@ -1763,6 +1765,8 @@
         ?(baby?`תינוק: ${formatted} לתינוק · המחיר הסופי יוצג בהמשך`:`ילד: ${formatted} לילד · המחיר הסופי יוצג בהמשך`)
         :locale==='hu'
           ?(baby?`Kisgyermek: ${formatted} / fő · a végső ár később jelenik meg`:`Gyermek: ${formatted} / fő · a végső ár később jelenik meg`)
+          :locale==='es'
+            ?(baby?`Bebé pasajero: ${formatted} por bebé · total final antes de confirmar`:`Niño pasajero: ${formatted} por niño · total final antes de confirmar`)
           :(baby?`Baby passenger: ${formatted} each · final total shown before confirmation`:`Child passenger: ${formatted} each · final total shown before confirmation`);
     }
   }
@@ -2058,9 +2062,9 @@
 
   function localizedBudapestExperienceTitle(experience,fallbackTitle=''){
     const raw=[experience?.slug,experience?.id,experience?.title,fallbackTitle].filter(Boolean).join(' ').toLowerCase();
-    if(raw.includes('extended')||(raw.includes('buda')&&raw.includes('margaret')))return locale==='he'?'סיור ארוך בודה + מרגיט':locale==='hu'?'Buda + Margitsziget hosszabb túra':'Extended Buda + Margaret Tour';
-    if(raw.includes('margaret'))return locale==='he'?'סיור אי מרגיט על EZRaider':locale==='hu'?'Margitsziget EZRaiderrel':'Margaret Island by EZRaider';
-    if(raw.includes('buda'))return locale==='he'?'סיור בודה על EZRaider':locale==='hu'?'Budai városnézés EZRaiderrel':'Buda Highlights by EZRaider';
+    if(raw.includes('extended')||(raw.includes('buda')&&raw.includes('margaret')))return locale==='he'?'סיור ארוך בודה + מרגיט':locale==='hu'?'Buda + Margitsziget hosszabb túra':locale==='es'?'Tour ampliado Buda + isla Margarita':'Extended Buda + Margaret Tour';
+    if(raw.includes('margaret'))return locale==='he'?'סיור אי מרגיט על EZRaider':locale==='hu'?'Margitsziget EZRaiderrel':locale==='es'?'Isla Margarita en EZRaider':'Margaret Island by EZRaider';
+    if(raw.includes('buda'))return locale==='he'?'סיור בודה על EZRaider':locale==='hu'?'Budai városnézés EZRaiderrel':locale==='es'?'Lo mejor de Buda en EZRaider':'Buda Highlights by EZRaider';
     return String(experience?.title||fallbackTitle||'').trim();
   }
   function catalogLoadingLabel(){
@@ -2483,6 +2487,16 @@
       rentalNote:'Bérlés a túra idejére',saleNote:'Megtarthatod',perTour:'túránként',each:'darabonként',
       decrease:'Mennyiség csökkentése',increase:'Mennyiség növelése',quantity:'Mennyiség',selectedExtras:'Kiválasztott extrák',
       loadError:'A kiegészítőket most nem sikerült betölteni. A foglalást nélkülük is folytathatod.',limitReached:'Elérted a maximálisan elérhető mennyiséget'
+    },
+    es:{
+      kicker:'PERSONALIZA TU EXPERIENCIA',title:'Mejora tu tour antes de salir',
+      intro:'Añade comodidad y recuerdos especiales con extras seleccionados para tu recorrido.',
+      sale:'COMPRA',rental:'ALQUILER',service:'SERVICIO',add:'Añadir',added:'Añadido',soldout:'No disponible',
+      paymentNote:'Los extras seleccionados se incluyen en el total de la reserva según el método de pago elegido.',
+      updating:'Actualizando el total…',winter:'Comodidad para el invierno',gear:'Extra del tour',
+      rentalNote:'Alquiler durante el tour',saleNote:'Para quedártelo',perTour:'por tour',each:'por unidad',
+      decrease:'Reducir cantidad',increase:'Aumentar cantidad',quantity:'Cantidad',selectedExtras:'Extras seleccionados',
+      loadError:'No se pueden cargar los extras. Puedes continuar la reserva sin ellos.',limitReached:'Se ha alcanzado la cantidad máxima disponible'
     }
   };
   const ancillaryText=(key)=>ANCILLARY_COPY[locale]?.[key]||ANCILLARY_COPY.en[key]||key;
@@ -2500,7 +2514,8 @@
     const copy={
       en:{GOPRO:'GoPro rental',WARMER:'Body warmer pack',HAT:'Fleece hat',SCARF:'Fleece scarf',DRONE:'Drone clip of your ride'},
       he:{GOPRO:'השכרת GoPro',WARMER:'ערכת חימום לגוף',HAT:'כובע פליז',SCARF:'צעיף פליז',DRONE:'סרטון רחפן של הרכיבה'},
-      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónvideó a túrádról'}
+      hu:{GOPRO:'GoPro bérlés',WARMER:'Testmelegítő csomag',HAT:'Polár sapka',SCARF:'Polár sál',DRONE:'Drónvideó a túrádról'},
+      es:{GOPRO:'Alquiler de GoPro',WARMER:'Kit de abrigo',HAT:'Gorro polar',SCARF:'Bufanda polar',DRONE:'Vídeo con dron de tu recorrido'}
     };
     const lang=copy[locale]||copy.en;
     if(sku.includes('GOPRO'))return lang.GOPRO;
@@ -2533,6 +2548,13 @@
         HAT:'Tartsd melegen a fejed, és élvezd kényelmesebben a hidegebb túrákat.',
         SCARF:'Védd a nyakad a hidegtől, és élvezd melegebben, kényelmesebben a túrát.',
         DRONE:'Egy kis, automata drón (250 g alatt) közelről filmez egy rövid, előre jóváhagyott, látványos szakaszon. A csapatunk indítja és teszi le, neked csak vezetned kell.'
+      },
+      es:{
+        GOPRO:'Graba el recorrido con una GoPro. No está permitido usar el teléfono mientras conduces.',
+        WARMER:'¿Hace frío? Añade abrigo para disfrutar del recorrido con comodidad.',
+        HAT:'Mantén la cabeza abrigada durante los recorridos en días fríos.',
+        SCARF:'Protege el cuello del frío y disfruta de un recorrido más cómodo.',
+        DRONE:'Un dron automático pequeño (menos de 250 g) graba un breve tramo panorámico autorizado. Nuestro equipo se encarga del despegue y aterrizaje.'
       }
     };
     const lang=copy[locale]||copy.en;
@@ -2548,7 +2570,8 @@
     const copy={
       en:{GOPRO:'Rent GoPro',WARMER:'Add warmth',HAT:'Add hat',SCARF:'Add scarf',DRONE:'Add drone clip'},
       he:{GOPRO:'השכרת GoPro',WARMER:'הוספת חימום',HAT:'הוספת כובע',SCARF:'הוספת צעיף',DRONE:'הוספת סרטון רחפן'},
-      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drónvideó hozzáadása'}
+      hu:{GOPRO:'GoPro bérlése',WARMER:'Extra meleg',HAT:'Sapka hozzáadása',SCARF:'Sál hozzáadása',DRONE:'Drónvideó hozzáadása'},
+      es:{GOPRO:'Alquilar GoPro',WARMER:'Añadir abrigo',HAT:'Añadir gorro',SCARF:'Añadir bufanda',DRONE:'Añadir vídeo con dron'}
     };
     const lang=copy[locale]||copy.en;
     if(sku.includes('GOPRO'))return lang.GOPRO;
@@ -3048,13 +3071,13 @@
     const end=new Date(start.getTime()+duration*60000);
     const compact=d=>`${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}${String(d.getUTCDate()).padStart(2,'0')}T${String(d.getUTCHours()).padStart(2,'0')}${String(d.getUTCMinutes()).padStart(2,'0')}00`;
     const calendarTourTitle=localizedBudapestExperienceTitle(bookingState.experience,booking?.experience_title)||'VOY PRO Budapest';
-    const privateSuffix=bookingState.isPrivate?(locale==='he'?' · פרטי':locale==='hu'?' · Privát':' · Private'):'';
+    const privateSuffix=bookingState.isPrivate?(locale==='he'?' · פרטי':locale==='hu'?' · Privát':locale==='es'?' · Privado':' · Private'):'';
     const title=encodeURIComponent(`${calendarTourTitle}${privateSuffix}`);
     const meeting=budapestMeetingPoint();
     const meetingPoint=String(meeting?.address||'').trim();
     const mapsUrl=String(meeting?.maps_url||'').trim();
-    const bookingLabel=locale==='he'?'הזמנת VOY PRO':locale==='hu'?'VOY PRO foglalás':'VOY PRO booking';
-    const meetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':'Meeting point';
+    const bookingLabel=locale==='he'?'הזמנת VOY PRO':locale==='hu'?'VOY PRO foglalás':locale==='es'?'Reserva de VOY PRO':'VOY PRO booking';
+    const meetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':locale==='es'?'Punto de encuentro':'Meeting point';
     const meetingLines=meetingPoint?[`${meetingLabel}: ${meetingPoint}`,...(mapsUrl?[`Google Maps: ${mapsUrl}`]:[])]:[];
     const details=encodeURIComponent([`${bookingLabel} ${booking?.reference||''}`,...meetingLines].join('\n'));
     const locationParam=encodeURIComponent(meetingPoint);
@@ -3212,10 +3235,10 @@
       const confirmed=verifiedBookingConfirmation(booking);
       const confirmedExtras=confirmedAncillaryDetails(booking,submission.extras);
       clearInterval(holdTimer); bookingState.hold=null; delStore('voy_recovery_state');
-      const manageToken=confirmed.token;const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':'';const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
+      const manageToken=confirmed.token;const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':''; // The Manage Booking app currently supports EN/HE/HU only; ES routes fall back to EN.const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
       const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:confirmed.reference,experience_title:localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title),date:confirmationDateLabel(confirmed.date),requested_time:confirmationTimeLabel(confirmed.time),riders:confirmed.composition?.riders_16_plus||0,children:confirmed.composition?.child_passengers_3_15||0,babies:confirmed.composition?.baby_passengers_1_2||0,is_private:confirmed.isPrivate,guide_language:confirmed.guideLanguage,payment_method:paymentMethod,extras:confirmedExtras.items,total:confirmed.total,currency:confirmed.currency});
-      const confirmationMeetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':'Meeting point';
-      const confirmationMapsLabel=locale==='he'?'פתיחה ב־Google Maps':locale==='hu'?'Megnyitás a Google Térképen':'Open in Google Maps';
+      const confirmationMeetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':locale==='es'?'Punto de encuentro':'Meeting point';
+      const confirmationMapsLabel=locale==='he'?'פתיחה ב־Google Maps':locale==='hu'?'Megnyitás a Google Térképen':locale==='es'?'Abrir en Google Maps':'Open in Google Maps';
       const confirmationTotal=confirmed.total;
       const confirmationTour=localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title);
       terminal=true;st.classList.add('success-card');st.innerHTML=`<div class="success-icon" aria-hidden="true">✓</div><h3 tabindex="-1">${t('Booking confirmed','ההזמנה אושרה')}</h3><div class="confirmation-reference"><span>${t('Booking reference','מספר הזמנה')}</span><b>${escapeHTML(confirmed.reference)}</b></div>${confirmationTour?`<div class="confirmation-tour"><span>${t('Tour','סיור')}</span><strong>${escapeHTML(confirmationTour)}</strong></div>`:''}${renderPartySummary(confirmed.composition)}${confirmationTotal!=null?`<div class="confirmation-total"><span>${t('Total','סה״כ')}</span><strong>${escapeHTML(money(confirmationTotal,confirmed.currency))}</strong></div>`:''}<div class="party-summary confirmation-meta"><span>${t('Date','תאריך')} · ${escapeHTML(confirmationDateLabel(confirmed.date))}</span><span>${t('Time','שעה')} · ${escapeHTML(confirmationTimeLabel(confirmed.time))}</span>${confirmed.isPrivate?`<span>${t('Private tour','סיור פרטי')}</span>`:''}<span>${requestedGuideLanguageLabel()} · ${escapeHTML(guideLanguageLabel(confirmed.guideLanguage))}</span><span>${t('Payment','תשלום')} · ${paymentMethod==='pay_now_card'?t('Paid online by card','שולם מראש בכרטיס'):paymentMethod==='pay_arrival_cash'?t('Cash on arrival','מזומן במקום'):t('Card on arrival','כרטיס במקום')}</span></div><p class="muted" data-requested-guide-language-note>${escapeHTML(locale==='he'?'שפת ההדרכה המבוקשת נרשמה בהזמנה. צוות בודפשט יאשר את אפשרות ההדרכה בשפה זו מול הצוות המשובץ.':locale==='hu'?'A kért idegenvezetési nyelvet rögzítettük a foglalásban. A budapesti csapat egyezteti a nyelvi teljesíthetőséget a beosztott vezetőkkel.':'Your requested guiding language is saved with the booking. The Budapest team will confirm language coverage with the assigned staff.')}</p>${renderConfirmationAncillarySummary(confirmedExtras.items)}${confirmedExtras.matches?'':`<div class="notice" role="alert">${escapeHTML(locale==='he'?'לא הצלחנו לאמת שכל התוספות שבחרתם מופיעות בהזמנה. הפריטים המוצגים הם אלו שהתקבלו באישור ההזמנה. אנא פנו לצוות לבירור לפני היציאה.':locale==='hu'?'Nem tudtuk megerősíteni, hogy minden kiválasztott kiegészítő szerepel a foglalásban. Csak a foglalás visszaigazolásában szereplő tételek láthatók. Kérjük, indulás előtt egyeztess csapatunkkal.':'We could not verify that all selected extras were included in your booking. Only extras returned in the booking confirmation are shown. Please contact our team before departure.')}</div>`}${(()=>{const meeting=budapestMeetingPoint();if(!meeting?.address)return '';return `<div class="confirmation-meeting-point"><div><small>${escapeHTML(confirmationMeetingLabel)}</small><b>${escapeHTML(meeting.address)}</b></div>${meeting.maps_url?`<a class="btn secondary" href="${escapeHTML(meeting.maps_url)}" target="_blank" rel="noopener">${escapeHTML(confirmationMapsLabel)}</a>`:''}</div>`;})()}${budapestPolicyMarkup()}<p class="budapest-booking-policy-contact">${escapeHTML(budapestCancellationContact())}</p><div class="success-actions"><a class="btn" href="${manageUrl}">${t('Manage booking','ניהול הזמנה')}</a><button type="button" class="btn secondary" data-copy-booking-ref>${t('Copy reference','העתקת מספר')}</button><a class="btn secondary" data-calendar-booking href="#">${t('Add to calendar','הוספה ליומן')}</a><a class="btn secondary" href="${bookingWhatsApp}" target="_blank" rel="noopener">WhatsApp</a></div><div class="confirmation-next"><b>${t('What happens next','מה עכשיו')}</b><span>${t('Your booking is confirmed. Use Manage Booking for current details or available changes.','ההזמנה אושרה. בניהול ההזמנה תוכלו לראות את הפרטים העדכניים ואת השינויים הזמינים.')}</span><span>${t('Keep the Manage Booking link private — it gives access to this booking.','שמרו את קישור ניהול ההזמנה פרטי — הוא מעניק גישה להזמנה הזו.')}</span></div>`;
