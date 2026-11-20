@@ -212,7 +212,7 @@ for(const [source,unsafe,fallback] of [
  ['budapest','/budapest/?token=secret','/he/budapest/'],
  ['budapest','/budapest/#private','/he/budapest/'],
  ['marvao','/budapest/','/he/portugal/'],
- ['home','/budapest/','/']
+ ['home','/budapest/','/he/']
 ]){
  const r=run('?from='+source+'&return_to='+encodeURIComponent(unsafe),'he');
  assert.equal(h(r,'back'),fallback,'Disallowed return path must fall back to the branch: '+unsafe);
