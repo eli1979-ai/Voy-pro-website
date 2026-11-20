@@ -428,12 +428,15 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           check(false,name+' '+slug+' homepage card body navigation: '+String(error).slice(0,170));
         }
       }
+      // The duplicate hero photo mosaic was intentionally removed. Validate
+      // the canonical destination CTAs instead of clicking deleted images.
       for(const slug of ['budapest','portugal']){
         try{
-          await page.locator('.parent-hero-destination--'+(slug==='portugal'?'marvao':slug)+' img').click({timeout:5000});
-          check(new URL(page.url()).pathname==='/'+slug+'/',name+' clicking '+slug+' photo opens local destination');
+          const card=slug==='budapest'?'budapest':'marvao';
+          await page.locator('#destinations .destination-card--'+card+' .tour-choice-actions a.btn').click({timeout:5000});
+          check(new URL(page.url()).pathname==='/'+slug+'/',name+' clicking '+slug+' destination CTA opens local branch');
           await page.goBack({waitUntil:'domcontentloaded',timeout:10000});
-        }catch(error){check(false,name+' photo navigation '+slug+': '+String(error).slice(0,170));}
+        }catch(error){check(false,name+' destination CTA navigation '+slug+': '+String(error).slice(0,170));}
       }
     }
     if(path.startsWith('/he/'))check(metrics.direction==='rtl',name+' preserves Hebrew RTL direction');
