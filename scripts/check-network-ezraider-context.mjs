@@ -325,7 +325,7 @@ assert.ok(referralCss.includes(':not(:has(> .ez-vehicle-bridge-product))::after'
   referralCss.includes('.tour-vehicle-guide-link a::before')&&
   referralCss.split(referralImage).length>=3,
   'Both full-bridge and compact vehicle-guide links must show the approved photo');
-let referralCount=0,fullBridgeCount=0,compactCount=0;
+let referralCount=0,fullBridgeCount=0,compactCount=0,spotlightCount=0;
 function auditVehicleReferrals(dir){
  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
   const path=dir+'/'+entry.name;
@@ -335,16 +335,25 @@ function auditVehicleReferrals(dir){
   const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/|es\/)?ezraider\/\?[^"]*"[^>]*>/g;
   const sectionPattern=/<section\b[^>]*class="[^"]*\bez-vehicle-bridge\b[^"]*"[^>]*>[\s\S]*?<\/section>/g;
   const compactPattern=/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g;
+  const spotlightPattern=/<div class="network-ez-spotlight"[^>]*>[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/g;
   const bridges=[...html.matchAll(sectionPattern)].map(m=>m[0]);
   const compact=[...html.matchAll(compactPattern)].map(m=>m[0]);
+  const spotlights=[...html.matchAll(spotlightPattern)].map(m=>m[0]);
   const all=[...html.matchAll(linkPattern)].length;
-  const covered=[...bridges,...compact].reduce((n,part)=>n+[...part.matchAll(linkPattern)].length,0);
+  const covered=[...bridges,...compact,...spotlights].reduce((n,part)=>n+[...part.matchAll(linkPattern)].length,0);
   assert.equal(all,covered,path+': unstyled direct vehicle-guide link found');
   for(const block of bridges){
    assert.equal([...block.matchAll(linkPattern)].length,1,path+': expected one contextual guide link per bridge');
    if(block.includes('ez-vehicle-bridge-product'))assert.ok(block.includes(referralImage),path+': landing image changed');
   }
-  referralCount+=all;fullBridgeCount+=bridges.length;compactCount+=compact.length;
+  for(const spotlight of spotlights){
+    assert.equal([...spotlight.matchAll(linkPattern)].length,1,path+': unified spotlight needs one guide CTA');
+    assert.ok(spotlight.includes(referralImage),path+': unified spotlight image missing');
+    assert.equal((spotlight.match(/class="network-ez-feature-card"/g)||[]).length,4,
+      path+': unified spotlight must cover four rider and family benefits');
+  }
+  referralCount+=all;fullBridgeCount+=bridges.length;
+  compactCount+=compact.length;spotlightCount+=spotlights.length;
  }
 }
 auditVehicleReferrals('site');
@@ -353,7 +362,8 @@ for(const lang of ['','he/','pt/']){
  const html=fs.readFileSync('site/'+lang+'portugal/index.html','utf8');
  assert.ok(html.includes('class="section ez-vehicle-bridge"'),lang+'Marvão must retain guide bridge');
 }
-console.log('EZRaider image treatment verified for '+referralCount+' referrals ('+fullBridgeCount+' bridges, '+compactCount+' compact links).');
+assert.equal(spotlightCount,4,'Four localized root homepages must use the unified hero spotlight');
+console.log('EZRaider image treatment verified for '+referralCount+' referrals ('+fullBridgeCount+' bridges, '+spotlightCount+' unified hero spotlights, '+compactCount+' compact links).');
 
 
 // Page-wide vehicle-guide uniformity contract, 31 Oct 2026.
@@ -361,6 +371,7 @@ console.log('EZRaider image treatment verified for '+referralCount+' referrals (
 // photo-backed wide bridge. Every other Budapest page uses a single compact
 // guide link in the hero, including Margaret Island, in all three locales.
 // Preserve origin-specific from/return_to and never link Marvão as Budapest.
+const expectedNetworkHomes=new Set(['site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html']);
 const expectedWide=new Set([
  'site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html',
  'site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html',
@@ -376,7 +387,7 @@ function allIndexPages(dir){
 const expectedBudapestPages=['site/budapest','site/he/budapest','site/hu/budapest'].flatMap(allIndexPages);
 const expectedVehiclePages=[...expectedWide].filter(f=>!f.includes('/budapest/')).concat(expectedBudapestPages);
 assert.equal(expectedVehiclePages.length,49,'Unexpected number of active destination pages: check newly added routes');
-let wideRefs=0,compactRefs=0;
+let wideRefs=0,compactRefs=0,networkRefs=0;
 for(const file of expectedVehiclePages){
  const html=fs.readFileSync(file,'utf8');
  const origin='/'+file.slice(5).replace(/index[.]html$/,'');
@@ -386,10 +397,21 @@ for(const file of expectedVehiclePages){
  const expectedHref='/'+locale+'ezraider/?from='+from+'&amp;return_to='+encodeURIComponent(origin);
  const wide=[...html.matchAll(/<section\b[^>]*\bez-vehicle-bridge\b[^>]*>[\s\S]*?<\/section>/g)];
  const small=[...html.matchAll(/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g)];
+ const heroSpotlight=[...html.matchAll(/<div class="network-ez-spotlight"[^>]*>[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/g)];
  const allLinks=[...html.matchAll(/href="\/(?:he\/|hu\/|pt\/|es\/)?ezraider\/\?[^"]*"/g)];
  assert.equal(allLinks.length,1,file+': must have exactly one route-specific EZRaider referral');
  assert.ok(html.includes('href="'+expectedHref+'"'),file+': EZRaider referral must return to originating page');
- if(expectedWide.has(file)){
+ if(expectedNetworkHomes.has(file)){
+   assert.equal(wide.length,0,file+': network homepage must not repeat a late guide section');
+   assert.equal(small.length,0,file+': network homepage must use a hero spotlight');
+   assert.equal(heroSpotlight.length,1,file+': network homepage spotlight missing');
+   assert.ok(html.match(/<section class="hero">[\s\S]*?class="network-ez-spotlight"/),
+     file+': vehicle spotlight must be in the opening hero');
+   assert.ok(heroSpotlight[0][0].includes('src="'+referralImage+'"') &&
+     heroSpotlight[0][0].includes('href="'+expectedHref+'"'),
+     file+': one image-backed hero referral must preserve the local return path');
+   networkRefs++;
+ }else if(expectedWide.has(file)){
    assert.equal(wide.length,1,file+': needs the canonical full-width vehicle guide');
    assert.equal(small.length,0,file+': wide page must not have an extra mini CTA');
    assert.ok(wide[0][0].includes('class="ez-vehicle-bridge-art ez-vehicle-bridge-product"') &&
@@ -411,9 +433,10 @@ for(const file of expectedVehiclePages){
    compactRefs++;
  }
 }
-assert.equal(wideRefs,13,'Expected exactly thirteen wide referrals across landings and families');
+assert.equal(wideRefs,9,'Expected nine wide referrals on destination and family pages');
 assert.equal(compactRefs,36,'Expected exactly 36 mini guide links across Budapest details');
-console.log('Uniform EZRaider referrals OK: '+wideRefs+' wide, '+compactRefs+' compact, '+expectedVehiclePages.length+' pages.');
+assert.equal(networkRefs,4,'Expected four consolidated network home hero spotlights');
+console.log('Uniform EZRaider referrals OK: '+networkRefs+' home spotlights, '+wideRefs+' wide, '+compactRefs+' compact, '+expectedVehiclePages.length+' pages.');
 
 // Localized EZRaider experience copy must remain present on each guide.
 for(const [language,prefix] of [['en',''],['he','he/'],['hu','hu/'],['pt','pt/'],['es','es/']]){
