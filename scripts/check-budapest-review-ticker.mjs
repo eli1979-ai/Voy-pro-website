@@ -161,7 +161,7 @@ async function simulate(payload,lang='en',reducedMotion=false,initialVisibility=
     return media;
   },requestAnimationFrame:fn=>{frames.push(fn);}};
   const context={document:doc,window:win,
-    fetch:async()=>({ok:true,json:async()=>payload}),Set,URL,Number,Object};
+    fetch:async()=>({ok:true,json:async()=>({...payload,location:payload.location||'Budapest'})}),Set,URL,Number,Object};
   vm.runInNewContext(script,context,{timeout:1500});
   // Let both promise continuations complete.
   for(let i=0;i<6;i++)await Promise.resolve();

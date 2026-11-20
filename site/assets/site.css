@@ -693,10 +693,10 @@ footer .brand{
 }
 .tour-picker#destinations .destination-card::after{display:none}
 .tour-picker#destinations .destination-card--budapest{
-  --destination-photo:url("https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/Budapest_Parliament_Sunset_Danube_River_Panorama_2026.jpg/960px-Budapest_Parliament_Sunset_Danube_River_Panorama_2026.jpg");--destination-focus:center 55%;
+  --destination-photo:url("/assets/images/budapest/img12.jpg");--destination-focus:center 55%;
 }
 .tour-picker#destinations .destination-card--marvao{
-  --destination-photo:url("https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Castelo_de_Marv%C3%A3o_-_Panor%C3%A2mica_geral.jpg/960px-Castelo_de_Marv%C3%A3o_-_Panor%C3%A2mica_geral.jpg");--destination-focus:center 43%;
+  --destination-photo:url("/assets/images/portugal/marvao-01.jpg");--destination-focus:center 43%;
 }
 .tour-picker#destinations .destination-card--prague{
   --destination-photo:url("https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Prague_Castle_from_Charles_Bridge%2C_August_2025.jpg/960px-Prague_Castle_from_Charles_Bridge%2C_August_2025.jpg");--destination-focus:center 48%;
@@ -1781,3 +1781,14 @@ body[data-intent="network"] .hero-card{align-self:start}
   body[data-intent="network"] .network-ez-image{min-height:175px}
   body[data-intent="network"] .network-ez-image img{width:min(72%,220px);max-height:200px}
 }
+
+/* Network homepage: destination choices appear once, in the dedicated cards. */
+body[data-intent="network"] .hero-grid{display:block;max-width:1020px}
+body[data-intent="network"] .hero-grid>div:first-child{max-width:970px;margin-inline:auto}
+body[data-intent="network"] .hero{padding-block:clamp(30px,5vw,64px)}
+body[data-intent="network"] .tour-picker#destinations .destination-card{min-height:300px}
+@media(max-width:800px){body[data-intent="network"] .tour-picker#destinations .destination-card{min-height:285px;padding:18px}body[data-intent="network"] .hero{padding-block:28px 34px}}
+/* Shared, location-extensible reviews: provenance belongs to each review, not the section heading. */
+body[data-intent="network"] .network-review-ribbon{margin-block:0;background:#f0f7f8}
+body[data-intent="network"] .network-review-ribbon .network-review-intro{font-size:.88rem;color:#375e66;line-height:1.48;margin:9px 0 0;max-width:65ch}
+body[data-intent="network"] .network-review-ribbon .network-review-language-note{font-size:.76rem;color:#526973;margin:5px 0 0}

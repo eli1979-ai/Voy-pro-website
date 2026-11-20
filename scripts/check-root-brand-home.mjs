@@ -48,7 +48,7 @@ for(const [locale,file,href] of [
   if(page.includes('<section class="section ez-vehicle-bridge">'))
     failures.push(locale+': duplicate late EZRaider bridge must be removed');
   if(!page.includes('id="destinations"')||
-     !page.includes('class="hero-photo-frame parent-hero-mosaic"')||
+     !page.includes('class="tour-choice-grid"')||
      !page.includes('class="trust network-trust"'))
     failures.push(locale+': destination mosaic, ratings or destination anchor lost');
   if(/Israel|Izrael|ישראל|ישראלי/i.test(spotlight))
@@ -56,23 +56,36 @@ for(const [locale,file,href] of [
 }
 requireText(html,'href="/portugal/"','root homepage must link Portugal');
 requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
-requireText(html,'class="hero-photo-frame parent-hero-mosaic"','root hero must use the destination-neutral mosaic');
-requireText(html,'src="/assets/images/budapest/img12.jpg"','root hero must represent Budapest');
-requireText(html,'src="/assets/images/portugal/marvao-01.jpg"','root hero must represent Marvão');
-for(const [locale,path,image] of [
-  ['budapest','/budapest/','/assets/images/budapest/img12.jpg'],
-  ['marvao','/portugal/','/assets/images/portugal/marvao-01.jpg']
-]){
-  const entry=new RegExp('<a class="parent-hero-destination parent-hero-destination--'+locale+'" href="'+path.replaceAll('/','\\/')+'"[^>]*>[\\s\\S]*?<img[^>]*src="'+image.replaceAll('/','\\/')+'"[\\s\\S]*?<span class="parent-hero-caption">');
-  if(!entry.test(html))failures.push('network photo/caption must link '+locale+' directly');
+// Destination choices are displayed only ONCE in the dedicated cards.
+for(const [language,p] of [['en','site/index.html'],['he','site/he/index.html'],['hu','site/hu/index.html'],['es','site/es/index.html']]){
+ const content=read(p);
+ const posHero=content.indexOf('<section class="hero">');
+ const posScores=content.indexOf('class="trust network-trust"');
+ const posDest=content.indexOf('class="section tour-picker" id="destinations"');
+ const posRibbon=content.indexOf('class="vp-reviews network-review-ribbon"');
+ const posValue=content.indexOf('class="section network-value-section"');
+ if(!(posHero>=0&&posScores>posHero&&posDest>posScores&&posRibbon>posDest&&posValue>posRibbon))
+   failures.push(language+': must display hero → three ratings → destination cards → guest stories → value');
+ if(content.includes('parent-hero-mosaic')||content.includes('parent-hero-destination'))
+   failures.push(language+': duplicate opening destination mosaic was not removed');
+ if((content.match(/class="tour-choice-card destination-card destination-card--budapest"/g)||[]).length!==1||
+    (content.match(/class="tour-choice-card destination-card destination-card--marvao"/g)||[]).length!==1)
+   failures.push(language+': destination cards duplicated or missing');
+ if((content.match(/data-vp-reviews-root hidden/g)||[]).length!==1)
+   failures.push(language+': verified story ribbon must appear once only');
+ if(!content.includes('/assets/budapest-review-ticker.js?v=20261029r1')||
+    !content.includes('/assets/budapest-review-ticker.css?v=20261023r6'))
+   failures.push(language+': existing verified ribbon runtime or CSS missing');
+ const title=content.slice(posRibbon,posRibbon+650);
+ if(!title.includes('network-review-ribbon')||title.includes('Budapest EZRaider'))
+   failures.push(language+': guest story heading should describe EZRaider, not one branch');
 }
-requireText(html,'<span class="parent-hero-caption">Hungary · Budapest</span>','Budapest image needs its own visible caption');
-requireText(html,'<span class="parent-hero-caption">Portugal · Marvão</span>','Marvão image needs its own visible caption');
-forbidText(html,'<figcaption>Hungary · Budapest · Portugal · Marvão</figcaption>','old combined image caption must disappear');
 requireText(html,'class="section network-value-section"','network values need independently scoped closing spacing');
 requireText(html,'class="section network-manage-section"','booking management must follow the trimmed final gap');
 const css=read('site/assets/site.css');
-requireText(css,'.parent-hero-mosaic .parent-hero-caption','individual photo caption style missing');
+requireText(css,'body[data-intent="network"] .hero-grid{display:block','network hero must have no second destination column');
+requireText(css,'--destination-photo:url("/assets/images/budapest/img12.jpg")','Budapest first-party guest photo missing from destination card');
+requireText(css,'--destination-photo:url("/assets/images/portugal/marvao-01.jpg")','Marvão first-party guest photo missing from destination card');
 requireText(css,'body[data-page="/"] .network-value-section+.network-manage-section','network-only lower section rhythm missing');
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" property="og:image"','root social card must use a VOY PRO parent-brand asset');
 requireText(html,'content="https://voy-pro.com/assets/brand/voy-pro-horizontal-dark.png" name="twitter:image"','root Twitter card must use a VOY PRO parent-brand asset');
