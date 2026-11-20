@@ -815,6 +815,10 @@ if(/\besBookingEnabled\s*:|\besBookingLocaleCertified\s*:/.test(esRuntimeConfig)
   fail('assets/runtime-config.js','Spanish booking must not be switched on from committed default runtime config');
 if(/\b(?:fetch|XMLHttpRequest|sendBeacon)\s*\(/.test(esBookingModule))
   fail('assets/es-booking-module.js','The Spanish presentation module must never be an independent API writer');
+if(esBookingModule.includes('<option value="exp_bud_'))
+  fail('assets/es-booking-module.js','Spanish booking choices must come from canonical FBM catalog, not static IDs');
+if(!bookingUxSource.includes("const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);"))
+  fail('assets/site.js','Booking confirmation must preserve canonical Manage Booking link');
 try{execFileSync(process.execPath,['--check',path.join(site,'assets/es-booking-module.js')],{stdio:'pipe'});}
 catch(error){fail('assets/es-booking-module.js','Spanish booking module JavaScript syntax invalid');}
 

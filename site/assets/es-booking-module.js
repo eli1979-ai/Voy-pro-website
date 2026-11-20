@@ -9,10 +9,11 @@
     const panel=section&&section.querySelector('.es-inquiry-panel');
     if(!panel||document.querySelector('#availability-form'))return;
     const cfg=window.VOY_CONFIG||window.VOY_RUNTIME_CONFIG||{};
+    // Same canonical Budapest client-key resolution as site.js.
+    const clientKey=String(cfg.destinationClients?.budapest?.clientKey||cfg.clientKey||'').trim();
     const allowed=cfg.bookingEnabled===true&&cfg.esBookingEnabled===true
       &&cfg.esBookingLocaleCertified===true&&typeof cfg.apiRoot==='string'
-      &&/^https:\/\//.test(cfg.apiRoot)&&typeof cfg.clientKey==='string'
-      &&cfg.clientKey.trim().length>0;
+      &&/^https:\/\//.test(cfg.apiRoot)&&clientKey.length>0;
     const options=(a,b)=>Array.from({length:b-a+1},(_,i)=>{
       const n=a+i;return '<option value="'+n+'">'+n+'</option>';
     }).join('');
@@ -30,8 +31,7 @@
       '<div class="selected-tour-hint" data-selected-tour-hint>Elige el recorrido y la fecha para empezar.</div>'+
       '<fieldset data-es-booking-fields disabled>'+
       '<div class="field"><label for="es-booking-experience">Recorrido</label><select id="es-booking-experience" name="experience" required>'+
-      '<option value="exp_bud_buda">Lo mejor de Buda en EZRaider</option>'+
-      '<option value="exp_bud_margaret">Isla Margarita en EZRaider</option></select></div>'+
+      '<option value="">Selecciona un recorrido</option></select></div>'+
       '<div class="field"><label for="es-booking-date">Fecha</label><input id="es-booking-date" name="date" type="date" required></div>'+
       '<div class="field"><label for="es-booking-adults">Conductores independientes (16+)</label><select id="es-booking-adults" name="adults">'+options(1,12)+'</select></div>'+
       '<div class="field"><label for="es-booking-children">Niños pasajeros (3–15 años)</label><select id="es-booking-children" name="children">'+options(0,6)+'</select></div>'+
