@@ -250,12 +250,14 @@ async function inspect(target){
     }
     // Test one genuine on-site click. No checkout, form submission or external link.
     if(target.path==='/'&&target.width===390&&!target.alias){
-      const link=page.locator('.parent-hero-destination[href="/budapest/"]').first();
+      // PR #848 moved destination selection from the old hero mosaic into
+      // the one canonical destination-card chooser below the hero.
+      const link=page.locator('#destinations .destination-card--budapest h3 .tour-detail-link[href="/budapest/"]').first();
       if(await link.count()){
         await link.click({timeout:5000});
         if(new URL(page.url()).pathname!=='/budapest/')
-          row.issues.push('Budapest hero link navigated to unexpected path');
-      }else row.issues.push('Budapest hero navigation link is missing');
+          row.issues.push('Budapest destination-card link navigated to unexpected path');
+      }else row.issues.push('Budapest destination-card navigation link is missing');
     }
     row.ok=row.issues.length===0;
   }catch(error){
