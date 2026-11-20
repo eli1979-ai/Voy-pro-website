@@ -1675,3 +1675,7 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
     display:inline-flex!important;padding-inline:5px;
   }
 }
+
+/* Network landing: emphasize the visitor's HOW without altering destination navigation. */
+body[data-page="/"] .hero .network-hero-how{color:#83c7ef;font-weight:950}
+body[data-page="/"] .hero .network-hero-punchline{font-size:clamp(1.12rem,2.1vw,1.45rem);font-weight:850;line-height:1.35;color:#fff;max-width:52ch;margin:0 0 14px}
