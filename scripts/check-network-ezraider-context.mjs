@@ -319,11 +319,13 @@ assert.ok(!sitemap.includes('/budapest/ezraider/'));
 // Every existing EZRaider referral must have the approved image treatment,
 // including non-landing Budapest pages and all three Marvão languages.
 const referralImage='/assets/images/ezraider/owner-photo-20261031.webp';
+const referralVersionedUrl=referralImage+'?v=20261120-hires';
 const referralCss=fs.readFileSync('site/assets/site.css','utf8');
 assert.ok(fs.statSync('site'+referralImage).size>1000,'Approved image must remain first-party and present');
 assert.ok(referralCss.includes(':not(:has(> .ez-vehicle-bridge-product))::after')&&
   referralCss.includes('.tour-vehicle-guide-link a::before')&&
-  referralCss.split(referralImage).length>=3,
+  referralCss.split(referralVersionedUrl).length>=3&&
+  referralCss.includes('aspect-ratio:851 / 877'),
   'Both full-bridge and compact vehicle-guide links must show the approved photo');
 let referralCount=0,fullBridgeCount=0,compactCount=0,spotlightCount=0;
 function auditVehicleReferrals(dir){
@@ -344,7 +346,7 @@ function auditVehicleReferrals(dir){
   assert.equal(all,covered,path+': unstyled direct vehicle-guide link found');
   for(const block of bridges){
    assert.equal([...block.matchAll(linkPattern)].length,1,path+': expected one contextual guide link per bridge');
-   if(block.includes('ez-vehicle-bridge-product'))assert.ok(block.includes(referralImage),path+': landing image changed');
+   if(block.includes('ez-vehicle-bridge-product'))assert.ok(block.includes(referralVersionedUrl),path+': landing image changed');
   }
   for(const spotlight of spotlights){
     assert.equal([...spotlight.matchAll(linkPattern)].length,1,path+': unified spotlight needs one guide CTA');
@@ -387,6 +389,27 @@ function allIndexPages(dir){
 const expectedBudapestPages=['site/budapest','site/he/budapest','site/hu/budapest'].flatMap(allIndexPages);
 const expectedVehiclePages=[...expectedWide].filter(f=>!f.includes('/budapest/')).concat(expectedBudapestPages);
 assert.equal(expectedVehiclePages.length,49,'Unexpected number of active destination pages: check newly added routes');
+// All full-size referral <img> elements must use the owner-approved pixel
+// source and the same cache-busting URL as the network homepage; display sizes
+// stay CSS-owned while the HTML intrinsic dimensions prevent layout shifts.
+for(const file of [
+  'site/budapest/index.html',
+  'site/he/budapest/index.html',
+  'site/hu/budapest/index.html',
+  'site/portugal/index.html',
+  'site/he/portugal/index.html',
+  'site/pt/portugal/index.html',
+  'site/budapest/with-kids/index.html',
+  'site/he/budapest/with-kids/index.html',
+  'site/hu/budapest/with-kids/index.html',
+  'site/es/budapest/index.html',
+  'site/es/budapest/with-kids/index.html'
+]){
+  const html=fs.readFileSync(file,'utf8');
+  assert.ok(html.includes('class="ez-vehicle-bridge-art ez-vehicle-bridge-product" src="'+referralVersionedUrl+'"')&&
+    html.includes('width="851" height="877"'),file+': full referral image must use owner 851x877 source');
+}
+
 let wideRefs=0,compactRefs=0,networkRefs=0;
 for(const file of expectedVehiclePages){
  const html=fs.readFileSync(file,'utf8');
@@ -415,7 +438,7 @@ for(const file of expectedVehiclePages){
    assert.equal(wide.length,1,file+': needs the canonical full-width vehicle guide');
    assert.equal(small.length,0,file+': wide page must not have an extra mini CTA');
    assert.ok(wide[0][0].includes('class="ez-vehicle-bridge-art ez-vehicle-bridge-product"') &&
-     wide[0][0].includes('src="'+referralImage+'"'),file+': canonical full referral image missing');
+     wide[0][0].includes('src="'+referralVersionedUrl+'"'),file+': canonical full referral image missing');
    const expectedWideHeads={"en":"Meet the EZRaider. Feel the difference.","he":"הכירו את ה־EZRaider. תרגישו את ההבדל.","hu":"Ismerd meg az EZRaidert. Érezd a különbséget.","pt":"Conheça o EZRaider. Sinta a diferença.","es":"Conoce el EZRaider. Siente la diferencia."};
    const language=locale==='he/'?'he':locale==='hu/'?'hu':locale==='pt/'?'pt':locale==='es/'?'es':'en';
    assert.ok(wide[0][0].includes('<strong>'+expectedWideHeads[language]+'</strong>')&&
