@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generate the 14 Spanish Budapest preview pages from the English source.
+// Generate the 14 Spanish Budapest pages from the English source.
 //
 //   node tools/es-budapest/generate.mjs --extract   list untranslated strings
 //   node tools/es-budapest/generate.mjs             write site/es/budapest/**
@@ -8,8 +8,8 @@
 // pages.json (approved Spanish title/description/facts/WhatsApp text) and
 // route-visuals/*.html (the English route photo strip + schematic that
 // site.js renders on the three tour pages, captured from a local build).
-// Spanish pages include an inert booking UI; no FBM writes or payments until
-// both explicit Spanish activation flags are separately approved.
+// Spanish pages reuse the canonical EN booking form; the shared FBM adapter
+// still requires both independent Spanish booking activation flags.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +22,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '..', '..');
 const extractOnly = process.argv.includes('--extract');
 const dict = readJson(path.join(here, 'es-dictionary.json'));
+const bookingDict = {...dict,...readJson(path.join(here,'booking-dictionary.json'))};
 const pages = readJson(path.join(here, 'pages.json'));
 const WA_BASE = 'https://wa.me/36300993099?text=';
 const MAPS_URL = 'https://maps.app.goo.gl/F4DHtcpbWZrVjpqz5?g_st=ac';
@@ -44,11 +45,11 @@ function rewriteLinks(html, r) {
     return tag.replace(/href="(?:https:\/\/voy-pro\.com)?\/budapest\/([^"#?]*)(#[^"]*)?"/g, (all, rest, hash) => {
       const target = rest && !rest.endsWith('/') ? rest + '/' : rest;
       if (!ROUTES.includes(target)) return all;
-      const h = hash === '#booking' ? '#consulta' : (hash || '');
+      const h = hash || '';
       return 'href="' + esPath(target) + h + '"';
     });
   });
-  html = html.replace(/href="#booking"/g, 'href="#consulta"');
+  // Preserve the shared native #booking anchor.
   // The complete Spanish EZRaider guide is available. Preserve local origin
   // when replacing the formerly English-only contextual guide link.
   html = html.replace(/href="\/ezraider\/\?from=budapest&amp;return_to=([^"]+)"/g, (all, encoded) =>
@@ -69,7 +70,7 @@ function languagePicker(r, cls) {
     : `<a class="lang-switch" href="${href}" hreflang="${code}" lang="${code}">${label}</a>`).join('');
 }
 
-function mobileMenu(r) {
+function mobileMenu(r,hasBooking) {
   const items = [
     ['tours/buda-castle-ezraider-tour/', 'Tour del Castillo de Buda'],
     ['tours/margaret-island-ezraider-tour/', 'Isla Margarita'],
@@ -84,7 +85,7 @@ function mobileMenu(r) {
     `<a href="/portugal/" hreflang="en">Portugal · Marvão (en inglés)</a>` +
     `<div class="mobile-language-row" aria-label="Idioma">${languagePicker(r)}</div>` +
     `<a class="btn secondary" href="${waHref(r)}" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>` +
-    `<a class="btn" href="#consulta">Consultar disponibilidad</a></div></details>`;
+    `<a class="btn" href="${hasBooking?'#booking':'/es/budapest/#booking'}">Consultar disponibilidad</a></div></details>`;
 }
 
 function inquirySection(r) {
@@ -158,8 +159,8 @@ function transform(r) {
   // 1. Runtime-only parts: scripts, live booking, review ticker, resume banner.
   body = body.replace(/<script\b(?![^>]*application\/ld\+json)[^>]*>[\s\S]*?<\/script>/g, '');
   const booking = body.match(/<section class="section booking" id="booking">[\s\S]*?<\/section>/);
-  if (booking) body = body.replace(booking[0], inquirySection(r));
-  else body = body.replace(/<section class="section budapest-cancel-policy"/, inquirySection(r) + '<section class="section budapest-cancel-policy"');
+  // Protect the canonical form from static-only transformations.
+  if (booking) body=body.replace(booking[0],'<!-- VOY_CANONICAL_ES_BOOKING -->');
   body = body.replace(/<section class="vp-reviews"[\s\S]*?<\/section>/g, '');
   body = body.replace(/<section class="resume-shell"[\s\S]*?<\/section>/g, '');
 
@@ -169,7 +170,8 @@ function transform(r) {
   if (!/<section class="section budapest-cancel-policy"/.test(body)) {
     const home = fs.readFileSync(enFile(repo, ''), 'utf8');
     const policy = home.match(/<section class="section budapest-cancel-policy"[\s\S]*?<\/section>/)[0];
-    body = body.replace(/(<section class="section booking es-inquiry"[\s\S]*?<\/section>)/, '$1' + policy);
+    body=booking?body.replace('<!-- VOY_CANONICAL_ES_BOOKING -->','<!-- VOY_CANONICAL_ES_BOOKING -->'+policy)
+      :body.replace('</main>',policy+'</main>');
   }
   body = body.replace(/(<section class="section budapest-cancel-policy"[\s\S]*?<\/section>)/, '$1' + meetingPointSection());
   const visualFile = path.join(here, 'route-visuals', routeKey(r) + '.html');
@@ -184,7 +186,7 @@ function transform(r) {
 
   // 4. Header: Spanish language picker and a no-JS mobile menu.
   body = body.replace(/<span aria-label="Language" class="language-picker">[\s\S]*?<\/span>(<\/nav>)/,
-    '<span aria-label="Idioma" class="language-picker">' + languagePicker(r) + '</span>$1' + mobileMenu(r));
+    '<span aria-label="Idioma" class="language-picker">' + languagePicker(r) + '</span>$1' + mobileMenu(r,Boolean(booking)));
 
   // 4b. JS-only controls get static, privacy-first equivalents.
   //  - Cookie settings: Spanish pages set no optional cookies or analytics.
@@ -216,6 +218,8 @@ function transform(r) {
 
   body = stripJsAttributes(rewriteLinks(body, r));
   body = translateHtml(body, dict, missing, ctx);
+  if (booking) body=body.replace('<!-- VOY_CANONICAL_ES_BOOKING -->',
+    translateHtml(booking[0],bookingDict,missing,ctx+' booking'));
 
   const head = buildHead(en, r);
   // EN data-page keeps the shared Budapest component styles identical; the
@@ -237,7 +241,7 @@ function transform(r) {
     match=>{inserted++;return match+reviewRibbon;});
   if(inserted!==1)throw Error('Need one source section for Spanish review ribbon: '+r);
   // Only this allowlisted review JavaScript is permitted on Spanish pages.
-  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withReviews}<script src="/assets/runtime-config.js" defer></script><script src="/assets/es-booking-module.js?v=20261120r1" defer></script><script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n`;
+  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withReviews}<script src="/assets/runtime-config.js" defer></script><script src="/assets/es-booking-module.js?v=20261120r2" defer></script><script src="/assets/site.js" defer></script><script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n`;
 }
 
 const outputs = ROUTES.map(r => [r, transform(r)]);

@@ -1,25 +1,24 @@
-# Spanish Budapest booking — SOURCE-ONLY; DO NOT MERGE/DEPLOY YET
+# Spanish Budapest booking — canonical UI parity, release gated
 
-The 14 generated Spanish Budapest pages render a disabled, accessible booking
-form and retain route-specific human WhatsApp inquiry. With committed runtime
-configuration, they cannot call the booking API or open payment checkout.
+The 14 Spanish Budapest pages share the normal `/assets/site.js` FBM adapter.
+Eleven pages use **the same booking form markup, field names, DOM hooks and
+checkout/confirmation logic** as their English equivalents. The three
+manual-only English routes (Heroes’ Square, Citadella Advanced and the
+Extended Buda + Margaret tour) remain manual-only in Spanish and navigate
+to the Spanish Budapest booking home or the local WhatsApp team.
 
-Only shared `site.js` is the canonical FBM booking client, and it remains
-behind `bookingEnabled && esBookingEnabled && esBookingLocaleCertified`.
-Both independent Spanish flags are **absent** from the committed production
-configuration. No independent writer, price calculation, availability or
-capacity logic was added. Experiences must be hydrated from the canonical
-FBM catalog, not hard-coded into the static page.
+Static source strings: `tools/es-budapest/booking-dictionary.json`.
+Runtime strings: `site/assets/es-booking-module.js` (translation-only; no
+independent booking form, API calls or business rules). The generator
+preserves the exact common form and dynamic data attributes.
 
-Supported source copy includes 173 literal booking labels, dynamic
-interpolations, customer/child/infant notices, guide language requests,
-canonical checkout/discount/hold messages, extras and payment ambiguity.
-This is an editorial **draft**, not a professionally certified full Spanish
-checkout, and some Manage Booking/legal endpoints remain English.
+**NO-GO for hosted booking activation**: Both `esBookingEnabled===true` and
+`esBookingLocaleCertified===true` are still required by the canonical FBM
+adapter, and both are absent from committed Production runtime config.
+Static/visual parity does not prove safe real booking, cancellation, payment,
+availability, or complete Spanish legal content.
 
-SOURCE/INERT DEPLOY GATE: exact-head build, 14-page mobile/desktop browser
-tests, dual-ES-flag synthetic negative tests, and source diff review.
-Even with a green source CI, activation requires an independent ES translation
-review, synthetic signed booking/payment/expiry/retry E2E through canonical FBM,
-FBM runtime/recovery authorization, and separate owner permission for
-source merge, Production deployment, flag change and commercial cutover.
+Commercial activation additionally requires synthetic signed FBM E2E,
+independent localization/legal check (including Manage Booking), financial,
+capacity and security sign-off, recovery readiness and a new explicit
+owner approval for the exact PR/commit, environment, hosted flags and launch.

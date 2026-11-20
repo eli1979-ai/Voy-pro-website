@@ -791,7 +791,8 @@ if(!fallback404.includes('(he|hu|pt|es)')||
    !fallback404.includes("budapest:['/es/budapest/'"))
   fail('404.html','Missing safe Spanish 404 recovery');
 
-// Spanish booking can be merged as inert UI, never silently activated.
+// Spanish booking uses the shared FBM client. The translation adapter must
+// never create independent forms or call the API.
 const esBookingModule=read(path.join(site,'assets/es-booking-module.js'));
 const esRuntimeConfig=read(path.join(site,'assets/runtime-config.js'));
 const esMapMatch=esBookingModule.match(/Object\.freeze\((\{[^\n]+\})\)/);
@@ -803,27 +804,22 @@ const esSourceLiterals=[...bookingUxSource.matchAll(/\bt\(\s*['"]([^'"\n]+)['"]\
 const missingESLiterals=[...new Set(esSourceLiterals)].filter(key=>typeof esBookingCopy[key]!=='string'||!esBookingCopy[key].trim());
 if(missingESLiterals.length)fail('assets/es-booking-module.js',
   'Untranslated direct booking labels: '+missingESLiterals.slice(0,12).join(' | '));
-for(const marker of ['cfg.esBookingEnabled===true','cfg.esBookingLocaleCertified===true',
-  "root.dataset.esBookingMode=allowed?'opted-in':'preview-inert'",
-  'fieldset data-es-booking-fields disabled']){
-  if(!esBookingModule.includes(marker))fail('assets/es-booking-module.js','Missing fail-closed ES gate or disabled form: '+marker);
-}
 if(!bookingUxSource.includes("const esBookingGate=routeLocale!=='es'||(cfg.esBookingEnabled===true&&cfg.esBookingLocaleCertified===true);")||
    !bookingUxSource.includes('&&clientKey&&esBookingGate)'))
-  fail('assets/site.js','Canonical client must enforce the independent ES booking gates');
+  fail('assets/site.js','Canonical FBM client must preserve both ES booking flags');
 if(/\besBookingEnabled\s*:|\besBookingLocaleCertified\s*:/.test(esRuntimeConfig))
-  fail('assets/runtime-config.js','Spanish booking must not be switched on from committed default runtime config');
-if(/\b(?:fetch|XMLHttpRequest|sendBeacon)\s*\(/.test(esBookingModule))
-  fail('assets/es-booking-module.js','The Spanish presentation module must never be an independent API writer');
-if(esBookingModule.includes('<option value="exp_bud_'))
-  fail('assets/es-booking-module.js','Spanish booking choices must come from canonical FBM catalog, not static IDs');
+  fail('assets/runtime-config.js','Spanish booking must remain disabled in committed runtime');
+if(/\b(?:fetch|XMLHttpRequest|sendBeacon)\s*\(|document\.createElement\(['"]form['"]\)|\binnerHTML\s*=/.test(esBookingModule))
+  fail('assets/es-booking-module.js','Spanish translation adapter may not own forms or API requests');
 if(!bookingUxSource.includes("const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);"))
-  fail('assets/site.js','Booking confirmation must preserve canonical Manage Booking link');
+  fail('assets/site.js','Booking confirmation must retain Manage Booking link');
 try{execFileSync(process.execPath,['--check',path.join(site,'assets/es-booking-module.js')],{stdio:'pipe'});}
-catch(error){fail('assets/es-booking-module.js','Spanish booking module JavaScript syntax invalid');}
+catch(error){fail('assets/es-booking-module.js','Spanish translation JavaScript syntax invalid');}
+const esBookingDict=JSON.parse(read(path.join(process.cwd(),'tools/es-budapest/booking-dictionary.json')));
+if(Object.keys(esBookingDict).length<30||esBookingDict['Date &amp; group']!=='Fecha y grupo')
+  fail('tools/es-budapest/booking-dictionary.json','Missing native booking field translations');
 
-// Spanish Budapest: read-only reviews, inert booking form, no live checkout.
-// The ES runtime must not run until the independent locale audit.
+// Spanish Budapest: native booking parity, but commercial activation is gated.
 const spanishBudapestSlugs=[
   '','tours/buda-castle-ezraider-tour','tours/buda-margaret-extended-tour',
   'tours/margaret-island-ezraider-tour','tours/heroes-square-city-ezraider-tour',
@@ -842,9 +838,9 @@ for(const slug of spanishBudapestSlugs){
      !html.includes('support@voy-pro.com')||
      !html.includes('No se aceptan reservas reales'))
     fail(path,'Spanish preview needs truthful metadata, policy and no-real-booking notice');
-  if(html.includes('/assets/site.js')||html.includes('data-track="booking_cta"')||
-     html.includes('id="booking"')||html.includes('pay_now_card'))
-    fail(path,'Spanish preview must not activate unlocalized booking/payment runtime');
+  if(!html.includes('src="/assets/site.js"')||!html.includes('src="/assets/es-booking-module.js?v=20261120r2"')||
+     html.includes('pay_now_card'))
+    fail(path,'Spanish booking must use shared site.js and ES translations; no independent payment');
   // A local Spanish inquiry should reach the actual Budapest human support,
   // with the page route included; never claim guide language availability.
   if(!html.includes('https://wa.me/36300993099?text=')||
@@ -901,21 +897,32 @@ for(const slug of spanishBudapestSlugs){
     fail(path,'Spanish page lost English sections ('+sections(html)+' vs '+sections(enHtml)+')');
   if(faqs(html)!==faqs(enHtml))
     fail(path,'Spanish FAQ count must match English ('+faqs(html)+' vs '+faqs(enHtml)+')');
-  // Only the inert ES module, runtime config and read-only ticker are allowed.
+  // The Spanish source reproduces the exact English form markup (11 routes);
+  // the remaining three manual-only routes cannot invent a bookable form.
   const executableScripts=[...html.matchAll(/<script\b(?![^>]*application\/ld\+json)([^>]*)>/g)].map(m=>m[1]);
-  const expectedScripts=['/assets/runtime-config.js','/assets/es-booking-module.js?v=20261120r1',
-    '/assets/budapest-review-ticker.js?v=20261029r1'];
+  const expectedScripts=['/assets/runtime-config.js','/assets/es-booking-module.js?v=20261120r2',
+    '/assets/site.js','/assets/budapest-review-ticker.js?v=20261029r1'];
   if(executableScripts.length!==expectedScripts.length||expectedScripts.some((src,i)=>
     !executableScripts[i]?.includes('src="'+src+'"')))
-    fail(path,'Unexpected ES script; source may run only gated module + ticker');
-  const withoutTicker=html.replace(/<section class="vp-reviews"[^>]*>[\s\S]*?<\/section>/,'');
-  if(/<(form|iframe|input|select|button)\b/.test(withoutTicker))
-    fail(path,'Spanish informational routes must not expose booking/payment forms or other interactive runtime');
+    fail(path,'Spanish pages must load translation then the single canonical client');
+  const enBooking=enHtml.match(/<section class="section booking" id="booking">[\s\S]*?<\/section>/)?.[0];
+  const esBooking=html.match(/<section class="section booking" id="booking">[\s\S]*?<\/section>/)?.[0];
+  if(Boolean(enBooking)!==Boolean(esBooking))
+    fail(path,'Spanish form availability must match English source');
+  if(enBooking&&esBooking){
+    const controls=x=>[...x.matchAll(/<(?:form|input|select|button)\b[^>]*>/g)]
+      .map(m=>[...m[0].matchAll(/\b(?:id|name|type|data-booking-step)="[^"]+"/g)].map(x=>x[0]).join('|'));
+    if(JSON.stringify(controls(enBooking))!==JSON.stringify(controls(esBooking)))
+      fail(path,'ES/EN booking field names, types or control IDs changed');
+  }
+  if((html.match(/id="availability-form"/g)||[]).length!==(enBooking?1:0)||
+     html.includes('id="consulta"')||html.includes('es-booking-form'))
+    fail(path,'Spanish page has an extra or orphaned booking form');
   if((html.match(/data-vp-reviews-root hidden/g)||[]).length!==1)
     fail(path,'Spanish route must contain exactly one source-backed review ribbon');
-  if(!html.includes('class="voy-preview-ribbon"')||!html.includes('id="consulta"')||
+  if(!html.includes('class="voy-preview-ribbon"')||
      !html.includes('class="es-mobile-menu"')||!html.includes('assets/site.css'))
-    fail(path,'Spanish page must use the shared English layout with preview ribbon, inquiry panel and mobile menu');
+    fail(path,'Spanish page must preserve the preview disclosure and responsive layout');
   if(!html.includes('assets/spanish-budapest.css'))
     fail(path,'Spanish responsive stylesheet missing');
   for(const tag of [...html.matchAll(/<img\b[^>]*>/g)].map(m=>m[0])){
@@ -935,8 +942,8 @@ for(const slug of spanishBudapestSlugs){
     fail(path,'Spanish rain FAQ must match approved light-rain/light-snow policy');
   if(/lluvia ligera el tour normalmente|normalmente contin/.test(html))
     fail(path,'Spanish FAQ must not weaken approved rain/snow policy');
-  if(!html.includes('class="es-commercial-facts"')||!html.includes('Punto de encuentro: centro de Pest'))
-    fail(path,'Spanish page must show approved static price/duration and meeting-point facts');
+  if(!html.includes('Punto de encuentro:')&&!html.includes('PUNTO DE ENCUENTRO'))
+    fail(path,'Spanish route must preserve the Budapest meeting-point information');
   if(!html.includes('Los porcentajes de reembolso se aplican únicamente a los importes efectivamente pagados.'))
     fail(path,'Spanish page must keep the approved refund-on-paid-amounts sentence');
   const heroSrc=html.match(/<div class="hero-photo-frame[^"]*"[^>]*>\s*<img[^>]*src="([^"]+)"|<figure class="hero-photo-frame"><img[^>]*src="([^"]+)"/)?.slice(1).find(Boolean);
