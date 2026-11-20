@@ -266,8 +266,8 @@ const mobileStart=siteJs.indexOf('  function enhanceMobileNavigation(){');
 const mobileEnd=siteJs.indexOf("  document.querySelectorAll('a.brand')",mobileStart);
 assert.ok(mobileStart>0&&mobileEnd>mobileStart,'Mobile navigation initializer missing');
 const mobileInit=siteJs.slice(mobileStart,mobileEnd);
-assert.ok(siteJs.includes("const vehicleGuideSource=/^\\/(?:he\\/|hu\\/|pt\\/)?ezraider\\/$/.test(routePath)"),
-  'Portuguese guide must be recognized by the shared runtime source resolver');
+assert.ok(siteJs.includes("const vehicleGuideSource=/^\\/(?:he\\/|hu\\/|pt\\/|es\\/)?ezraider\\/$/.test(routePath)"),
+  'Spanish and Portuguese guides must be recognized by the shared runtime source resolver');
 function renderVehicleMobile(lang,origin){
  let sheet,cloneCount=0;
  const n=()=>({setAttribute(){},addEventListener(){},focus(){},classList:{add(){},remove(){}},cloneNode(){return n();}});
