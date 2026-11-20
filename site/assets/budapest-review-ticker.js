@@ -15,9 +15,12 @@
   const texts={
     en:{pause:'Pause reviews',play:'Resume reviews',source:'View original review on ',listing:'Browse reviews on ',translated:'Translated from the original',read:'Full review by ',stars:'out of 5 stars',expand:'Read full review',close:'Close review'},
     he:{pause:'השהיית ביקורות',play:'המשך גלילת ביקורות',source:'לביקורת המקורית ב־',listing:'לכל הביקורות באתר ',translated:'תורגם מהמקור',read:'ביקורת מלאה מאת ',stars:'מתוך 5 כוכבים',expand:'קריאת הביקורת המלאה',close:'סגירת הביקורת'},
-    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',read:'Teljes értékelés: ',stars:'az 5 csillagból',expand:'Teljes értékelés',close:'Értékelés bezárása'}
+    hu:{pause:'Értékelések megállítása',play:'Értékelések folytatása',source:'Eredeti értékelés itt: ',listing:'További értékelések itt: ',translated:'Az eredetiből fordítva',read:'Teljes értékelés: ',stars:'az 5 csillagból',expand:'Teljes értékelés',close:'Értékelés bezárása'},
+    es:{pause:'Pausar opiniones',play:'Reanudar opiniones',source:'Ver la reseña original en ',listing:'Ver opiniones en ',translated:'Mostrada en inglés; traducida del original cuando corresponde',read:'Reseña completa de ',stars:'de 5 estrellas',expand:'Leer reseña completa',close:'Cerrar reseña'}
   };
   const t=texts[locale]||texts.en;
+  // ES reviews display the already verified EN translations, not new unofficial translations.
+  const reviewTextLocale=locale==='es'?'en':locale;
   const validUrl=(value,source)=>{
     try{
       const url=new URL(value);
@@ -85,9 +88,10 @@
     header.append(title,closeButton);
     const info=make('p','vp-review-dialog-source',
       '★'.repeat(item.rating)+' · '+sourceLabels[item.source]+' · '+item.author);
-    const quote=make('blockquote','vp-review-dialog-text',item.translations[locale]);
+    const quote=make('blockquote','vp-review-dialog-text',item.translations[reviewTextLocale]);
+    quote.lang=reviewTextLocale;
     quote.dir=locale==='he'?'rtl':'ltr';
-    if(item.language!==locale){
+    if(locale==='es'||item.language!==locale){
       const original=make('span','vp-review-dialog-translation',t.translated);
       info.append(original);
     }
@@ -109,16 +113,17 @@
     closeButton.focus();
     pauseForReading();
   }
-  const reviewCard=(item,duplicate)=>{
+  const reviewCard=(item,duplicate,location)=>{
     const card=make('article','vp-review-card');
-    card.lang=locale;
+    card.lang=reviewTextLocale;
     card.dir=locale==='he'?'rtl':'ltr';
     const top=make('div','vp-review-top');
     const stars=make('span','vp-review-stars','★'.repeat(item.rating));
     stars.setAttribute('aria-label',item.rating+' '+t.stars);
     stars.setAttribute('role','img');
     top.append(stars,make('span','vp-review-platform',sourceLabels[item.source]));
-    const quote=make('blockquote','vp-review-text',item.translations[locale]);
+    const quote=make('blockquote','vp-review-text',item.translations[reviewTextLocale]);
+    quote.lang=reviewTextLocale;
     quote.dir=locale==='he'?'rtl':'ltr';
     quote.tabIndex=duplicate?-1:0;
     quote.setAttribute('role','group');
@@ -130,6 +135,7 @@
     const bottom=make('div','vp-review-bottom');
     const byline=make('div','vp-review-byline');
     byline.append(make('span','vp-review-author',item.author));
+    if(location)byline.append(make('span','vp-review-location',location));
     if(item.date){
       const day=new Date(item.date+'T12:00:00Z');
       const displayDate=new Intl.DateTimeFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':'en-GB',
@@ -138,7 +144,7 @@
       date.dateTime=item.date;
       byline.append(date);
     }
-    if(locale!==item.language)byline.append(make('span','vp-review-translated',t.translated));
+    if(locale==='es'||locale!==item.language)byline.append(make('span','vp-review-translated',t.translated));
     const expand=make('button','vp-review-expand',t.expand);
     expand.type='button';
     expand.tabIndex=duplicate?-1:0;
@@ -160,7 +166,7 @@
     return card;
   };
   const render=(payload)=>{
-    if(!payload||payload.status!=='approved'||payload.schema_version!==1||payload.expected_count!==20||
+    if(!payload||payload.status!=='approved'||payload.schema_version!==1||payload.expected_count!==20||payload.location!=='Budapest'||
       !Array.isArray(payload.reviews)||payload.reviews.length!==20)return;
     const reviews=payload.reviews;
     if(!reviews.every(validReview)||new Set(reviews.map(x=>x.id)).size!==20)return;
@@ -176,9 +182,9 @@
     before.setAttribute('aria-hidden','true');
     after.setAttribute('aria-hidden','true');
     for(const review of reviews){
-      first.append(reviewCard(review,false));
-      before.append(reviewCard(review,true));
-      after.append(reviewCard(review,true));
+      first.append(reviewCard(review,false,payload.location));
+      before.append(reviewCard(review,true,payload.location));
+      after.append(reviewCard(review,true,payload.location));
     }
     // The unhidden, keyboard-accessible group MUST occupy the same middle
     // segment that the viewport displays at its initial scroll position.

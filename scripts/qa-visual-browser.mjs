@@ -319,23 +319,26 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
         name+' root trust stays in one contained three-column row at '+viewport.width+'px');
       const proof=await page.evaluate(()=>{
-        const root=document.querySelector('.parent-hero-mosaic');
-        const cards=[...document.querySelectorAll('.parent-hero-destination')];
+        const duplicates=document.querySelectorAll('.parent-hero-mosaic,.parent-hero-destination').length;
+        const cards=[...document.querySelectorAll('.tour-picker#destinations .tour-choice-card')];
+        const active=cards.filter(card=>!card.classList.contains('destination-card--coming-soon'));
         const lower=document.querySelector('.network-manage-section .proof');
         const prior=document.querySelector('.network-value-section .content-grid .content-card:last-child');
-        return {isMosaic:!!root,links:cards.map(a=>a.getAttribute('href')),
-          captions:cards.map(a=>a.querySelector('.parent-hero-caption')?.textContent.trim()),
-          imagesLoaded:cards.every(a=>a.querySelector('img')?.naturalWidth>0),
-          labelsBelow:cards.every(a=>{
-            const image=a.querySelector('img')?.getBoundingClientRect();
-            const label=a.querySelector('.parent-hero-caption')?.getBoundingClientRect();
-            return image&&label&&label.top>=image.bottom-1&&label.width>0;
-          }),
-          contained:cards.every(a=>{
-            const box=a.getBoundingClientRect();
-            const frame=root?.getBoundingClientRect();
-            return frame&&box.width>0&&box.left>=frame.left-2&&box.right<=frame.right+2;
-          }),
+        const trust=document.querySelector('.network-trust');
+        const destinations=document.querySelector('.tour-picker#destinations');
+        const ribbon=document.querySelector('.network-review-ribbon');
+        return {
+          duplicates,
+          cards:active.map(card=>({
+            cls:card.className,
+            href:card.querySelector('h3 a')?.getAttribute('href'),
+            photo:getComputedStyle(card,'::before').backgroundImage,
+            contained:(()=>{const b=card.getBoundingClientRect();return b.width>0&&b.left>=0&&b.right<=innerWidth+2})()
+          })),
+          ribbonPlaced:!!(trust&&destinations&&ribbon&&
+            trust.getBoundingClientRect().top<destinations.getBoundingClientRect().top&&
+            destinations.getBoundingClientRect().top<ribbon.getBoundingClientRect().top),
+          ribbonTitle: ribbon?.querySelector('h2')?.textContent,
           supportLinks:[...document.querySelectorAll('.network-support-card .network-support-action')].map(a=>({href:a.getAttribute('href'),height:Math.round(a.getBoundingClientRect().height),width:Math.round(a.getBoundingClientRect().width)})),
           supportGrid:getComputedStyle(document.querySelector('.network-support-actions')).gridTemplateColumns.split(' ').filter(Boolean).length,
           supportContained:(()=>{
@@ -348,16 +351,21 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           closingGap:lower&&prior?Math.round(lower.getBoundingClientRect().top-prior.getBoundingClientRect().bottom):999
         };
       });
-      check(proof.isMosaic&&proof.links.join('|')==='/budapest/|/portugal/',name+' each home mosaic photo links to the correct destination');
-      check(proof.captions.join('|')==='Hungary · Budapest|Portugal · Marvão',name+' uses one label directly under each relevant photo');
-      check(proof.labelsBelow&&proof.contained,name+' captions sit beneath their images without mobile overflow');
-      check(proof.imagesLoaded,name+' both real destination photos decode');
-      check(proof.closingGap<=(viewport.width<=800?68:110),name+' network footer booking gap is compact ('+proof.closingGap+'px)');
+      check(proof.duplicates===0&&proof.cards.length===2,
+        name+' uses exactly two destination cards, without the former duplicate mosaic');
+      check(proof.cards.map(c=>c.href).join('|')==='/budapest/|/portugal/',
+        name+' destination choices still navigate to Budapest and Marvão');
+      check(proof.cards.every(c=>c.contained&&/\/assets\/images\//.test(c.photo)),
+        name+' first-party rider photographs remain inside both destination cards');
+      check(proof.ribbonPlaced&&proof.ribbonTitle?.includes('EZRaider'),
+        name+' real EZRaider reviews follow destinations, before support');
+      check(proof.closingGap<=(viewport.width<=800?68:110),
+        name+' network footer booking gap remains compact ('+proof.closingGap+'px)');
       check(proof.supportLinks.length===2&&proof.supportLinks[0].href?.startsWith('https://wa.me/36300993099')&&
         proof.supportLinks[1].href==='mailto:support@voy-pro.com',
-        name+' direct WhatsApp and email both live inside support card');
+        name+' direct WhatsApp and email links remain');
       check(proof.supportGrid===2&&proof.supportContained&&proof.supportLinks.every(a=>a.height>=44&&a.width>=44),
-        name+' support channels are two readable accessible buttons contained at '+viewport.width+'px');
+        name+' direct support actions remain mobile accessible');
       if(viewport.width<=800){
         // The cookie preferences intentionally hide all floating CTAs.
         // Explicitly choose essential-only in this isolated browser to

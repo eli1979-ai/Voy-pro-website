@@ -96,3 +96,6 @@
   .vp-review-dialog{width:calc(100vw - 22px);max-height:90dvh;padding:15px}
   .vp-review-dialog-text{max-height:63dvh}
 }
+
+/* Each authentic review retains a quiet source location for future multi-branch feeds. */
+.vp-review-location{font-size:.69rem;font-weight:700;color:#536e76}
