@@ -324,7 +324,7 @@ assert.ok(!sitemap.includes('/budapest/ezraider/'));
 for(const locale of ['','he/','hu/','es/','pt/']){
  const path='site/'+locale+'ezraider/index.html';
  const html=fs.readFileSync(path,'utf8');
- const feature=html.match(/<section class="section ez-feature" id="the-vehicle">[\\s\\S]*?<\\/section>/)?.[0]||'';
+ const feature=html.match(/<section class="section ez-feature" id="the-vehicle">[\s\S]*?<\/section>/)?.[0]||'';
  assert.equal((feature.match(/class="ez-feature-product-image"/g)||[]).length,1,path+': exactly one editorial product image');
  assert.ok(feature.includes('class="ez-feature-story-layout"')&&
    feature.includes('class="ez-feature-story-copy"')&&
