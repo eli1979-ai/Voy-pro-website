@@ -8,8 +8,8 @@
 // pages.json (approved Spanish title/description/facts/WhatsApp text) and
 // route-visuals/*.html (the English route photo strip + schematic that
 // site.js renders on the three tour pages, captured from a local build).
-// Output pages allow only the audited, read-only review ticker JavaScript; no live
-// availability, checkout, FBM, analytics or payment runtime.
+// Spanish pages include an inert booking UI; no FBM writes or payments until
+// both explicit Spanish activation flags are separately approved.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -237,7 +237,7 @@ function transform(r) {
     match=>{inserted++;return match+reviewRibbon;});
   if(inserted!==1)throw Error('Need one source section for Spanish review ribbon: '+r);
   // Only this allowlisted review JavaScript is permitted on Spanish pages.
-  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withReviews}<script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n`;
+  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withReviews}<script src="/assets/runtime-config.js" defer></script><script src="/assets/es-booking-module.js?v=20261120r1" defer></script><script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n`;
 }
 
 const outputs = ROUTES.map(r => [r, transform(r)]);

@@ -35,7 +35,9 @@
   const destinationClients=(cfg.destinationClients&&typeof cfg.destinationClients==='object')?cfg.destinationClients:{};
   const destinationClient=destinationClients[destinationId]||null;
   const clientKey=String(destinationClient?.clientKey||((destinationId==='budapest'&&cfg.clientKey)||'')).trim();
-  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey);
+  // The generic Budapest flag must NEVER enable Spanish bookings by itself.
+  const esBookingGate=routeLocale!=='es'||(cfg.esBookingEnabled===true&&cfg.esBookingLocaleCertified===true);
+  const bookingEnabled=!!(!isLegalPage&&destinationId!=='network'&&cfg.bookingEnabled&&apiRoot&&clientKey&&esBookingGate);
   let destinationRuntime=null;
   const locale=routeLocale||(declaredLang.startsWith('he')?'he':declaredLang.startsWith('hu')?'hu':declaredLang.startsWith('pt')?'pt':'en');
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
@@ -188,7 +190,7 @@
     syncGtmConsent();
   }
   const uuid = () => (globalThis.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'v_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-  const money=(amount,currency='EUR')=>{const value=Number(amount||0);return new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-IE',{style:'currency',currency,minimumFractionDigits:0,maximumFractionDigits:Number.isInteger(value)?0:2}).format(value)};
+  const money=(amount,currency='EUR')=>{const value=Number(amount||0);return new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':locale==='es'?'es-ES':'en-IE',{style:'currency',currency,minimumFractionDigits:0,maximumFractionDigits:Number.isInteger(value)?0:2}).format(value)};
   function liveDurationLabel(value){
     const total=Math.round(Number(value));
     if(!Number.isFinite(total)||total<=0)return null;
@@ -230,7 +232,7 @@
     const year=Number(m[1]),month=Number(m[2]),day=Number(m[3]);
     const dt=new Date(Date.UTC(year,month-1,day));
     if(dt.getUTCFullYear()!==year||dt.getUTCMonth()!==month-1||dt.getUTCDate()!==day)return raw;
-    const dateLocale=locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':'en-GB';
+    const dateLocale=locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='pt'?'pt-PT':locale==='es'?'es-ES':'en-GB';
     return new Intl.DateTimeFormat(dateLocale,{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(dt);
   }
   function confirmationTimeLabel(value){
@@ -310,17 +312,20 @@
     if((m=en.match(/^Total: (.+)$/))) return `Összesen: ${m[1]}`;
     return en;
   }
-  const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):en;
+  const esDynamic=(en)=>Object.prototype.hasOwnProperty.call(window.VOY_ES_BOOKING_TRANSLATIONS||{},en)
+    ?window.VOY_ES_BOOKING_TRANSLATIONS[en]:en;
+  const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):locale==='es'?esDynamic(en):en;
   // Selecting a guide language records the guest's request, not a verified
   // guide/escort assignment. Do not imply language delivery is guaranteed
   // until human-guided language delivery has been independently verified.
   const requestedGuideLanguageLabel=()=>locale==='he'?'שפת הדרכה מבוקשת'
     :locale==='hu'?'Kért idegenvezetési nyelv'
     :locale==='pt'?'Idioma de acompanhamento solicitado'
+    :locale==='es'?'Idioma de guía solicitado'
     :'Requested guiding language';
-  const GUIDE_LANGUAGE_NAMES={en:{en:'English',he:'אנגלית',hu:'Angol',pt:'Inglês'},he:{en:'Hebrew',he:'עברית',hu:'Héber'},hu:{en:'Hungarian',he:'הונגרית',hu:'Magyar'},es:{en:'Spanish',he:'ספרדית',hu:'Spanyol'},pt:{en:'Portuguese',he:'פורטוגזית',hu:'Portugál',pt:'Português'}};
+  const GUIDE_LANGUAGE_NAMES={en:{en:'English',he:'אנגלית',hu:'Angol',pt:'Inglês',es:'Inglés'},he:{en:'Hebrew',he:'עברית',hu:'Héber',es:'Hebreo'},hu:{en:'Hungarian',he:'הונגרית',hu:'Magyar',es:'Húngaro'},es:{en:'Spanish',he:'ספרדית',hu:'Spanyol',es:'Español'},pt:{en:'Portuguese',he:'פורטוגזית',hu:'Portugál',pt:'Português',es:'Portugués'}};
   const guideLanguageLabel=(code)=>{const key=String(code||'').toLowerCase();return GUIDE_LANGUAGE_NAMES[key]?.[locale]||GUIDE_LANGUAGE_NAMES[key]?.en||key.toUpperCase();};
-  const localeBudapestHome=()=>locale==='he'?'/he/budapest/':locale==='hu'?'/hu/budapest/':'/budapest/';
+  const localeBudapestHome=()=>locale==='he'?'/he/budapest/':locale==='hu'?'/hu/budapest/':locale==='es'?'/es/budapest/':'/budapest/';
   const localeBudapestBooking=()=>localeBudapestHome()+'#booking';
   // Budapest policy disclosure only; refund eligibility remains server-authoritative.
   const budapestCancellationLink=()=>localeBudapestHome()+'#cancellation-weather';
@@ -339,7 +344,7 @@
     escapeHTML(locale==='he'?'החזר רק על הסכום ששולם':locale==='hu'?'Csak a befizetett összegből':'Refunds only on amounts already paid')+'</p>';
 
   const legalBasePath=()=>locale==='he'?'/he/legal/':locale==='hu'?'/hu/legal/':locale==='pt'?'/pt/legal/':'/legal/';
-  const localeBudapestCore=(slug)=>locale==='he'?`/he/budapest/${slug}`:locale==='hu'?`/hu/budapest/${slug}`:`/budapest/${slug}`;
+  const localeBudapestCore=(slug)=>locale==='he'?`/he/budapest/${slug}`:locale==='hu'?`/hu/budapest/${slug}`:locale==='es'?`/es/budapest/${slug}`:`/budapest/${slug}`;
   const escapeHTML=(value)=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const finiteNumber=(value)=>{const n=Number(value);return Number.isFinite(n)?n:null};
   function quoteLineArray(quote){

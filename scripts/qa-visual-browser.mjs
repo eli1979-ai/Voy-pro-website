@@ -1504,7 +1504,7 @@ try{
   // Spanish Budapest parity gate (VOY-ES-PARITY-02). Each Spanish page is generated
   // from its English source (tools/es-budapest) and must keep the same photography,
   // section structure and responsive behaviour. Only the approved read-only
-  // reviews ticker may run; no site.js, forms, availability/checkout/payment.
+  // reviews ticker and inert ES booking UI may run; no site.js/live FBM.
   // Screenshots of every EN/ES pair are written to the artifact for human review.
   const spanishParityRoutes=[
     '','tours/buda-castle-ezraider-tour/','tours/margaret-island-ezraider-tour/',
@@ -1529,7 +1529,12 @@ try{
       heroLoaded:!!hero?.complete&&hero.naturalWidth>0,heroVisible:!!box&&box.width>150&&box.height>100,
       heroBeside:!!box&&!!h1&&(box.left>=h1.right-2||h1.left>=box.right-2),
       overflow:document.documentElement.scrollWidth-innerWidth,
-      runtime:!!document.querySelector('script[src]:not([src="/assets/budapest-review-ticker.js?v=20261029r1"]),form,iframe,#booking,[data-track="booking_cta"]'),
+      runtime:!!document.querySelector('script[src]:not([src="/assets/runtime-config.js"]):not([src="/assets/es-booking-module.js?v=20261120r1"]):not([src="/assets/budapest-review-ticker.js?v=20261029r1"]),iframe,[data-track="booking_cta"]'),
+      inertForm:document.querySelectorAll('#availability-form').length===1&&
+        !!document.querySelector('#availability-form fieldset:disabled')&&
+        !!document.querySelector('#availability-form button[type="submit"]:disabled')&&
+        document.querySelector('#booking')?.dataset.esBookingMode==='preview-inert'&&
+        !window.VOYBookingIntelligence,
       reviewTickerCount:document.querySelectorAll('script[src="/assets/budapest-review-ticker.js?v=20261029r1"]').length,
       preview:document.querySelector('.voy-preview-ribbon')?.textContent||'',
       policyRows:document.querySelectorAll('#cancellation-weather li').length};
@@ -1559,7 +1564,7 @@ try{
           s.sections+'/'+e.sections+' sections, '+s.h2+'/'+e.h2+' h2, '+s.faq+'/'+e.faq+' FAQ)');
         check(s.heroLoaded&&s.heroVisible,'es-parity '+label+' '+slug+' hero photo loaded and visible');
         if(label==='1440')check(s.heroBeside===e.heroBeside,'es-parity 1440 '+slug+' desktop hero layout matches English');
-        check(s.overflow<=2&&!s.runtime&&s.reviewTickerCount===1&&errors.length===0,
+        check(s.overflow<=2&&!s.runtime&&s.inertForm&&s.reviewTickerCount===1&&errors.length===0,
           'es-parity '+label+' '+slug+' only one approved review script, no booking/forms/other scripts, no overflow/page errors');
         await en.evaluate(()=>window.scrollTo(0,0));await es.evaluate(()=>window.scrollTo(0,0));
         await en.screenshot({path:join(out,'es-pair-'+label+'-'+slug+'-en.png'),fullPage:false,animations:'disabled'});
