@@ -1,6 +1,22 @@
 import fs from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const failures=[];
+// Owner-selected EZRaiderIL product photograph, with exact-source integrity check.
+const approvedEZRaider=fs.readFileSync('site/assets/images/ezraider/owner-photo-20261031.webp');
+const approvedEZRaiderBlobSha=createHash('sha1')
+  .update('blob '+approvedEZRaider.length+'\0')
+  .update(approvedEZRaider).digest('hex');
+if(approvedEZRaiderBlobSha!=='26407d87aa2a0a4b4b59500aa8710db082cd63b6')
+  failures.push('EZRaider homepage photo must remain the exact owner-selected transparent image');
+if(approvedEZRaider.length<30||
+   approvedEZRaider.toString('ascii',0,4)!=='RIFF'||
+   approvedEZRaider.toString('ascii',8,12)!=='WEBP'||
+   approvedEZRaider.toString('ascii',12,16)!=='VP8X'||
+   approvedEZRaider.readUIntLE(24,3)+1!==851||
+   approvedEZRaider.readUIntLE(27,3)+1!==877)
+  failures.push('EZRaider homepage photo must be the high-resolution 851x877 WebP');
+
 const read=p=>fs.readFileSync(p,'utf8');
 const html=read('site/index.html');
 const sitemap=read('site/sitemap.xml');
@@ -41,7 +57,8 @@ for(const [locale,file,href] of [
   if((page.match(/class="network-ez-feature-card"/g)||[]).length!==4)failures.push(locale+': four different benefits required');
   if(!spotlight.includes('class="btn alt network-ez-cta" href="'+href+'"'))
     failures.push(locale+': localized guide CTA missing or moved outside the hero');
-  if(!spotlight.includes('owner-photo-20261031.webp')||
+  if(!spotlight.includes('owner-photo-20261031.webp?v=20261120-hires')||
+     !spotlight.includes('width="851" height="877"')||
      !spotlight.includes('network-ez-feature-grid')||
      !spotlight.includes('network-ez-note'))
     failures.push(locale+': product image, benefits or eligibility caveat missing');
