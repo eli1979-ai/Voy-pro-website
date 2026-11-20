@@ -407,7 +407,7 @@ for(const file of expectedVehiclePages){
    assert.equal(heroSpotlight.length,1,file+': network homepage spotlight missing');
    assert.ok(html.match(/<section class="hero">[\s\S]*?class="network-ez-spotlight"/),
      file+': vehicle spotlight must be in the opening hero');
-   assert.ok(heroSpotlight[0][0].includes('src="'+referralImage+'"') &&
+   assert.ok(heroSpotlight[0][0].includes('src="'+referralImage+'?v=20261120-hires"') &&
      heroSpotlight[0][0].includes('href="'+expectedHref+'"'),
      file+': one image-backed hero referral must preserve the local return path');
    networkRefs++;
