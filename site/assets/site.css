@@ -1774,3 +1774,10 @@ body[data-intent="network"] .hero-card{align-self:start}
   body[data-intent="network"] .hero .network-ez-head h2{font-size:20px}
   body[data-intent="network"] .network-ez-feature-card{padding:9px}
 }
+
+/* Keep the full vehicle legible above four benefit cards on narrow phones. */
+@media(max-width:480px){
+  body[data-intent="network"] .network-ez-head{grid-template-columns:minmax(0,1fr);gap:8px}
+  body[data-intent="network"] .network-ez-image{min-height:175px}
+  body[data-intent="network"] .network-ez-image img{width:min(72%,220px);max-height:200px}
+}

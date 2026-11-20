@@ -25,6 +25,35 @@ for(const language of ['he','hu','es']){
   requireText(localized,'href="/'+language+'/" hreflang="'+language+'"','active homepage language link missing: '+language);
 }
 
+// The EZRaider product story is ONE early hero spotlight, never a
+// second content section after ratings. Check every localized homepage.
+for(const [locale,file,href] of [
+  ['en','site/index.html','/ezraider/?from=home&amp;return_to=%2F'],
+  ['he','site/he/index.html','/he/ezraider/?from=home&amp;return_to=%2Fhe%2F'],
+  ['hu','site/hu/index.html','/hu/ezraider/?from=home&amp;return_to=%2Fhu%2F'],
+  ['es','site/es/index.html','/es/ezraider/?from=home&amp;return_to=%2Fes%2F']
+]){
+  const page=read(file);
+  const hero=page.split('<section class="hero">')[1]?.split('</section>')[0]||'';
+  const spotlight=hero.match(/<div class="network-ez-spotlight"[\\s\\S]*?<p class="network-ez-note">[^<]*<\\/p><\\/div>/)?.[0]||'';
+  if(!spotlight)failures.push(locale+': integrated EZRaider hero spotlight missing');
+  if((page.match(/class="network-ez-spotlight"/g)||[]).length!==1)failures.push(locale+': need exactly one EZRaider spotlight');
+  if((page.match(/class="network-ez-feature-card"/g)||[]).length!==4)failures.push(locale+': four different benefits required');
+  if(!spotlight.includes('class="btn alt network-ez-cta" href="'+href+'"'))
+    failures.push(locale+': localized guide CTA missing or moved outside the hero');
+  if(!spotlight.includes('owner-photo-20261031.webp')||
+     !spotlight.includes('network-ez-feature-grid')||
+     !spotlight.includes('network-ez-note'))
+    failures.push(locale+': product image, benefits or eligibility caveat missing');
+  if(page.includes('<section class="section ez-vehicle-bridge">'))
+    failures.push(locale+': duplicate late EZRaider bridge must be removed');
+  if(!page.includes('id="destinations"')||
+     !page.includes('class="hero-photo-frame parent-hero-mosaic"')||
+     !page.includes('class="trust network-trust"'))
+    failures.push(locale+': destination mosaic, ratings or destination anchor lost');
+  if(/Israel|Izrael|ישראל|ישראלי/i.test(spotlight))
+    failures.push(locale+': unwanted geographic origin mention');
+}
 requireText(html,'href="/portugal/"','root homepage must link Portugal');
 requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
 requireText(html,'class="hero-photo-frame parent-hero-mosaic"','root hero must use the destination-neutral mosaic');
