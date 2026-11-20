@@ -791,8 +791,39 @@ if(!fallback404.includes('(he|hu|pt|es)')||
    !fallback404.includes("budapest:['/es/budapest/'"))
   fail('404.html','Missing safe Spanish 404 recovery');
 
-// Spanish Budapest: complete route matrix, read-only reviews, no live checkout.
-// The ES runtime/selector must not be enabled until an independent locale audit.
+// Spanish booking can be merged as inert UI, never silently activated.
+const esBookingModule=read(path.join(site,'assets/es-booking-module.js'));
+const esRuntimeConfig=read(path.join(site,'assets/runtime-config.js'));
+const esMapMatch=esBookingModule.match(/Object\.freeze\((\{[^\n]+\})\)/);
+let esBookingCopy={};
+try{esBookingCopy=JSON.parse(esMapMatch?.[1]||'{}')}catch(error){
+  fail('assets/es-booking-module.js','ES booking dictionary is not valid JSON');
+}
+const esSourceLiterals=[...bookingUxSource.matchAll(/\bt\(\s*['"]([^'"\n]+)['"]\s*,/g)].map(m=>m[1]);
+const missingESLiterals=[...new Set(esSourceLiterals)].filter(key=>typeof esBookingCopy[key]!=='string'||!esBookingCopy[key].trim());
+if(missingESLiterals.length)fail('assets/es-booking-module.js',
+  'Untranslated direct booking labels: '+missingESLiterals.slice(0,12).join(' | '));
+for(const marker of ['cfg.esBookingEnabled===true','cfg.esBookingLocaleCertified===true',
+  "root.dataset.esBookingMode=allowed?'opted-in':'preview-inert'",
+  'fieldset data-es-booking-fields disabled']){
+  if(!esBookingModule.includes(marker))fail('assets/es-booking-module.js','Missing fail-closed ES gate or disabled form: '+marker);
+}
+if(!bookingUxSource.includes("const esBookingGate=routeLocale!=='es'||(cfg.esBookingEnabled===true&&cfg.esBookingLocaleCertified===true);")||
+   !bookingUxSource.includes('&&clientKey&&esBookingGate)'))
+  fail('assets/site.js','Canonical client must enforce the independent ES booking gates');
+if(/\besBookingEnabled\s*:|\besBookingLocaleCertified\s*:/.test(esRuntimeConfig))
+  fail('assets/runtime-config.js','Spanish booking must not be switched on from committed default runtime config');
+if(/\b(?:fetch|XMLHttpRequest|sendBeacon)\s*\(/.test(esBookingModule))
+  fail('assets/es-booking-module.js','The Spanish presentation module must never be an independent API writer');
+if(esBookingModule.includes('<option value="exp_bud_'))
+  fail('assets/es-booking-module.js','Spanish booking choices must come from canonical FBM catalog, not static IDs');
+if(!bookingUxSource.includes("const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);"))
+  fail('assets/site.js','Booking confirmation must preserve canonical Manage Booking link');
+try{execFileSync(process.execPath,['--check',path.join(site,'assets/es-booking-module.js')],{stdio:'pipe'});}
+catch(error){fail('assets/es-booking-module.js','Spanish booking module JavaScript syntax invalid');}
+
+// Spanish Budapest: read-only reviews, inert booking form, no live checkout.
+// The ES runtime must not run until the independent locale audit.
 const spanishBudapestSlugs=[
   '','tours/buda-castle-ezraider-tour','tours/buda-margaret-extended-tour',
   'tours/margaret-island-ezraider-tour','tours/heroes-square-city-ezraider-tour',
@@ -870,11 +901,13 @@ for(const slug of spanishBudapestSlugs){
     fail(path,'Spanish page lost English sections ('+sections(html)+' vs '+sections(enHtml)+')');
   if(faqs(html)!==faqs(enHtml))
     fail(path,'Spanish FAQ count must match English ('+faqs(html)+' vs '+faqs(enHtml)+')');
-  // Only the verified source-review ribbon may execute JS on Spanish
-  // informational pages. Booking/payment/analytics runtimes remain forbidden.
+  // Only the inert ES module, runtime config and read-only ticker are allowed.
   const executableScripts=[...html.matchAll(/<script\b(?![^>]*application\/ld\+json)([^>]*)>/g)].map(m=>m[1]);
-  if(executableScripts.length!==1||!/\bsrc="\/assets\/budapest-review-ticker\.js\?v=20261029r1"/.test(executableScripts[0]))
-    fail(path,'Spanish route may execute only the approved read-only review ticker');
+  const expectedScripts=['/assets/runtime-config.js','/assets/es-booking-module.js?v=20261120r1',
+    '/assets/budapest-review-ticker.js?v=20261029r1'];
+  if(executableScripts.length!==expectedScripts.length||expectedScripts.some((src,i)=>
+    !executableScripts[i]?.includes('src="'+src+'"')))
+    fail(path,'Unexpected ES script; source may run only gated module + ticker');
   const withoutTicker=html.replace(/<section class="vp-reviews"[^>]*>[\s\S]*?<\/section>/,'');
   if(/<(form|iframe|input|select|button)\b/.test(withoutTicker))
     fail(path,'Spanish informational routes must not expose booking/payment forms or other interactive runtime');
