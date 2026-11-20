@@ -237,7 +237,7 @@ function transform(r) {
     match=>{inserted++;return match+reviewRibbon;});
   if(inserted!==1)throw Error('Need one source section for Spanish review ribbon: '+r);
   // Only this allowlisted review JavaScript is permitted on Spanish pages.
-  return \`<!DOCTYPE html>\n<html lang="es">\${head}\n\${esBody}\${withReviews}<script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n\`;
+  return `<!DOCTYPE html>\n<html lang="es">${head}\n${esBody}${withReviews}<script src="/assets/budapest-review-ticker.js?v=20261029r1" defer></script></body></html>\n`;
 }
 
 const outputs = ROUTES.map(r => [r, transform(r)]);
