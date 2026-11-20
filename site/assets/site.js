@@ -210,6 +210,7 @@
       const m=minutes?`${minutes} min`:'';
       return [h,m].filter(Boolean).join(' ');
     }
+    if(locale==='es')return hours?(minutes?`${hours} ${hours===1?'hora':'horas'} y ${minutes} min`:`${hours} ${hours===1?'hora':'horas'}`):`${minutes} min`;
     if(!hours)return `${minutes} min`;
     if(!minutes)return hours===1?'1 hour':`${hours} hours`;
     return `${hours} hr ${minutes} min`;
@@ -218,6 +219,7 @@
     return locale==='he'?'משך הסיור אינו זמין כרגע'
       :locale==='hu'?'A túra időtartama jelenleg nem érhető el'
       :locale==='pt'?'Duração temporariamente indisponível'
+      :locale==='es'?'Duración no disponible temporalmente'
       :'Duration temporarily unavailable';
   }
   function isDurationPlaceholder(node){
@@ -312,8 +314,31 @@
     if((m=en.match(/^Total: (.+)$/))) return `Összesen: ${m[1]}`;
     return en;
   }
-  const esDynamic=(en)=>Object.prototype.hasOwnProperty.call(window.VOY_ES_BOOKING_TRANSLATIONS||{},en)
-    ?window.VOY_ES_BOOKING_TRANSLATIONS[en]:en;
+  const esDynamic=(en)=>{
+    const copy=window.VOY_ES_BOOKING_TRANSLATIONS||{};
+    if(Object.prototype.hasOwnProperty.call(copy,en))return copy[en];
+    // Interpolated checkout/WhatsApp labels never create pricing or capacity rules.
+    const patterns=[
+      [/^Selected: (.+)\. Choose your date and group size\.$/,m=>'Seleccionado: '+m[1]+'. Elige la fecha y el tamaño del grupo.'],
+      [/^Private tours require at least (\d+) independent riders\.$/,m=>'Un tour privado requiere al menos '+m[1]+' conductores independientes.'],
+      [/^Available from (\d+) independent riders\.$/,m=>'Disponible desde '+m[1]+' conductores independientes.'],
+      [/^(.+) per independent rider$/,m=>m[1]+' por conductor independiente'],
+      [/^Regular rate \+ (.+) per rider$/,m=>'Tarifa normal + '+m[1]+' por conductor'],
+      [/^Price item (\d+)$/,m=>'Concepto del precio '+m[1]],
+      [/^Booking reference: (.+)$/,m=>'Referencia de reserva: '+m[1]],
+      [/^Tour: (.+)$/,m=>'Tour: '+m[1]],
+      [/^Preferred date: (.+)$/,m=>'Fecha preferida: '+m[1]],
+      [/^Preferred time: (.+)$/,m=>'Hora preferida: '+m[1]],
+      [/^Independent riders: (.+)$/,m=>'Conductores independientes: '+m[1]],
+      [/^Child passengers: (.+)$/,m=>'Niños pasajeros: '+m[1]],
+      [/^Baby passengers: (.+)$/,m=>'Bebés pasajeros: '+m[1]],
+      [/^Requested guiding language: (.+)$/,m=>'Idioma de guía solicitado: '+m[1]],
+      [/^Payment: (.+)$/,m=>'Pago: '+m[1]],
+      [/^Total: (.+)$/,m=>'Total: '+m[1]]
+    ];
+    for(const [re,translate] of patterns){const match=String(en).match(re);if(match)return translate(match);}
+    return en;
+  };
   const t=(en,he)=>locale==='he'?he:locale==='hu'?huDynamic(en):locale==='es'?esDynamic(en):en;
   // Selecting a guide language records the guest's request, not a verified
   // guide/escort assignment. Do not imply language delivery is guaranteed
@@ -333,15 +358,17 @@
     ?'החזר מלא 48 שעות ומעלה לפני הסיור · 50% בין 24 ל־48 שעות · החזר מלא מסיבה מוצדקת'
     :locale==='hu'
       ?'48 órával korábban teljes visszatérítés · 24–48 órával előtte 50% · indokolt esetben teljes visszatérítés'
+      :locale==='es'?'Reembolso íntegro con 48 h o más · 50 % entre 24 y 48 h · reembolso íntegro por motivos justificados'
       :'Full refund 48+ h before · 50% refund 24–48 h before · full refund for justified reasons';
   const budapestCancellationContact=()=>locale==='he'
     ?'ביטול דרך ניהול ההזמנה, WhatsApp או support@voy-pro.com'
     :locale==='hu'
       ?'Lemondás: Foglalás kezelése, WhatsApp vagy support@voy-pro.com'
+      :locale==='es'?'Cancelación mediante Gestionar reserva, WhatsApp o support@voy-pro.com'
       :'Cancel through Manage Booking, WhatsApp or support@voy-pro.com';
   const budapestPolicyMarkup=()=>'<p class="budapest-booking-policy-note">'+
     '<a href="'+escapeHTML(budapestCancellationLink())+'">'+escapeHTML(budapestCancellationSummary())+'</a> · '+
-    escapeHTML(locale==='he'?'החזר רק על הסכום ששולם':locale==='hu'?'Csak a befizetett összegből':'Refunds only on amounts already paid')+'</p>';
+    escapeHTML(locale==='he'?'החזר רק על הסכום ששולם':locale==='hu'?'Csak a befizetett összegből':locale==='es'?'Los reembolsos se aplican solo a importes ya pagados':'Refunds only on amounts already paid')+'</p>';
 
   const legalBasePath=()=>locale==='he'?'/he/legal/':locale==='hu'?'/hu/legal/':locale==='pt'?'/pt/legal/':'/legal/';
   const localeBudapestCore=(slug)=>locale==='he'?`/he/budapest/${slug}`:locale==='hu'?`/hu/budapest/${slug}`:locale==='es'?`/es/budapest/${slug}`:`/budapest/${slug}`;
@@ -464,12 +491,12 @@
     const details={...currentRequestDetails(),...overrides};
     const whatsappPortugal=isPortugalPage||vehicleGuideSource==='marvao'||vehicleGuideSource==='marvao-pt';
     const whatsappBudapest=isBudapestPage||vehicleGuideSource==='budapest';
-    const generic=whatsappPortugal?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):whatsappBudapest?(locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és egy budapesti túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`)):`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like help choosing a destination or experience.`;
-    const privateFlexible=locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és privát budapesti túrát szeretnék kérni rugalmas indulási idővel.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to request a private Budapest tour at a flexible departure time.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבקש סיור פרטי בבודפשט בשעת יציאה גמישה.`);
-    const extended=locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és a hosszabb Buda + Margitsziget túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check the Extended Buda + Margaret tour.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק את הסיור הארוך בודה + מרגיט.`);
-    const bookingConfirmed=locale==='hu'?`Szia, van egy megerősített VOY PRO Budapest foglalásom, és segítséget szeretnék kérni vele kapcsolatban.`:t(`Hi, I have a confirmed VOY PRO Budapest booking and I’d like help with it.`,`היי, יש לי הזמנה מאושרת ל־VOY PRO Budapest ואני רוצה עזרה בנוגע להזמנה.`);
-    const groupRequest=locale==='hu'?`Szia, csoportos EZRaider programot tervezünk Budapesten. Segítséget szeretnénk kérni a dátum, a létszám és a megfelelő túraformátum összehangolásában.`:t(`Hi, we’re planning a group EZRaider experience in Budapest. We’d like help coordinating the date, group size and the best tour format.`,`היי, אנחנו מתכננים חוויית EZRaider לקבוצה בבודפשט ורוצים עזרה בתיאום התאריך, גודל הקבוצה ומבנה הסיור המתאים.`);
-    const corporateRequest=locale==='hu'?`Szia, céges vagy csapatépítő EZRaider programot tervezünk Budapesten. Szeretnénk egyeztetni a létszámot, az időzítést, az útvonalat és a szervezési részleteket.`:t(`Hi, we’re planning a corporate or team-building EZRaider event in Budapest. We’d like to coordinate group size, timing, route and event details.`,`היי, אנחנו מתכננים פעילות חברה או גיבוש עם EZRaider בבודפשט ורוצים לתאם את גודל הקבוצה, לוח הזמנים, המסלול ופרטי האירוע.`);
+    const generic=locale==='es'&&whatsappBudapest?`Hola, llegué desde VOY PRO (${location.pathname}) y quiero consultar un tour por Budapest.`:whatsappPortugal?(locale==='he'?`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור EZRaider במרבאו, פורטוגל.`:locale==='pt'?`Olá, cheguei pelo site VOY PRO (${location.pathname}) e gostaria de verificar um passeio de EZRaider em Marvão, Portugal.`:`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check an EZRaider tour in Marvão, Portugal.`):whatsappBudapest?(locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és egy budapesti túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check a Budapest tour.`,`היי, הגעתי מהאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק סיור בבודפשט.`)):`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like help choosing a destination or experience.`;
+    const privateFlexible=locale==='es'?`Hola, llegué desde VOY PRO (${location.pathname}) y quiero consultar un tour privado con salida flexible en Budapest.`:locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és privát budapesti túrát szeretnék kérni rugalmas indulási idővel.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to request a private Budapest tour at a flexible departure time.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבקש סיור פרטי בבודפשט בשעת יציאה גמישה.`);
+    const extended=locale==='es'?`Hola, llegué desde VOY PRO (${location.pathname}) y quiero consultar el tour ampliado Buda + isla Margarita.`:locale==='hu'?`Szia, a VOY PRO weboldaláról érkeztem (${location.pathname}), és a hosszabb Buda + Margitsziget túráról szeretnék érdeklődni.`:t(`Hi, I came from the VOY PRO website (${location.pathname}) and I’d like to check the Extended Buda + Margaret tour.`,`היי, הגעתי מאתר VOY PRO (${location.pathname}) ואני רוצה לבדוק את הסיור הארוך בודה + מרגיט.`);
+    const bookingConfirmed=locale==='es'?'Hola, tengo una reserva confirmada de VOY PRO Budapest y necesito ayuda.':locale==='hu'?`Szia, van egy megerősített VOY PRO Budapest foglalásom, és segítséget szeretnék kérni vele kapcsolatban.`:t(`Hi, I have a confirmed VOY PRO Budapest booking and I’d like help with it.`,`היי, יש לי הזמנה מאושרת ל־VOY PRO Budapest ואני רוצה עזרה בנוגע להזמנה.`);
+    const groupRequest=locale==='es'?'Hola, queremos organizar un tour grupal con EZRaider en Budapest y necesitamos ayuda con la fecha, el tamaño del grupo y la ruta.':locale==='hu'?`Szia, csoportos EZRaider programot tervezünk Budapesten. Segítséget szeretnénk kérni a dátum, a létszám és a megfelelő túraformátum összehangolásában.`:t(`Hi, we’re planning a group EZRaider experience in Budapest. We’d like help coordinating the date, group size and the best tour format.`,`היי, אנחנו מתכננים חוויית EZRaider לקבוצה בבודפשט ורוצים עזרה בתיאום התאריך, גודל הקבוצה ומבנה הסיור המתאים.`);
+    const corporateRequest=locale==='es'?'Hola, queremos organizar un evento corporativo con EZRaider en Budapest y coordinar los participantes, el horario y la ruta.':locale==='hu'?`Szia, céges vagy csapatépítő EZRaider programot tervezünk Budapesten. Szeretnénk egyeztetni a létszámot, az időzítést, az útvonalat és a szervezési részleteket.`:t(`Hi, we’re planning a corporate or team-building EZRaider event in Budapest. We’d like to coordinate group size, timing, route and event details.`,`היי, אנחנו מתכננים פעילות חברה או גיבוש עם EZRaider בבודפשט ורוצים לתאם את גודל הקבוצה, לוח הזמנים, המסלול ופרטי האירוע.`);
     const lines=[context==='booking_confirmation'?bookingConfirmed:context==='private_flexible'?privateFlexible:context==='extended'?extended:context==='group'?groupRequest:context==='corporate'?corporateRequest:generic];
     const detailLines=[];
     if(details.booking_reference)detailLines.push(t(`Booking reference: ${details.booking_reference}`,`מספר הזמנה: ${details.booking_reference}`));
@@ -477,10 +504,10 @@
       ?`Passeio: ${details.experience_title}`
       :t(`Tour: ${details.experience_title}`,`סיור: ${details.experience_title}`));
     const confirmedBooking=context==='booking_confirmation';
-    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:`Date: ${details.date}`)
+    if(details.date)detailLines.push(confirmedBooking?(locale==='he'?`תאריך: ${details.date}`:locale==='hu'?`Dátum: ${details.date}`:locale==='es'?`Fecha: ${details.date}`:`Date: ${details.date}`)
       :whatsappPortugal&&locale==='pt'?`Data preferida: ${confirmationDateLabel(details.date)}`
       :t(`Preferred date: ${confirmationDateLabel(details.date)}`,`תאריך מועדף: ${confirmationDateLabel(details.date)}`));
-    if(details.requested_time)detailLines.push(confirmedBooking?(locale==='he'?`שעה: ${details.requested_time}`:locale==='hu'?`Időpont: ${details.requested_time}`:`Time: ${details.requested_time}`):t(`Preferred time: ${confirmationTimeLabel(details.requested_time)}`,`שעה מועדפת: ${confirmationTimeLabel(details.requested_time)}`));
+    if(details.requested_time)detailLines.push(confirmedBooking?(locale==='he'?`שעה: ${details.requested_time}`:locale==='hu'?`Időpont: ${details.requested_time}`:locale==='es'?`Hora: ${details.requested_time}`:`Time: ${details.requested_time}`):t(`Preferred time: ${confirmationTimeLabel(details.requested_time)}`,`שעה מועדפת: ${confirmationTimeLabel(details.requested_time)}`));
     if(details.riders)detailLines.push(t(`Independent riders: ${details.riders}`,`רוכבים עצמאיים: ${details.riders}`));
     if(whatsappPortugal&&details.people)detailLines.push(locale==='he'
       ?`משתתפים: ${details.people}`:locale==='pt'
@@ -596,7 +623,7 @@
         labels.people+': '+people,
         labels.language+': '+guideLanguageLabel(guide)
       ];
-      const sourceLine=(locale==='pt'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname;
+      const sourceLine=(locale==='pt'||locale==='es'?'Página':locale==='he'?'עמוד':'Page')+': '+location.pathname;
       const messageFor=(nameCount,notesCount)=>{
         const lines=[...requiredLines,labels.name+': '+name.slice(0,nameCount).join('')];
         if(notes.length){
@@ -1155,6 +1182,7 @@
         ?{riders:'רוכבים עצמאיים מגיל 16+',children:'ילדים בגיל 3–15',babies:'תינוקות בגיל 1–2'}
         :locale==='hu'
           ?{riders:'Önálló vezetők 16 éves kortól',children:'Gyermekek 3–15 éves korig',babies:'Kisgyermekek 1–2 éves korig'}
+          :locale==='es'?{riders:'Conductores independientes desde 16 años',children:'Niños pasajeros de 3 a 15 años',babies:'Bebés pasajeros de 1 a 2 años'}
           :{riders:'Independent riders age 16+',children:'Children ages 3–15',babies:'Babies ages 1–2'};
     }
     const riderAge=Number(policy.standard_min_age);
@@ -1170,6 +1198,11 @@
       children:`Gyermekek ${childMin}–${childMax} éves korig`,
       babies:`Kisgyermekek ${babyMin}–${babyMax} éves korig`,
     };
+    if(locale==='es')return {
+      riders:`Conductores independientes desde ${riderAge} años`,
+      children:`Niños pasajeros de ${childMin} a ${childMax} años`,
+      babies:`Bebés pasajeros de ${babyMin} a ${babyMax} años`,
+    };
     return {
       riders:`Independent riders age ${riderAge}+`,
       children:`Children ages ${childMin}–${childMax}`,
@@ -1180,12 +1213,14 @@
     return locale==='he'?'פרטי הזכאות לרכיבה אינם זמינים כרגע'
       :locale==='hu'?'Az önálló vezetés feltételei jelenleg nem érhetők el'
       :locale==='pt'?'Os critérios de condução estão temporariamente indisponíveis'
+      :locale==='es'?'No se pueden verificar los requisitos para conducir'
       :'Riding eligibility details are temporarily unavailable';
   }
   function agePolicyUnavailableLabel(){
     return locale==='he'?'כללי הגיל העדכניים אינם זמינים כרגע — ניתן לפנות לצוות המקומי'
       :locale==='hu'?'Az aktuális korhatárok jelenleg nem érhetők el — kérjük, lépj kapcsolatba a helyi csapattal'
       :locale==='pt'?'As regras de idade estão temporariamente indisponíveis — contacte a equipa local'
+      :locale==='es'?'No se pueden verificar los requisitos de edad. Contacta con el equipo local.'
       :'Current age rules are temporarily unavailable — please contact the local team';
   }
 
@@ -1198,6 +1233,7 @@
     const childMax=Number(policy.child_passenger_max_age);
     if(locale==='he')return `רכיבה עצמאית מותרת מגיל ${standard}. בני ${assessment} יכולים לקבל אישור חריג מהצוות. ילדים מגיל ${babyMin} ועד גיל ${childMax} כולל יכולים להצטרף כנוסעים באמצעות כיסא או מערך נוסע מתאים.`;
     if(locale==='hu')return `Önállóan ${standard} éves kortól lehet vezetni. A ${assessment} éves résztvevő kivételesen, a csapat jóváhagyásával vezethet. Az ${babyMin}–${childMax} éves gyermekek utasként csatlakozhatnak, a megfelelő gyermek- vagy utasülés használatával.`;
+    if(locale==='es')return `La conducción independiente está permitida desde los ${standard} años. Las personas de ${assessment} años pueden solicitar una evaluación excepcional. Los niños de ${babyMin} a ${childMax} años pueden viajar como pasajeros con el asiento adecuado.`;
     return `Independent riding is from age ${standard}. Riders aged ${assessment} may be approved as an exception by our team. Children from age ${babyMin} through ${childMax} can join as passengers using the appropriate child/passenger seat setup.`;
   }
   function applyDestinationRuntimeUI(){
@@ -1229,6 +1265,8 @@
         ?`רכיבה עצמאית ${standard}+ (גיל ${assessment} בכפוף להערכת התאמה)`
         :locale==='hu'
           ?`Önálló vezetés ${standard}+ (${assessment} évesen alkalmassági felméréssel)`
+          :locale==='es'
+            ?`Conducción desde ${standard} años (${assessment} con evaluación especial)`
           :`Independent riding ${standard}+ (${assessment} with assessment)`;
     });
     const liveAgePolicyText=agePolicyText();
@@ -1633,11 +1671,11 @@
   // Keep translated static fallbacks until the catalog is available.
   function hydrateTourFactLabels(product){
     const duration=liveDurationLabel(product?.durationMinutes)||
-      (locale==='he'?'שעתיים':locale==='hu'?'2 óra':'2 hours');
+      (locale==='he'?'שעתיים':locale==='hu'?'2 óra':locale==='es'?'2 horas':'2 hours');
     document.querySelectorAll('[data-api-tour-duration]').forEach(node=>{node.textContent=duration;});
     const languages=guideLanguagesForProduct(product);
     if(!languages.length)return;
-    const prefix=locale==='he'?'שפות הדרכה: ':locale==='hu'?'Idegenvezetés nyelve: ':'Guide languages: ';
+    const prefix=locale==='he'?'שפות הדרכה: ':locale==='hu'?'Idegenvezetés nyelve: ':locale==='es'?'Idiomas de guía: ':'Guide languages: ';
     const label=prefix+[...new Set(languages)].map(guideLanguageLabel).join(', ');
     document.querySelectorAll('[data-api-guide-languages]').forEach(node=>{node.textContent=label;});
   }
@@ -1681,6 +1719,7 @@
     const fields=[['adults','riders_16_plus'],['children','child_passengers_3_15'],['babies','baby_passengers_1_2']];
     const invalid=locale==='he'?'בחרו מספר משתתפים תקין לפני בדיקת הזמינות.'
       :locale==='hu'?'Válassz érvényes létszámot az elérhetőség ellenőrzése előtt.'
+      :locale==='es'?'Selecciona cantidades válidas antes de consultar disponibilidad.'
       :'Select valid group quantities before checking availability.';
     for(const [name,key] of fields){
       const select=form?.querySelector('select[name="'+name+'"]');
@@ -1713,7 +1752,7 @@
     }
     const currency=/^(EUR|HUF|USD)$/.test(String(product.currency||'EUR'))
       ?String(product.currency||'EUR'):'EUR';
-    const formatted=new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':'en-IE',{
+    const formatted=new Intl.NumberFormat(locale==='he'?'he-IL':locale==='hu'?'hu-HU':locale==='es'?'es-ES':'en-IE',{
       style:'currency',currency,minimumFractionDigits:0,
       maximumFractionDigits:Number.isInteger(amount)?0:2
     }).format(amount);
@@ -1758,9 +1797,10 @@
       if(!check.valid){preview.textContent=check.message;return;}
       const labels=riderPolicyLabels();
       const total=counts.riders_16_plus+counts.child_passengers_3_15+counts.baby_passengers_1_2;
-      const totalLabel=locale==='he'?'סה״כ משתתפים':locale==='hu'?'Összes résztvevő':'Total participants';
+      const totalLabel=locale==='he'?'סה״כ משתתפים':locale==='hu'?'Összes résztvevő':locale==='es'?'Total de participantes':'Total participants';
       const note=locale==='he'?'זמינות כיסאות הנוסעים והמחיר הסופי מאושרים בבדיקת זמינות.'
         :locale==='hu'?'Az utasülések elérhetőségét és a végső árat az elérhetőség-ellenőrzés erősíti meg.'
+        :locale==='es'?'La disponibilidad de asientos de pasajeros y el precio final se comprueban al consultar horarios.'
         :'Passenger seat availability and final price are confirmed during live availability.';
       preview.textContent=`${labels.riders}: ${counts.riders_16_plus} · ${labels.children}: ${counts.child_passengers_3_15} · ${labels.babies}: ${counts.baby_passengers_1_2} · ${totalLabel}: ${total}. ${note}`;
     };
@@ -2024,18 +2064,18 @@
     return String(experience?.title||fallbackTitle||'').trim();
   }
   function catalogLoadingLabel(){
-    return locale==='he'?'טוען אפשרויות ומחירים חיים…':locale==='hu'?'Élő túraopciók és árak betöltése…':'Loading live tour options and prices…';
+    return locale==='he'?'טוען אפשרויות ומחירים חיים…':locale==='hu'?'Élő túraopciók és árak betöltése…':locale==='es'?'Cargando opciones y precios actuales…':'Loading live tour options and prices…';
   }
   function catalogUnavailableLabel(){
-    return locale==='he'?'אפשרויות ומחירים חיים אינם זמינים כרגע':locale==='hu'?'Az élő túraopciók és árak jelenleg nem érhetők el':'Live tour options and prices are temporarily unavailable';
+    return locale==='he'?'אפשרויות ומחירים חיים אינם זמינים כרגע':locale==='hu'?'Az élő túraopciók és árak jelenleg nem érhetők el':locale==='es'?'No se pueden verificar las opciones y los precios actuales':'Live tour options and prices are temporarily unavailable';
   }
   // Keep long diagnostic copy in the booking panel. The sticky mobile CTA
   // is a tiny navigation surface, not a place for an error paragraph.
   function setRuntimePriceState(state){
     const verbose=state==='loading'?catalogLoadingLabel():catalogUnavailableLabel();
     const short=state==='loading'
-      ?(locale==='he'?'בודקים מחיר…':locale==='hu'?'Ár ellenőrzése…':'Checking price…')
-      :(locale==='he'?'מחיר לא זמין':locale==='hu'?'Ár nem elérhető':'Price unavailable');
+      ?(locale==='he'?'בודקים מחיר…':locale==='hu'?'Ár ellenőrzése…':locale==='es'?'Comprobando precio…':'Checking price…')
+      :(locale==='he'?'מחיר לא זמין':locale==='hu'?'Ár nem elérhető':locale==='es'?'Precio no disponible':'Price unavailable');
     document.querySelectorAll('[data-runtime-price]').forEach(node=>{
       const bar=node.closest('.mobilebook');
       const heroPrice=node.matches('.hero .facts [data-home-live-price]');
@@ -2066,6 +2106,7 @@
       ?'לא ניתן לאמת כרגע אפשרויות, מחיר או זמינות מול מערכת ההזמנות. נסו שוב בעוד רגע.'
       :locale==='hu'
         ?'A foglalási rendszerből jelenleg nem ellenőrizhetők az opciók, árak vagy az elérhetőség. Kérjük, próbálja újra rövidesen.'
+        :locale==='es'?'No podemos verificar los tours, los precios o la disponibilidad en este momento. Vuelve a intentarlo.'
         :'Tour options, pricing and availability cannot be verified with the booking system right now. Please try again shortly.';
     const submit=document.querySelector('#availability-form button[type="submit"]');
     if(submit)submit.disabled=true;
@@ -2523,6 +2564,7 @@
     if(available<1||available>2)return '';
     if(locale==='he')return available===1?'נותרה יחידה אחת ליציאה הזו':'נותרו 2 יחידות ליציאה הזו';
     if(locale==='hu')return available===1?'1 darab érhető el ehhez az induláshoz':'2 darab érhető el ehhez az induláshoz';
+    if(locale==='es')return available===1?'Queda 1 unidad para esta salida':'Quedan 2 unidades para esta salida';
     return available===1?'1 available for this departure':'2 available for this departure';
   }
   function ancillaryQuantityLimit(offer){
@@ -3074,10 +3116,12 @@
     if(paymentMethod==='pay_now_card'){
       if(locale==='he')return 'לא הצלחנו לאמת את תוצאת בקשת התשלום. אפשר לנסות שוב את אותה בקשה, עם אותם פרטים, או לפנות לצוות לפני פתיחת הזמנה חדשה. מצב החיוב טרם אומת.';
       if(locale==='hu')return 'Nem tudtuk ellenőrizni a kártyás fizetési kérés eredményét. Próbáld újra ugyanazt a kérést a meglévő adatokkal, vagy egyeztess a csapatunkkal új foglalás indítása előtt. A fizetés állapota nincs megerősítve.';
+      if(locale==='es')return 'No hemos podido verificar el resultado del pago con tarjeta. Reintenta la misma solicitud con los mismos datos o consulta con nuestro equipo antes de crear otra reserva. El estado del cobro no está confirmado.';
       return 'We could not verify the outcome of the card payment request. Retry this same request with the same details, or contact our team before starting another booking. Payment status has not been confirmed.';
     }
     if(locale==='he')return 'לא הצלחנו לאמת אם ההזמנה הושלמה. אפשר לנסות שוב את אותה בקשה או לפנות לצוות לפני יצירת הזמנה נוספת.';
     if(locale==='hu')return 'Nem tudtuk ellenőrizni, hogy a foglalás létrejött-e. Próbáld újra ugyanazt a kérést, vagy egyeztess a csapatunkkal új foglalás indítása előtt.';
+    if(locale==='es')return 'No hemos podido verificar si la reserva se completó. Reintenta la misma solicitud o consulta con nuestro equipo antes de crear otra reserva.';
     return 'We could not verify whether the booking completed. Retry this same request or contact our team before creating another booking.';
   }
 
