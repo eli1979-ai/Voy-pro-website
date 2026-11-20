@@ -318,6 +318,28 @@ assert.ok(!sitemap.includes('/budapest/ezraider/'));
 
 // Every existing EZRaider referral must have the approved image treatment,
 // including non-landing Budapest pages and all three Marvão languages.
+// The shared guide's localized “See more / Walk less” introduction has an
+// actual <img> (not CSS-only decoration) next to the story on desktop.
+// Preserve the approved 851x877 owner image without creating a second asset.
+for(const locale of ['','he/','hu/','es/','pt/']){
+ const path='site/'+locale+'ezraider/index.html';
+ const html=fs.readFileSync(path,'utf8');
+ const feature=html.match(/<section class="section ez-feature" id="the-vehicle">[\s\S]*?<\/section>/)?.[0]||'';
+ assert.equal((feature.match(/class="ez-feature-product-image"/g)||[]).length,1,path+': exactly one editorial product image');
+ assert.ok(feature.includes('class="ez-feature-story-layout"')&&
+   feature.includes('class="ez-feature-story-copy"')&&
+   feature.includes('<div class="ez-experience-story">')&&
+   feature.includes('src="/assets/images/ezraider/owner-photo-20261031.webp?v=20261120-hires"')&&
+   feature.includes('width="851" height="877"'),path+': source-approved product image must appear alongside the story');
+ assert.ok(feature.indexOf('class="ez-feature-product-image"')<
+   feature.indexOf('class="ez-card-grid ez-grid-4"'),path+': photo must precede feature cards');
+}
+const editorialPhotoCss=fs.readFileSync('site/assets/ezraider-guide.css','utf8');
+assert.ok(editorialPhotoCss.includes('.ez-main .ez-feature-story-layout{')&&
+  editorialPhotoCss.includes('@media(max-width:900px)')&&
+  editorialPhotoCss.includes('.ez-main .ez-feature-product-image img{')&&
+  editorialPhotoCss.includes('aspect-ratio:851 / 877'), 'Editorial product photo must retain responsive styling and original aspect ratio');
+
 const referralImage='/assets/images/ezraider/owner-photo-20261031.webp';
 const referralVersionedUrl=referralImage+'?v=20261120-hires';
 const referralCss=fs.readFileSync('site/assets/site.css','utf8');

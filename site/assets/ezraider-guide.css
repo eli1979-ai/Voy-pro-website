@@ -76,6 +76,33 @@
  .ez-main .ez-destination-chooser .tour-choice-card{min-width:0}
 }
 
+/* Source-approved EZRaider product photo alongside the editorial introduction.
+   Keep the four feature cards full-width, and stack the image below copy on
+   narrower viewports. Isolated to the vehicle guide (EN/HE/HU/ES/PT). */
+.ez-main .ez-feature-story-layout{
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,370px);
+  column-gap:clamp(24px,4vw,52px);align-items:center;margin:0 0 26px
+}
+.ez-main .ez-feature-story-copy{min-width:0}
+.ez-main .ez-feature-story-copy .ez-section-lead{margin-bottom:22px}
+.ez-main .ez-feature-story-copy .ez-experience-story{margin-bottom:0}
+.ez-main .ez-feature-product-image{
+  margin:0;min-width:0;width:min(100%,370px);
+  justify-self:center;align-self:center
+}
+.ez-main .ez-feature-product-image img{
+  display:block;width:100%;height:auto;aspect-ratio:851 / 877;
+  object-fit:contain;filter:drop-shadow(0 14px 18px rgba(4,38,51,.13))
+}
+@media(max-width:900px){
+  .ez-main .ez-feature-story-layout{grid-template-columns:minmax(0,1fr);row-gap:12px}
+  .ez-main .ez-feature-product-image{width:min(76%,320px)}
+}
+@media(max-width:620px){
+  .ez-main .ez-feature-story-layout{row-gap:10px;margin-bottom:20px}
+  .ez-main .ez-feature-product-image{width:min(80%,270px)}
+}
+
 /* Localized editorial story on the shared EZRaider guide. */
 .ez-main .ez-hero-hook{font-weight:850;font-size:clamp(1.1rem,1.9vw,1.38rem);line-height:1.42;color:#a1f4d9;max-width:37rem;margin:0 0 14px}
 .ez-main .ez-experience-story{max-width:72ch;margin:0 0 26px}
