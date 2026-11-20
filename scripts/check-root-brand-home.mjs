@@ -11,7 +11,9 @@ function requireText(source,text,label){if(!source.includes(text))failures.push(
 function forbidText(source,text,label){if(source.includes(text))failures.push(label);}
 
 requireText(html,'<link href="https://voy-pro.com/" rel="canonical"/>','root homepage canonical missing');
-requireText(html,'<h1>Choose how you want to explore.</h1>','root homepage H1 missing');
+requireText(html,'<h1>Choose <span class="network-hero-how">HOW</span> you want to explore.</h1>','root homepage emphasized HOW heading missing');
+requireText(html,'class="network-hero-punchline"','root EZRaider punchline marker missing');
+requireText(html,'The EZRaider doesn&#39;t just take you places. It puts you in them.','approved experience hook missing');
 requireText(html,'href="/budapest/"','root homepage must link Budapest');
 requireText(html,'href="/portugal/"','root homepage must link Portugal');
 requireText(html,'href="/manage/"','root homepage must expose Manage Booking');

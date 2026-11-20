@@ -391,9 +391,11 @@ for(const file of expectedVehiclePages){
    assert.equal(small.length,0,file+': wide page must not have an extra mini CTA');
    assert.ok(wide[0][0].includes('class="ez-vehicle-bridge-art ez-vehicle-bridge-product"') &&
      wide[0][0].includes('src="'+referralImage+'"'),file+': canonical full referral image missing');
-   assert.ok(wide[0][0].includes('child-seat')||wide[0][0].includes('כיסאות ילדים')||
-     wide[0][0].includes('gyermekülés')||wide[0][0].includes('cadeiras para crianças'),
-     file+': canonical wide guide must mention child seats');
+   const expectedWideHeads={"en":"Meet the EZRaider. Feel the difference.","he":"הכירו את ה־EZRaider. תרגישו את ההבדל.","hu":"Ismerd meg az EZRaidert. Érezd a különbséget.","pt":"Conheça o EZRaider. Sinta a diferença."};
+   const language=locale==='he/'?'he':locale==='hu/'?'hu':locale==='pt/'?'pt':'en';
+   assert.ok(wide[0][0].includes('<strong>'+expectedWideHeads[language]+'</strong>')&&
+     wide[0][0].includes('EZRaider'),
+     file+': wide guide must present approved localized experience copy');
    assert.ok(!/local passenger rules may differ|regras para passageiros são confirmad|האפשרויות לנוסעים כפופים/.test(wide[0][0]),
      file+': obsolete Marvão passenger differences remain in guide card');
    wideRefs++;
@@ -410,4 +412,18 @@ assert.equal(wideRefs,10,'Expected exactly ten wide referrals across landings an
 assert.equal(compactRefs,36,'Expected exactly 36 mini guide links across Budapest details');
 console.log('Uniform EZRaider referrals OK: '+wideRefs+' wide, '+compactRefs+' compact, '+expectedVehiclePages.length+' pages.');
 
+// Localized EZRaider experience copy must remain present on each guide.
+for(const [language,prefix] of [['en',''],['he','he/'],['hu','hu/'],['pt','pt/']]){
+ const html=fs.readFileSync('site/'+prefix+'ezraider/index.html','utf8');
+ assert.ok(html.includes('class="ez-hero-hook"'),language+': approved guide hook missing');
+ assert.ok(html.includes('class="ez-experience-story"')&&html.includes('class="ez-story-emphasis"')&&html.includes('class="ez-story-outro"'),
+   language+': full localized guided experience story missing');
+ assert.ok(!/(?:Israel|Izrael|ישראל|ישראלי)/i.test(html),language+': unwanted origin reference introduced');
+}
+for(const page of ['site/es/budapest/index.html','site/es/budapest/with-kids/index.html']){
+ const html=fs.readFileSync(page,'utf8');
+ assert.ok(html.includes('<strong>Conoce el EZRaider. Siente la diferencia.</strong>')&&html.includes('El EZRaider combina movilidad eléctrica sobre cuatro ruedas, una conducción ágil y la libertad de viajar al aire libre. De pie o sentado, siente el entorno y disfruta del camino en lugar de contemplarlo a través de una ventanilla.'),
+  page+': Spanish EZRaider referral missing approved localized content');
+ assert.ok(html.includes('hreflang="en"'),page+': Spanish guide link must identify existing English guide');
+}
 console.log('Network EZRaider context and legacy redirect QA OK.');
