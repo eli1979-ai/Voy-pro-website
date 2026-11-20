@@ -43,7 +43,9 @@
     if(contact)panel.insertBefore(root,contact);else panel.appendChild(root);
     const form=root.querySelector('form');
     form.addEventListener('submit',event=>{
-      if(root.dataset.esBookingMode!=='opted-in'){event.preventDefault();event.stopImmediatePropagation();}
+      // No navigation/GET fallback even if site.js fails after opt-in.
+      event.preventDefault();
+      if(root.dataset.esBookingMode!=='opted-in')event.stopImmediatePropagation();
     },true);
     if(!allowed)return;
     for(const p of panel.querySelectorAll('p')){
