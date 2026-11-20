@@ -791,6 +791,33 @@ if(!fallback404.includes('(he|hu|pt|es)')||
    !fallback404.includes("budapest:['/es/budapest/'"))
   fail('404.html','Missing safe Spanish 404 recovery');
 
+// Spanish booking can be merged as inert UI, never silently activated.
+const esBookingModule=read(path.join(site,'assets/es-booking-module.js'));
+const esRuntimeConfig=read(path.join(site,'assets/runtime-config.js'));
+const esMapMatch=esBookingModule.match(/Object\.freeze\((\{[^\n]+\})\)/);
+let esBookingCopy={};
+try{esBookingCopy=JSON.parse(esMapMatch?.[1]||'{}')}catch(error){
+  fail('assets/es-booking-module.js','ES booking dictionary is not valid JSON');
+}
+const esSourceLiterals=[...bookingUxSource.matchAll(/\bt\(\s*['"]([^'"\n]+)['"]\s*,/g)].map(m=>m[1]);
+const missingESLiterals=[...new Set(esSourceLiterals)].filter(key=>typeof esBookingCopy[key]!=='string'||!esBookingCopy[key].trim());
+if(missingESLiterals.length)fail('assets/es-booking-module.js',
+  'Untranslated direct booking labels: '+missingESLiterals.slice(0,12).join(' | '));
+for(const marker of ['cfg.esBookingEnabled===true','cfg.esBookingLocaleCertified===true',
+  "root.dataset.esBookingMode=allowed?'opted-in':'preview-inert'",
+  'fieldset data-es-booking-fields disabled']){
+  if(!esBookingModule.includes(marker))fail('assets/es-booking-module.js','Missing fail-closed ES gate or disabled form: '+marker);
+}
+if(!bookingUxSource.includes("const esBookingGate=routeLocale!=='es'||(cfg.esBookingEnabled===true&&cfg.esBookingLocaleCertified===true);")||
+   !bookingUxSource.includes('&&clientKey&&esBookingGate)'))
+  fail('assets/site.js','Canonical client must enforce the independent ES booking gates');
+if(/\besBookingEnabled\s*:|\besBookingLocaleCertified\s*:/.test(esRuntimeConfig))
+  fail('assets/runtime-config.js','Spanish booking must not be switched on from committed default runtime config');
+if(/\b(?:fetch|XMLHttpRequest|sendBeacon)\s*\(/.test(esBookingModule))
+  fail('assets/es-booking-module.js','The Spanish presentation module must never be an independent API writer');
+try{execFileSync(process.execPath,['--check',path.join(site,'assets/es-booking-module.js')],{stdio:'pipe'});}
+catch(error){fail('assets/es-booking-module.js','Spanish booking module JavaScript syntax invalid');}
+
 // Spanish Budapest: read-only reviews, inert booking form, no live checkout.
 // The ES runtime must not run until the independent locale audit.
 const spanishBudapestSlugs=[

@@ -1575,6 +1575,39 @@ try{
       }finally{await en.close();await es.close();}
     }
   }
+  // Synthetic client-side flag matrix, no real FBM requests or hosted writes.
+  // Only one of two ES gates must remain disabled; generic bookingEnabled=true
+  // is deliberately held true in all cases to catch accidental ES activation.
+  for(const [name,esFlags] of [
+    ['es-flag-only',{esBookingEnabled:true,esBookingLocaleCertified:false}],
+    ['es-certified-only',{esBookingEnabled:false,esBookingLocaleCertified:true}]
+  ]){
+    const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+    const attempted=[];
+    page.on('request',request=>{
+      if(request.url().includes('synthetic.invalid/api/v1'))attempted.push(request.url());
+    });
+    await sameOrigin(page);
+    await page.route('**/assets/runtime-config.js',route=>route.fulfill({
+      status:200,contentType:'application/javascript',
+      body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
+        bookingEnabled:true,apiRoot:'https://synthetic.invalid/api/v1',clientKey:'test-only-no-writes',...esFlags
+      })+';'
+    }));
+    try{
+      const response=await page.goto(base+'/es/budapest/tours/buda-castle-ezraider-tour/',{waitUntil:'load',timeout:20000});
+      const state=await page.evaluate(()=>({
+        inert:document.querySelector('#booking')?.dataset.esBookingMode==='preview-inert',
+        disabled:!!document.querySelector('#availability-form fieldset:disabled'),
+        siteJs:!!document.querySelector('script[src="/assets/site.js"]'),
+        live:!!window.VOYBookingIntelligence
+      }));
+      check(response?.status()===200&&state.inert&&state.disabled&&!state.siteJs&&!state.live&&attempted.length===0,
+        'es-booking-guard '+name+' cannot start canonical FBM runtime or make API requests');
+    }catch(error){failures++;results.push('FAIL: es-booking-guard '+name+' '+String(error).slice(0,500));}
+    finally{await page.close();}
+  }
+
   // No-JS Spanish mobile menu: opens, lists all four languages and the inquiry CTA.
   for(const width of [320,390]){
     const page=await browser.newPage({viewport:{width,height:812},deviceScaleFactor:1,reducedMotion:'reduce'});

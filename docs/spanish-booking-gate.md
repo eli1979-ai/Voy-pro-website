@@ -10,7 +10,8 @@ esBookingLocaleCertified are all explicitly true and the existing secure
 Budapest API/client configuration exists. Neither ES-only switch is currently
 present in site/assets/runtime-config.js.
 
-STATUS: PREVIEW ONLY. Dynamic Spanish checkout/error text needs full
+STATUS: PREVIEW ONLY. Spanish policy, quote/hold, passenger, ancillary, payment
+uncertainty and confirmation copy are now translated in the source. Full
 translation, independent audit, and source-pinned synthetic acceptance.
 The flags, merge/deploy and real booking/payment cutover each require
 separate owner approval. Do not activate from this PR.
