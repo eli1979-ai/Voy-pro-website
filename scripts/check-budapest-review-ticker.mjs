@@ -299,7 +299,7 @@ for(const language of ['en','he','hu','es']){
     language+' review-card keyboard focus must pause automatic scrolling');
   assert(keyboard.pause.attrs['aria-pressed']==='true',
     language+' focus-triggered pause must expose the pressed state');
-  assert(keyboard.pause.textContent===({en:'Resume reviews',he:'המשך גלילת ביקורות',hu:'Értékelések folytatása'}[language]),
+  assert(keyboard.pause.textContent===({en:'Resume reviews',he:'המשך גלילת ביקורות',hu:'Értékelések folytatása',es:'Reanudar opiniones'}[language]),
     language+' pause control must show the localized Resume label');
   const initialFrame=keyboard.frames[0];
   initialFrame?.(1000);
