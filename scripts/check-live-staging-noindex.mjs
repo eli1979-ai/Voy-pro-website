@@ -156,7 +156,7 @@ async function test(){
     ['https://voy-pro.com/','Home'],['https://voy-pro.com/budapest/','Budapest'],
     ['https://www.voy-pro.com/','www alias'],['https://voy-pro.com/robots.txt','Robots']
   ];
-  assert.equal(CANONICAL_PAGES.length,64,'Current public sitemap contains 64 pages');
+  assert.equal(CANONICAL_PAGES.length,68,'Updated public sitemap contains 68 pages');
   assert.equal(LIVE_PROBES.filter(([url])=>url==='https://voy-pro.com/').length,1,
     'No duplicate homepage requests');
   assert.throws(()=>sitemapProbes('<?xml version="1.0"?><urlset><url><loc>https://evil.example/</loc></url></urlset>'),

@@ -11,8 +11,20 @@ function requireText(source,text,label){if(!source.includes(text))failures.push(
 function forbidText(source,text,label){if(source.includes(text))failures.push(label);}
 
 requireText(html,'<link href="https://voy-pro.com/" rel="canonical"/>','root homepage canonical missing');
-requireText(html,'<h1>Choose how you want to explore.</h1>','root homepage H1 missing');
+requireText(html,'<h1>Choose <span class="network-hero-how">HOW</span> you want to explore.</h1>','root homepage emphasized HOW heading missing');
+requireText(html,'class="network-hero-punchline"','root EZRaider punchline marker missing');
+requireText(html,'The EZRaider doesn&#39;t just take you places. It puts you in them.','approved experience hook missing');
 requireText(html,'href="/budapest/"','root homepage must link Budapest');
+for(const language of ['he','hu','es']){
+  const localized=read('site/'+language+'/index.html');
+  requireText(localized,'rel="canonical"/>','localized homepage canonical metadata missing: '+language);
+  requireText(localized,'href="https://voy-pro.com/'+language+'/" rel="canonical"','localized homepage self-canonical missing: '+language);
+  requireText(localized,'href="/'+language+'/ezraider/?from=home&amp;return_to=%2F'+language+'%2F"','localized vehicle CTA missing: '+language);
+  requireText(localized,'class="network-hero-how"','localized HOW emphasis missing: '+language);
+  requireText(localized,'hreflang="es"','Spanish language choice missing: '+language);
+  requireText(localized,'href="/'+language+'/" hreflang="'+language+'"','active homepage language link missing: '+language);
+}
+
 requireText(html,'href="/portugal/"','root homepage must link Portugal');
 requireText(html,'href="/manage/"','root homepage must expose Manage Booking');
 requireText(html,'class="hero-photo-frame parent-hero-mosaic"','root hero must use the destination-neutral mosaic');

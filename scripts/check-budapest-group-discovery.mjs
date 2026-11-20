@@ -271,7 +271,7 @@ for(const {locale,prefix,home} of vehicleFiles){
   if(locale==='he'&&!html.includes('dir="rtl"'))failures.push(path+': missing RTL direction');
   if((html.match(/<h1[ >]/g)||[]).length!==1)failures.push(path+': expected exactly one H1');
   for(const id of videos)if(!html.includes('data-ez-video="'+id+'"'))failures.push(path+': missing video '+id);
-  for(const code of ['en','he','hu','pt']){
+  for(const code of ['en','he','hu','es','pt']){
     const translated=code==='en'?'':code+'/';
     if(!html.includes('hreflang="'+code+'" href="https://voy-pro.com/'+translated+'ezraider/"'))
       failures.push(path+': missing hreflang '+code);

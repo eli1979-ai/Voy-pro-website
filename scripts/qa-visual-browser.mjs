@@ -1095,7 +1095,7 @@ try{
         check(await page.locator('.ez-destination-chooser [data-ez-destination-card="marvao"] .tour-choice-actions a').getAttribute('href')==='/pt/portugal/','PT Marvão destination card opens localized local route information');
         await page.locator('.nav-menu-toggle').click();
         const sheet=page.locator('#mobile-nav-sheet');
-        check(await sheet.locator('[data-mobile-language-row] [data-ez-language]').count()===4,'PT guide mobile offers four language links');
+        check(await sheet.locator('[data-mobile-language-row] [data-ez-language]').count()===5,'PT guide mobile offers five language links including Spanish');
         check(await sheet.locator('[data-ez-context="back"]').getAttribute('href')===expected,'PT guide mobile back returns locally');
         check((await sheet.locator('[data-mobile-nav-wa]').getAttribute('href')||'').startsWith('https://wa.me/351935695004'),'PT guide mobile WhatsApp uses Portugal');
         const heHref=await sheet.locator('[data-ez-language][hreflang="he"]').getAttribute('href');

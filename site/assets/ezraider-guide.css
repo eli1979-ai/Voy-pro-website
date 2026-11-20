@@ -75,3 +75,11 @@
  .ez-main .ez-manufacturer{margin-top:12px;gap:6px 12px}
  .ez-main .ez-destination-chooser .tour-choice-card{min-width:0}
 }
+
+/* Localized editorial story on the shared EZRaider guide. */
+.ez-main .ez-hero-hook{font-weight:850;font-size:clamp(1.1rem,1.9vw,1.38rem);line-height:1.42;color:#a1f4d9;max-width:37rem;margin:0 0 14px}
+.ez-main .ez-experience-story{max-width:72ch;margin:0 0 26px}
+.ez-main .ez-experience-story p{margin:0 0 14px}
+.ez-main .ez-experience-story .ez-story-emphasis{font-weight:850;color:#0b5364;margin-top:20px}
+.ez-main .ez-story-outro{max-width:72ch;margin:22px 0 0;font-weight:650}
+@media(max-width:620px){.ez-main .ez-experience-story{margin-bottom:20px}.ez-main .ez-experience-story p{margin-bottom:12px}}

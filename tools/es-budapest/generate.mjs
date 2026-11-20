@@ -48,8 +48,13 @@ function rewriteLinks(html, r) {
     });
   });
   html = html.replace(/href="#booking"/g, 'href="#consulta"');
-  // English-only destinations stay English but are announced as such.
-  html = html.replace(/<a\b([^>]*\bhref="\/(?:legal\/|manage\/|ezraider\/)[^"]*"[^>]*)>/g, (tag, attrs) =>
+  // The complete Spanish EZRaider guide is available. Preserve local origin
+  // when replacing the formerly English-only contextual guide link.
+  html = html.replace(/href="\/ezraider\/\?from=budapest&amp;return_to=([^"]+)"/g, (all, encoded) =>
+    'href="/es/ezraider/?from=budapest&amp;return_to=' +
+    encoded.replace(/^%2Fbudapest/i, '%2Fes%2Fbudapest') + '"');
+  // Only genuinely English-only legal and manage destinations need EN markers.
+  html = html.replace(/<a\b([^>]*\bhref="\/(?:legal\/|manage\/)[^"]*"[^>]*)>/g, (tag, attrs) =>
     /\slang=/.test(attrs) ? tag : '<a' + attrs + ' hreflang="en">');
   return html;
 }

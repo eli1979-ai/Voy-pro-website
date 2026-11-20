@@ -5,6 +5,9 @@ const js=fs.readFileSync('site/assets/ezraider-context.js','utf8');
 const siteJs=fs.readFileSync('site/assets/site.js','utf8');
 const links=[
  ['site/index.html','/ezraider/?from=home','/'],
+ ['site/he/index.html','/he/ezraider/?from=home','/he/'],
+ ['site/hu/index.html','/hu/ezraider/?from=home','/hu/'],
+ ['site/es/index.html','/es/ezraider/?from=home','/es/'],
  ['site/budapest/index.html','/ezraider/?from=budapest','/budapest/'],
  ['site/he/budapest/index.html','/he/ezraider/?from=budapest','/he/budapest/'],
  ['site/hu/budapest/index.html','/hu/ezraider/?from=budapest','/hu/budapest/'],
@@ -41,7 +44,7 @@ for(const [path,link,origin] of links){
  const full='href="'+link+'&amp;return_to='+encodeURIComponent(origin)+'"';
  assert.ok(html.includes(full),path+' loses its exact originating-page link '+full);
 }
-for(const locale of ['','he/','hu/','pt/']){
+for(const locale of ['','he/','hu/','es/','pt/']){
  const html=fs.readFileSync('site/'+locale+'ezraider/index.html','utf8');
 
  // The active locale must be announced to assistive technologies, including
@@ -53,7 +56,7 @@ for(const locale of ['','he/','hu/','pt/']){
  const currentGuideLinks=guideLanguageLinks.filter(tag=>/\baria-current="page"/.test(tag));
  const ownLang=locale?locale.slice(0,-1):'en';
  const ownHref='/'+locale+'ezraider/?from=home';
- assert.equal(guideLanguageLinks.length,4,locale+': expected EN/HE/HU/PT guide locale choices');
+ assert.equal(guideLanguageLinks.length,5,locale+': expected EN/HE/HU/ES/PT guide locale choices');
  assert.equal(activeGuideLinks.length,1,locale+': exactly one visible selected guide language');
  assert.equal(currentGuideLinks.length,1,locale+': exactly one ARIA current guide page');
  assert.equal(activeGuideLinks[0],currentGuideLinks[0],
@@ -76,7 +79,7 @@ for(const locale of ['','he/','hu/','pt/']){
  assert.ok(html.indexOf('class="section tour-picker ez-destination-chooser"')>html.indexOf('class="section ez-family"'),'Destination selection must appear after family content');
  assert.ok(!html.includes('href="/'+locale+'budapest/#booking"'));
  assert.ok(!html.includes('data-runtime-price'));
- for(const lang of ['en','he','hu','pt'])assert.ok(html.includes('hreflang="'+lang+'"'));
+ for(const lang of ['en','he','hu','es','pt'])assert.ok(html.includes('hreflang="'+lang+'"'));
 }
 const guideStyle=fs.readFileSync('site/assets/ezraider-guide.css','utf8');
 assert.ok(guideStyle.includes('.ez-main .section{padding-block:clamp(28px,3vw,42px)}'));
@@ -139,7 +142,7 @@ for(const [source,back,booking,contact] of [
  ['budapest','/he/budapest/','/he/budapest/#booking','https://wa.me/36300993099'],
  ['marvao','/he/portugal/','/he/portugal/#request','https://wa.me/351935695004'],
  ['marvao-pt','/pt/portugal/','/pt/portugal/#request','https://wa.me/351935695004'],
- ['home','/','#choose-destination','#choose-destination']
+ ['home','/he/','#choose-destination','#choose-destination']
 ]){
  const r=run('?from='+source,'he');
  assert.equal(h(r,'back'),back);
@@ -209,7 +212,7 @@ for(const [source,unsafe,fallback] of [
  ['budapest','/budapest/?token=secret','/he/budapest/'],
  ['budapest','/budapest/#private','/he/budapest/'],
  ['marvao','/budapest/','/he/portugal/'],
- ['home','/budapest/','/']
+ ['home','/budapest/','/he/']
 ]){
  const r=run('?from='+source+'&return_to='+encodeURIComponent(unsafe),'he');
  assert.equal(h(r,'back'),fallback,'Disallowed return path must fall back to the branch: '+unsafe);
@@ -263,8 +266,8 @@ const mobileStart=siteJs.indexOf('  function enhanceMobileNavigation(){');
 const mobileEnd=siteJs.indexOf("  document.querySelectorAll('a.brand')",mobileStart);
 assert.ok(mobileStart>0&&mobileEnd>mobileStart,'Mobile navigation initializer missing');
 const mobileInit=siteJs.slice(mobileStart,mobileEnd);
-assert.ok(siteJs.includes("const vehicleGuideSource=/^\\/(?:he\\/|hu\\/|pt\\/)?ezraider\\/$/.test(routePath)"),
-  'Portuguese guide must be recognized by the shared runtime source resolver');
+assert.ok(siteJs.includes("const vehicleGuideSource=/^\\/(?:he\\/|hu\\/|pt\\/|es\\/)?ezraider\\/$/.test(routePath)"),
+  'Spanish and Portuguese guides must be recognized by the shared runtime source resolver');
 function renderVehicleMobile(lang,origin){
  let sheet,cloneCount=0;
  const n=()=>({setAttribute(){},addEventListener(){},focus(){},classList:{add(){},remove(){}},cloneNode(){return n();}});
@@ -310,7 +313,7 @@ const mobileHE=renderVehicleMobile('he','marvao');
 assert.ok(mobileHE.includes('href="/he/portugal/#request"'),'Hebrew Marvão mobile booking must stay local');
 
 const sitemap=fs.readFileSync('site/sitemap.xml','utf8');
-for(const route of ['/ezraider/','/he/ezraider/','/hu/ezraider/','/pt/ezraider/'])assert.ok(sitemap.includes('https://voy-pro.com'+route));
+for(const route of ['/ezraider/','/he/ezraider/','/hu/ezraider/','/es/ezraider/','/pt/ezraider/'])assert.ok(sitemap.includes('https://voy-pro.com'+route));
 assert.ok(!sitemap.includes('/budapest/ezraider/'));
 
 // Every existing EZRaider referral must have the approved image treatment,
@@ -327,9 +330,9 @@ function auditVehicleReferrals(dir){
  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
   const path=dir+'/'+entry.name;
   if(entry.isDirectory()){auditVehicleReferrals(path);continue;}
-  if(entry.name!=='index.html'||/\/(?:he\/|hu\/|pt\/)?ezraider\//.test(path))continue;
+  if(entry.name!=='index.html'||/\/(?:he\/|hu\/|es\/|pt\/)?ezraider\//.test(path))continue;
   const html=fs.readFileSync(path,'utf8');
-  const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"[^>]*>/g;
+  const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/|es\/)?ezraider\/\?[^"]*"[^>]*>/g;
   const sectionPattern=/<section\b[^>]*class="[^"]*\bez-vehicle-bridge\b[^"]*"[^>]*>[\s\S]*?<\/section>/g;
   const compactPattern=/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g;
   const bridges=[...html.matchAll(sectionPattern)].map(m=>m[0]);
@@ -359,7 +362,7 @@ console.log('EZRaider image treatment verified for '+referralCount+' referrals (
 // guide link in the hero, including Margaret Island, in all three locales.
 // Preserve origin-specific from/return_to and never link Marvão as Budapest.
 const expectedWide=new Set([
- 'site/index.html',
+ 'site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html',
  'site/budapest/index.html','site/he/budapest/index.html','site/hu/budapest/index.html',
  'site/portugal/index.html','site/he/portugal/index.html','site/pt/portugal/index.html',
  'site/budapest/with-kids/index.html',
@@ -372,18 +375,18 @@ function allIndexPages(dir){
 }
 const expectedBudapestPages=['site/budapest','site/he/budapest','site/hu/budapest'].flatMap(allIndexPages);
 const expectedVehiclePages=[...expectedWide].filter(f=>!f.includes('/budapest/')).concat(expectedBudapestPages);
-assert.equal(expectedVehiclePages.length,46,'Unexpected number of active destination pages: check newly added routes');
+assert.equal(expectedVehiclePages.length,49,'Unexpected number of active destination pages: check newly added routes');
 let wideRefs=0,compactRefs=0;
 for(const file of expectedVehiclePages){
  const html=fs.readFileSync(file,'utf8');
  const origin='/'+file.slice(5).replace(/index[.]html$/,'');
- const locale=file.startsWith('site/he/')?'he/':file.startsWith('site/hu/')?'hu/':file.startsWith('site/pt/')?'pt/':'';
+ const locale=file.startsWith('site/he/')?'he/':file.startsWith('site/hu/')?'hu/':file.startsWith('site/pt/')?'pt/':file.startsWith('site/es/')?'es/':'';
  const from=file.startsWith('site/pt/portugal/')?'marvao-pt':
-   file.includes('/portugal/')?'marvao':file==='site/index.html'?'home':'budapest';
+   file.includes('/portugal/')?'marvao':/(?:^site\/(?:he\/|hu\/|es\/)?index\.html$)/.test(file)?'home':'budapest';
  const expectedHref='/'+locale+'ezraider/?from='+from+'&amp;return_to='+encodeURIComponent(origin);
  const wide=[...html.matchAll(/<section\b[^>]*\bez-vehicle-bridge\b[^>]*>[\s\S]*?<\/section>/g)];
  const small=[...html.matchAll(/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g)];
- const allLinks=[...html.matchAll(/href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"/g)];
+ const allLinks=[...html.matchAll(/href="\/(?:he\/|hu\/|pt\/|es\/)?ezraider\/\?[^"]*"/g)];
  assert.equal(allLinks.length,1,file+': must have exactly one route-specific EZRaider referral');
  assert.ok(html.includes('href="'+expectedHref+'"'),file+': EZRaider referral must return to originating page');
  if(expectedWide.has(file)){
@@ -391,9 +394,11 @@ for(const file of expectedVehiclePages){
    assert.equal(small.length,0,file+': wide page must not have an extra mini CTA');
    assert.ok(wide[0][0].includes('class="ez-vehicle-bridge-art ez-vehicle-bridge-product"') &&
      wide[0][0].includes('src="'+referralImage+'"'),file+': canonical full referral image missing');
-   assert.ok(wide[0][0].includes('child-seat')||wide[0][0].includes('כיסאות ילדים')||
-     wide[0][0].includes('gyermekülés')||wide[0][0].includes('cadeiras para crianças'),
-     file+': canonical wide guide must mention child seats');
+   const expectedWideHeads={"en":"Meet the EZRaider. Feel the difference.","he":"הכירו את ה־EZRaider. תרגישו את ההבדל.","hu":"Ismerd meg az EZRaidert. Érezd a különbséget.","pt":"Conheça o EZRaider. Sinta a diferença.","es":"Conoce el EZRaider. Siente la diferencia."};
+   const language=locale==='he/'?'he':locale==='hu/'?'hu':locale==='pt/'?'pt':locale==='es/'?'es':'en';
+   assert.ok(wide[0][0].includes('<strong>'+expectedWideHeads[language]+'</strong>')&&
+     wide[0][0].includes('EZRaider'),
+     file+': wide guide must present approved localized experience copy');
    assert.ok(!/local passenger rules may differ|regras para passageiros são confirmad|האפשרויות לנוסעים כפופים/.test(wide[0][0]),
      file+': obsolete Marvão passenger differences remain in guide card');
    wideRefs++;
@@ -406,8 +411,22 @@ for(const file of expectedVehiclePages){
    compactRefs++;
  }
 }
-assert.equal(wideRefs,10,'Expected exactly ten wide referrals across landings and families');
+assert.equal(wideRefs,13,'Expected exactly thirteen wide referrals across landings and families');
 assert.equal(compactRefs,36,'Expected exactly 36 mini guide links across Budapest details');
 console.log('Uniform EZRaider referrals OK: '+wideRefs+' wide, '+compactRefs+' compact, '+expectedVehiclePages.length+' pages.');
 
+// Localized EZRaider experience copy must remain present on each guide.
+for(const [language,prefix] of [['en',''],['he','he/'],['hu','hu/'],['pt','pt/'],['es','es/']]){
+ const html=fs.readFileSync('site/'+prefix+'ezraider/index.html','utf8');
+ assert.ok(html.includes('class="ez-hero-hook"'),language+': approved guide hook missing');
+ assert.ok(html.includes('class="ez-experience-story"')&&html.includes('class="ez-story-emphasis"')&&html.includes('class="ez-story-outro"'),
+   language+': full localized guided experience story missing');
+ assert.ok(!/(?:Israel|Izrael|ישראל|ישראלי)/i.test(html),language+': unwanted origin reference introduced');
+}
+for(const page of ['site/es/budapest/index.html','site/es/budapest/with-kids/index.html']){
+ const html=fs.readFileSync(page,'utf8');
+ assert.ok(html.includes('<strong>Conoce el EZRaider. Siente la diferencia.</strong>')&&html.includes('El EZRaider combina movilidad eléctrica sobre cuatro ruedas, una conducción ágil y la libertad de viajar al aire libre. De pie o sentado, siente el entorno y disfruta del camino en lugar de contemplarlo a través de una ventanilla.'),
+  page+': Spanish EZRaider referral missing approved localized content');
+ assert.ok(html.includes('href="/es/ezraider/?from=budapest')&&!html.includes('Conoce el EZRaider (en inglés)'),page+': Spanish referral must lead to localized guide');
+}
 console.log('Network EZRaider context and legacy redirect QA OK.');
