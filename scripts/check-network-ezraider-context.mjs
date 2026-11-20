@@ -332,7 +332,7 @@ function auditVehicleReferrals(dir){
   if(entry.isDirectory()){auditVehicleReferrals(path);continue;}
   if(entry.name!=='index.html'||/\/(?:he\/|hu\/|es\/|pt\/)?ezraider\//.test(path))continue;
   const html=fs.readFileSync(path,'utf8');
-  const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"[^>]*>/g;
+  const linkPattern=/<a\b[^>]*href="\/(?:he\/|hu\/|pt\/|es\/)?ezraider\/\?[^"]*"[^>]*>/g;
   const sectionPattern=/<section\b[^>]*class="[^"]*\bez-vehicle-bridge\b[^"]*"[^>]*>[\s\S]*?<\/section>/g;
   const compactPattern=/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g;
   const bridges=[...html.matchAll(sectionPattern)].map(m=>m[0]);
@@ -386,7 +386,7 @@ for(const file of expectedVehiclePages){
  const expectedHref='/'+locale+'ezraider/?from='+from+'&amp;return_to='+encodeURIComponent(origin);
  const wide=[...html.matchAll(/<section\b[^>]*\bez-vehicle-bridge\b[^>]*>[\s\S]*?<\/section>/g)];
  const small=[...html.matchAll(/<p\b[^>]*class="[^"]*\btour-vehicle-guide-link\b[^"]*"[^>]*>[\s\S]*?<\/p>/g)];
- const allLinks=[...html.matchAll(/href="\/(?:he\/|hu\/|pt\/)?ezraider\/\?[^"]*"/g)];
+ const allLinks=[...html.matchAll(/href="\/(?:he\/|hu\/|pt\/|es\/)?ezraider\/\?[^"]*"/g)];
  assert.equal(allLinks.length,1,file+': must have exactly one route-specific EZRaider referral');
  assert.ok(html.includes('href="'+expectedHref+'"'),file+': EZRaider referral must return to originating page');
  if(expectedWide.has(file)){
