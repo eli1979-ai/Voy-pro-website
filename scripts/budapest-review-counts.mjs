@@ -92,9 +92,13 @@ const validateHomePage=(record,html)=>{
   const start=html.indexOf('<section class="trust network-trust"');
   const end=html.indexOf('</section>',start);
   const hero=html.indexOf('<section class="hero">');
-  const nextSection=html.indexOf('<section class="section ez-vehicle-bridge">');
-  if(!(hero>=0&&start>hero&&end>start&&nextSection>end))
-    fail(file+': parent ratings strip must follow hero and precede EZRaider bridge');
+  const heroEnd=html.indexOf('</section>',hero);
+  const spotlight=html.indexOf('class="network-ez-spotlight"');
+  const destinations=html.indexOf('<section class="section tour-picker"');
+  if(!(hero>=0&&spotlight>hero&&spotlight<heroEnd&&
+       start>heroEnd&&end>start&&destinations>end&&
+       !html.includes('<section class="section ez-vehicle-bridge">')))
+    fail(file+': parent ratings must follow the single EZRaider hero and precede destinations');
   const segment=html.slice(start,end);
   for(const key of keys){
     const matches=[...segment.matchAll(countMatcher(key))];

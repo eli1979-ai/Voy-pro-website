@@ -275,7 +275,12 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const visibleCards=cards.filter(card=>getComputedStyle(card).display!=='none');
         const items=visibleCards.map(card=>card.getBoundingClientRect());
         const hero=document.querySelector('main .hero');
-        const guide=document.querySelector('main .ez-vehicle-bridge');
+        const guide=document.querySelector('main .hero .network-ez-spotlight');
+        const features=[...(guide?.querySelectorAll('.network-ez-feature-card')||[])];
+        const featuresGrid=guide?.querySelector('.network-ez-feature-grid');
+        const featuresRect=featuresGrid?.getBoundingClientRect();
+        const image=guide?.querySelector('.network-ez-image img');
+        const guideCta=guide?.querySelector('a.network-ez-cta');
         return {
           sectionCount:sections.length,
           count:cards.length,
@@ -287,17 +292,30 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           contained:!!bounds&&items.every(item=>item.width>0&&
             item.left>=bounds.left-2&&item.right<=bounds.right+2),
           attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
-          order:!!(hero&&guide&&band&&hero.getBoundingClientRect().top<=
-            band.getBoundingClientRect().top&&band.getBoundingClientRect().top<
-            guide.getBoundingClientRect().top)
+          order:!!(hero&&guide&&band&&
+            hero.getBoundingClientRect().top<=guide.getBoundingClientRect().top&&
+            guide.getBoundingClientRect().bottom<=band.getBoundingClientRect().top+2),
+          oneSpotlight:document.querySelectorAll('main .network-ez-spotlight').length===1&&
+            document.querySelectorAll('main .ez-vehicle-bridge').length===0,
+          fourFeatures:features.length===4&&features.every(feature=>{
+            const b=feature.getBoundingClientRect();
+            return !!featuresRect&&b.width>0&&b.height>0&&
+              b.left>=featuresRect.left-2&&b.right<=featuresRect.right+2;
+          }),
+          productVisible:!!image&&image.complete&&image.naturalWidth>0&&
+            image.getBoundingClientRect().width>0,
+          cta:guideCta?.getAttribute('href')==='/ezraider/?from=home&amp;return_to=%2F'||
+            guideCta?.getAttribute('href')==='/ezraider/?from=home&return_to=%2F'
         };
       });
       check(homeRatings.sectionCount===1&&homeRatings.count===3&&
         homeRatings.sources==='Google|Tripadvisor|GetYourGuide'&&
         homeRatings.visibleCount===3&&homeRatings.visibleSources==='Google|Tripadvisor|GetYourGuide',
         name+' visibly presents all three audited rating platforms');
-      check(homeRatings.attributed&&homeRatings.order,
-        name+' root trust attribution and placement before EZRaider guide');
+      check(homeRatings.attributed&&homeRatings.order&&homeRatings.oneSpotlight,
+        name+' one early EZRaider hero spotlight before attributed reviews, no duplicate bridge');
+      check(homeRatings.fourFeatures&&homeRatings.productVisible&&homeRatings.cta,
+        name+' visible and contained EZRaider image, four benefits and local CTA');
       check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
         name+' root trust stays in one contained three-column row at '+viewport.width+'px');
       const proof=await page.evaluate(()=>{
