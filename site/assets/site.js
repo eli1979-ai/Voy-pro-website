@@ -43,7 +43,7 @@
   // Route is the locale contract. This prevents cached or mis-generated lang attributes from mixing UI languages.
   document.documentElement.lang=locale;
   // Explicit pre-launch disclosure: do not imply this preview is live commerce.
-  if(!document.querySelector('[data-voy-preview-ribbon]')){
+  if(!document.querySelector('[data-voy-preview-ribbon], .voy-preview-ribbon')){
     const banner=document.createElement('div');
     banner.dataset.voyPreviewRibbon='';
     banner.className='voy-preview-ribbon';
@@ -2054,7 +2054,7 @@
         ?t('Selection restored. Search again to recheck availability and price.','הבחירה שוחזרה. חפשו שוב כדי לבדוק מחדש זמינות ומחיר חיים.')
         :locale==='hu'?'A választás visszaállítva. Válaszd ki az idegenvezetés nyelvét, mielőtt elérhetőséget keresel.'
         :locale==='he'?'הבחירה שוחזרה. בחרו שפת הדרכה לפני בדיקת הזמינות.'
-        :'Selection restored. Choose your guide language before checking availability.';
+        :locale==='es'?'Selección recuperada. Elige el idioma del guía antes de consultar disponibilidad.':'Selection restored. Choose your guide language before checking availability.';
       track('selection_recovery_restored',{experience_id:experience.id,date:iso,is_private:Boolean(state.is_private),guide_language:code});
       patchSession({stage:'selection_recovery_restored',experience_id:experience.id,selected_date:iso,is_private:Boolean(state.is_private),guide_language:code});
       shell.hidden=true;form.scrollIntoView({behavior:'smooth',block:'center'});
@@ -3491,7 +3491,7 @@
     };
     const intent=String(document.body?.dataset.intent||'').toLowerCase();
     const routeSection=document.querySelector('.route-itinerary');
-    if(routeSection&&!routeSection.querySelector('[data-route-visual]')&&budapestImages[intent]){
+    if(routeSection&&!routeSection.querySelector('[data-route-visual],.route-visual-restored')&&budapestImages[intent]){
       const stops=[...routeSection.querySelectorAll('.route-itinerary-grid > .route-stop')].map(stop=>stop.querySelector('h3,h4')?.textContent?.trim()).filter(Boolean);
       if(stops.length){
         const visual=document.createElement('div');

@@ -1501,11 +1501,9 @@ try{
   }
 
 
-  // Spanish Budapest parity gate (VOY-ES-PARITY-02). Each Spanish page is generated
-  // from its English source (tools/es-budapest) and must keep the same photography,
-  // section structure and responsive behaviour. Only the approved read-only
-  // reviews ticker and inert ES booking UI may run; no site.js/live FBM.
-  // Screenshots of every EN/ES pair are written to the artifact for human review.
+  // Spanish/English booking parity: one source-owned FBM client and matching
+  // forms, no independent ES writer. No real checkout is ever exercised by QA.
+  // The ES dual-feature flags remain disabled in the checked-in runtime.
   const spanishParityRoutes=[
     '','tours/buda-castle-ezraider-tour/','tours/margaret-island-ezraider-tour/',
     'tours/buda-margaret-extended-tour/','tours/heroes-square-city-ezraider-tour/',
@@ -1529,12 +1527,11 @@ try{
       heroLoaded:!!hero?.complete&&hero.naturalWidth>0,heroVisible:!!box&&box.width>150&&box.height>100,
       heroBeside:!!box&&!!h1&&(box.left>=h1.right-2||h1.left>=box.right-2),
       overflow:document.documentElement.scrollWidth-innerWidth,
-      runtime:!!document.querySelector('script[src]:not([src="/assets/runtime-config.js"]):not([src="/assets/es-booking-module.js?v=20261120r1"]):not([src="/assets/budapest-review-ticker.js?v=20261029r1"]),iframe,[data-track="booking_cta"]'),
-      inertForm:document.querySelectorAll('#availability-form').length===1&&
-        !!document.querySelector('#availability-form fieldset:disabled')&&
-        !!document.querySelector('#availability-form button[type="submit"]:disabled')&&
-        document.querySelector('#booking')?.dataset.esBookingMode==='preview-inert'&&
-        !window.VOYBookingIntelligence,
+      runtime:!!document.querySelector('script[src="/assets/site.js"]'),
+      canonicalRuntime:!!window.VOYBookingIntelligence,
+      canonicalEnabled:!!window.VOYBookingIntelligence?.bookingEnabled,
+      bookingFormCount:document.querySelectorAll('#availability-form').length,
+      bookingInputCount:document.querySelectorAll('#availability-form select,#availability-form input').length,
       reviewTickerCount:document.querySelectorAll('script[src="/assets/budapest-review-ticker.js?v=20261029r1"]').length,
       preview:document.querySelector('.voy-preview-ribbon')?.textContent||'',
       policyRows:document.querySelectorAll('#cancellation-weather li').length};
@@ -1564,8 +1561,10 @@ try{
           s.sections+'/'+e.sections+' sections, '+s.h2+'/'+e.h2+' h2, '+s.faq+'/'+e.faq+' FAQ)');
         check(s.heroLoaded&&s.heroVisible,'es-parity '+label+' '+slug+' hero photo loaded and visible');
         if(label==='1440')check(s.heroBeside===e.heroBeside,'es-parity 1440 '+slug+' desktop hero layout matches English');
-        check(s.overflow<=2&&!s.runtime&&s.inertForm&&s.reviewTickerCount===1&&errors.length===0,
-          'es-parity '+label+' '+slug+' only one approved review script, no booking/forms/other scripts, no overflow/page errors');
+        check(s.overflow<=2&&s.runtime&&s.canonicalRuntime&&!s.canonicalEnabled&&
+          s.bookingFormCount===e.bookingFormCount&&
+          s.bookingInputCount===e.bookingInputCount&&s.reviewTickerCount===1&&errors.length===0,
+          'es-parity '+label+' '+slug+' canonical UI, Spanish cutover disabled, no overflow/page errors');
         await en.evaluate(()=>window.scrollTo(0,0));await es.evaluate(()=>window.scrollTo(0,0));
         await en.screenshot({path:join(out,'es-pair-'+label+'-'+slug+'-en.png'),fullPage:false,animations:'disabled'});
         await es.screenshot({path:join(out,'es-pair-'+label+'-'+slug+'-es.png'),fullPage:false,animations:'disabled'});
@@ -1575,9 +1574,8 @@ try{
       }finally{await en.close();await es.close();}
     }
   }
-  // Synthetic client-side flag matrix, no real FBM requests or hosted writes.
-  // Only one of two ES gates must remain disabled; generic bookingEnabled=true
-  // is deliberately held true in all cases to catch accidental ES activation.
+  // Synthetic flag matrix: one ES flag is insufficient, and the normal
+  // bookingEnabled switch alone must never reach the public FBM API.
   for(const [name,esFlags] of [
     ['es-flag-only',{esBookingEnabled:true,esBookingLocaleCertified:false}],
     ['es-certified-only',{esBookingEnabled:false,esBookingLocaleCertified:true}]
@@ -1597,14 +1595,48 @@ try{
     try{
       const response=await page.goto(base+'/es/budapest/tours/buda-castle-ezraider-tour/',{waitUntil:'load',timeout:20000});
       const state=await page.evaluate(()=>({
-        inert:document.querySelector('#booking')?.dataset.esBookingMode==='preview-inert',
-        disabled:!!document.querySelector('#availability-form fieldset:disabled'),
+        disabled:!!document.querySelector('#availability-form select[name="experience"]:disabled')&&
+          !!document.querySelector('#availability-form button[type="submit"]:disabled'),
         siteJs:!!document.querySelector('script[src="/assets/site.js"]'),
-        live:!!window.VOYBookingIntelligence
+        present:!!window.VOYBookingIntelligence,
+        enabled:!!window.VOYBookingIntelligence?.bookingEnabled
       }));
-      check(response?.status()===200&&state.inert&&state.disabled&&!state.siteJs&&!state.live&&attempted.length===0,
-        'es-booking-guard '+name+' cannot start canonical FBM runtime or make API requests');
+      check(response?.status()===200&&state.siteJs&&state.present&&!state.enabled&&state.disabled&&attempted.length===0,
+        'es-booking-guard '+name+' prevents canonical FBM API calls and checkout');
     }catch(error){failures++;results.push('FAIL: es-booking-guard '+name+' '+String(error).slice(0,500));}
+    finally{await page.close();}
+  }
+
+  // Both flags on must enable the SAME site.js adapter. This uses a fake
+  // isolated HTTPS API that returns 503, never real availability or payment.
+  {
+    const page=await browser.newPage({viewport:{width:390,height:844},reducedMotion:'reduce'});
+    const synthetic=[];
+    await sameOrigin(page);
+    await page.route('https://synthetic.invalid/**',route=>{
+      const req=route.request();synthetic.push({method:req.method(),path:new URL(req.url()).pathname});
+      return route.fulfill({status:503,contentType:'application/json',body:'{"error":"synthetic_unavailable"}'});
+    });
+    await page.route('**/assets/runtime-config.js',route=>route.fulfill({
+      status:200,contentType:'application/javascript',
+      body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
+        bookingEnabled:true,esBookingEnabled:true,esBookingLocaleCertified:true,
+        apiRoot:'https://synthetic.invalid/api/v1',clientKey:'synthetic-test-only'
+      })+';'
+    }));
+    try{
+      const response=await page.goto(base+'/es/budapest/tours/buda-castle-ezraider-tour/',{waitUntil:'load',timeout:20000});
+      await page.waitForTimeout(350);
+      const state=await page.evaluate(()=>({
+        enabled:window.VOYBookingIntelligence?.bookingEnabled===true,
+        form:document.querySelectorAll('#availability-form').length,
+        independentForm:!!document.querySelector('.es-booking-module,.es-booking-form')
+      }));
+      check(response?.status()===200&&state.enabled&&state.form===1&&!state.independentForm&&
+        synthetic.some(req=>req.method==='GET'&&req.path.endsWith('/experiences'))&&
+        synthetic.every(req=>req.method==='GET'),
+        'es-full-gates-only shares canonical FBM GET bootstrap (synthetic 503, zero writers)');
+    }catch(error){failures++;results.push('FAIL: es-full-gates-only '+String(error).slice(0,500));}
     finally{await page.close();}
   }
 
@@ -1623,7 +1655,7 @@ try{
         const langs=[...(card?.querySelectorAll('.mobile-language-row .lang-switch')||[])].map(a=>a.getAttribute('hreflang'));
         return {open:!!card,inView:!!r&&r.left>=0&&r.right<=innerWidth+1,langs,
           active:card?.querySelector('[aria-current="page"]')?.getAttribute('hreflang'),
-          cta:!!card?.querySelector('a[href="#consulta"]'),overflow:document.documentElement.scrollWidth-innerWidth};
+          cta:!!card?.querySelector('a[href="#booking"]'),overflow:document.documentElement.scrollWidth-innerWidth};
       });
       check(menu.open&&menu.inView&&menu.overflow<=2,'es-menu '+width+' opens inside the viewport');
       check(menu.langs.join(',')==='en,hu,he,es'&&menu.active==='es'&&menu.cta,'es-menu '+width+' four languages and inquiry CTA');

@@ -93,7 +93,9 @@ for(const [page,locale] of locales){
   }
   assert(!html.includes('class="vp-review-card"'),'review cards must be generated only from verified manifest: '+page);
 }
-// The Spanish tours share the reviewed read-only review ticker without introducing checkout.
+// The Spanish tours retain the exact reviewed read-only ticker and reuse
+// the shared, independently gated FBM client. Booking eligibility and
+// actual checkout are checked separately, never inferred from ticker presence.
 const spanishRoutes=['','tours/buda-castle-ezraider-tour/',
   'tours/margaret-island-ezraider-tour/','tours/buda-margaret-extended-tour/',
   'tours/heroes-square-city-ezraider-tour/','tours/citadella-advanced-ezraider-tour/',
@@ -109,8 +111,13 @@ for(const suffix of spanishRoutes){
     '/assets/budapest-review-ticker.css?v=20261023r6','Reseñas traducidas al español']){
     assert(html.includes(token),page+': missing Spanish review component '+token);
   }
-  assert(!html.includes('/assets/site.js')&&!html.includes('id="availability-form"')
-    &&!html.includes('id="live-checkout-form"'),page+': preserve Spanish no-booking safety');
+  const en=fs.readFileSync('site/budapest/'+suffix+'index.html','utf8');
+  const sourceBooking=en.includes('id="availability-form"');
+  assert(html.includes('src="/assets/site.js"')&&
+    html.includes('src="/assets/es-booking-module.js?v=20261120r2"')&&
+    html.includes('id="availability-form"')===sourceBooking&&
+    !html.includes('id="live-checkout-form"'),
+    page+': keep shared canonical booking structure with Spanish cutover still gated');
 }
 assert(manifest.reviews.every(review=>review.translations.es!==review.translations.en),
   'Spanish text must not silently use English fallback');
