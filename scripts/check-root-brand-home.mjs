@@ -35,7 +35,7 @@ for(const [locale,file,href] of [
 ]){
   const page=read(file);
   const hero=page.split('<section class="hero">')[1]?.split('</section>')[0]||'';
-  const spotlight=hero.match(/<div class="network-ez-spotlight"[\\s\\S]*?<p class="network-ez-note">[^<]*<\\/p><\\/div>/)?.[0]||'';
+  const spotlight=hero.match(/<div class="network-ez-spotlight"[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/)?.[0]||'';
   if(!spotlight)failures.push(locale+': integrated EZRaider hero spotlight missing');
   if((page.match(/class="network-ez-spotlight"/g)||[]).length!==1)failures.push(locale+': need exactly one EZRaider spotlight');
   if((page.match(/class="network-ez-feature-card"/g)||[]).length!==4)failures.push(locale+': four different benefits required');
