@@ -3236,7 +3236,9 @@
       const confirmed=verifiedBookingConfirmation(booking);
       const confirmedExtras=confirmedAncillaryDetails(booking,submission.extras);
       clearInterval(holdTimer); bookingState.hold=null; delStore('voy_recovery_state');
-      const manageToken=confirmed.token;const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':''; // The Manage Booking app currently supports EN/HE/HU only; ES routes fall back to EN.const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
+      // Manage Booking currently supports EN/HE/HU, so ES falls back to its EN interface.
+      const manageToken=confirmed.token;const manageLang=locale==='he'?'?lang=he':locale==='hu'?'?lang=hu':'';
+      const manageUrl='/manage/'+manageLang+'#token='+encodeURIComponent(manageToken);
       const bookingWhatsApp=whatsAppUrl('booking_confirmation',{booking_reference:confirmed.reference,experience_title:localizedBudapestExperienceTitle(bookingState.experience,booking.experience_title),date:confirmationDateLabel(confirmed.date),requested_time:confirmationTimeLabel(confirmed.time),riders:confirmed.composition?.riders_16_plus||0,children:confirmed.composition?.child_passengers_3_15||0,babies:confirmed.composition?.baby_passengers_1_2||0,is_private:confirmed.isPrivate,guide_language:confirmed.guideLanguage,payment_method:paymentMethod,extras:confirmedExtras.items,total:confirmed.total,currency:confirmed.currency});
       const confirmationMeetingLabel=locale==='he'?'נקודת מפגש':locale==='hu'?'Találkozási pont':locale==='es'?'Punto de encuentro':'Meeting point';
       const confirmationMapsLabel=locale==='he'?'פתיחה ב־Google Maps':locale==='hu'?'Megnyitás a Google Térképen':locale==='es'?'Abrir en Google Maps':'Open in Google Maps';
