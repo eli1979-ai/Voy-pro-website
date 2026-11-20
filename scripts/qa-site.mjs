@@ -278,7 +278,7 @@ const editorialSlugs=[
   'unique-things-to-do','where-to-stay'
 ];
 const editorialLocaleFiles=[
-  'index.html',
+  'index.html','he/index.html','hu/index.html','es/index.html',
   ...['','he/','hu/'].flatMap(locale=>[
     locale+'budapest/index.html',
     ...editorialSlugs.map(slug=>locale+'budapest/'+slug+'/index.html')
@@ -294,7 +294,7 @@ for(const file of editorialLocaleFiles){
     /\bactive\b/.test((link.match(/\bclass="([^"]*)"/)||[])[1]||''));
   const current=links.filter(link=>/\baria-current="page"/.test(link));
   const expectedHref=file==='index.html'?'/':'/'+file.replace(/index\.html$/,'');
-  if(links.length!==(file==='index.html'?3:4)||active.length!==1||current.length!==1||
+  if(links.length!==4||active.length!==1||current.length!==1||
     active[0]!==current[0]||!active[0].includes('href="'+expectedHref+'"')||
     (header.match(/\baria-current="page"/g)||[]).length!==1)
     fail(file,'home/editorial selected language must have one matching current-page link');
