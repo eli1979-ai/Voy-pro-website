@@ -305,14 +305,25 @@ for(const {page,href,locale,positionMarker} of [
   {page:'site/he/portugal/index.html',href:'/he/ezraider/?from=marvao&amp;return_to=%2Fhe%2Fportugal%2F',locale:'he',positionMarker:'id="request"'}
 ]){
   const html=fs.readFileSync(page,'utf8');
-  const blocks=[...html.matchAll(/<section class="section ez-vehicle-bridge"[\s\S]*?<\/section>/g)];
+  const bridgePattern=/<section class="section ez-vehicle-bridge"[\s\S]*?<\/section>/g;
+  const homeSpotlightPattern=/<div class="network-ez-spotlight"[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/g;
+  const isNetworkHome=page==='site/index.html';
+  const blocks=[...html.matchAll(isNetworkHome?homeSpotlightPattern:bridgePattern)];
   if(blocks.length!==1){failures.push(page+': expected one visible EZRaider guide referral block');continue;}
   const block=blocks[0][0];
   if(blocks[0].index>=html.indexOf(positionMarker))
     failures.push(page+': guide link should be visible before destination selection or Marvão booking');
   if(!block.includes('href="'+href+'"'))
     failures.push(page+': missing localized link to existing EZRaider guide: '+href);
-  if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||(!block.includes('<h2 ')&&!block.includes('<strong>')))
+  if(isNetworkHome){
+    if(!block.includes('class="btn alt network-ez-cta"')||
+       !block.includes('class="network-ez-feature-grid"')||
+       !block.includes('/assets/images/ezraider/owner-photo-20261031.webp')||
+       (block.match(/class="network-ez-feature-card"/g)||[]).length!==4 ||
+       html.includes('<section class="section ez-vehicle-bridge">'))
+      failures.push(page+': unified opening hero must have product image, four benefits and one styled guide CTA');
+  }else if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||
+       (!block.includes('<h2 ')&&!block.includes('<strong>')))
     failures.push(page+': guide referral must have clear copy and button');
   if(locale==='pt'&&(block.includes('guia em inglês')||block.includes('hreflang="en"')))
     failures.push(page+': Portuguese vehicle guide must not be labelled as English');
