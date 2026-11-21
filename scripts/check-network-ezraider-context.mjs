@@ -498,3 +498,18 @@ for(const page of ['site/es/budapest/index.html','site/es/budapest/with-kids/ind
  assert.ok(html.includes('href="/es/ezraider/?from=budapest')&&!html.includes('Conoce el EZRaider (en inglés)'),page+': Spanish referral must lead to localized guide');
 }
 console.log('Network EZRaider context and legacy redirect QA OK.');
+
+// Exact owner photograph visible near the first fold on four network homepages.
+for(const locale of ['', 'he/', 'hu/', 'es/']){
+ const page='site/'+locale+'index.html';
+ const html=fs.readFileSync(page,'utf8');
+ const imageAt=html.indexOf('class="network-rider-hero"');
+ const spotlightAt=html.indexOf('class="network-ez-spotlight"');
+ const introAt=html.indexOf('<section class="hero">');
+ assert.ok(introAt>=0&&imageAt>introAt&&imageAt<spotlightAt,page+': riders must appear at top, ahead of the EZRaider spotlight');
+ assert.equal((html.match(/class="network-rider-hero"/g)||[]).length,1,page+': exactly one photo');
+ assert.ok(html.includes('src="/assets/images/budapest/img16.jpg"')&&html.includes('width="800" height="1200"')&&html.includes('loading="eager"')&&html.includes('fetchpriority="high"'),page+': original photo and eager dimensions required');
+ assert.ok(html.includes('/assets/network-rider-hero.css?v=20261121'),page+': responsive photo stylesheet required');
+}
+const riderCropCss=fs.readFileSync('site/assets/network-rider-hero.css','utf8');
+assert.ok(riderCropCss.includes('object-fit:cover')&&riderCropCss.includes('object-position:center 61%')&&riderCropCss.includes('@media(max-width:640px)'), 'Crop must preserve all riders and mobile layout');
