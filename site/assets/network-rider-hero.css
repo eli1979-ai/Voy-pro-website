@@ -5,12 +5,12 @@
 .hero .network-rider-hero{
   margin:18px 0 20px;
   width:100%;
-  max-width:960px;
+  max-width:none;
   overflow:hidden;
   border-radius:18px;
   border:1px solid rgba(255,255,255,.15);
   box-shadow:0 14px 32px rgba(0,0,0,.13);
-  aspect-ratio:800 / 455;
+  aspect-ratio:800 / 420;
   background:#202b33;
 }
 .hero .network-rider-hero img{
@@ -18,12 +18,36 @@
   width:100%;
   height:100%;
   object-fit:cover;
-  object-position:center 61%;
+  object-position:center 70%;
 }
 @media(max-width:640px){
  .hero .network-rider-hero{
    margin:14px 0 16px;
-   aspect-ratio:800 / 470;
+   aspect-ratio:800 / 430;
    border-radius:13px;
  }
+}
+
+/* Owner visual QA correction: the network hero and the destination chooser
+   both use the full width of the same .wrap container. Do not widen other
+   Budapest or Portugal page heroes. */
+body[data-intent="network"] .hero .hero-grid{max-width:none;width:100%;box-sizing:border-box}
+body[data-intent="network"] .hero .hero-grid>div:first-child{max-width:none;width:100%;min-width:0}
+body[data-intent="network"] .hero .network-ez-spotlight{box-sizing:border-box;width:100%}
+
+/* On desktop keep the opening message on one line, while allowing mobile
+   and smaller laptop viewports to wrap without horizontal overflow. */
+@media(min-width:1100px){
+ body[data-intent="network"] .hero h1{
+   max-width:none;
+   font-size:clamp(32px,3.3vw,46px);
+   letter-spacing:-.045em;
+   white-space:nowrap;
+ }
+ body[data-page="/hu/"] .hero h1,
+ body[data-page="/he/"] .hero h1{font-size:clamp(30px,3vw,40px)}
+ body[data-page="/es/"] .hero h1{font-size:clamp(31px,3.1vw,42px)}
+}
+@media(max-width:1099px){
+ body[data-intent="network"] .hero h1{white-space:normal}
 }
