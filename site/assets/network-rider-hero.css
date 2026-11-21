@@ -1,0 +1,29 @@
+/* Four VOY PRO network homepages only. The exact owner-supplied photograph
+   is already present as /assets/images/budapest/img16.jpg (Git blob
+   071507161bcbdcdd1e45f55ed0d207745ce4239d). Crop by viewport, never
+   duplicate or stretch the source image. Keep all five riders and vehicles. */
+.hero .network-rider-hero{
+  margin:18px 0 20px;
+  width:100%;
+  max-width:960px;
+  overflow:hidden;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 14px 32px rgba(0,0,0,.13);
+  aspect-ratio:800 / 455;
+  background:#202b33;
+}
+.hero .network-rider-hero img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 61%;
+}
+@media(max-width:640px){
+ .hero .network-rider-hero{
+   margin:14px 0 16px;
+   aspect-ratio:800 / 470;
+   border-radius:13px;
+ }
+}
