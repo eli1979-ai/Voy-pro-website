@@ -28,11 +28,11 @@
  }
 }
 
-/* Owner visual QA correction: the network hero and the destination chooser
-   both use the full width of the same .wrap container. Do not widen other
-   Budapest or Portugal page heroes. */
-body[data-intent="network"] .hero .hero-grid{max-width:none;width:100%;box-sizing:border-box}
-body[data-intent="network"] .hero .hero-grid>div:first-child{max-width:none;width:100%;min-width:0}
+/* Correct desktop alignment: the network hero must match the maximum 1160px
+   destination chooser .wrap, not the viewport. Preserve .wrap mobile gutters.
+   Do not widen other Budapest or Portugal page heroes. */
+body[data-intent="network"] .hero .hero-grid{max-width:1160px;width:auto;box-sizing:content-box}
+body[data-intent="network"] .hero .hero-grid>div:first-child{max-width:none;width:auto;min-width:0;margin-inline:0}
 body[data-intent="network"] .hero .network-ez-spotlight{box-sizing:border-box;width:100%}
 
 /* On desktop keep the opening message on one line, while allowing mobile

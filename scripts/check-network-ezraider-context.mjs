@@ -517,8 +517,8 @@ assert.ok(riderCropCss.includes('object-fit:cover')&&riderCropCss.includes('obje
 const refinedHeroCss=fs.readFileSync('site/assets/network-rider-hero.css','utf8');
 for(const required of [
  'aspect-ratio:800 / 420','aspect-ratio:800 / 430',
- 'max-width:none;width:100%;box-sizing:border-box',
- '.hero .hero-grid>div:first-child{max-width:none;width:100%;min-width:0}',
+ 'max-width:1160px;width:auto;box-sizing:content-box',
+ '.hero .hero-grid>div:first-child{max-width:none;width:auto;min-width:0;margin-inline:0}',
  '.hero .network-ez-spotlight{box-sizing:border-box;width:100%}',
  'white-space:nowrap', '@media(max-width:1099px)'
 ]) assert.ok(refinedHeroCss.includes(required), 'Network first-fold refinement missing: '+required);
