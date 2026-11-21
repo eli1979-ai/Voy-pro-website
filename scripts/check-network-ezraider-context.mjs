@@ -512,4 +512,13 @@ for(const locale of ['', 'he/', 'hu/', 'es/']){
  assert.ok(html.includes('/assets/network-rider-hero.css?v=20261121'),page+': responsive photo stylesheet required');
 }
 const riderCropCss=fs.readFileSync('site/assets/network-rider-hero.css','utf8');
-assert.ok(riderCropCss.includes('object-fit:cover')&&riderCropCss.includes('object-position:center 61%')&&riderCropCss.includes('@media(max-width:640px)'), 'Crop must preserve all riders and mobile layout');
+assert.ok(riderCropCss.includes('object-fit:cover')&&riderCropCss.includes('object-position:center 70%')&&riderCropCss.includes('@media(max-width:640px)'), 'Crop must preserve all riders and mobile layout');
+
+const refinedHeroCss=fs.readFileSync('site/assets/network-rider-hero.css','utf8');
+for(const required of [
+ 'aspect-ratio:800 / 420','aspect-ratio:800 / 430',
+ 'max-width:none;width:100%;box-sizing:border-box',
+ '.hero .hero-grid>div:first-child{max-width:none;width:100%;min-width:0}',
+ '.hero .network-ez-spotlight{box-sizing:border-box;width:100%}',
+ 'white-space:nowrap', '@media(max-width:1099px)'
+]) assert.ok(refinedHeroCss.includes(required), 'Network first-fold refinement missing: '+required);
