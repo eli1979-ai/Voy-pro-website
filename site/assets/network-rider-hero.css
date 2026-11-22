@@ -51,3 +51,15 @@ body[data-intent="network"] .hero .network-ez-spotlight{box-sizing:border-box;wi
 @media(max-width:1099px){
  body[data-intent="network"] .hero h1{white-space:normal}
 }
+
+/* Network homepages, desktop only: align the destinations and the
+   three informational cards with the approved Hero content edges.
+   The Hero uses 1160px of content plus 24px horizontal wrap gutters.
+   The shared .wrap defaults to a 1160px outer content limit; widen only
+   these two lower sections by the 48px gutter delta. */
+@media(min-width:1100px){
+ body[data-intent="network"] .tour-picker#destinations > .wrap,
+ body[data-intent="network"] .network-value-section > .wrap{
+   max-width:1208px;
+ }
+}

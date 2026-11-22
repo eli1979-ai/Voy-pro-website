@@ -522,3 +522,9 @@ for(const required of [
  '.hero .network-ez-spotlight{box-sizing:border-box;width:100%}',
  'white-space:nowrap', '@media(max-width:1099px)'
 ]) assert.ok(refinedHeroCss.includes(required), 'Network first-fold refinement missing: '+required);
+
+const lowerSectionWidthCss=fs.readFileSync('site/assets/network-rider-hero.css','utf8');
+assert.ok(lowerSectionWidthCss.includes('@media(min-width:1100px)')&&
+ lowerSectionWidthCss.includes('.tour-picker#destinations > .wrap')&&
+ lowerSectionWidthCss.includes('.network-value-section > .wrap')&&
+ lowerSectionWidthCss.includes('max-width:1208px'), 'Desktop destination and value widths must align with hero; mobile is unchanged');
