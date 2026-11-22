@@ -528,3 +528,12 @@ assert.ok(lowerSectionWidthCss.includes('@media(min-width:1100px)')&&
  lowerSectionWidthCss.includes('.tour-picker#destinations > .wrap')&&
  lowerSectionWidthCss.includes('.network-value-section > .wrap')&&
  lowerSectionWidthCss.includes('max-width:1208px'), 'Desktop destination and value widths must align with hero; mobile is unchanged');
+
+// Destination card image focal points must prioritize EZRaider wheels on
+// desktop AND mobile without altering Prague or other site cards.
+const destinationFocalCss=fs.readFileSync('site/assets/network-rider-hero.css','utf8');
+for(const place of ['budapest','marvao']){
+ const rule=destinationFocalCss.match(new RegExp('body\\[data-intent="network"\\] \\.tour-picker#destinations \\.destination-card--'+place+'\\s*\\{([^}]+)\\}'));
+ assert.ok(rule&&rule[1].includes('--destination-focus:center 100%'),place+': photo must be bottom-aligned for all viewports');
+}
+assert.ok(!/destination-card--prague/.test(destinationFocalCss), 'Prague focal point must not change');
