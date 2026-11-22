@@ -63,3 +63,14 @@ body[data-intent="network"] .hero .network-ez-spotlight{box-sizing:border-box;wi
    max-width:1208px;
  }
 }
+
+/* Network destination cards — rider/vehicle-first focal points at every size.
+   Both source photographs place their EZRaiders in the lower part of the
+   frame. Align the photo layer to the bottom rather than cropping the wheels.
+   Existing overlay, card dimensions, Prague photo and mobile layout remain. */
+body[data-intent="network"] .tour-picker#destinations .destination-card--budapest{
+  --destination-focus:center 100%;
+}
+body[data-intent="network"] .tour-picker#destinations .destination-card--marvao{
+  --destination-focus:center 100%;
+}
