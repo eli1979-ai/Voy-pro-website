@@ -878,6 +878,20 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name==='budapest-he-mobile'){
+        const pills=await page.evaluate(()=>{
+          const all=[...document.querySelectorAll('body *')].filter(el=>{
+            const st=getComputedStyle(el),r=el.getBoundingClientRect();
+            if(st.display==='none'||st.visibility==='hidden'||r.width===0||r.height===0)return false;
+            const rad=parseFloat(st.borderTopLeftRadius);
+            return rad>=20&&rad>=Math.min(r.width,r.height)*.44;
+          });
+          const decorative=all.filter(el=>el.matches('.hero .facts>span,.tour-highlights>span,.tour-tag,.popular-pill'));
+          return {total:all.length,decorative:decorative.length};
+        });
+        check(pills.total<=40&&pills.decorative===0,
+          name+' DR-06 rounded-element count <=40 and zero decorative pills ('+JSON.stringify(pills)+')');
+      }
       if(name.startsWith('dr02-')){
         const measure=await page.evaluate(()=>{
           const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
