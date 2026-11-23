@@ -219,6 +219,10 @@
     viewport.addEventListener('focusin',event=>{
       if(event.target?.closest?.('.vp-review-card'))pauseForReading();
     });
+    // Hovering over a review also freezes the moving ribbon; Resume remains explicit.
+    viewport.addEventListener('pointerenter',event=>{
+      if(event.pointerType==='mouse')pauseForReading();
+    });
     const moveManually=(delta)=>{
       pauseForReading();
       viewport.scrollLeft+=delta;
