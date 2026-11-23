@@ -226,7 +226,7 @@ for(const file of ['site/index.html','site/he/index.html','site/hu/index.html','
  const html=read(file);
  const valueSection=html.split('<section class="section network-value-section">')[1]?.split('</section>')[0]||'';
  if((valueSection.match(/class="content-card network-support-card"/g)||[]).length!==1||
-    (valueSection.match(/class="content-card"/g)||[]).length!==1)
+    (valueSection.match(/<article class="content-card(?:\s|")/g)||[]).length!==1)
   failures.push(file+': DR-06 must retain only the actionable support card');
  const prague=html.match(/<article class="tour-choice-card destination-card destination-card--prague[\s\S]*?<\/article>/)?.[0]||'';
  if(!prague||prague.includes('tour-choice-bottom')||prague.includes('tour-highlights'))
