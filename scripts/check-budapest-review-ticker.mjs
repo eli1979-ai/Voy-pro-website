@@ -123,7 +123,7 @@ assert(manifest.reviews.every(review=>review.translations.es!==review.translatio
   'Spanish text must not silently use English fallback');
 
 for(const marker of ['.vp-reviews-nav svg{display:block;width:18px;height:18px',
-  'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-text','white-space:pre-line','vp-review-translated','overflow-y:auto','overscroll-behavior:contain','height:278px','height:282px','clamp(245px,25vw,310px)']){
+  'prefers-reduced-motion','overflow-x:auto','direction:ltr','scrollbar-width:none','vp-review-text','white-space:pre-line','vp-review-translated','-webkit-line-clamp:4','overflow:hidden','height:278px','height:282px','clamp(245px,25vw,310px)']){
   assert(css.includes(marker),'accessible complete-text ticker style missing '+marker);
 }
 assert(css.includes('.vp-reviews .vp-reviews-heading{')&&
@@ -888,3 +888,17 @@ try{
 
 if(failures.length){console.error('Budapest review ticker QA failed:\n- '+failures.join('\n- '));process.exit(1);}
 console.log('Budapest review ticker QA OK: twenty approved full texts published, localized and source-linked with accessible presentation.');
+
+// DR-05: the carousel itself scrolls horizontally; each quote is clipped to
+// a four-line teaser, never a nested scroll region. The existing accessible
+// native dialog provides the full unchanged text and Escape/focus recovery.
+const dr05QuoteRule=css.match(/\.vp-review-text\{([^}]+)\}/)?.[1]||'';
+assertStrict.ok(dr05QuoteRule.includes('-webkit-line-clamp:4')&&
+ dr05QuoteRule.includes('overflow:hidden')&&!dr05QuoteRule.includes('overflow-y:auto'),
+ 'DR-05: review excerpts must not form inner scroll boxes');
+assertStrict.ok(script.includes("viewport.addEventListener('pointerenter'")&&
+ script.includes("viewport.addEventListener('focusin'"),
+ 'DR-05: hover and keyboard focus must pause the ticker');
+for(const selector of ['.vp-review-platform','.vp-review-date','.vp-review-translated','.vp-review-location']){
+ assertStrict.ok(css.includes(selector+'{font-size:12px'),selector+': at least 12px metadata required');
+}

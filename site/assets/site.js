@@ -19,6 +19,65 @@
   }
 })();
 
+/* DR-08: preserve canonical mixed-case EZRaider inside tracked/uppercase
+   display labels. Replaces typography only; never changes legal, booking data,
+   or provider-facing texts. */
+(function markEZRaiderBrand(){
+  const selectors='.eyebrow,.network-ez-eyebrow,.tour-tag,.popular-pill,.ez-kicker';
+  for(const el of document.querySelectorAll(selectors)){
+    for(const child of [...el.childNodes]){
+      if(child.nodeType!==Node.TEXT_NODE||!child.nodeValue.includes('EZRAIDER'))continue;
+      const segments=child.nodeValue.split('EZRAIDER');
+      const fragment=document.createDocumentFragment();
+      segments.forEach((part,i)=>{
+        if(i){const brand=document.createElement('span');brand.className='brand-word';brand.textContent='EZRaider';fragment.appendChild(brand)}
+        if(part)fragment.appendChild(document.createTextNode(part));
+      });
+      el.replaceChild(fragment,child);
+    }
+  }
+})();
+
+/* DR-04: one shared presentation adapter for existing static headers.
+   Preserve link destinations, locale availability, and active status. */
+(function alignHeaderPresentation(){
+  const nav=document.querySelector('header .navlinks');
+  if(!nav)return;
+  const locale=(document.documentElement.lang||'en').split('-')[0].toLowerCase();
+  const picker=nav.querySelector('.language-picker');
+  if(picker){
+    const order=['en','he','hu','es','pt'];
+    [...picker.querySelectorAll('a[hreflang]')]
+      .sort((a,b)=>order.indexOf(a.hreflang)-order.indexOf(b.hreflang))
+      .forEach(a=>picker.appendChild(a));
+  }
+  const labels={
+    en:{budapest:'Budapest',marvao:'Marvão',manage:'My booking',buda:'Buda Castle',margaret:'Margaret Island',extended:'Buda + Margaret',private:'Private tours'},
+    he:{budapest:'בודפשט',marvao:'מרבאו',manage:'ההזמנה שלי',buda:'סיור בודה',margaret:'אי מרגיט',extended:'בודה + מרגיט',private:'סיור פרטי'},
+    hu:{budapest:'Budapest',marvao:'Marvão',manage:'Foglalásom',buda:'Budai vár',margaret:'Margit-sziget',extended:'Buda + Margit',private:'Privát túrák'},
+    es:{budapest:'Budapest',marvao:'Marvão',manage:'Mi reserva',buda:'Castillo de Buda',margaret:'Isla Margarita',extended:'Buda + Margarita',private:'Tours privados'},
+    pt:{budapest:'Budapeste',marvao:'Marvão',manage:'Minha reserva',buda:'Castelo de Buda',margaret:'Ilha Margarida',extended:'Buda + Margarida',private:'Tours privados'}
+  };
+  const l=labels[locale]||labels.en;
+  nav.querySelectorAll(':scope > a:not(.btn)').forEach(link=>{
+    let path;try{path=new URL(link.href,location.href).pathname.toLowerCase()}catch{return}
+    const key=path.includes('buda-margaret-extended-tour')?'extended':
+      path.includes('buda-castle-ezraider-tour')?'buda':
+      path.includes('margaret-island-ezraider-tour')?'margaret':
+      path.includes('private-tours')?'private':
+      /^\/(?:he\/|hu\/|es\/|pt\/)?manage\/?$/.test(path)?'manage':
+      /^\/(?:he\/|hu\/|es\/|pt\/)?budapest\/?$/.test(path)?'budapest':
+      /^\/(?:he\/|hu\/|es\/|pt\/)?portugal\/?$/.test(path)?'marvao':null;
+    if(!key)return;
+    const shortened=l[key];
+    if(shortened&&link.textContent.trim()!==shortened){
+      link.setAttribute('aria-label',link.textContent.trim());
+      link.textContent=shortened;
+    }
+  });
+})();
+
+
 /* DR-03: presentation-only tour hero facts. The already-existing quick-info
    grid owns safety, preparation and eligibility notes. No server-derived
    fact, price or booking flow is synthesized or rewritten. */
@@ -64,6 +123,7 @@
   guard(price);
   all.filter(el=>el.matches('[data-runtime-rider-policy]')).forEach(guard);
 })();
+
 
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
