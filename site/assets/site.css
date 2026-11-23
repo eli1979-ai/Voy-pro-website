@@ -143,7 +143,7 @@ html[lang="he"] .tour-choice-card.is-featured:before{content:'מומלץ';right:
 .tour-choice-top{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative;z-index:1}.tour-tag{display:inline-flex;align-items:center;border-radius:999px;background:#eaf4fb;color:var(--blue);font-size:12px;font-weight:950;letter-spacing:.7px;padding:7px 9px}.tour-tag.green{background:#eaf7ef;color:#236442}.tour-tag.dark{background:#eef0f2;color:#26323a}.tour-tag.private{background:#fff4d8;color:#7d5410}.tour-duration{font-size:12px;color:var(--muted);font-weight:850}
 .tour-choice-card h3{font-size:var(--voy-step-28);line-height:1.08;letter-spacing:-.6px;margin:17px 0 8px;max-width:520px}.tour-choice-card>p{font-size:14px;line-height:1.6;margin:0 0 16px;max-width:570px}.tour-highlights{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}.tour-highlights span{font-size:12px;font-weight:850;border:1px solid var(--line);background:#fafcfd;border-radius:999px;padding:6px 8px;color:#43515b}
 .tour-choice-bottom{margin-top:auto;padding-top:18px;border-top:1px solid var(--line);display:flex;align-items:flex-end;justify-content:space-between;gap:16px}.tour-choice-bottom>div{display:grid;gap:2px}.tour-choice-bottom small{font-size:12px;color:var(--muted);text-transform:uppercase;font-weight:900;letter-spacing:.5px}.tour-choice-bottom strong{font-size:var(--voy-step-24);line-height:1.1}.tour-choice-bottom span{font-size:12px;color:var(--muted)}.tour-choice-bottom .btn{min-width:175px;text-align:center}
-.tour-choice-card.is-live [data-tour-live-state]{color:#1f7a4d;font-weight:850}.tour-choice-card.is-unavailable [data-tour-live-state]{color:#866400;font-weight:850}.tour-picker-note{text-align:center!important;margin:18px auto 0!important;max-width:760px;font-size:13px!important}
+.tour-choice-card.is-live [data-tour-live-state]{color:#1f7a4d;font-weight:850}.tour-choice-card.is-unavailable [data-tour-live-state]{color:#866400;font-weight:850}.tour-picker-note{text-align:center!important;margin:18px auto 0!important;max-width:760px;font-size:14px!important}
 .selected-tour-hint{margin:-4px 0 14px;padding:10px 12px;border:1px solid #cfe2ef;background:#f4faff;border-radius:11px;font-size:12px;color:#34586f;font-weight:750}.selected-tour-hint.is-selected{border-color:#bfe2cc;background:#f2faf5;color:#24583d}
 @media(max-width:800px){
   .hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hero-actions .btn{min-width:0;padding:12px 10px;font-size:12px}
@@ -881,8 +881,8 @@ background-image:linear-gradient(180deg,rgba(9,24,38,.30),rgba(9,24,38,.39) 48%,
 .manage-ancillaries .manage-ancillary-list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
 .manage-ancillary-item{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;justify-content:space-between;background:#f5f8fa;border:1px solid #dde7ed;border-radius:12px;padding:12px 14px}
 .manage-ancillary-item>span:first-child{display:flex;flex-direction:column;gap:3px;flex:1 1 170px}
-.manage-ancillary-item small{font-size:.8em;opacity:.76}
-.manage-ancillary-quantity{font-size:.9em}
+.manage-ancillary-item small{font-size:12px;opacity:.76}
+.manage-ancillary-quantity{font-size:14px}
 .manage-ancillary-item>b{white-space:nowrap;font-variant-numeric:tabular-nums}
 
 /* Request-only Budapest special tour enquiry; WhatsApp handoff until a secure
@@ -1481,7 +1481,7 @@ body[data-page^="/he/budapest/"] :is(.hero p,.section p,.tour-choice-card>p,.con
   font-size:16px;line-height:1.75;letter-spacing:0;
 }
 body[data-page^="/he/budapest/"] :is(.hero .facts span,.tour-tag,.tour-duration,.tour-highlights span,.eyebrow,.intent,.booking-mode-head small){
-  font-size:13px!important;line-height:1.5!important;
+  font-size:14px!important;line-height:1.5!important;
   letter-spacing:0;font-weight:700;
 }
 body[data-page^="/he/budapest/"] :is(.trust-source,.trust-sub,.quickinfo-item small){
@@ -1555,7 +1555,7 @@ body[data-page^="/he/budapest/"] :is(.hero .facts span,.tour-tag,.tour-duration,
   letter-spacing:0;
 }
 body[data-page^="/he/budapest/"] :is(.trust-source,.trust-sub,.quickinfo-item small,.booking-mode-foot,.tour-choice-bottom small,.tour-choice-bottom span){
-  font-size:13px!important;
+  font-size:14px!important;
   line-height:1.52!important;
   font-weight:600;
   overflow-wrap:anywhere;
@@ -1584,7 +1584,7 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
     font-size:var(--voy-step-16);
   }
   body[data-page^="/he/budapest/"] :is(.facts span,.eyebrow,.tour-tag,.tour-duration,.tour-highlights span){
-    font-size:13px!important;
+    font-size:14px!important;
     line-height:1.5!important;
   }
 }
@@ -1934,4 +1934,17 @@ body[data-page*="/budapest/"] :is(.tour-tag,.popular-pill){
 @media(min-width:1280px){
  header .navlinks{gap:3px}
  header .navlinks > a:not(.btn){font-size:12px}
+}
+
+/* DR-07/08/10: final Hebrew readability and 24x24 interaction geometry.
+   The original HE tour copy has a 16.5px floor in existing browser checks;
+   map it up to the approved 18px step rather than down to 16px. */
+html[lang="he"] body[data-page*="/budapest/"] .section p{font-size:var(--voy-step-18)!important}
+header .navlinks>a:not(.brand),footer a,footer .footer-link-button,
+a[href^="mailto:"],a[href*="wa.me"],[data-cookie-settings]{
+  display:inline-flex;align-items:center;min-height:24px;min-width:24px;
+  padding-block:5px;box-sizing:border-box;
+}
+@media(max-width:420px){
+ html[lang="he"] .mobilebook.is-price-unavailable>.btn{min-height:44px}
 }
