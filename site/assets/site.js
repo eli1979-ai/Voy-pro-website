@@ -19,6 +19,32 @@
   }
 })();
 
+/* DR-08: preserve canonical mixed-case EZRaider inside tracked/uppercase
+   display labels. Replaces typography only; never changes legal, booking data,
+   or provider-facing texts. */
+(function markEZRaiderBrand(){
+  const selectors='.eyebrow,.network-ez-eyebrow,.tour-tag,.popular-pill,.ez-kicker';
+  const normalize=(el)=>{
+    for(const child of [...el.childNodes]){
+      if(child.nodeType!==Node.TEXT_NODE||!child.nodeValue.includes('EZRAIDER'))continue;
+      const segments=child.nodeValue.split('EZRAIDER');
+      const fragment=document.createDocumentFragment();
+      segments.forEach((part,i)=>{
+        if(i){const brand=document.createElement('span');brand.className='brand-word';brand.textContent='EZRaider';fragment.appendChild(brand)}
+        if(part)fragment.appendChild(document.createTextNode(part));
+      });
+      el.replaceChild(fragment,child);
+    }
+  };
+  for(const el of document.querySelectorAll(selectors)){
+    normalize(el);
+    // Existing personalization updates a few kickers after the source loads.
+    // Re-normalize only these nodes, never observe the entire customer DOM.
+    if(el.hasAttribute('data-personalize-kicker'))
+      new MutationObserver(()=>normalize(el)).observe(el,{childList:true,characterData:true,subtree:true});
+  }
+})();
+
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');

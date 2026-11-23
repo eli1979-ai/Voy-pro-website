@@ -139,7 +139,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           body:Number.parseFloat(css(document.querySelector('.section p'))?.fontSize||'0')
         };
       });
-      check(type.font.startsWith('"Segoe UI"'),name+' Hebrew Budapest uses preferred modern platform font');
+      check(type.font.includes('Rubik Variable'),name+' Hebrew Budapest uses approved locally hosted Rubik Variable');
       check(type.base>=17,name+' Hebrew baseline text is at least 17px');
       check(type.heading>=33,name+' Hebrew H1 remains readable on narrow screens');
       if(type.weight)check(type.weight<=750,name+' Hebrew heading avoids excessively heavy 900 weight');
@@ -184,6 +184,22 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await carousel.isVisible(),name+' verified full-text review ticker renders from approved manifest');
       check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
         name+' approved 20-review data powers three continuous carousel copies');
+      const reviewMetrics=await carousel.evaluate(root=>{
+        const all=[...root.querySelectorAll('.vp-review-card')];
+        const quotes=all.flatMap(card=>[...card.querySelectorAll('.vp-review-text')]);
+        const nested=quotes.filter(el=>['auto','scroll'].includes(getComputedStyle(el).overflowY)).length;
+        const visible=[...root.querySelectorAll('.vp-review-card *')].filter(el=>{
+          const style=getComputedStyle(el);
+          return style.display!=='none'&&style.visibility!=='hidden'&&
+            !el.closest('[aria-hidden="true"]')&&el.getBoundingClientRect().width>0;
+        });
+        const small=visible.filter(el=>el.children.length===0&&el.textContent.trim()&&parseFloat(getComputedStyle(el).fontSize)<12);
+        const tiny=visible.filter(el=>el.matches('a,button')&&el.getBoundingClientRect().height<24);
+        return {nested,small:small.length,tiny:tiny.length};
+      });
+      check(reviewMetrics.nested===0&&reviewMetrics.small===0&&reviewMetrics.tiny===0,
+        name+' DR-05 no nested review scrollboxes, text <12px or tap targets <24px ('+
+          JSON.stringify(reviewMetrics)+')');
       // New UI is still on this PR branch; test it against the actual locally
       // built HTML/JS in Chrome. The public alias keeps serving main until merge.
       if(viewport.width===390&&path.includes('buda-castle-ezraider-tour/')){
@@ -812,6 +828,16 @@ try{
     ['budapest-firstscreen-en','/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-he','/he/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-hu','/hu/budapest/',{width:375,height:812},{}],
+    ['dr07-home-375','/',{width:375,height:812},{}],
+    ['dr07-he-home-375','/he/',{width:375,height:812},{}],
+    ['dr07-budapest-375','/budapest/',{width:375,height:812},{}],
+    ['dr07-he-budapest-375','/he/budapest/',{width:375,height:812},{}],
+    ['dr07-he-tour-375','/he/budapest/tours/buda-castle-ezraider-tour/',{width:375,height:812},{}],
+    ['dr07-home-1440','/',{width:1440,height:900},{}],
+    ['dr07-he-home-1440','/he/',{width:1440,height:900},{}],
+    ['dr07-budapest-1440','/budapest/',{width:1440,height:900},{}],
+    ['dr07-he-budapest-1440','/he/budapest/',{width:1440,height:900},{}],
+    ['dr07-he-tour-1440','/he/budapest/tours/buda-castle-ezraider-tour/',{width:1440,height:900},{}],
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
@@ -857,6 +883,34 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name.startsWith('dr07-')){
+        await page.evaluate(()=>document.fonts.ready);
+        const m=await page.evaluate(()=>{
+          const nodes=[...document.querySelectorAll('body *')].filter(el=>{
+            const r=el.getBoundingClientRect(),style=getComputedStyle(el);
+            return !el.closest('script,style,template,svg,[aria-hidden="true"]')&&
+              r.width>0&&r.height>0&&style.display!=='none'&&
+              style.visibility!=='hidden';
+          });
+          const texts=nodes.filter(el=>parseFloat(getComputedStyle(el).fontSize)>0&&!el.matches('a.brand,.brand')&&[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
+          const sizes=[...new Set(texts.map(el=>parseFloat(getComputedStyle(el).fontSize).toFixed(2)))].sort((a,b)=>a-b);
+          const small=texts.filter(el=>parseFloat(getComputedStyle(el).fontSize)<11.99).slice(0,12)
+            .map(el=>({tag:el.tagName,cls:el.className,text:el.textContent.slice(0,35),px:getComputedStyle(el).fontSize}));
+          const tiny=nodes.filter(el=>el.matches('a,button')&&(el.getBoundingClientRect().width<24||el.getBoundingClientRect().height<24)).slice(0,12)
+            .map(el=>({text:el.textContent.slice(0,35),w:Math.round(el.getBoundingClientRect().width),h:Math.round(el.getBoundingClientRect().height)}));
+          const he=texts.filter(el=>/[א-ת]/.test(el.textContent)&&
+            (getComputedStyle(el).letterSpacing!=='normal'||getComputedStyle(el).textTransform!=='none'))
+            .slice(0,12).map(el=>({text:el.textContent.slice(0,25),space:getComputedStyle(el).letterSpacing,transform:getComputedStyle(el).textTransform}));
+          return {rubik:document.fonts.check('16px "Rubik Variable"'),
+            body:getComputedStyle(document.body).fontFamily,
+            small,tiny,he,sizes,upper:document.body.innerText.includes('EZRAIDER'),
+            upperContexts:[...document.body.innerText.matchAll(/.{0,45}EZRAIDER.{0,45}/g)].slice(0,10).map(m=>m[0]),
+            upperNodes:nodes.filter(el=>el.children.length===0&&/EZRAIDER/.test(el.innerText||'')).slice(0,10).map(el=>({tag:el.tagName,cls:String(el.className).slice(0,70),text:(el.innerText||'').slice(0,80),transform:getComputedStyle(el).textTransform}))};
+        });
+        check(m.rubik&&m.body.includes('Rubik Variable')&&m.small.length===0&&
+          m.tiny.length===0&&m.he.length===0&&m.sizes.length<=12&&!m.upper,
+          name+' DR-07/08/10 rendered font, type, targets, Hebrew and brand metrics '+JSON.stringify(m).slice(0,5200));
+      }
       if(name.startsWith('budapest-firstscreen-')){
         const banner=page.locator('.consent-banner');
         const bannerBox=await banner.boundingBox();
