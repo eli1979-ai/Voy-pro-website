@@ -184,6 +184,22 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await carousel.isVisible(),name+' verified full-text review ticker renders from approved manifest');
       check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
         name+' approved 20-review data powers three continuous carousel copies');
+      const reviewMetrics=await carousel.evaluate(root=>{
+        const all=[...root.querySelectorAll('.vp-review-card')];
+        const quotes=all.flatMap(card=>[...card.querySelectorAll('.vp-review-text')]);
+        const nested=quotes.filter(el=>['auto','scroll'].includes(getComputedStyle(el).overflowY)).length;
+        const visible=[...root.querySelectorAll('.vp-review-card *')].filter(el=>{
+          const style=getComputedStyle(el);
+          return style.display!=='none'&&style.visibility!=='hidden'&&
+            !el.closest('[aria-hidden="true"]')&&el.getBoundingClientRect().width>0;
+        });
+        const small=visible.filter(el=>el.children.length===0&&el.textContent.trim()&&parseFloat(getComputedStyle(el).fontSize)<12);
+        const tiny=visible.filter(el=>el.matches('a,button')&&el.getBoundingClientRect().height<24);
+        return {nested,small:small.length,tiny:tiny.length};
+      });
+      check(reviewMetrics.nested===0&&reviewMetrics.small===0&&reviewMetrics.tiny===0,
+        name+' DR-05 no nested review scrollboxes, text <12px or tap targets <24px ('+
+          JSON.stringify(reviewMetrics)+')');
       // New UI is still on this PR branch; test it against the actual locally
       // built HTML/JS in Chrome. The public alias keeps serving main until merge.
       if(viewport.width===390&&path.includes('buda-castle-ezraider-tour/')){
