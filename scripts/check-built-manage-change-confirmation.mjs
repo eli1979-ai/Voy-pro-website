@@ -14,7 +14,11 @@ requireText("if(st?.dataset.busy==='true'||document.getElementById('manage-cance
 requireText("changeButtons.forEach(b=>b.disabled=true)",'departure choices are not disabled during mutation');
 requireText("delete st.dataset.busy;changeButtons.forEach(b=>b.disabled=false);if(changeCancel)changeCancel.disabled=false;if(changeDate)changeDate.disabled=false;if(changeSearch)changeSearch.disabled=false;",'failed departure changes do not release the mutation/cross-control lock');
 forbidText("b.onclick=()=>changeDeparture(s.id);",'one-click departure mutation remains');
-forbidText(' await load();','duplicate/immediate Manage reload remains after departure change');
+// The initial token-scoped read must occur exactly once on page load.
+const bootstrap='\n await load();\n})();</script>';
+const directLoads=[...html.matchAll(/\bawait\s+load\(\)\s*;/g)].length;
+if(html.split(bootstrap).length!==2||directLoads!==1)
+  failures.push('Manage requires exactly one terminal await load() (and no duplicate direct init)');
 
 let inlineScripts=0;
 for(const match of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)){
