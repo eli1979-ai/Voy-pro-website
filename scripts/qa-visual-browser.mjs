@@ -879,6 +879,10 @@ try{
     if(!page)continue;
     try{
       if(name.startsWith('dr02-')){
+        // The generic root smoke can scroll to destination links before this
+        // focused first-viewport acceptance runs. Restore the opening fold.
+        await page.evaluate(()=>window.scrollTo(0,0));
+        await page.waitForFunction(()=>window.scrollY===0,null,{timeout:2500});
         const measure=await page.evaluate(()=>{
           const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
           const cards=document.querySelector('#destinations');
