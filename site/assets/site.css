@@ -1802,3 +1802,16 @@ body[data-intent="network"] .network-review-ribbon .network-review-language-note
   display:none;
  }
 }
+
+/* DR-06 Budapest: informational facts are typography, not clickable chips.
+   Real form filters, choice controls, booking links and buttons remain intact. */
+body[data-page*="/budapest/"] .hero .facts > span{
+ border-radius:0;border:0;background:transparent;box-shadow:none;
+ padding-block:4px;padding-inline:0 13px;
+}
+body[data-page*="/budapest/"] .tour-highlights > span{
+ border-radius:4px;box-shadow:none;
+}
+body[data-page*="/budapest/"] :is(.tour-tag,.popular-pill){
+ border-radius:4px;
+}

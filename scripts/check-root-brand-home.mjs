@@ -243,3 +243,11 @@ for(const file of ['site/index.html','site/he/index.html','site/hu/index.html','
     failures.push(file+': destination '+place+' must have one primary action');
  }
 }
+
+const dr06Css=read('site/assets/site.css');
+for(const part of ['.hero .facts > span','.tour-highlights > span',':is(.tour-tag,.popular-pill)']){
+ if(!dr06Css.includes('body[data-page*="/budapest/"] '+part))
+  failures.push('DR-06: Budapest informational pill style missing: '+part);
+}
+if(!dr06Css.includes('border-radius:0;border:0;background:transparent'))
+ failures.push('DR-06: Budapest hero fact pills remain decorative controls');
