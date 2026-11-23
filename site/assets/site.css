@@ -426,17 +426,17 @@ html[dir="rtl"] .tour-detail-link:after{inset:-70px -22px -210px -520px}
 .ancillary-card.is-unavailable{opacity:.58}
 .ancillary-visual{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:linear-gradient(160deg,#0d4d7c,#1477a8);color:#fff;text-align:center;padding:10px 7px}
 .ancillary-visual span{font-size:2rem;line-height:1}
-.ancillary-visual em{font-size:.67rem;font-style:normal;font-weight:750;line-height:1.15}
+.ancillary-visual em{font-size:12px;font-style:normal;font-weight:750;line-height:1.15}
 .ancillary-card-body{padding:12px 13px;display:flex;flex-direction:column}
 .ancillary-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ancillary-card-top strong{font-size:1rem;white-space:nowrap}
 .ancillary-price{display:flex;flex-direction:column;align-items:flex-end;line-height:1.05}
-.ancillary-price small{margin-top:3px;font-size:.66rem;font-weight:700;color:#74808a;letter-spacing:.01em}
+.ancillary-price small{margin-top:3px;font-size:12px;font-weight:700;color:#74808a;letter-spacing:.01em}
 .rtl .ancillary-price{align-items:flex-start}
-.ancillary-kind{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:.67rem;font-weight:850;letter-spacing:.06em;background:#e7f4fb;color:#0d4d7c}
+.ancillary-kind{display:inline-flex;padding:4px 7px;border-radius:999px;font-size:12px;font-weight:850;letter-spacing:.06em;background:#e7f4fb;color:#0d4d7c}
 .ancillary-kind.rental{background:#fff2d9;color:#7b4c00}
 .ancillary-card h4{margin:8px 0 2px;font-size:1rem}
-.ancillary-card p{margin:0;color:#65717d;font-size:.84rem}.ancillary-availability{margin-top:7px;font-size:.74rem;font-weight:800;color:#9a5b00;line-height:1.3}
+.ancillary-card p{margin:0;color:#65717d;font-size:.84rem}.ancillary-availability{margin-top:7px;font-size:12px;font-weight:800;color:#9a5b00;line-height:1.3}
 .ancillary-add-btn{margin-top:auto;padding:10px 14px;border:0;border-radius:12px;background:#0d4d7c;color:#fff;font-weight:850;letter-spacing:.01em;cursor:pointer;box-shadow:0 8px 18px rgba(13,77,124,.18);transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
 .ancillary-add-btn:hover{transform:translateY(-1px);background:#0f5d92;box-shadow:0 10px 22px rgba(13,77,124,.24)}
 .ancillary-add-btn:focus-visible{outline:3px solid rgba(13,77,124,.24);outline-offset:2px}
@@ -1642,7 +1642,7 @@ body[data-page^="/he/budapest/"] :is(.tour-choice-card,.content-card,.related-ca
 @media(max-width:600px){
   body[data-page$="/budapest/"] .hero{padding:20px 0 18px}
   body[data-page$="/budapest/"] .hero-grid{gap:16px}
-  body[data-page$="/budapest/"] .hero .eyebrow{font-size:11px;line-height:1.25}
+  body[data-page$="/budapest/"] .hero .eyebrow{font-size:12px;line-height:1.25}
   body[data-page$="/budapest/"] .hero h1{font-size:clamp(28px,8vw,34px);line-height:1.13;margin:8px 0 9px;letter-spacing:-.6px}
   body[data-page="/he/budapest/"] .hero h1{font-size:33px}
   body[data-page$="/budapest/"] .hero p{font-size:14px;line-height:1.38;margin:7px 0}
@@ -1696,7 +1696,7 @@ body[data-intent="network"] .network-ez-head{
 }
 body[data-intent="network"] .network-ez-head-copy{min-width:0}
 body[data-intent="network"] .network-ez-eyebrow{
-  margin:0 0 8px;font-size:11px;line-height:1.3;
+  margin:0 0 8px;font-size:12px;line-height:1.3;
   letter-spacing:.1em;font-weight:900;color:#17648b
 }
 body[data-intent="network"] .hero .network-ez-head h2{
@@ -1730,7 +1730,7 @@ body[data-intent="network"] .network-ez-feature-card{
   border-radius:15px;background:#fff
 }
 body[data-intent="network"] .network-ez-feature-index{
-  font-size:11px;font-weight:900;color:#17719e;letter-spacing:.06em
+  font-size:12px;font-weight:900;color:#17719e;letter-spacing:.06em
 }
 body[data-intent="network"] .hero .network-ez-feature-card h3{
   margin:0;font-size:clamp(14px,1.4vw,17px);
@@ -1747,7 +1747,7 @@ body[data-intent="network"] .network-ez-cta{
   display:block;width:100%;box-sizing:border-box;text-align:center
 }
 body[data-intent="network"] .hero .network-ez-spotlight .network-ez-note{
-  margin:11px 0 0;font-size:11px;line-height:1.4;color:#536978
+  margin:11px 0 0;font-size:12px;line-height:1.4;color:#536978
 }
 body[data-intent="network"] .hero-grid{align-items:start;gap:24px}
 body[data-intent="network"] .hero-card{align-self:start}
@@ -1828,3 +1828,13 @@ footer a,.destination-photo-credits a,.vp-review-card a{
 }
 .language-picker .lang-switch{min-height:24px;box-sizing:border-box}
 body :is(.network-ez-note,.network-ez-eyebrow,.destination-photo-credits,.tour-tag,.tour-duration){font-size:var(--voy-type-xs)}
+
+/* DR-08 brand casing and DR-10 24px action targets; keep text itself readable. */
+.brand-word{letter-spacing:normal;text-transform:none;font-variant-caps:normal}
+:lang(he) :is(.eyebrow,.tour-tag,.network-ez-eyebrow,.vp-reviews-eyebrow,.facts span){
+ letter-spacing:normal;text-transform:none;
+}
+:is(footer,.network-review-ribbon,.tour-vehicle-guide-link,.destination-photo-credits) a{
+ display:inline-flex;align-items:center;min-height:24px;padding-block:3px;
+}
+:where(.vp-review-expand,.review-source-link,.lang-switch){min-height:24px}
