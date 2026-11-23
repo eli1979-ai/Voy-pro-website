@@ -1838,3 +1838,7 @@ body :is(.network-ez-note,.network-ez-eyebrow,.destination-photo-credits,.tour-t
  display:inline-flex;align-items:center;min-height:24px;padding-block:3px;
 }
 :where(.vp-review-expand,.review-source-link,.lang-switch){min-height:24px}
+
+/* DR-07: Hebrew Budapest had a stronger legacy system-font override.
+   Apply the exact same local Rubik Variable across the entire Hebrew site. */
+html[lang="he"] body{font-family:var(--voy-font-body)!important}

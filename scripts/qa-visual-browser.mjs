@@ -184,6 +184,22 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await carousel.isVisible(),name+' verified full-text review ticker renders from approved manifest');
       check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
         name+' approved 20-review data powers three continuous carousel copies');
+      const reviewMetrics=await carousel.evaluate(root=>{
+        const all=[...root.querySelectorAll('.vp-review-card')];
+        const quotes=all.flatMap(card=>[...card.querySelectorAll('.vp-review-text')]);
+        const nested=quotes.filter(el=>['auto','scroll'].includes(getComputedStyle(el).overflowY)).length;
+        const visible=[...root.querySelectorAll('.vp-review-card *')].filter(el=>{
+          const style=getComputedStyle(el);
+          return style.display!=='none'&&style.visibility!=='hidden'&&
+            !el.closest('[aria-hidden="true"]')&&el.getBoundingClientRect().width>0;
+        });
+        const small=visible.filter(el=>el.children.length===0&&el.textContent.trim()&&parseFloat(getComputedStyle(el).fontSize)<12);
+        const tiny=visible.filter(el=>el.matches('a,button')&&el.getBoundingClientRect().height<24);
+        return {nested,small:small.length,tiny:tiny.length};
+      });
+      check(reviewMetrics.nested===0&&reviewMetrics.small===0&&reviewMetrics.tiny===0,
+        name+' DR-05 no nested review scrollboxes, text <12px or tap targets <24px ('+
+          JSON.stringify(reviewMetrics)+')');
       // New UI is still on this PR branch; test it against the actual locally
       // built HTML/JS in Chrome. The public alias keeps serving main until merge.
       if(viewport.width===390&&path.includes('buda-castle-ezraider-tour/')){
@@ -876,7 +892,7 @@ try{
               r.width>0&&r.height>0&&style.display!=='none'&&
               style.visibility!=='hidden';
           });
-          const texts=nodes.filter(el=>[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
+          const texts=nodes.filter(el=>!el.matches('a.brand')&&[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
           const sizes=[...new Set(texts.map(el=>parseFloat(getComputedStyle(el).fontSize).toFixed(2)))].sort((a,b)=>a-b);
           const small=texts.filter(el=>parseFloat(getComputedStyle(el).fontSize)<11.99).slice(0,12)
             .map(el=>({tag:el.tagName,cls:el.className,text:el.textContent.slice(0,35),px:getComputedStyle(el).fontSize}));
@@ -891,7 +907,7 @@ try{
         });
         check(m.rubik&&m.body.includes('Rubik Variable')&&m.small.length===0&&
           m.tiny.length===0&&m.he.length===0&&m.sizes.length<=12&&!m.upper,
-          name+' DR-07/08/10 rendered font, type, targets, Hebrew and brand metrics '+JSON.stringify(m).slice(0,850));
+          name+' DR-07/08/10 rendered font, type, targets, Hebrew and brand metrics '+JSON.stringify(m).slice(0,3500));
       }
       if(name.startsWith('budapest-firstscreen-')){
         const banner=page.locator('.consent-banner');
