@@ -226,3 +226,20 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VOY PRO root-brand guard OK: root is destination-neutral and links the active destination journeys.');
+
+const dr07Style=read('site/assets/site.css');
+for(const family of ['latin','latin-ext','hebrew']){
+ if(!dr07Style.includes('/assets/fonts/rubik-'+family+'-wght-normal.woff2'))
+  failures.push('DR-07 local Rubik '+family+' subset missing from CSS');
+}
+if(!dr07Style.includes('font-display:swap')||
+   !dr07Style.includes('body{font-family:var(--voy-font-body)}'))
+ failures.push('DR-07 self-hosted Rubik variable family missing');
+if(!dr07Style.includes(':lang(he) :is(.eyebrow')||
+   !dr07Style.includes('letter-spacing:normal;text-transform:none'))
+ failures.push('DR-08 RTL eyebrow normalization missing');
+for(const [file,subset] of [['site/index.html','latin'],['site/he/index.html','hebrew'],['site/hu/index.html','latin'],['site/es/index.html','latin']]){
+ const html=read(file);
+ if(!html.includes('/assets/fonts/rubik-'+subset+'-wght-normal.woff2'))
+  failures.push(file+': first-fold local font preload missing');
+}
