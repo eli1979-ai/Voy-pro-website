@@ -1803,8 +1803,17 @@ body[data-intent="network"] .network-review-ribbon .network-review-language-note
  }
 }
 
-/* DR-06 Budapest: informational facts are typography, not clickable chips.
-   Real form filters, choice controls, booking links and buttons remain intact. */
+/* DR-03: show at most two sourced hero facts; additional safety/eligibility
+   facts appear in the existing quick-info grid, never below the mobile CTA. */
+.hero .facts [hidden],.quickinfo-item[hidden]{display:none!important}
+.quickinfo-item.tour-extra-fact{min-width:0}
+.quickinfo-item .tour-extra-value{overflow-wrap:anywhere}
+@media(max-width:800px){
+ body[data-page*="/budapest/"] .hero:has(.tour-vehicle-guide-link) .facts{margin-block:8px 12px}
+ body[data-page*="/budapest/"] .hero:has(.tour-vehicle-guide-link) .btn[data-track="booking_cta"]{margin-bottom:4px}
+}
+
+/* DR-06: Budapest informational facts are text, not clickable chips. */
 body[data-page*="/budapest/"] .hero .facts > span{
  border-radius:0;border:0;background:transparent;box-shadow:none;
  padding-block:4px;padding-inline:0 13px;

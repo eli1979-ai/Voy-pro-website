@@ -318,6 +318,19 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         name+' visible and contained EZRaider image, four benefits and local CTA');
       check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
         name+' root trust stays in one contained three-column row at '+viewport.width+'px');
+      if(viewport.width<=800&&(name.startsWith('home-')||name.startsWith('network-home'))){
+        const destFirst=await page.evaluate(()=>{
+          const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
+          const hero=document.querySelector('main .hero');
+          const spotlight=document.querySelector('main .network-ez-after-destinations');
+          const cards=document.querySelector('#destinations');
+          if(!action||!hero||!spotlight||!cards)return false;
+          const a=action.getBoundingClientRect();
+          return a.width>0&&a.height>0&&a.top>=0&&a.bottom<=innerHeight+1&&
+            cards.compareDocumentPosition(spotlight)&Node.DOCUMENT_POSITION_FOLLOWING;
+        });
+        check(destFirst,name+' DR-02 primary destination action visible first viewport');
+      }
       const proof=await page.evaluate(()=>{
         const duplicates=document.querySelectorAll('.parent-hero-mosaic,.parent-hero-destination').length;
         const cards=[...document.querySelectorAll('.tour-picker#destinations .tour-choice-card')];
@@ -812,6 +825,14 @@ try{
     ['budapest-firstscreen-en','/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-he','/he/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-hu','/hu/budapest/',{width:375,height:812},{}],
+    ['dr02-en-375','/',{width:375,height:812},{}],
+    ['dr02-he-375','/he/',{width:375,height:812},{}],
+    ['dr02-hu-375','/hu/',{width:375,height:812},{}],
+    ['dr02-es-375','/es/',{width:375,height:812},{}],
+    ['dr02-en-390','/',{width:390,height:844},{}],
+    ['dr02-he-390','/he/',{width:390,height:844},{}],
+    ['dr02-hu-390','/hu/',{width:390,height:844},{}],
+    ['dr02-es-390','/es/',{width:390,height:844},{}],
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
@@ -857,6 +878,19 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name.startsWith('dr02-')){
+        const measure=await page.evaluate(()=>{
+          const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
+          const cards=document.querySelector('#destinations');
+          const guide=document.querySelector('.network-ez-after-destinations');
+          const r=action?.getBoundingClientRect();
+          return {first:!!r&&r.width>0&&r.height>=24&&r.top>=0&&r.bottom<=innerHeight,
+            order:!!cards&&!!guide&&Boolean(cards.compareDocumentPosition(guide)&Node.DOCUMENT_POSITION_FOLLOWING),
+            overflow:document.documentElement.scrollWidth>innerWidth+1};
+        });
+        check(measure.first&&measure.order&&!measure.overflow,
+          name+' destination action fully visible, guide follows destinations, no overflow');
+      }
       if(name.startsWith('budapest-firstscreen-')){
         const banner=page.locator('.consent-banner');
         const bannerBox=await banner.boundingBox();

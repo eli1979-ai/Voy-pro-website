@@ -221,12 +221,6 @@ requireText(density,'.section.booking{padding-block:24px}','Booking section exte
 requireText(density,'.section .content-card{padding:16px}','Tour detail cards must be compact');
 requireText(density,'.section .proof{gap:12px;padding:18px}','Promo bridges must remain compact');
 
-if(failures.length){
-  console.error('VOY PRO root-brand guard failed.');
-  for(const failure of failures)console.error('- '+failure);
-  process.exit(1);
-}
-console.log('VOY PRO root-brand guard OK: root is destination-neutral and links the active destination journeys.');
 
 for(const file of ['site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html']){
  const html=read(file);
@@ -251,3 +245,11 @@ for(const part of ['.hero .facts > span','.tour-highlights > span',':is(.tour-ta
 }
 if(!dr06Css.includes('border-radius:0;border:0;background:transparent'))
  failures.push('DR-06: Budapest hero fact pills remain decorative controls');
+
+
+if(failures.length){
+  console.error('VOY PRO root-brand guard failed.');
+  for(const failure of failures)console.error('- '+failure);
+  process.exit(1);
+}
+console.log('VOY PRO root-brand guard OK: root is destination-neutral and links the active destination journeys.');
