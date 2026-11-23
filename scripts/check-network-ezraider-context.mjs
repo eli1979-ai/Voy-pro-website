@@ -537,4 +537,4 @@ for(const place of ['budapest','marvao']){
  const rule=destinationFocalCss.match(new RegExp('body\\[data-intent="network"\\] \\.tour-picker#destinations \\.destination-card--'+place+'\\s*\\{([^}]+)\\}'));
  assert.ok(rule&&rule[1].includes('--destination-focus:center 100%'),place+': photo must be bottom-aligned for all viewports');
 }
-assert.ok(!/destination-card--prague/.test(destinationFocalCss), 'Prague focal point must not change');
+assert.ok(!/destination-card--prague[^{}]*\{[^}]*--destination-focus/.test(destinationFocalCss), 'Prague focal point must not change');
