@@ -1865,3 +1865,19 @@ footer a,.footer a,.footer-links a,.footer-nav a,.consent-banner a,
    to the same visual rhythm. For pre-2024 browsers, clamp stays as fallback. */
 :root{--voy-step-12:12px;--voy-step-14:14px;--voy-step-16:16px;--voy-step-18:18px;--voy-step-20:20px;--voy-step-24:24px;--voy-step-28:28px;--voy-step-32:32px;--voy-step-36:36px;--voy-step-40:40px;--voy-step-48:48px;--voy-step-56:56px;}
 @media(max-width:800px){html[lang="he"] body[data-page*="/budapest/"] .hero h1{font-size:var(--voy-step-36)}}
+
+/* DR-07 regression: Rubik Hebrew text needs an explicit two-column mobile
+   recovery bar for catalog-unavailable states. Maintain the <=105px
+   control envelope without hiding unavailable-price truth or the CTA. */
+@media(max-width:420px){
+ html[lang="he"] .mobilebook.is-price-unavailable{
+  display:grid;grid-template-columns:minmax(0,110px) minmax(0,1fr);
+  gap:6px;align-items:center;padding:6px 8px;
+ }
+ html[lang="he"] .mobilebook.is-price-unavailable .mobile-price-copy{
+  min-width:0;max-width:110px;overflow-wrap:anywhere;
+ }
+ html[lang="he"] .mobilebook.is-price-unavailable>.btn{
+  width:100%;min-width:0;white-space:normal;
+ }
+}
