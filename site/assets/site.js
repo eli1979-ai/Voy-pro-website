@@ -19,6 +19,119 @@
   }
 })();
 
+/* DR-08: preserve canonical mixed-case EZRaider inside tracked/uppercase
+   display labels. Replaces typography only; never changes legal, booking data,
+   or provider-facing texts. */
+(function markEZRaiderBrand(){
+  const selectors='.eyebrow,.network-ez-eyebrow,.tour-tag,.popular-pill,.ez-kicker';
+  const normalize=(el)=>{
+    for(const child of [...el.childNodes]){
+      if(child.nodeType!==Node.TEXT_NODE||!child.nodeValue.includes('EZRAIDER'))continue;
+      const segments=child.nodeValue.split('EZRAIDER');
+      const fragment=document.createDocumentFragment();
+      segments.forEach((part,i)=>{
+        if(i){const brand=document.createElement('span');brand.className='brand-word';brand.textContent='EZRaider';fragment.appendChild(brand)}
+        if(part)fragment.appendChild(document.createTextNode(part));
+      });
+      el.replaceChild(fragment,child);
+    }
+  };
+  for(const el of document.querySelectorAll(selectors)){
+    normalize(el);
+    // Existing personalization updates a few kickers after the source loads.
+    // Re-normalize only these nodes, never observe the entire customer DOM.
+    if(el.hasAttribute('data-personalize-kicker'))
+      new MutationObserver(()=>normalize(el)).observe(el,{childList:true,characterData:true,subtree:true});
+  }
+})();
+
+/* DR-04: one shared presentation adapter for existing static headers.
+   Preserve link destinations, locale availability, and active status. */
+(function alignHeaderPresentation(){
+  const nav=document.querySelector('header .navlinks');
+  if(!nav)return;
+  const locale=(document.documentElement.lang||'en').split('-')[0].toLowerCase();
+  const picker=nav.querySelector('.language-picker');
+  if(picker){
+    const order=['en','he','hu','es','pt'];
+    [...picker.querySelectorAll('a[hreflang]')]
+      .sort((a,b)=>order.indexOf(a.hreflang)-order.indexOf(b.hreflang))
+      .forEach(a=>picker.appendChild(a));
+  }
+  const labels={
+    en:{budapest:'Budapest',marvao:'Marvão',manage:'My booking',buda:'Buda Castle',margaret:'Margaret Island',extended:'Buda + Margaret',private:'Private tours'},
+    he:{budapest:'בודפשט',marvao:'מרבאו',manage:'ההזמנה שלי',buda:'סיור בודה',margaret:'אי מרגיט',extended:'בודה + מרגיט',private:'סיור פרטי'},
+    hu:{budapest:'Budapest',marvao:'Marvão',manage:'Foglalásom',buda:'Budai vár',margaret:'Margit-sziget',extended:'Buda + Margit',private:'Privát túrák'},
+    es:{budapest:'Budapest',marvao:'Marvão',manage:'Mi reserva',buda:'Castillo de Buda',margaret:'Isla Margarita',extended:'Buda + Margarita',private:'Tours privados'},
+    pt:{budapest:'Budapeste',marvao:'Marvão',manage:'Minha reserva',buda:'Castelo de Buda',margaret:'Ilha Margarida',extended:'Buda + Margarida',private:'Tours privados'}
+  };
+  const l=labels[locale]||labels.en;
+  nav.querySelectorAll(':scope > a:not(.btn)').forEach(link=>{
+    let path;try{path=new URL(link.href,location.href).pathname.toLowerCase()}catch{return}
+    const key=path.includes('buda-margaret-extended-tour')?'extended':
+      path.includes('buda-castle-ezraider-tour')?'buda':
+      path.includes('margaret-island-ezraider-tour')?'margaret':
+      path.includes('private-tours')?'private':
+      /^\/(?:he\/|hu\/|es\/|pt\/)?manage\/?$/.test(path)?'manage':
+      /^\/(?:he\/|hu\/|es\/|pt\/)?budapest\/?$/.test(path)?'budapest':
+      /^\/(?:he\/|hu\/|es\/|pt\/)?portugal\/?$/.test(path)?'marvao':null;
+    if(!key)return;
+    const shortened=l[key];
+    if(shortened&&link.textContent.trim()!==shortened){
+      link.setAttribute('aria-label',link.textContent.trim());
+      link.textContent=shortened;
+    }
+  });
+})();
+
+
+/* DR-03: presentation-only tour hero facts. The already-existing quick-info
+   grid owns safety, preparation and eligibility notes. No server-derived
+   fact, price or booking flow is synthesized or rewritten. */
+(function simplifyTourHeroFacts(){
+  // DR-03 is scoped to the Budapest tour/intent family. Portugal's distinct
+  // request-only destination hero must retain its own facts and dimensions.
+  if(!/(?:^|\/)budapest(?:\/|$)/.test(document.body?.dataset?.page||location.pathname))return;
+  const hero=document.querySelector('main .hero');
+  const facts=hero?.querySelector('.facts:not(.budapest-hero-facts)');
+  const grid=document.querySelector('main .quickinfo .quickinfo-grid');
+  if(!hero||!facts||!grid||facts.children.length<=3)return;
+  const locale=(document.documentElement.lang||'en').split('-')[0];
+  const heading={en:'Tour details',he:'פרטי הסיור',hu:'Tudnivalók',es:'Detalles del tour',pt:'Detalhes do passeio'}[locale]||'Tour details';
+  const hiddenText=/unavailable|not available|temporarily unavailable|אינם זמינים|לא זמינים|לא זמין|nem érhetők el|nem elérhető|no disponible|não estão disponíveis/i;
+  const all=[...facts.children];
+  const price=all.find(el=>el.matches('[data-runtime-price]'));
+  const duration=all.find(el=>el.matches('[data-api-tour-duration]'))||
+    all.find(el=>/^\s*(?:\d+\s*(?:hours?|hrs?|óra|שעות|שעתיים|horas?|minutos?)|(?:שעה אחת))\b/i.test(el.textContent||''));
+  const keep=new Set([price,duration].filter(Boolean));
+  // Two or fewer verified commerce/time facts may be shown. The reputation
+  // section below the hero already owns its sourced star rating.
+  for(const node of all){
+    if(keep.has(node))continue;
+    const item=document.createElement('div');
+    item.className='quickinfo-item tour-extra-fact';
+    const label=document.createElement('small');label.textContent=heading;
+    const value=document.createElement('b');value.className='tour-extra-value';
+    value.appendChild(node);
+    item.append(label,value);
+    grid.appendChild(item);
+  }
+  const guard=(node)=>{
+    if(!node)return;
+    const update=()=>{
+      const unavailable=hiddenText.test(node.textContent||'')||!(node.textContent||'').trim();
+      node.hidden=unavailable;
+      if(node.parentElement?.classList.contains('tour-extra-value'))
+        node.parentElement.parentElement.hidden=unavailable;
+    };
+    update();
+    new MutationObserver(update).observe(node,{childList:true,characterData:true,subtree:true});
+  };
+  guard(price);
+  all.filter(el=>el.matches('[data-runtime-rider-policy]')).forEach(guard);
+})();
+
+
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');
