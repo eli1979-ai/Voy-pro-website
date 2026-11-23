@@ -833,6 +833,26 @@ try{
     ['dr02-he-390','/he/',{width:390,height:844},{}],
     ['dr02-hu-390','/hu/',{width:390,height:844},{}],
     ['dr02-es-390','/es/',{width:390,height:844},{}],
+    ['dr06-en-320','/',{width:320,height:700},{}],
+    ['dr06-en-375','/',{width:375,height:812},{}],
+    ['dr06-en-390','/',{width:390,height:844},{}],
+    ['dr06-en-768','/',{width:768,height:800},{}],
+    ['dr06-en-1440','/',{width:1440,height:900},{}],
+    ['dr06-he-320','/he/',{width:320,height:700},{}],
+    ['dr06-he-375','/he/',{width:375,height:812},{}],
+    ['dr06-he-390','/he/',{width:390,height:844},{}],
+    ['dr06-he-768','/he/',{width:768,height:800},{}],
+    ['dr06-he-1440','/he/',{width:1440,height:900},{}],
+    ['dr06-hu-320','/hu/',{width:320,height:700},{}],
+    ['dr06-hu-375','/hu/',{width:375,height:812},{}],
+    ['dr06-hu-390','/hu/',{width:390,height:844},{}],
+    ['dr06-hu-768','/hu/',{width:768,height:800},{}],
+    ['dr06-hu-1440','/hu/',{width:1440,height:900},{}],
+    ['dr06-es-320','/es/',{width:320,height:700},{}],
+    ['dr06-es-375','/es/',{width:375,height:812},{}],
+    ['dr06-es-390','/es/',{width:390,height:844},{}],
+    ['dr06-es-768','/es/',{width:768,height:800},{}],
+    ['dr06-es-1440','/es/',{width:1440,height:900},{}],
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
@@ -878,6 +898,23 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name.startsWith('dr06-')){
+        const m=await page.evaluate(()=>{
+          const area=document.querySelector('.network-value-section');
+          const support=area?.querySelectorAll('article.content-card.network-support-card')||[];
+          const other=area?.querySelectorAll('article.content-card')||[];
+          const benefits=[...document.querySelectorAll('.network-ez-after-destinations .network-ez-feature-card')];
+          const prague=document.querySelector('.destination-card--prague');
+          const active=['budapest','marvao'].map(key=>document.querySelector('.destination-card--'+key));
+          const actionCounts=active.map(card=>card?.querySelectorAll('.tour-choice-actions a[href]')?.length||0);
+          return {support:support.length,other:other.length,benefits:benefits.length,
+            pragueSlim:!!prague&&active.every(card=>card&&prague.getBoundingClientRect().height<card.getBoundingClientRect().height),
+            actionCounts,overflow:document.documentElement.scrollWidth>innerWidth+1};
+        });
+        check(m.support===1&&m.other===1&&m.benefits===4&&m.pragueSlim&&
+          m.actionCounts.every(v=>v===1)&&!m.overflow,
+          name+' DR-06 actionable value, compact four-benefit row, Prague strip and one destination CTA: '+JSON.stringify(m));
+      }
       if(name==='budapest-he-mobile'){
         const pills=await page.evaluate(()=>{
           const all=[...document.querySelectorAll('body *')].filter(el=>{
