@@ -1792,3 +1792,13 @@ body[data-intent="network"] .tour-picker#destinations .destination-card{min-heig
 body[data-intent="network"] .network-review-ribbon{margin-block:0;background:#f0f7f8}
 body[data-intent="network"] .network-review-ribbon .network-review-intro{font-size:.88rem;color:#375e66;line-height:1.48;margin:9px 0 0;max-width:65ch}
 body[data-intent="network"] .network-review-ribbon .network-review-language-note{font-size:.76rem;color:#526973;margin:5px 0 0}
+
+/* DR-09: the live price already includes its localized "from" prefix.
+   Remove the duplicate small label on the Budapest mobile bar; Spanish
+   keeps "Desde" because its amount is displayed without that prefix.
+   The runtime amount, failure message, CTA and booking flow are untouched. */
+@media(max-width:800px){
+ html:is(:lang(en),:lang(he),:lang(hu)) body[data-page*="/budapest/"] .mobilebook .mobile-price-copy > small{
+  display:none;
+ }
+}

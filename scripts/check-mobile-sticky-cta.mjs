@@ -69,3 +69,6 @@ check(js.includes("const clearance=Math.ceil(window.innerHeight-rect.top+12);"),
 
 if(failures.length){console.error('Mobile sticky CTA checks FAIL:\n'+failures.join('\n'));process.exit(1)}
 console.log('Mobile sticky bar pricing and accessible compact WhatsApp checks OK (EN/HE/HU).');
+
+const dr09Css=fs.readFileSync('site/assets/site.css','utf8');
+check(dr09Css.includes('html:is(:lang(en),:lang(he),:lang(hu)) body[data-page*="/budapest/"] .mobilebook .mobile-price-copy > small'), 'DR-09: redundant mobile price label suppression missing');
