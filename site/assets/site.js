@@ -29,7 +29,7 @@
   if(!hero||!facts||!grid||facts.children.length<=3)return;
   const locale=(document.documentElement.lang||'en').split('-')[0];
   const heading={en:'Tour details',he:'פרטי הסיור',hu:'Tudnivalók',es:'Detalles del tour',pt:'Detalhes do passeio'}[locale]||'Tour details';
-  const hiddenText=/unavailable|not available|temporarily unavailable|אינם זמינים|לא זמינים|nem érhetők el|no disponible|não estão disponíveis/i;
+  const hiddenText=/unavailable|not available|temporarily unavailable|אינם זמינים|לא זמינים|לא זמין|nem érhetők el|nem elérhető|no disponible|não estão disponíveis/i;
   const all=[...facts.children];
   const price=all.find(el=>el.matches('[data-runtime-price]'));
   const duration=all.find(el=>el.matches('[data-api-tour-duration]'))||

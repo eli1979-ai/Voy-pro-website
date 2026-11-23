@@ -893,6 +893,9 @@ try{
           name+' DR-06 rounded-element count <=40 and zero decorative pills ('+JSON.stringify(pills)+')');
       }
       if(name.startsWith('dr02-')){
+        // Preserve the first-fold test's explicit reset after the generic root smoke.
+        await page.evaluate(()=>window.scrollTo(0,0));
+        await page.waitForFunction(()=>window.scrollY===0,null,{timeout:2500});
         const measure=await page.evaluate(()=>{
           const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
           const cards=document.querySelector('#destinations');
