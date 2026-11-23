@@ -28,3 +28,9 @@ if(failures.length){
   process.exit(1);
 }
 console.log('Mobile header overflow guard OK: languages stay visible at the top while destination controls collapse before narrow-screen overflow.');
+
+const dr04Js=fs.readFileSync('site/assets/site.js','utf8');
+check(dr04Js.includes("const order=['en','he','hu','es','pt']")&&
+ dr04Js.includes('picker.appendChild(a)')&&dr04Js.includes('if(picker)'), 'DR-04 shared locale ordering adapter missing');
+check(css.includes('header:has(.nav-menu-toggle) .location-switcher{display:none}')&&
+ css.includes('header .navlinks > a,header .navlinks > .language-picker .lang-switch'), 'DR-04 single tablet menu and desktop nonwrap rules missing');
