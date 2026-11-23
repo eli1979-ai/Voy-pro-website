@@ -227,3 +227,19 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VOY PRO root-brand guard OK: root is destination-neutral and links the active destination journeys.');
+
+for(const file of ['site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html']){
+ const html=read(file);
+ if((html.match(/class="content-card network-support-card"/g)||[]).length!==1||
+    (html.match(/class="content-card"/g)||[]).length!==1)
+  failures.push(file+': DR-06 must retain only the actionable support card');
+ const prague=html.match(/<article class="tour-choice-card destination-card destination-card--prague[\s\S]*?<\/article>/)?.[0]||'';
+ if(!prague||prague.includes('tour-choice-bottom')||prague.includes('tour-highlights'))
+  failures.push(file+': Prague must be a compact coming-soon strip');
+ for(const place of ['budapest','marvao']){
+  const card=html.match(new RegExp('<article class="tour-choice-card destination-card destination-card--'+place+'"[^>]*>[\\s\\S]*?<\\/article>'))?.[0]||'';
+  if((card.match(/class="tour-choice-actions"/g)||[]).length!==1||
+     card.includes('<small>Continue</small>')||card.includes('<small>המשך</small>'))
+    failures.push(file+': destination '+place+' must have one primary action');
+ }
+}

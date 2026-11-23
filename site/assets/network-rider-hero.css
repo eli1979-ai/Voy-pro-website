@@ -86,3 +86,38 @@ body[data-intent="network"] .hero:not(.network-ez-after-destinations) .hero-acti
  body[data-intent="network"] .hero:not(.network-ez-after-destinations) .network-rider-hero{margin-block:12px 10px}
  body[data-intent="network"] .network-ez-after-destinations{padding-block:22px 26px}
 }
+
+/* DR-06 network home only: compact four-key-benefit strip, one actionable
+   support card instead of three dead-end template panels, and Prague as
+   an informational coming-soon strip. Destination booking logic untouched. */
+body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;
+}
+body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-card{
+  min-width:0;display:flex;align-items:center;gap:7px;padding:9px 10px;
+  border:0;border-radius:10px;box-shadow:none;background:rgba(255,255,255,.68);
+}
+body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-index{
+  font-size:0;flex:none;
+}
+body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-index::before{
+  content:"✓";font-size:15px;line-height:1;color:#217852;
+}
+body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-card h3{
+  font-size:13px;line-height:1.35;margin:0;
+}
+body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-card p{
+  display:none;
+}
+body[data-intent="network"] .network-value-single{grid-template-columns:1fr}
+body[data-intent="network"] .tour-picker#destinations .destination-card--prague{
+  grid-column:1/-1;min-height:70px;display:flex;flex-direction:row;
+  align-items:center;gap:16px;padding:12px 20px;
+}
+body[data-intent="network"] .tour-picker#destinations .destination-card--prague :is(.tour-choice-top,h3,p){margin:0;flex:none}
+body[data-intent="network"] .tour-picker#destinations .destination-card--prague p{flex:1 1 0}
+@media(max-width:800px){
+ body[data-intent="network"] .network-ez-after-destinations .network-ez-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body[data-intent="network"] .tour-picker#destinations .destination-card--prague{flex-direction:column;align-items:flex-start;gap:8px}
+ body[data-intent="network"] .tour-picker#destinations .destination-card--prague p{flex:none}
+}
