@@ -1792,3 +1792,21 @@ body[data-intent="network"] .tour-picker#destinations .destination-card{min-heig
 body[data-intent="network"] .network-review-ribbon{margin-block:0;background:#f0f7f8}
 body[data-intent="network"] .network-review-ribbon .network-review-intro{font-size:.88rem;color:#375e66;line-height:1.48;margin:9px 0 0;max-width:65ch}
 body[data-intent="network"] .network-review-ribbon .network-review-language-note{font-size:.76rem;color:#526973;margin:5px 0 0}
+
+/* DR-04 consistent desktop labels and a single tablet navigation trigger. */
+@media(min-width:1280px){
+ header .navlinks > a,header .navlinks > .language-picker .lang-switch,
+ header .location-switcher summary{white-space:nowrap}
+ header .navlinks{gap:clamp(4px,.5vw,10px);min-width:0}
+ header .navlinks > a:not(.btn){font-size:clamp(12px,.95vw,14px)}
+}
+@media(min-width:521px) and (max-width:800px){
+ header:has(.nav-menu-toggle) .location-switcher{display:none}
+}
+
+/* DR-04 QA repair: 1365px Budapest and 1440px Spanish network header
+   require a narrower desktop label/gap fit. Keep every link on one line. */
+@media(min-width:1280px){
+ header .navlinks{gap:3px}
+ header .navlinks > a:not(.btn){font-size:12px}
+}
