@@ -693,6 +693,587 @@ async function tourPickerHomepageScenario(locale,{missingOption=false}={}){
   }
 }
 
+
+// P0 manual-only contract: run against a LOCAL static server and synthetic FBM.
+// Intentionally RED while the current client ignores manualOnly=true. Never
+// contact real FBM, WhatsApp, Stripe, or the public website from this test.
+async function manualOnlyAudit(name,path,options={}){
+  const page=await browser.newPage({
+    viewport:{width:options.desktop?1280:390,height:844},
+    reducedMotion:'reduce',serviceWorkers:'block'
+  });
+  const calls=[];
+  const configuredOn=options.bookingEnabled!==false;
+  if(options.seedRetry||options.seedSelection)await page.addInitScript(({retry,selection})=>{
+    if(retry)sessionStorage.setItem('voy_payment_retry_v1',JSON.stringify({
+      version:1,saved_at:Date.now(),
+      checkout_url:'https://checkout.stripe.com/c/pay/cs_test_synthetic_only',
+      expires_at:new Date(Date.now()+45*60000).toISOString(),
+      payment_checkout_id:'fixture_only'
+    }));
+    if(selection){
+      const day=new Date(Date.now()+5*86400000).toISOString().slice(0,10);
+      localStorage.setItem('voy_recovery_state',JSON.stringify({
+        version:1,saved_at:Date.now(),experience_id:'exp_bud_buda',
+        experience_slug:'buda-highlights',experience_title:'Buda Highlights',
+        date:day,is_private:false,guide_language:'en',
+        composition:{riders_16_plus:2,child_passengers_3_15:0,
+          baby_passengers_1_2:0,request_15yo_independent_assessment:false}
+      }));
+    }
+  },{retry:Boolean(options.seedRetry),selection:Boolean(options.seedSelection)});
+  await page.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());
+    if(url.origin===local){
+      if(url.pathname==='/assets/runtime-config.js'){
+        return route.fulfill({status:200,contentType:'text/javascript',
+          body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
+            manualOnly:true,bookingEnabled:configuredOn,apiRoot:fakeApi,
+            clientKey:'synthetic_browser_client'
+          })+';'});
+      }
+      if(url.pathname==='/api/request-to-book'||url.pathname==='/api/request-to-book/'){
+        calls.push({method:req.method(),path:url.pathname,source:'rtb'});
+        return route.fulfill({status:404,contentType:'application/json',
+          body:JSON.stringify({error:'request_intake_disabled'})});
+      }
+      return route.continue();
+    }
+    if(url.origin!==new URL(fakeApi).origin)return route.abort('blockedbyclient');
+    if(!url.pathname.startsWith('/api/v1/'))return route.abort('blockedbyclient');
+    const endpoint=url.pathname.slice('/api/v1'.length)+url.search;
+    const headers={'content-type':'application/json','access-control-allow-origin':local,
+      'access-control-allow-headers':'content-type,x-voy-client-key,x-voy-client,idempotency-key',
+      'access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS'};
+    if(req.method()==='OPTIONS')return route.fulfill({status:204,headers,body:''});
+    calls.push({method:req.method(),path:endpoint,source:'fbm'});
+    let data={ok:true};
+    if(endpoint==='/experiences'||endpoint==='/experiences?destination=budapest')data=products;
+    else if(endpoint==='/destinations/budapest')data={
+      id:'budapest',currency:'EUR',timezone:'Europe/Budapest',
+      booking_horizon_days:21,rider_policy:fixturePolicy,
+      meeting_point:{address:'Synthetic Budapest meeting point'}};
+    else if(endpoint==='/payments/capabilities')data={
+      online_card:false,provider:null,mode:'test',
+      readiness:{status:'unavailable',reason:'provider_disabled'}};
+    else if(endpoint==='/sessions')data={id:'synthetic_session_only'};
+    else if(/\/experiences\/[^/]+\/availability\?/.test(endpoint))data={slots:[]};
+    return route.fulfill({status:200,headers,body:JSON.stringify(data)});
+  });
+  try{
+    const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,name+' local fixture route loads');
+    if(options.manage){
+      await page.waitForFunction(()=>document.querySelector('#manage-box')?.textContent?.includes('support@voy-pro.com'),
+        null,{timeout:8000});
+      check(await page.locator('#manage-box a[href="mailto:support@voy-pro.com"]').count()===1,
+        name+' existing booking token gets a usable human support path when self-service is disabled');
+      check(!calls.some(c=>c.path.startsWith('/manage/')),
+        name+' no historic booking token sent to the disabled client');
+      return;
+    }
+    await page.waitForFunction(()=>Boolean(window.VOYBookingIntelligence),
+      null,{timeout:12000});
+    const html=await page.locator('html').evaluate(el=>({lang:el.lang,dir:el.dir}));
+    check(html.lang===options.locale,name+' retains document language');
+    check(options.locale==='he'?html.dir==='rtl':html.dir!=='rtl',
+      name+' retains correct RTL/LTR');
+    check(await page.locator('main h1').count()>0,
+      name+' tour content remains present');
+    if(options.aff){
+      await page.evaluate(apiOrigin=>{
+        const mount=document.createElement('div');
+        mount.id='synthetic-affiliate-mount';
+        document.body.appendChild(mount);
+        const script=document.createElement('script');
+        script.src='/assets/affiliate-booking-widget.js';
+        script.setAttribute('data-voy-affiliate-widget','');
+        script.setAttribute('data-target','synthetic-affiliate-mount');
+        script.setAttribute('data-affiliate','SYNTHETIC');
+        script.setAttribute('data-client-key','synthetic_widget_client');
+        script.setAttribute('data-api-root',apiOrigin);
+        document.body.appendChild(script);
+      },new URL(fakeApi).origin);
+      await wait(950);
+      check(!calls.some(c=>c.path==='/experiences?destination=budapest'),
+        name+' affiliate widget must NOT ignore manual-only contract (separate client boundary)');
+      return;
+    }
+    if(options.rtb){
+      // Check the authored WhatsApp route BEFORE the synthetic POST; the
+      // disabled relay fallback may navigate to an externally aborted URL.
+      check(await page.locator('a[href^="https://wa.me/36300993099"]').count()>0,
+        name+' authored WhatsApp fallback remains available before submitting RTB');
+      const form=page.locator('form.voy-rtb-enquiry');
+      const mounted=await form.count()>0;
+      check(!mounted,name+' request-to-book form must not mount during manual-only');
+      if(mounted){
+        const date=new Date(Date.now()+6*86400000).toISOString().slice(0,10);
+        await form.locator('[name="requested_date"]').fill(date);
+        await form.locator('[name="requested_time"]').fill('14:00');
+        await form.locator('[name="requested_guide_language"]').selectOption('en');
+        await form.locator('[name="contact_name"]').fill('Synthetic Guest');
+        await form.locator('[name="contact_phone"]').fill('0000000000');
+        await form.locator('button[type="submit"]').click();
+        await wait(250);
+      }
+      check(!calls.some(c=>c.source==='rtb'&&c.method==='POST'),
+        name+' RTB submit cannot POST when manual-only');
+    }
+    if(options.seedRetry){
+      check(await page.locator('[data-payment-retry]').count()===0,
+        name+' saved Stripe redirect cannot be restored from sessionStorage');
+    }
+    if(options.seedSelection){
+      check(await page.locator('[data-resume-booking]').isHidden(),
+        name+' saved selection cannot restore a checkout path');
+    }
+    if(options.wa){
+      // RTB pages use authored WhatsApp anchors without data-wa.
+      const tagged=page.locator('[data-wa]').first();
+      const link=await tagged.count()?tagged:page.locator('a[href^="https://wa.me/"]').first();
+      check(await link.count()===1,name+' WhatsApp contact remains in page');
+      if(await link.count()){
+        const target=await link.getAttribute('href');
+        check(target?.startsWith('https://wa.me/'+options.wa),
+          name+' WhatsApp points to correct branch, not an FBM checkout');
+        await link.evaluate(node=>{
+          node.addEventListener('click',event=>event.preventDefault(),
+            {capture:true,once:true});
+          node.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));
+        });
+        await wait(320);
+      }
+    }
+    if(options.availability){
+      const form=page.locator('#availability-form');
+      const submit=form.locator('button[type="submit"]');
+      check(await submit.count()===1,name+' availability section still has accessible context');
+      if(await submit.count()){
+        const disabled=await submit.isDisabled()||await submit.isHidden();
+        check(disabled,name+' manual-only blocks public availability submit');
+        if(!disabled){
+          await form.locator('[name="date"]').fill(
+            new Date(Date.now()+6*86400000).toISOString().slice(0,10));
+          await form.locator('[name="guide_language"]').selectOption('en');
+          await form.locator('[name="adults"]').selectOption('2');
+          await submit.click();
+          await wait(320);
+        }
+      }
+    }
+    if(options.directProbe){
+      // An old cached page, injected script, or console caller can invoke the
+      // existing exported API bridge. Manual-only must reject it before fetch,
+      // for *every* business write and side-effecting availability GET.
+      const actions=[
+        {method:'GET',path:'/experiences/exp_bud_buda/availability?date=2099-01-01'},
+        {method:'POST',path:'/quotes'},
+        {method:'POST',path:'/holds'},
+        {method:'POST',path:'/bookings'},
+        {method:'POST',path:'/booking-capacity-requests'},
+        {method:'POST',path:'/payments/intents'},
+        {method:'POST',path:'/sessions'},
+        {method:'POST',path:'/attribution/sync'}
+      ];
+      const start=calls.length;
+      await page.evaluate(async entries=>{
+        const send=window.VOYBookingIntelligence?.api;
+        if(typeof send!=='function')return;
+        for(const entry of entries){
+          try{await send(entry.path,{method:entry.method,
+            ...(entry.method==='POST'?{body:'{}'}:{})});}catch{}
+        }
+      },actions);
+      for(const entry of actions){
+        check(!calls.slice(start).some(c=>c.source==='fbm'&&
+          c.method===entry.method&&c.path===entry.path),
+          name+' manual-only rejects direct '+entry.method+' '+entry.path.split('?')[0]);
+      }
+    }
+    const unsafe=calls.filter(c=>c.source==='fbm'&&(
+      /\/experiences\/[^/]+\/availability\?/.test(c.path)||
+      /^\/(?:quotes|holds|bookings|booking-capacity-requests|payments\/intents|sessions|attribution\/sync|marketing\/events|promotions\/validate|ancillary\/offers)(?:\/|\?|$)/.test(c.path)));
+    check(unsafe.length===0,name+' no FBM availability, quote, hold, booking, payment, session or attribution request');
+  }catch(error){
+    failures.push(name+' manual-only fixture error: '+String(error).slice(0,320));
+  }finally{
+    await page.close().catch(()=>{});
+  }
+}
+
+
+
+// SERVER-DENY contract probes: additional to (never replaces) 19 RED client-gate
+// assertions. FBM draft #1092 proposes HTTP 423 {error:"PUBLIC_BOOKING_MANUAL_ONLY"}.
+// Other generic 403/409 are existing error classes, NOT the manual-only contract.
+// All URLs are intercepted locally. No live customer/API/provider traffic.
+async function serverDenyAudit(lang,path,{stage='availability',status=423,managePatched=false}={}){
+  const label='SERVER DENY '+lang+' '+stage+' '+status+(managePatched?' candidate':'');
+  const page=await browser.newPage({
+    viewport:{width:390,height:844},reducedMotion:'reduce',
+    serviceWorkers:'block',acceptDownloads:false
+  });
+  const calls=[],external=[],errors=[],consoleErrors=[];
+  const syntheticManage={email:'original@example.invalid',
+    phone:'0000000000',preferred_language:'en'};
+  page.on('console',message=>{
+    if(message.type()==='error')consoleErrors.push(message.text().slice(0,200));
+  });
+  if(stage.startsWith('manage')){
+    await page.addInitScript(()=>{
+      window.__syntheticFetchCalls=[];
+      window.__syntheticPromiseErrors=[];
+      addEventListener('unhandledrejection',event=>{
+        window.__syntheticPromiseErrors.push(String(event.reason).slice(0,180));
+      });
+      const original=window.fetch.bind(window);
+      window.fetch=(...args)=>{
+        window.__syntheticFetchCalls.push(String(args[0]).slice(0,130));
+        return original(...args);
+      };
+    });
+  }
+  const blockedPath=new URL(fakeApi);
+  const denyPayload=status===423?{error:'PUBLIC_BOOKING_MANUAL_ONLY'}
+    :status===403?{error:'Origin is not allowed.'}
+      :{error:'Departure unavailable.',code:'DEPARTURE_UNAVAILABLE'};
+  const deny=(headers)=>({status,headers,
+    body:JSON.stringify(denyPayload)});
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/*',async route=>{
+    const req=route.request(),url=new URL(req.url());
+    if(url.origin===local){
+      if(managePatched&&url.pathname==='/manage/'){
+        // The production build is untouched. Replay exactly the missing
+        // trailing initialization in this ONE intercepted local HTML reply.
+        // This proves candidate behavior without editing the source/build.
+        const built=await readFile(join(root,'manage/index.html'),'utf8');
+        const suffix='})();</script><script src="/assets/site.js"></script>';
+        if(built.includes(' await load();')||built.split(suffix).length!==2){
+          failures.push(label+' candidate HTML cannot prove unique startup injection');
+          return route.abort('blockedbyclient');
+        }
+        const candidate=built.replace(suffix,' await load();\n'+suffix);
+        return route.fulfill({status:200,contentType:'text/html',body:candidate});
+      }
+      if(url.pathname==='/assets/runtime-config.js')
+        return route.fulfill({status:200,contentType:'text/javascript',
+          body:'window.VOY_RUNTIME_CONFIG='+JSON.stringify({
+            manualOnly:true,bookingEnabled:stage!=='manage-off',
+            apiRoot:fakeApi,clientKey:'server_deny_synthetic_public_key'
+          })+';'});
+      // A Vercel relay is never invoked in a way that could reach a server.
+      if(url.pathname==='/api/request-to-book'||url.pathname==='/api/request-to-book/'){
+        calls.push({method:req.method(),path:url.pathname,status:404});
+        return route.fulfill({status:404,contentType:'application/json',
+          body:JSON.stringify({error:'request_intake_disabled'})});
+      }
+      return route.continue();
+    }
+    if(url.origin!==blockedPath.origin){
+      // Explicitly record attempts to visit a provider, live Staging, or a
+      // third-party script, but NEVER let one leave the fixture.
+      external.push({host:url.hostname,method:req.method(),path:url.pathname});
+      return route.abort('blockedbyclient');
+    }
+    if(!url.pathname.startsWith('/api/v1/'))return route.abort('blockedbyclient');
+    const endpoint=url.pathname.slice('/api/v1'.length)+url.search;
+    const method=req.method();
+    const headers={'content-type':'application/json',
+      'access-control-allow-origin':local,
+      'access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS',
+      'access-control-allow-headers':'x-voy-client-key,x-voy-client,content-type,idempotency-key'};
+    if(method==='OPTIONS'){
+      if(endpoint.startsWith('/manage/'))calls.push({method:'OPTIONS',path:endpoint,status:204});
+      return route.fulfill({status:204,headers,body:''});
+    }
+    calls.push({method,path:endpoint,status:null});
+    let response={status:200,headers,body:'{"ok":true}'};
+    if(endpoint==='/experiences'&&method==='GET')
+      response.body=JSON.stringify(products);
+    else if(endpoint==='/destinations/budapest'&&method==='GET')
+      response.body=JSON.stringify({
+        id:'budapest',rider_policy:fixturePolicy,booking_horizon_days:21,
+        meeting_point:{address:'Synthetic Budapest location'}});
+    else if(endpoint==='/marketing/experiments'&&method==='GET')
+      response.body='{"experiments":[]}';
+    else if(endpoint==='/payments/capabilities'&&method==='GET')
+      response.body=JSON.stringify({online_card:stage==='payment',provider:stage==='payment'?'stripe':null,
+        mode:'test',readiness:{status:stage==='payment'?'ready':'unavailable'}});
+    else if(endpoint==='/sessions'&&method==='POST')response=deny(headers);
+    else if(/^\/sessions\//.test(endpoint)&&method==='PATCH')response=deny(headers);
+    else if(endpoint==='/attribution/sync'&&method==='POST')response=deny(headers);
+    else if(/\/experiences\/[^/]+\/availability\?/.test(endpoint)&&method==='GET'){
+      response=stage==='availability'?deny(headers):{status:200,headers,
+        body:JSON.stringify({slots:[{
+          id:'22222222-2222-4222-8222-222222222222',
+          time:'10:30',sellable:true,requestable:false
+        }]})};
+    }else if(endpoint==='/quotes'&&method==='POST'){
+      response=stage==='quote'?deny(headers):{
+        status:200,headers,body:JSON.stringify({
+          id:'quote_synthetic',total:140,currency:'EUR',lines:[]
+        })};
+    }else if(endpoint==='/holds'&&method==='POST'){
+      response=stage==='hold'?deny(headers):{
+        status:201,headers,body:JSON.stringify({
+          id:'hold_synthetic',
+          expires_at:new Date(Date.now()+12*60000).toISOString(),
+          status:'active'
+        })};
+    }else if(endpoint==='/holds/hold_synthetic'&&method==='DELETE'){
+      response={status:200,headers,body:'{"released":true}'};
+    }else if(endpoint==='/ancillary/offers'&&method==='POST'){
+      response=deny(headers);
+    }else if(endpoint==='/bookings'&&method==='POST')response=deny(headers);
+    else if(endpoint==='/payments/intents'&&method==='POST')response=deny(headers);
+    else if(['manage-allowed','manage-accepted'].includes(stage)&&method==='GET'&&endpoint==='/manage/synthetic_only'){
+      response={status:200,headers,body:JSON.stringify({
+        reference:'SYNTHETIC-EXISTING',status:'confirmed',
+        selected_date:'2099-01-01',slot_time:'10:30',party_size:2,
+        group_composition:{riders_16_plus:2,child_passengers_3_15:0,baby_passengers_1_2:0},
+        experience_slug:'buda-highlights',guide_language:'en',total:140,currency:'EUR',
+        payment_status:'unpaid',payment_method:'pay_arrival_cash',
+        customer:{...syntheticManage}
+      })};
+    }else if(['manage-allowed','manage-accepted'].includes(stage)&&method==='GET'&&endpoint==='/manage/synthetic_only/options'){
+      response={status:200,headers,body:JSON.stringify({
+        can_change_datetime:false,cancellation:{allowed:false}
+      })};
+    }else if(['manage-allowed','manage-accepted'].includes(stage)&&method==='GET'&&endpoint==='/manage/synthetic_only/riders'){
+      response={status:200,headers,body:'{"riders":[]}'};
+    }else if(stage==='manage-accepted'&&endpoint==='/manage/synthetic_only'&&method==='PATCH'){
+      const data=JSON.parse(req.postData()||'{}');
+      syntheticManage.email=String(data.email||'');
+      syntheticManage.phone=String(data.phone||'');
+      syntheticManage.preferred_language=String(data.preferred_language||'');
+      response={status:200,headers,body:JSON.stringify({
+        reference:'SYNTHETIC-EXISTING',customer:{...syntheticManage}
+      })};
+    }else if(endpoint.startsWith('/manage/')&&method==='GET')response=deny(headers);
+    else if((endpoint.startsWith('/manage/')||endpoint.startsWith('/booking-capacity-requests'))
+      &&method!=='GET')response=deny(headers);
+    else if(method!=='GET')response=deny(headers);
+    calls[calls.length-1].status=response.status;
+    return route.fulfill(response);
+  });
+  try{
+    const response=await page.goto(local+path,{waitUntil:'domcontentloaded',timeout:25000});
+    check(response?.status()===200,label+' synthetic page loads');
+    if(['manage-off','manage-denied','manage-allowed','manage-accepted'].includes(stage)){
+      if(stage==='manage-off'){
+        await page.waitForFunction(()=>document.querySelector('#manage-box')?.textContent
+          ?.includes('support@voy-pro.com'),null,{timeout:8000});
+        check(!calls.some(c=>c.path.startsWith('/manage/')),
+          label+' disabled historic Manage makes no token request');
+        check(await page.locator('#manage-box a[href="mailto:support@voy-pro.com"]').count()===1,
+          label+' historic Manage provides human email');
+      }else{
+        // Separate a broken built Manage bootstrap from a synthetic-token or
+        // mock API failure. A direct test-only fetch cannot count as app work.
+        const normalized=await page.evaluate(()=>({
+          query:new URLSearchParams(location.search).has('token'),
+          hash:new URLSearchParams(location.hash.slice(1)).get('token')
+        }));
+        check(!normalized.query&&normalized.hash==='synthetic_only',
+          label+' synthetic token is normalized query to fragment');
+        const booted=await page.waitForFunction(()=>(
+          (window.__syntheticFetchCalls||[]).some(u=>u.includes('/manage/synthetic_only'))
+        ),null,{timeout:2200}).then(()=>true).catch(()=>false);
+        check(booted,label+' built Manage app issues initial token-scoped GET');
+        if(!booted){
+          const probe=await page.evaluate(async()=>{
+            const cfg=window.VOY_RUNTIME_CONFIG;
+            const result=await fetch(cfg.apiRoot+'/manage/synthetic_only',{
+              headers:{'x-voy-client-key':'server_deny_synthetic_public_key',
+                'x-voy-client':'voy-pro-website'}
+            });
+            return {status:result.status,payload:await result.json().catch(()=>null)};
+          }).catch(e=>({error:String(e)}));
+          check(probe.status===(stage==='manage-denied'?status:200),
+            label+' local Manage API mock responds to independent synthetic GET');
+          results.push('NOT VERIFIED: '+label+
+            ' customer read/mutation UX blocked by missing built Manage load()');
+          return;
+        }
+        if(stage==='manage-denied'){
+        check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/synthetic_only').length===1,
+          label+' synthetic private token sends exactly one initial GET');
+        check(!calls.some(c=>['PATCH','POST','DELETE'].includes(c.method)&&c.path.startsWith('/manage/')),
+          label+' failed Manage read performs no mutation');
+        const fallback=await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0;
+        check(fallback,label+' denied token routes to human WhatsApp');
+        if(!fallback){
+          const snapshot=await page.locator('#manage-box').innerText().catch(()=>'<box unavailable>');
+          const trace=await page.evaluate(()=>({
+            page:location.pathname+location.search+location.hash,
+            flag:window.VOY_RUNTIME_CONFIG?.bookingEnabled,
+            api:window.VOY_RUNTIME_CONFIG?.apiRoot,
+            scripts:document.scripts.length,
+            inlineLengths:[...document.scripts].map(s=>s.src?'external':s.textContent.length),
+            fetchCalls:window.__syntheticFetchCalls||[],
+            promiseErrors:window.__syntheticPromiseErrors||[],
+            title:document.title
+          }));
+          failures.push(label+' manage fallback diagnostic: '+snapshot.slice(0,200)+
+            ' | '+JSON.stringify({trace,requests:calls.filter(c=>c.path.startsWith('/manage/')).slice(0,5),
+              external:external.filter(c=>c.path.includes('/manage')).slice(0,3),
+              errors:errors.slice(0,2),console:consoleErrors.slice(0,4)}));
+        }
+        }else{
+        await page.locator('#manage-box .manage-head h2').waitFor({state:'attached',timeout:6000});
+        check((await page.locator('#manage-box .manage-head h2').innerText()).includes('SYNTHETIC-EXISTING'),
+          label+' existing booking details visible from authorized synthetic read');
+        check(calls.filter(c=>c.method==='GET'&&c.path==='/manage/synthetic_only').length===1,
+          label+' initial Manage GET uses scoped token exactly once');
+        const form=page.locator('#manage-contact');
+        await form.locator('[name="email"]').fill('updated@example.invalid');
+        await form.locator('button[type="submit"]').click();
+        await page.waitForFunction(({allowed})=>{
+          const status=document.querySelector('[data-contact-status]')?.textContent||'';
+          return allowed
+            ?/Contact details updated|פרטי הקשר עודכנו/i.test(status)
+            :/could not verify|לא הצלחנו לאמת|Could not update/i.test(status);
+        },{allowed:stage==='manage-accepted'},{timeout:8500});
+        check(calls.filter(c=>c.method==='PATCH'&&c.path==='/manage/synthetic_only').length===1,
+          label+' customer change uses one protected PATCH, never public POST booking');
+        check(
+          stage==='manage-accepted'
+            ?/Contact details updated|פרטי הקשר עודכנו/i.test(
+              await page.locator('[data-contact-status]').innerText())
+            :!/Contact details updated|פרטי הקשר עודכנו/i.test(
+              await page.locator('[data-contact-status]').innerText()),
+          label+(stage==='manage-accepted'
+            ?' authorized PATCH verified after canonical GET':' denied PATCH never claims saved'));
+        check(await page.locator('#manage-box a[href^="https://wa.me/"]').count()>0,
+          label+' existing booking retains human WhatsApp support');
+        }
+      }
+      check(!calls.some(c=>c.path==='/bookings'||c.path==='/payments/intents'),
+        label+' historic Manage cannot become public checkout');
+      return;
+    }
+    if(stage==='marvao'){
+      const wa=lang==='pt'?'351935695004':'351935695004';
+      const link=page.locator('a[href^="https://wa.me/'+wa+'"]').first();
+      check(await link.count()>0,label+' branch WhatsApp remains available');
+      check(!calls.some(c=>/\/(bookings|holds|payments\/intents)/.test(c.path)),
+        label+' branch contact did not trigger booking or payment');
+      return;
+    }
+    await page.locator('#availability-form select[name="experience"] option[value="exp_bud_buda"]')
+      .waitFor({state:'attached',timeout:12000});
+    const form=page.locator('#availability-form');
+    const date=form.locator('[name="date"]');
+    await date.fill(await date.getAttribute('min'));
+    await form.locator('[name="guide_language"] option[value="en"]')
+      .waitFor({state:'attached',timeout:8000});
+    await form.locator('[name="guide_language"]').selectOption('en');
+    await form.locator('[name="adults"]').selectOption('2');
+    await form.locator('button[type="submit"]').click();
+    await page.waitForFunction(({stage})=>{
+      const text=document.querySelector('#availability-status')?.textContent||'';
+      const slots=document.querySelectorAll('#slotlist button.slot').length;
+      return stage==='availability'
+        ? /could not be loaded|לא הצלחנו|nem sikerült/i.test(text)
+        : slots>0;
+    },{stage},{timeout:10000});
+    if(stage!=='availability'){
+      const slot=page.locator('#slotlist button.slot').first();
+      check(await slot.count()===1,label+' synthetic sellable slot displayed');
+      await slot.click();
+      await page.waitForFunction(({stage})=>stage==='quote'||stage==='hold'
+        ?/Could not hold|לא ניתן לשמור/i.test(document.querySelector('#availability-status')?.textContent||'')
+        :document.querySelector('#live-checkout-shell')?.hidden===false,
+        {stage},{timeout:10000});
+      if(stage==='booking'||stage==='payment'){
+        const checkout=page.locator('#live-checkout-form');
+        await checkout.locator('[name="full_name"]').fill('Synthetic Test Only');
+        await checkout.locator('[name="email"]').fill('synthetic@example.invalid');
+        await checkout.locator('[name="phone"]').fill('0000000000');
+        await checkout.locator('[name="legal_acceptance"]').check();
+        if(stage==='payment'){
+          const method=checkout.locator('[name="payment_method"]');
+          await method.locator('option[value="pay_now_card"]').waitFor({state:'attached'});
+          await page.waitForFunction(()=>!document.querySelector(
+            '#live-checkout-form option[value="pay_now_card"]')?.disabled,null,{timeout:9000});
+          await method.selectOption('pay_now_card');
+        }
+        await checkout.locator('button[type="submit"]').click();
+        await page.waitForFunction(()=>/could not verify|לא הצלחנו לאמת|Nem tudtuk/i.test(
+          document.querySelector('[data-checkout-status]')?.textContent||''),null,{timeout:12000});
+      }
+    }
+    const blockedEndpoint=stage==='availability'?'/availability?':
+      stage==='quote'?'/quotes':stage==='hold'?'/holds':
+        stage==='payment'?'/payments/intents':'/bookings';
+    check(calls.some(c=>c.status===status&&c.path.includes(blockedEndpoint)),
+      label+' FBM rejection observed with real proposed status/body');
+    const human=page.locator('#availability-status [data-inline-wa], [data-checkout-status] [data-inline-wa]');
+    check(await human.count()>0,label+' denied booking retains human WhatsApp escape');
+    const confirmation=page.locator('[data-checkout-status] .success-card, [data-checkout-status].success-card');
+    check(await confirmation.count()===0,
+      label+' denied request never displays Booking confirmed card');
+    const paymentLinks=page.locator('[data-payment-retry], [data-checkout-status] a[href^="https://checkout.stripe.com"]');
+    check(await paymentLinks.count()===0,
+      label+' denied request never creates payment demand or checkout redirect');
+    const paymentAttempt=calls.filter(c=>c.method==='POST'&&c.path==='/payments/intents').length;
+    check(stage==='payment'?paymentAttempt===1:paymentAttempt===0,
+      label+' no alternate payment route after server deny');
+    check(external.filter(c=>/ezraider-os-staging\.vercel\.app|stripe\.com/.test(c.host)).length===0,
+      label+' never falls back to live Staging or Stripe');
+    const primaryWrites=calls.filter(c=>c.method==='POST'&&/^(\/quotes|\/holds|\/bookings|\/payments\/intents|\/booking-capacity-requests)/.test(c.path));
+    const deniedWrites=primaryWrites.filter(c=>c.status===status);
+    check(primaryWrites.every(c=>c.status===status||(
+      c.path==='/quotes'&&stage!=='quote'&&c.status===200)||
+      (c.path==='/holds'&&['booking','payment'].includes(stage)&&c.status===201)),
+      label+' no unexpected fallback write endpoint');
+    if(stage==='availability'){
+      const attempts=calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length;
+      await wait(300);
+      check(calls.filter(c=>c.method==='GET'&&c.path.includes('/availability?')).length===attempts,
+        label+' no automatic retry after server rejection');
+      const statusText=await page.locator('#availability-status').innerText();
+      if(status===423){
+        const notice=lang==='en'
+          ?/online booking.*(?:paused|unavailable)/i.test(statusText)&&
+            /not.*confirmed booking/i.test(statusText)
+          :lang==='he'
+            ?/הזמנ/.test(statusText)&&/מושה|מושבת|אינן זמינות/.test(statusText)&&
+              /לא.*הזמנה מאושרת/.test(statusText)
+            :/foglalás/i.test(statusText)&&/szünetel|nem érhető el/i.test(statusText)&&
+              /nem.*visszaigazolt foglalás/i.test(statusText);
+        check(notice,label+' localized 423 explains booking paused and no confirmed booking');
+        check(!/try again|נסו שוב|próbáld újra|próbálja újra/i.test(statusText),
+          label+' explicit 423 manual-only denial must not suggest public retry');
+        check(await page.locator('#availability-form button[type="submit"]').isDisabled(),
+          label+' explicit 423 manual-only denial disables further public availability');
+      }
+    }else if(stage==='booking'||stage==='payment'){
+      const text=await page.locator('[data-checkout-status]').innerText();
+      check(!/Retry this same request|לנסות שוב את אותה בקשה|Próbáld újra ugyanazt/i.test(text),
+        label+' known 423 denial never offers payment/booking retry');
+      check(await page.locator('#live-checkout-form button[type="submit"]').isDisabled(),
+        label+' known 423 denial must lock booking/payment submit');
+    }
+    check(errors.length===0,label+' no uncaught browser JS errors');
+  }catch(error){
+    const snapshot=await page.locator('#manage-box').innerText().catch(()=>null);
+    failures.push(label+' isolated fixture failure: '+String(error).slice(0,230)+
+      (stage.startsWith('manage')?' | '+JSON.stringify({snapshot,
+        manageRequests:calls.filter(c=>c.path.startsWith('/manage/')).slice(0,4),
+        pageErrors:errors.slice(0,2),console:consoleErrors.slice(0,4),
+        detail:await page.evaluate(()=>({title:document.title,
+          fetchCalls:window.__syntheticFetchCalls||[],
+          promiseErrors:window.__syntheticPromiseErrors||[],
+          inlineLengths:[...document.scripts].map(s=>s.src?'external':s.textContent.length)
+        })).catch(()=>null)}):''));
+  }finally{
+    await page.close().catch(()=>{});
+  }
+}
+
 try{
   await scenario('en',paths[0][1]);
   for(const [lang,path] of paths)await scenario(lang,path,{sessionStalled:true});
@@ -722,6 +1303,59 @@ try{
   await scenario('en',paths[0][1],{recovery:'discard'});
   await scenario('he',paths[1][1],{recovery:'discard'});
   await scenario('hu',paths[2][1],{recovery:'discard'});
+  // P0 RED-first acceptance probes. All API responses are local interceptions;
+  // never paper over an expected RED to make CI appear green.
+  await manualOnlyAudit('manual EN Budapest','/budapest/tours/buda-castle-ezraider-tour/',
+    {locale:'en',bookingEnabled:true,wa:'36300993099',availability:true,seedSelection:true,directProbe:true});
+  await manualOnlyAudit('manual HE Budapest','/he/budapest/tours/buda-castle-ezraider-tour/',
+    {locale:'he',bookingEnabled:true,wa:'36300993099',availability:true});
+  await manualOnlyAudit('manual HU Budapest','/hu/budapest/tours/buda-castle-ezraider-tour/',
+    {locale:'hu',bookingEnabled:true,wa:'36300993099',availability:true});
+  await manualOnlyAudit('manual EN Marvao','/portugal/',
+    {locale:'en',bookingEnabled:true,wa:'351935695004'});
+  await manualOnlyAudit('manual HE Marvao','/he/portugal/',
+    {locale:'he',bookingEnabled:true,wa:'351935695004'});
+  await manualOnlyAudit('manual PT Marvao','/pt/portugal/',
+    {locale:'pt',bookingEnabled:true,wa:'351935695004'});
+  await manualOnlyAudit('manual RTB','/budapest/tours/heroes-square-city-ezraider-tour/',
+    {locale:'en',bookingEnabled:false,rtb:true});
+  await manualOnlyAudit('manual Stripe retry',
+    '/budapest/tours/buda-castle-ezraider-tour/?payment=cancelled',
+    {locale:'en',bookingEnabled:false,seedRetry:true,wa:'36300993099'});
+  await manualOnlyAudit('manual old booking manage','/manage/?lang=en#token=synthetic_token_only',
+    {manage:true,bookingEnabled:false});
+  await manualOnlyAudit('manual affiliate widget','/budapest/',
+    {locale:'en',bookingEnabled:false,aff:true});
+
+  // FBM #1092 SOURCE-only canonical 423 and separate existing 403/409 errors.
+  // These probe rejected HTTP replies, NOT the 19 existing client gate tests.
+  for(const [lang,path] of paths)
+    await serverDenyAudit(lang,path,{stage:'availability',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'availability',status:403});
+  await serverDenyAudit('en',paths[0][1],{stage:'availability',status:409});
+  await serverDenyAudit('en',paths[0][1],{stage:'quote',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'hold',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'booking',status:423});
+  await serverDenyAudit('en',paths[0][1],{stage:'payment',status:423});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-off',status:423});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-denied',status:423});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-allowed',status:423});
+  // Candidate-only built Manage restoration. This changes local intercepted HTML
+  // in memory, never checked-in site/build scripts or hosted behavior.
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-denied',status:403,managePatched:true});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-denied',status:423,managePatched:true});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-allowed',status:423,managePatched:true});
+  await serverDenyAudit('en','/manage/?lang=en&token=synthetic_only',
+    {stage:'manage-accepted',status:200,managePatched:true});
+  for(const [lang,path] of [['en','/portugal/'],['he','/he/portugal/'],['pt','/pt/portugal/']])
+    await serverDenyAudit(lang,path,{stage:'marvao',status:423});
+
 }finally{
   await browser.close();
   await new Promise(done=>server.close(done));
