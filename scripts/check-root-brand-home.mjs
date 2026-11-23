@@ -220,13 +220,6 @@ requireText(density,'.section.booking{padding-block:24px}','Booking section exte
 requireText(density,'.section .content-card{padding:16px}','Tour detail cards must be compact');
 requireText(density,'.section .proof{gap:12px;padding:18px}','Promo bridges must remain compact');
 
-if(failures.length){
-  console.error('VOY PRO root-brand guard failed.');
-  for(const failure of failures)console.error('- '+failure);
-  process.exit(1);
-}
-console.log('VOY PRO root-brand guard OK: root is destination-neutral and links the active destination journeys.');
-
 const dr07Style=read('site/assets/site.css');
 for(const family of ['latin','latin-ext','hebrew']){
  if(!dr07Style.includes('/assets/fonts/rubik-'+family+'-wght-normal.woff2'))
@@ -243,3 +236,24 @@ for(const [file,subset] of [['site/index.html','latin'],['site/he/index.html','h
  if(!html.includes('/assets/fonts/rubik-'+subset+'-wght-normal.woff2'))
   failures.push(file+': first-fold local font preload missing');
 }
+
+for(const step of [12,14,16,18,20,24,28,32,36,40,48,56]){
+ if(!dr07Style.includes('--voy-step-'+step+':'+step+'px'))
+  failures.push('DR-07 authorized type-scale step missing: '+step);
+}
+if(!dr07Style.includes('round(nearest,clamp('))
+ failures.push('DR-07 responsive typography not aligned to type steps');
+for(const subset of ['hebrew','latin','latin-ext']){
+ if(!fs.existsSync('site/assets/fonts/rubik-'+subset+'-wght-normal.woff2'))
+  failures.push('DR-07 actual first-party font subset missing: '+subset);
+}
+if(!fs.existsSync('site/assets/fonts/OFL-rubik.txt'))
+ failures.push('DR-07 SIL OFL license missing');
+
+if(failures.length){
+  console.error('VOY PRO root-brand guard failed.');
+  for(const failure of failures)console.error('- '+failure);
+  process.exit(1);
+}
+console.log('VOY PRO root-brand guard OK: root is destination-neutral and links the active destination journeys.');
+
