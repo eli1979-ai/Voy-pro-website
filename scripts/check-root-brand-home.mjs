@@ -135,7 +135,7 @@ requireText(siteJs,"if(!isPortugalPage&&!isBudapestPage)","mobile navigation mus
 requireText(siteJs,"document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});","brand links must resolve to the parent homepage");
 
 requireText(html,'Find the experience that fits your trip','root benefit section must speak to visitors');
-requireText(html,'Know what to expect','root local route guidance missing');
+requireText(html,'class="tour-choice-actions"','network local destination actions missing');
 forbidText(html,'Operational details live inside the destination journey','root homepage must not expose internal operations wording');
 forbidText(html,'customer journey and current booking or request path','root homepage must use customer-facing language');
 
@@ -224,8 +224,9 @@ requireText(density,'.section .proof{gap:12px;padding:18px}','Promo bridges must
 
 for(const file of ['site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html']){
  const html=read(file);
- if((html.match(/class="content-card network-support-card"/g)||[]).length!==1||
-    (html.match(/class="content-card"/g)||[]).length!==1)
+ const valueSection=html.split('<section class="section network-value-section">')[1]?.split('</section>')[0]||'';
+ if((valueSection.match(/class="content-card network-support-card"/g)||[]).length!==1||
+    (valueSection.match(/class="content-card"/g)||[]).length!==1)
   failures.push(file+': DR-06 must retain only the actionable support card');
  const prague=html.match(/<article class="tour-choice-card destination-card destination-card--prague[\s\S]*?<\/article>/)?.[0]||'';
  if(!prague||prague.includes('tour-choice-bottom')||prague.includes('tour-highlights'))
