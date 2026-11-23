@@ -903,11 +903,13 @@ try{
             .slice(0,12).map(el=>({text:el.textContent.slice(0,25),space:getComputedStyle(el).letterSpacing,transform:getComputedStyle(el).textTransform}));
           return {rubik:document.fonts.check('16px "Rubik Variable"'),
             body:getComputedStyle(document.body).fontFamily,
-            small,tiny,he,sizes,upper:document.body.innerText.includes('EZRAIDER')};
+            small,tiny,he,sizes,upper:document.body.innerText.includes('EZRAIDER'),
+            upperContexts:[...document.body.innerText.matchAll(/.{0,45}EZRAIDER.{0,45}/g)].slice(0,10).map(m=>m[0]),
+            upperNodes:nodes.filter(el=>el.children.length===0&&/EZRAIDER/.test(el.innerText||'')).slice(0,10).map(el=>({tag:el.tagName,cls:String(el.className).slice(0,70),text:(el.innerText||'').slice(0,80),transform:getComputedStyle(el).textTransform}))};
         });
         check(m.rubik&&m.body.includes('Rubik Variable')&&m.small.length===0&&
           m.tiny.length===0&&m.he.length===0&&m.sizes.length<=12&&!m.upper,
-          name+' DR-07/08/10 rendered font, type, targets, Hebrew and brand metrics '+JSON.stringify(m).slice(0,3500));
+          name+' DR-07/08/10 rendered font, type, targets, Hebrew and brand metrics '+JSON.stringify(m).slice(0,5200));
       }
       if(name.startsWith('budapest-firstscreen-')){
         const banner=page.locator('.consent-banner');
