@@ -1803,3 +1803,10 @@ body[data-intent="network"] .network-review-ribbon .network-review-language-note
 @media(min-width:521px) and (max-width:800px){
  header:has(.nav-menu-toggle) .location-switcher{display:none}
 }
+
+/* DR-04 QA repair: 1365px Budapest and 1440px Spanish network header
+   require a narrower desktop label/gap fit. Keep every link on one line. */
+@media(min-width:1280px){
+ header .navlinks{gap:3px}
+ header .navlinks > a:not(.btn){font-size:12px}
+}
