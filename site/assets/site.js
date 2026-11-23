@@ -23,6 +23,9 @@
    grid owns safety, preparation and eligibility notes. No server-derived
    fact, price or booking flow is synthesized or rewritten. */
 (function simplifyTourHeroFacts(){
+  // DR-03 is scoped to the Budapest tour/intent family. Portugal's distinct
+  // request-only destination hero must retain its own facts and dimensions.
+  if(!/(?:^|\/)budapest(?:\/|$)/.test(document.body?.dataset?.page||location.pathname))return;
   const hero=document.querySelector('main .hero');
   const facts=hero?.querySelector('.facts:not(.budapest-hero-facts)');
   const grid=document.querySelector('main .quickinfo .quickinfo-grid');
