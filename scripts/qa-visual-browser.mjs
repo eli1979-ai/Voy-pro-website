@@ -812,6 +812,16 @@ try{
     ['budapest-firstscreen-en','/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-he','/he/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-hu','/hu/budapest/',{width:375,height:812},{}],
+    ['dr07-home-375','/',{width:375,height:812},{}],
+    ['dr07-he-home-375','/he/',{width:375,height:812},{}],
+    ['dr07-budapest-375','/budapest/',{width:375,height:812},{}],
+    ['dr07-he-budapest-375','/he/budapest/',{width:375,height:812},{}],
+    ['dr07-he-tour-375','/he/budapest/tours/buda-castle-ezraider-tour/',{width:375,height:812},{}],
+    ['dr07-home-1440','/',{width:1440,height:900},{}],
+    ['dr07-he-home-1440','/he/',{width:1440,height:900},{}],
+    ['dr07-budapest-1440','/budapest/',{width:1440,height:900},{}],
+    ['dr07-he-budapest-1440','/he/budapest/',{width:1440,height:900},{}],
+    ['dr07-he-tour-1440','/he/budapest/tours/buda-castle-ezraider-tour/',{width:1440,height:900},{}],
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
@@ -857,6 +867,32 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name.startsWith('dr07-')){
+        await page.evaluate(()=>document.fonts.ready);
+        const m=await page.evaluate(()=>{
+          const nodes=[...document.querySelectorAll('body *')].filter(el=>{
+            const r=el.getBoundingClientRect(),style=getComputedStyle(el);
+            return !el.closest('script,style,template,svg,[aria-hidden="true"]')&&
+              r.width>0&&r.height>0&&style.display!=='none'&&
+              style.visibility!=='hidden';
+          });
+          const texts=nodes.filter(el=>[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
+          const sizes=[...new Set(texts.map(el=>parseFloat(getComputedStyle(el).fontSize).toFixed(2)))].sort((a,b)=>a-b);
+          const small=texts.filter(el=>parseFloat(getComputedStyle(el).fontSize)<11.99).slice(0,12)
+            .map(el=>({tag:el.tagName,cls:el.className,text:el.textContent.slice(0,35),px:getComputedStyle(el).fontSize}));
+          const tiny=nodes.filter(el=>el.matches('a,button')&&(el.getBoundingClientRect().width<24||el.getBoundingClientRect().height<24)).slice(0,12)
+            .map(el=>({text:el.textContent.slice(0,35),w:Math.round(el.getBoundingClientRect().width),h:Math.round(el.getBoundingClientRect().height)}));
+          const he=texts.filter(el=>/[א-ת]/.test(el.textContent)&&
+            (getComputedStyle(el).letterSpacing!=='normal'||getComputedStyle(el).textTransform!=='none'))
+            .slice(0,12).map(el=>({text:el.textContent.slice(0,25),space:getComputedStyle(el).letterSpacing,transform:getComputedStyle(el).textTransform}));
+          return {rubik:document.fonts.check('16px "Rubik Variable"'),
+            body:getComputedStyle(document.body).fontFamily,
+            small,tiny,he,sizes,upper:document.body.innerText.includes('EZRAIDER')};
+        });
+        check(m.rubik&&m.body.includes('Rubik Variable')&&m.small.length===0&&
+          m.tiny.length===0&&m.he.length===0&&m.sizes.length<=12&&!m.upper,
+          name+' DR-07/08/10 rendered font, type, targets, Hebrew and brand metrics '+JSON.stringify(m).slice(0,850));
+      }
       if(name.startsWith('budapest-firstscreen-')){
         const banner=page.locator('.consent-banner');
         const bannerBox=await banner.boundingBox();
