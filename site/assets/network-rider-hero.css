@@ -74,3 +74,15 @@ body[data-intent="network"] .tour-picker#destinations .destination-card--budapes
 body[data-intent="network"] .tour-picker#destinations .destination-card--marvao{
   --destination-focus:center 100%;
 }
+
+/* DR-02: the first screen must lead to destination selection; the detailed
+   EZRaider presentation lives in its own section after the destination cards. */
+body[data-intent="network"] .network-ez-after-destinations{padding-block:30px 36px}
+body[data-intent="network"] .network-ez-after-destinations .network-hero-punchline{margin-top:16px}
+body[data-intent="network"] .hero:not(.network-ez-after-destinations) .hero-actions{margin:16px 0 0}
+@media(max-width:800px){
+ body[data-intent="network"] .hero:not(.network-ez-after-destinations){padding-block:18px 22px}
+ body[data-intent="network"] .hero:not(.network-ez-after-destinations) h1{margin-block:7px 10px}
+ body[data-intent="network"] .hero:not(.network-ez-after-destinations) .network-rider-hero{margin-block:12px 10px}
+ body[data-intent="network"] .network-ez-after-destinations{padding-block:22px 26px}
+}

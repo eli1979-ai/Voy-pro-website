@@ -41,8 +41,8 @@ for(const language of ['he','hu','es']){
   requireText(localized,'href="/'+language+'/" hreflang="'+language+'"','active homepage language link missing: '+language);
 }
 
-// The EZRaider product story is ONE early hero spotlight, never a
-// second content section after ratings. Check every localized homepage.
+// The EZRaider story is ONE dedicated section after destination choices.
+// Keep the first-screen photo and immediate destination CTA before it.
 for(const [locale,file,href] of [
   ['en','site/index.html','/ezraider/?from=home&amp;return_to=%2F'],
   ['he','site/he/index.html','/he/ezraider/?from=home&amp;return_to=%2Fhe%2F'],
@@ -51,12 +51,12 @@ for(const [locale,file,href] of [
 ]){
   const page=read(file);
   const hero=page.split('<section class="hero">')[1]?.split('</section>')[0]||'';
-  const spotlight=hero.match(/<div class="network-ez-spotlight"[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/)?.[0]||'';
-  if(!spotlight)failures.push(locale+': integrated EZRaider hero spotlight missing');
+  const spotlight=page.match(/<div class="network-ez-spotlight"[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/)?.[0]||'';
+  if(!spotlight)failures.push(locale+': dedicated EZRaider spotlight missing');
   if((page.match(/class="network-ez-spotlight"/g)||[]).length!==1)failures.push(locale+': need exactly one EZRaider spotlight');
   if((page.match(/class="network-ez-feature-card"/g)||[]).length!==4)failures.push(locale+': four different benefits required');
   if(!spotlight.includes('class="btn alt network-ez-cta" href="'+href+'"'))
-    failures.push(locale+': localized guide CTA missing or moved outside the hero');
+    failures.push(locale+': localized guide CTA missing from dedicated section');
   if(!spotlight.includes('owner-photo-20261031.webp?v=20261120-hires')||
      !spotlight.includes('width="851" height="877"')||
      !spotlight.includes('network-ez-feature-grid')||
@@ -79,10 +79,11 @@ for(const [language,p] of [['en','site/index.html'],['he','site/he/index.html'],
  const posHero=content.indexOf('<section class="hero">');
  const posScores=content.indexOf('class="trust network-trust"');
  const posDest=content.indexOf('class="section tour-picker" id="destinations"');
+ const posSpotlight=content.indexOf('class="hero network-ez-after-destinations"');
  const posRibbon=content.indexOf('class="vp-reviews network-review-ribbon"');
  const posValue=content.indexOf('class="section network-value-section"');
- if(!(posHero>=0&&posScores>posHero&&posDest>posScores&&posRibbon>posDest&&posValue>posRibbon))
-   failures.push(language+': must display hero → three ratings → destination cards → guest stories → value');
+ if(!(posHero>=0&&posScores>posHero&&posDest>posScores&&posSpotlight>posDest&&posRibbon>posSpotlight&&posValue>posRibbon))
+   failures.push(language+': must display hero → ratings → destinations → EZRaider story → guest reviews → value');
  if(content.includes('parent-hero-mosaic')||content.includes('parent-hero-destination'))
    failures.push(language+': duplicate opening destination mosaic was not removed');
  if((content.match(/class="tour-choice-card destination-card destination-card--budapest"/g)||[]).length!==1||

@@ -275,7 +275,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const visibleCards=cards.filter(card=>getComputedStyle(card).display!=='none');
         const items=visibleCards.map(card=>card.getBoundingClientRect());
         const hero=document.querySelector('main .hero');
-        const guide=document.querySelector('main .hero .network-ez-spotlight');
+        const guide=document.querySelector('main .network-ez-after-destinations .network-ez-spotlight');
         const features=[...(guide?.querySelectorAll('.network-ez-feature-card')||[])];
         const featuresGrid=guide?.querySelector('.network-ez-feature-grid');
         const featuresRect=featuresGrid?.getBoundingClientRect();
@@ -292,9 +292,9 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           contained:!!bounds&&items.every(item=>item.width>0&&
             item.left>=bounds.left-2&&item.right<=bounds.right+2),
           attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
-          order:!!(hero&&guide&&band&&
-            hero.getBoundingClientRect().top<=guide.getBoundingClientRect().top&&
-            guide.getBoundingClientRect().bottom<=band.getBoundingClientRect().top+2),
+          order:!!(hero&&guide&&band&&document.querySelector('#destinations')&&
+            hero.getBoundingClientRect().bottom<=band.getBoundingClientRect().top+2&&
+            document.querySelector('#destinations').getBoundingClientRect().bottom<=guide.getBoundingClientRect().top+2),
           oneSpotlight:document.querySelectorAll('main .network-ez-spotlight').length===1&&
             document.querySelectorAll('main .ez-vehicle-bridge').length===0,
           fourFeatures:features.length===4&&features.every(feature=>{
@@ -313,7 +313,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         homeRatings.visibleCount===3&&homeRatings.visibleSources==='Google|Tripadvisor|GetYourGuide',
         name+' visibly presents all three audited rating platforms');
       check(homeRatings.attributed&&homeRatings.order&&homeRatings.oneSpotlight,
-        name+' one early EZRaider hero spotlight before attributed reviews, no duplicate bridge');
+        name+' one dedicated EZRaider spotlight after destinations, no duplicate bridge');
       check(homeRatings.fourFeatures&&homeRatings.productVisible&&homeRatings.cta,
         name+' visible and contained EZRaider image, four benefits and local CTA');
       check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
