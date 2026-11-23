@@ -1842,3 +1842,21 @@ body :is(.network-ez-note,.network-ez-eyebrow,.destination-photo-credits,.tour-t
 /* DR-07: Hebrew Budapest had a stronger legacy system-font override.
    Apply the exact same local Rubik Variable across the entire Hebrew site. */
 html[lang="he"] body{font-family:var(--voy-font-body)!important}
+
+/* DR-07/08/10: exact readable floor and literal Hebrew typography. */
+
+/* DR-07 review labels: explicit 12px minimum, independently of inherited rem base. */
+.vp-reviews-eyebrow,.vp-review-platform,.vp-review-author,.vp-review-location,
+.vp-review-date,.vp-review-translated,.vp-review-expand,.vp-review-card a,
+.vp-review-dialog-translation{font-size:12px}
+
+html[lang="he"] :is(h1,h2,h3,h4,p,div,span,small,b,strong,time,a,button,label,summary,li){
+  letter-spacing:normal!important;text-transform:none!important;
+}
+footer a,.footer a,.footer-links a,.footer-nav a,.consent-banner a,
+.consent-banner button,.cookie-banner a,.cookie-banner button,
+.cookie-settings a,.cookie-settings button,.trust a,.network-trust a,
+.tour-vehicle-guide-link a,.tour-quicklinks a{
+  display:inline-flex;align-items:center;min-height:24px;min-width:24px;
+  padding-block:5px;
+}

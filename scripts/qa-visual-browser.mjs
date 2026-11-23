@@ -139,7 +139,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           body:Number.parseFloat(css(document.querySelector('.section p'))?.fontSize||'0')
         };
       });
-      check(type.font.startsWith('"Segoe UI"'),name+' Hebrew Budapest uses preferred modern platform font');
+      check(type.font.includes('Rubik Variable'),name+' Hebrew Budapest uses approved locally hosted Rubik Variable');
       check(type.base>=17,name+' Hebrew baseline text is at least 17px');
       check(type.heading>=33,name+' Hebrew H1 remains readable on narrow screens');
       if(type.weight)check(type.weight<=750,name+' Hebrew heading avoids excessively heavy 900 weight');
@@ -892,7 +892,7 @@ try{
               r.width>0&&r.height>0&&style.display!=='none'&&
               style.visibility!=='hidden';
           });
-          const texts=nodes.filter(el=>!el.matches('a.brand')&&[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
+          const texts=nodes.filter(el=>parseFloat(getComputedStyle(el).fontSize)>0&&!el.matches('a.brand,.brand')&&[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
           const sizes=[...new Set(texts.map(el=>parseFloat(getComputedStyle(el).fontSize).toFixed(2)))].sort((a,b)=>a-b);
           const small=texts.filter(el=>parseFloat(getComputedStyle(el).fontSize)<11.99).slice(0,12)
             .map(el=>({tag:el.tagName,cls:el.className,text:el.textContent.slice(0,35),px:getComputedStyle(el).fontSize}));
