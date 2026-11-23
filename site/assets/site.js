@@ -24,7 +24,7 @@
    or provider-facing texts. */
 (function markEZRaiderBrand(){
   const selectors='.eyebrow,.network-ez-eyebrow,.tour-tag,.popular-pill,.ez-kicker';
-  for(const el of document.querySelectorAll(selectors)){
+  const normalize=(el)=>{
     for(const child of [...el.childNodes]){
       if(child.nodeType!==Node.TEXT_NODE||!child.nodeValue.includes('EZRAIDER'))continue;
       const segments=child.nodeValue.split('EZRAIDER');
@@ -35,6 +35,13 @@
       });
       el.replaceChild(fragment,child);
     }
+  };
+  for(const el of document.querySelectorAll(selectors)){
+    normalize(el);
+    // Existing personalization updates a few kickers after the source loads.
+    // Re-normalize only these nodes, never observe the entire customer DOM.
+    if(el.hasAttribute('data-personalize-kicker'))
+      new MutationObserver(()=>normalize(el)).observe(el,{childList:true,characterData:true,subtree:true});
   }
 })();
 
