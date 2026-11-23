@@ -318,6 +318,19 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         name+' visible and contained EZRaider image, four benefits and local CTA');
       check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
         name+' root trust stays in one contained three-column row at '+viewport.width+'px');
+      if(name.startsWith('home-')||name.startsWith('network-home')){
+        const destFirst=await page.evaluate(()=>{
+          const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
+          const hero=document.querySelector('main .hero');
+          const spotlight=document.querySelector('main .network-ez-after-destinations');
+          const cards=document.querySelector('#destinations');
+          if(!action||!hero||!spotlight||!cards)return false;
+          const a=action.getBoundingClientRect();
+          return a.width>0&&a.height>0&&a.top>=0&&a.bottom<=innerHeight+1&&
+            cards.compareDocumentPosition(spotlight)&Node.DOCUMENT_POSITION_FOLLOWING;
+        });
+        check(destFirst,name+' DR-02 primary destination action visible first viewport');
+      }
       const proof=await page.evaluate(()=>{
         const duplicates=document.querySelectorAll('.parent-hero-mosaic,.parent-hero-destination').length;
         const cards=[...document.querySelectorAll('.tour-picker#destinations .tour-choice-card')];
