@@ -105,6 +105,8 @@ for(const file of pages){
  for(const source of ['google_maps','tripadvisor','getyourguide'])
   if((s.match(new RegExp('data-review-source="'+source+'"','g'))||[]).length!==1)
    failures.push(file+': missing/duplicated audited '+source+' link');
+ if(!s.includes('data-review-source="getyourguide" href="'+snapshot.getyourguide.source_url+'"'))
+   failures.push(file+': the 7 GYG tour reviews must link to the exact photographed tour listing');
 }
 for(const locale of ['','he/','pt/']){
  const p='site/'+locale+'portugal/index.html',s=fs.readFileSync(p,'utf8');
