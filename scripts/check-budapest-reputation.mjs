@@ -42,8 +42,8 @@ if(snapshot.getyourguide.scope!=='Buda Castle Tour listing (not all provider rev
    scope and the same audited counts. Catch future stale translations here. */
 for(const [locale,folder] of [['en',''],['he','he/'],['hu','hu/'],['es','es/']]){
   const file='site/'+folder+'index.html',html=fs.readFileSync(file,'utf8');
-  const expectedCount=n=>locale==='hu'?String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g,' ')
-    :locale==='es'?String(n):String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');
+  const expectedCount=n=>locale==='hu'?String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ')
+    :locale==='es'?String(n):String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');
   for(const key of ['google','tripadvisor','getyourguide']){
     const observed=[...html.matchAll(new RegExp('<span data-review-count="'+key+'">([^<]+)</span>','g'))];
     if(observed.length!==1||observed[0][1]!==expectedCount(snapshot[key].review_count))
