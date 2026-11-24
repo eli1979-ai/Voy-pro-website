@@ -2,7 +2,7 @@
 .vp-reviews{background:#f4f9fa;padding:22px 0 26px;border-block:1px solid #dce9eb}
 .vp-reviews[hidden]{display:none!important}
 .vp-reviews .vp-reviews-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px}
-.vp-reviews h2{font-size:clamp(1.13rem,1.8vw,1.55rem);line-height:1.24;margin:0;color:#0b3947}
+.vp-reviews h2{font-size:clamp(18px,1.8vw,24px);line-height:1.24;margin:0;color:#0b3947}
 .vp-reviews .vp-reviews-eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#056979;font-weight:800;margin:0 0 5px}
 .vp-reviews-controls{display:flex;align-items:center;gap:6px;direction:ltr}
 .vp-reviews-nav{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:32px;border:1px solid #a9c4cb;border-radius:11px;background:#fff;color:#0c4150;cursor:pointer;font:700 1.1rem/1 sans-serif;touch-action:manipulation}
