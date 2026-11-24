@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const snapshot=JSON.parse(fs.readFileSync('site/assets/budapest-reputation.json','utf8'));
-const roots=['site/budapest','site/he/budapest','site/hu/budapest'];
+const roots=['site/budapest','site/he/budapest','site/hu/budapest','site/es/budapest'];
 const failures=[];
 const css=fs.readFileSync('site/assets/site.css','utf8');
 const compactCss=fs.readFileSync('site/assets/budapest-review-sources-compact.css','utf8');
@@ -29,10 +29,12 @@ function walk(dir){
 
 const pages=roots.flatMap(walk);
 const googleForms=[String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,','),
-  String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,' ')];
+  String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,' '),
+  String(snapshot.google.review_count)];
 const trip=String(snapshot.tripadvisor.review_count);
 const gyg=String(snapshot.getyourguide.review_count);
-const gygForms=[gyg+' Buda Castle tour reviews',gyg+' ביקורות על סיור טירת בודה',gyg+' értékelés a Buda Castle túráról'];
+const gygForms=[gyg+' Buda Castle tour reviews',gyg+' ביקורות על סיור טירת בודה',
+  gyg+' értékelés a Buda Castle túráról',gyg+' opiniones del tour Buda Castle'];
 if(snapshot.getyourguide.scope!=='Buda Castle Tour listing (not all provider reviews)')
   failures.push('GetYourGuide count must be explicitly scoped to the photographed Buda Castle tour');
 
@@ -75,7 +77,7 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
 }
 
 
-// Review surface is consistent across all 42 Budapest destination pages: exactly
+// Review surface is consistent across all 56 Budapest destination pages: exactly
 // one top 3-platform summary and one closing linkable 3-platform summary followed
 // by the same 20-approved-reviews ticker. Marvão is a separate operator and must
 // never inherit Budapest's ratings.
