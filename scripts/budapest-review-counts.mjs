@@ -20,7 +20,7 @@ const pages=[
 ];
 const homeFile='site/index.html';
 const keys=['google','tripadvisor','getyourguide'];
-const format=(n,locale)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'?' ':',');
+const format=(n,locale)=>locale==='es'?String(n):String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'?' ':',');
 const fail=message=>{throw new Error('Budapest review source/count integrity: '+message)};
 const readRecord=()=>{
   const v=JSON.parse(fs.readFileSync(recordPath,'utf8'));
@@ -178,13 +178,10 @@ if(args[0]==='--update'){
   // family pages, not just the two displays on each landing page. Refresh
   // those pages in the same audited transaction or the legacy QA will fail.
   const escaping=value=>{if(!/^[0-9 ,]+$/.test(value))fail('invalid formatted count');return value;};
-  const units={
-    en:key==='tripadvisor'?'reviews':'ratings',
-    he:key==='tripadvisor'?'ביקורות':'דירוגים',
-    hu:'értékelés'
-  };
+  // Only explicit audited counters may change. Nearby prices, dates and
+  // unrelated metrics, including any review wording, stay untouched.
   const all=[];
-  for(const locale of ['en','he','hu']){
+  for(const locale of ['en','he','hu','es']){
     const prefix=locale==='en'?'site/budapest/':'site/'+locale+'/budapest/';
     const visit=dir=>{
       for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
@@ -199,20 +196,13 @@ if(args[0]==='--update'){
   const updated=all.map(({locale,file,full})=>{
     let html=fs.readFileSync(full,'utf8');
     if(count!==previous){
-      const from=format(previous,locale),to=format(count,locale);
-      const regexp=key==='getyourguide'
-        ?new RegExp('(?<!\\d)'+escaping(from)+'(?=\\s+'+units[locale]+')','g')
-        :new RegExp('(?<!\\d)'+escaping(from)+'(?!\\d)','g');
-      // The full page may contain unrelated numbers (prices, IDs or
-      // editorial examples). Only the explicitly designated reputation
-      // sections can carry counts from this snapshot. Do not replace a
-      // matching number merely because it occurs elsewhere on the page.
-      html=html.replace(/<section\b[^>]*>[\s\S]*?<\/section>/g,section=>{
-        if(!/<section\b[^>]*class="trust"/.test(section)&&
-           !section.includes('class="wrap proof"')&&
-           !section.includes('class="review-source-grid"'))return section;
-        return section.replace(regexp,to);
+      let replaced=0;
+      html=html.replace(countMatcher(key),(_m,before,old,after)=>{
+        if(old!==format(previous,locale))fail(file+': stale or unexpected old '+key+' counter');
+        replaced++;
+        return before+format(count,locale)+after;
       });
+      if(replaced!==2)fail(file+': expected exactly two '+key+' counters');
     }
     const landing=pages.some(p=>p.file===file);
     if(landing)html=updatePage(html,record,locale,file);
@@ -223,6 +213,21 @@ if(args[0]==='--update'){
   const homeAbsolute=path.join(root,homeFile);
   updated.push({full:homeAbsolute,text:updateHomePage(
     fs.readFileSync(homeAbsolute,'utf8'),record)});
+  // All language homes carry one separately attributed Budapest trust strip.
+  for(const locale of ['he','hu','es']){
+    const file='site/'+locale+'/index.html',full=path.join(root,file);
+    let html=fs.readFileSync(full,'utf8');
+    if(count!==previous){
+      let replaced=0;
+      html=html.replace(countMatcher(key),(_m,before,old,after)=>{
+        if(old!==format(previous,locale))fail(file+': unexpected old '+key+' counter');
+        replaced++;
+        return before+format(count,locale)+after;
+      });
+      if(replaced!==1)fail(file+': expected one Budapest '+key+' counter');
+    }
+    updated.push({full,text:html});
+  }
   // Validate the full output set before touching the working tree.
   if(updated.filter(x=>pages.some(p=>path.join(root,p.file)===x.full)).length!==3)
     fail('missing localized Budapest landing files');

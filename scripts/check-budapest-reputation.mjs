@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const snapshot=JSON.parse(fs.readFileSync('site/assets/budapest-reputation.json','utf8'));
-const roots=['site/budapest','site/he/budapest','site/hu/budapest'];
+const roots=['site/budapest','site/he/budapest','site/hu/budapest','site/es/budapest'];
 const failures=[];
 const css=fs.readFileSync('site/assets/site.css','utf8');
 const compactCss=fs.readFileSync('site/assets/budapest-review-sources-compact.css','utf8');
@@ -29,10 +29,35 @@ function walk(dir){
 
 const pages=roots.flatMap(walk);
 const googleForms=[String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,','),
-  String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,' ')];
+  String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,' '),
+  String(snapshot.google.review_count)];
 const trip=String(snapshot.tripadvisor.review_count);
 const gyg=String(snapshot.getyourguide.review_count);
-const gygForms=[gyg+' ratings',gyg+' דירוגים',gyg+' értékelés'];
+const gygForms=[gyg+' Buda Castle tour reviews',gyg+' ביקורות על סיור טירת בודה',
+  gyg+' értékelés a Buda Castle túráról',gyg+' opiniones del tour Buda Castle'];
+if(snapshot.getyourguide.scope!=='Buda Castle Tour listing (not all provider reviews)')
+  failures.push('GetYourGuide count must be explicitly scoped to the photographed Buda Castle tour');
+
+/* All four parent-site locale trust strips must preserve Budapest-only source
+   scope and the same audited counts. Catch future stale translations here. */
+for(const [locale,folder] of [['en',''],['he','he/'],['hu','hu/'],['es','es/']]){
+  const file='site/'+folder+'index.html',html=fs.readFileSync(file,'utf8');
+  const expectedCount=n=>locale==='hu'?String(n).replace(/\B(?=(\d{3})+(?!\d))/g,' ')
+    :locale==='es'?String(n):String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  for(const key of ['google','tripadvisor','getyourguide']){
+    const observed=[...html.matchAll(new RegExp('<span data-review-count="'+key+'">([^<]+)</span>','g'))];
+    if(observed.length!==1||observed[0][1]!==expectedCount(snapshot[key].review_count))
+      failures.push(file+': '+key+' parent trust strip must match the canonical Budapest snapshot');
+  }
+  const label=locale==='en'?'Buda Castle tour reviews':
+    locale==='he'?'ביקורות על סיור טירת בודה':
+    locale==='hu'?'értékelés a Buda Castle túráról':'opiniones del tour Buda Castle';
+  if(!html.includes('<span data-review-count="getyourguide">'+gyg+'</span> '+label))
+    failures.push(file+': GetYourGuide product-specific review scope not visible');
+}
+if(snapshot.tripadvisor.rank!==2||snapshot.tripadvisor.category_total!==304)
+  failures.push('Tripadvisor snapshot must retain owner screenshot rank #2 of 304');
+if(pages.length<56)failures.push('Budapest localized page coverage unexpectedly decreased');
 
 for(const file of pages){
   const raw=fs.readFileSync(file,'utf8');
@@ -73,7 +98,7 @@ for(const file of ['site/budapest/with-kids/index.html','site/he/budapest/with-k
 }
 
 
-// Review surface is consistent across all 42 Budapest destination pages: exactly
+// Review surface is consistent across all 56 Budapest destination pages: exactly
 // one top 3-platform summary and one closing linkable 3-platform summary followed
 // by the same 20-approved-reviews ticker. Marvão is a separate operator and must
 // never inherit Budapest's ratings.
@@ -101,6 +126,8 @@ for(const file of pages){
  for(const source of ['google_maps','tripadvisor','getyourguide'])
   if((s.match(new RegExp('data-review-source="'+source+'"','g'))||[]).length!==1)
    failures.push(file+': missing/duplicated audited '+source+' link');
+ if(!s.includes('data-review-source="getyourguide" href="'+snapshot.getyourguide.source_url+'"'))
+   failures.push(file+': the 7 GYG tour reviews must link to the exact photographed tour listing');
 }
 for(const locale of ['','he/','pt/']){
  const p='site/'+locale+'portugal/index.html',s=fs.readFileSync(p,'utf8');

@@ -1,28 +1,32 @@
 {
   "schema_version": 1,
   "location": "Budapest",
-  "verified_at": "2026-10-23",
+  "verified_at": "2026-11-24",
   "google": {
     "rating": 5,
-    "review_count": 1327,
-    "verified_at": "2026-11-02",
-    "source_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8"
+    "review_count": 1345,
+    "verified_at": "2026-11-24",
+    "source_url": "https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO&query_place_id=ChIJR_q2zJXdQUcRtUmmtT-Ozb8",
+    "evidence": "owner-supplied first-party screenshot of platform listing, 2026-11-24"
   },
   "tripadvisor": {
     "rating": 5,
-    "review_count": 660,
-    "rank": 1,
-    "category_total": 303,
+    "review_count": 662,
+    "rank": 2,
+    "category_total": 304,
     "category": "Outdoor Activities in Budapest",
     "award": "Travelers’ Choice 2026",
-    "verified_at": "2026-10-23",
-    "source_url": "https://www.tripadvisor.co.uk/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html"
+    "verified_at": "2026-11-24",
+    "source_url": "https://www.tripadvisor.co.uk/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html",
+    "evidence": "owner-supplied first-party screenshot of platform listing, 2026-11-24"
   },
   "getyourguide": {
     "status": "verified",
     "rating": 5,
-    "review_count": 6,
-    "verified_at": "2026-10-23",
-    "source_url": "https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/"
+    "review_count": 7,
+    "verified_at": "2026-11-24",
+    "source_url": "https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/",
+    "evidence": "owner-supplied first-party screenshot of platform listing, 2026-11-24",
+    "scope": "Buda Castle Tour listing (not all provider reviews)"
   }
 }
