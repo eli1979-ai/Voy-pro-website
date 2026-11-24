@@ -32,7 +32,9 @@ const googleForms=[String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?
   String(snapshot.google.review_count).replace(/\B(?=(\d{3})+(?!\d))/g,' ')];
 const trip=String(snapshot.tripadvisor.review_count);
 const gyg=String(snapshot.getyourguide.review_count);
-const gygForms=[gyg+' ratings',gyg+' דירוגים',gyg+' értékelés'];
+const gygForms=[gyg+' Buda Castle tour reviews',gyg+' ביקורות על סיור טירת בודה',gyg+' értékelés a Buda Castle túráról'];
+if(snapshot.getyourguide.scope!=='Buda Castle Tour listing (not all provider reviews)')
+  failures.push('GetYourGuide count must be explicitly scoped to the photographed Buda Castle tour');
 
 for(const file of pages){
   const raw=fs.readFileSync(file,'utf8');
