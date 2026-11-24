@@ -894,6 +894,13 @@ try{
           });
           const texts=nodes.filter(el=>parseFloat(getComputedStyle(el).fontSize)>0&&!el.matches('a.brand,.brand')&&[...el.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim()));
           const sizes=[...new Set(texts.map(el=>parseFloat(getComputedStyle(el).fontSize).toFixed(2)))].sort((a,b)=>a-b);
+          // Diagnostic only: report real DOM owners for excessive token variants.
+          // Never relax the 12-size gate or replace computed font measurements.
+          const sizeOwners=sizes.length>12?Object.fromEntries(sizes.map(size=>[
+            size,texts.filter(el=>parseFloat(getComputedStyle(el).fontSize).toFixed(2)===size)
+              .slice(0,3).map(el=>({tag:el.tagName,cls:String(el.className).slice(0,55),
+                text:(el.innerText||el.textContent||'').trim().slice(0,45)}))
+          ])):undefined;
           const small=texts.filter(el=>parseFloat(getComputedStyle(el).fontSize)<11.99).slice(0,12)
             .map(el=>({tag:el.tagName,cls:el.className,text:el.textContent.slice(0,35),px:getComputedStyle(el).fontSize}));
           const tiny=nodes.filter(el=>el.matches('a,button')&&(el.getBoundingClientRect().width<24||el.getBoundingClientRect().height<24)).slice(0,12)
@@ -903,7 +910,7 @@ try{
             .slice(0,12).map(el=>({text:el.textContent.slice(0,25),space:getComputedStyle(el).letterSpacing,transform:getComputedStyle(el).textTransform}));
           return {rubik:document.fonts.check('16px "Rubik Variable"'),
             body:getComputedStyle(document.body).fontFamily,
-            small,tiny,he,sizes,upper:document.body.innerText.includes('EZRAIDER'),
+            small,tiny,he,sizes,sizeOwners,upper:document.body.innerText.includes('EZRAIDER'),
             upperContexts:[...document.body.innerText.matchAll(/.{0,45}EZRAIDER.{0,45}/g)].slice(0,10).map(m=>m[0]),
             upperNodes:nodes.filter(el=>el.children.length===0&&/EZRAIDER/.test(el.innerText||'')).slice(0,10).map(el=>({tag:el.tagName,cls:String(el.className).slice(0,70),text:(el.innerText||'').slice(0,80),transform:getComputedStyle(el).textTransform}))};
         });
