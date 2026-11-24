@@ -23,7 +23,7 @@ const write=(relative,content)=>fs.writeFileSync(path.join(tmp,relative),content
 const snapshots={
   google:'https://www.google.com/maps/search/?api=1&query=EZRaider%20Budapest%20by%20Voy%20PRO',
   tripadvisor:'https://www.tripadvisor.co.uk/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html',
-  getyourguide:'https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/'
+  getyourguide:'https://www.getyourguide.com/budapest-l29/buda-castle-tour-discover-the-magical-castle-neighbourhood-t952528/'
 };
 const format=(n,locale)=>locale==='es'?String(n):String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'?' ':',');
 
