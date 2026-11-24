@@ -1792,3 +1792,35 @@ body[data-intent="network"] .tour-picker#destinations .destination-card{min-heig
 body[data-intent="network"] .network-review-ribbon{margin-block:0;background:#f0f7f8}
 body[data-intent="network"] .network-review-ribbon .network-review-intro{font-size:.88rem;color:#375e66;line-height:1.48;margin:9px 0 0;max-width:65ch}
 body[data-intent="network"] .network-review-ribbon .network-review-language-note{font-size:.76rem;color:#526973;margin:5px 0 0}
+
+/* DR-09: the live price already includes its localized "from" prefix.
+   Remove the duplicate small label on the Budapest mobile bar; Spanish
+   keeps "Desde" because its amount is displayed without that prefix.
+   The runtime amount, failure message, CTA and booking flow are untouched. */
+@media(max-width:800px){
+ html:is(:lang(en),:lang(he),:lang(hu)) body[data-page*="/budapest/"] .mobilebook .mobile-price-copy > small{
+  display:none;
+ }
+}
+
+/* DR-03: show at most two sourced hero facts; additional safety/eligibility
+   facts appear in the existing quick-info grid, never below the mobile CTA. */
+.hero .facts [hidden],.quickinfo-item[hidden]{display:none!important}
+.quickinfo-item.tour-extra-fact{min-width:0}
+.quickinfo-item .tour-extra-value{overflow-wrap:anywhere}
+@media(max-width:800px){
+ body[data-page*="/budapest/"] .hero:has(.tour-vehicle-guide-link) .facts{margin-block:8px 12px}
+ body[data-page*="/budapest/"] .hero:has(.tour-vehicle-guide-link) .btn[data-track="booking_cta"]{margin-bottom:4px}
+}
+
+/* DR-06: Budapest informational facts are text, not clickable chips. */
+body[data-page*="/budapest/"] .hero .facts > span{
+ border-radius:0;border:0;background:transparent;box-shadow:none;
+ padding-block:4px;padding-inline:0 13px;
+}
+body[data-page*="/budapest/"] .tour-highlights > span{
+ border-radius:4px;box-shadow:none;
+}
+body[data-page*="/budapest/"] :is(.tour-tag,.popular-pill){
+ border-radius:4px;
+}

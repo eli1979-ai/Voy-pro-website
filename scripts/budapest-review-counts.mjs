@@ -95,10 +95,10 @@ const validateHomePage=(record,html)=>{
   const heroEnd=html.indexOf('</section>',hero);
   const spotlight=html.indexOf('class="network-ez-spotlight"');
   const destinations=html.indexOf('<section class="section tour-picker"');
-  if(!(hero>=0&&spotlight>hero&&spotlight<heroEnd&&
-       start>heroEnd&&end>start&&destinations>end&&
+  if(!(hero>=0&&start>heroEnd&&end>start&&destinations>end&&
+       spotlight>destinations&&html.indexOf('class="hero network-ez-after-destinations"')<spotlight&&
        !html.includes('<section class="section ez-vehicle-bridge">')))
-    fail(file+': parent ratings must follow the single EZRaider hero and precede destinations');
+    fail(file+': Budapest ratings must follow the opening photo and precede destinations; EZRaider guide follows destinations');
   const segment=html.slice(start,end);
   for(const key of keys){
     const matches=[...segment.matchAll(countMatcher(key))];

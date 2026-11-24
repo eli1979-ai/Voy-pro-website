@@ -184,6 +184,22 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
       check(await carousel.isVisible(),name+' verified full-text review ticker renders from approved manifest');
       check(await page.locator('[data-vp-reviews-root] .vp-review-card').count()===60,
         name+' approved 20-review data powers three continuous carousel copies');
+      const reviewMetrics=await carousel.evaluate(root=>{
+        const all=[...root.querySelectorAll('.vp-review-card')];
+        const quotes=all.flatMap(card=>[...card.querySelectorAll('.vp-review-text')]);
+        const nested=quotes.filter(el=>['auto','scroll'].includes(getComputedStyle(el).overflowY)).length;
+        const visible=[...root.querySelectorAll('.vp-review-card *')].filter(el=>{
+          const style=getComputedStyle(el);
+          return style.display!=='none'&&style.visibility!=='hidden'&&
+            !el.closest('[aria-hidden="true"]')&&el.getBoundingClientRect().width>0;
+        });
+        const small=visible.filter(el=>el.children.length===0&&el.textContent.trim()&&parseFloat(getComputedStyle(el).fontSize)<12);
+        const tiny=visible.filter(el=>el.matches('a,button')&&el.getBoundingClientRect().height<24);
+        return {nested,small:small.length,tiny:tiny.length};
+      });
+      check(reviewMetrics.nested===0&&reviewMetrics.small===0&&reviewMetrics.tiny===0,
+        name+' DR-05 no nested review scrollboxes, text <12px or tap targets <24px ('+
+          JSON.stringify(reviewMetrics)+')');
       // New UI is still on this PR branch; test it against the actual locally
       // built HTML/JS in Chrome. The public alias keeps serving main until merge.
       if(viewport.width===390&&path.includes('buda-castle-ezraider-tour/')){
@@ -275,7 +291,7 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         const visibleCards=cards.filter(card=>getComputedStyle(card).display!=='none');
         const items=visibleCards.map(card=>card.getBoundingClientRect());
         const hero=document.querySelector('main .hero');
-        const guide=document.querySelector('main .hero .network-ez-spotlight');
+        const guide=document.querySelector('main .network-ez-after-destinations .network-ez-spotlight');
         const features=[...(guide?.querySelectorAll('.network-ez-feature-card')||[])];
         const featuresGrid=guide?.querySelector('.network-ez-feature-grid');
         const featuresRect=featuresGrid?.getBoundingClientRect();
@@ -292,9 +308,9 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
           contained:!!bounds&&items.every(item=>item.width>0&&
             item.left>=bounds.left-2&&item.right<=bounds.right+2),
           attributed:!!band?.querySelector('.network-trust-label a[href="/budapest/"]'),
-          order:!!(hero&&guide&&band&&
-            hero.getBoundingClientRect().top<=guide.getBoundingClientRect().top&&
-            guide.getBoundingClientRect().bottom<=band.getBoundingClientRect().top+2),
+          order:!!(hero&&guide&&band&&document.querySelector('#destinations')&&
+            hero.getBoundingClientRect().bottom<=band.getBoundingClientRect().top+2&&
+            document.querySelector('#destinations').getBoundingClientRect().bottom<=guide.getBoundingClientRect().top+2),
           oneSpotlight:document.querySelectorAll('main .network-ez-spotlight').length===1&&
             document.querySelectorAll('main .ez-vehicle-bridge').length===0,
           fourFeatures:features.length===4&&features.every(feature=>{
@@ -313,11 +329,24 @@ async function visit(name,path,viewport,{fullPage=false,guide=false,tourGuide=fa
         homeRatings.visibleCount===3&&homeRatings.visibleSources==='Google|Tripadvisor|GetYourGuide',
         name+' visibly presents all three audited rating platforms');
       check(homeRatings.attributed&&homeRatings.order&&homeRatings.oneSpotlight,
-        name+' one early EZRaider hero spotlight before attributed reviews, no duplicate bridge');
+        name+' one dedicated EZRaider spotlight after destinations, no duplicate bridge');
       check(homeRatings.fourFeatures&&homeRatings.productVisible&&homeRatings.cta,
         name+' visible and contained EZRaider image, four benefits and local CTA');
       check(homeRatings.columns===3&&homeRatings.row&&homeRatings.contained,
         name+' root trust stays in one contained three-column row at '+viewport.width+'px');
+      if(viewport.width<=800&&(name.startsWith('home-')||name.startsWith('network-home'))){
+        const destFirst=await page.evaluate(()=>{
+          const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
+          const hero=document.querySelector('main .hero');
+          const spotlight=document.querySelector('main .network-ez-after-destinations');
+          const cards=document.querySelector('#destinations');
+          if(!action||!hero||!spotlight||!cards)return false;
+          const a=action.getBoundingClientRect();
+          return a.width>0&&a.height>0&&a.top>=0&&a.bottom<=innerHeight+1&&
+            cards.compareDocumentPosition(spotlight)&Node.DOCUMENT_POSITION_FOLLOWING;
+        });
+        check(destFirst,name+' DR-02 primary destination action visible first viewport');
+      }
       const proof=await page.evaluate(()=>{
         const duplicates=document.querySelectorAll('.parent-hero-mosaic,.parent-hero-destination').length;
         const cards=[...document.querySelectorAll('.tour-picker#destinations .tour-choice-card')];
@@ -812,6 +841,34 @@ try{
     ['budapest-firstscreen-en','/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-he','/he/budapest/',{width:375,height:812},{}],
     ['budapest-firstscreen-hu','/hu/budapest/',{width:375,height:812},{}],
+    ['dr02-en-375','/',{width:375,height:812},{}],
+    ['dr02-he-375','/he/',{width:375,height:812},{}],
+    ['dr02-hu-375','/hu/',{width:375,height:812},{}],
+    ['dr02-es-375','/es/',{width:375,height:812},{}],
+    ['dr02-en-390','/',{width:390,height:844},{}],
+    ['dr02-he-390','/he/',{width:390,height:844},{}],
+    ['dr02-hu-390','/hu/',{width:390,height:844},{}],
+    ['dr02-es-390','/es/',{width:390,height:844},{}],
+    ['dr06-en-320','/',{width:320,height:700},{}],
+    ['dr06-en-375','/',{width:375,height:812},{}],
+    ['dr06-en-390','/',{width:390,height:844},{}],
+    ['dr06-en-768','/',{width:768,height:800},{}],
+    ['dr06-en-1440','/',{width:1440,height:900},{}],
+    ['dr06-he-320','/he/',{width:320,height:700},{}],
+    ['dr06-he-375','/he/',{width:375,height:812},{}],
+    ['dr06-he-390','/he/',{width:390,height:844},{}],
+    ['dr06-he-768','/he/',{width:768,height:800},{}],
+    ['dr06-he-1440','/he/',{width:1440,height:900},{}],
+    ['dr06-hu-320','/hu/',{width:320,height:700},{}],
+    ['dr06-hu-375','/hu/',{width:375,height:812},{}],
+    ['dr06-hu-390','/hu/',{width:390,height:844},{}],
+    ['dr06-hu-768','/hu/',{width:768,height:800},{}],
+    ['dr06-hu-1440','/hu/',{width:1440,height:900},{}],
+    ['dr06-es-320','/es/',{width:320,height:700},{}],
+    ['dr06-es-375','/es/',{width:375,height:812},{}],
+    ['dr06-es-390','/es/',{width:390,height:844},{}],
+    ['dr06-es-768','/es/',{width:768,height:800},{}],
+    ['dr06-es-1440','/es/',{width:1440,height:900},{}],
     ['home-desktop','/',desktop,{fullPage:true}],
     ['home-mobile','/',mobile,{fullPage:true}],
     ['home-narrow','/',narrow,{fullPage:true}],
@@ -857,6 +914,53 @@ try{
     const page=await visit(name,path,viewport,opts);
     if(!page)continue;
     try{
+      if(name.startsWith('dr06-')){
+        const m=await page.evaluate(()=>{
+          const area=document.querySelector('.network-value-section');
+          const support=area?.querySelectorAll('article.content-card.network-support-card')||[];
+          const other=area?.querySelectorAll('article.content-card')||[];
+          const benefits=[...document.querySelectorAll('.network-ez-after-destinations .network-ez-feature-card')];
+          const prague=document.querySelector('.destination-card--prague');
+          const active=['budapest','marvao'].map(key=>document.querySelector('.destination-card--'+key));
+          const actionCounts=active.map(card=>card?.querySelectorAll('.tour-choice-actions a[href]')?.length||0);
+          return {support:support.length,other:other.length,benefits:benefits.length,
+            pragueSlim:!!prague&&active.every(card=>card&&prague.getBoundingClientRect().height<card.getBoundingClientRect().height),
+            actionCounts,overflow:document.documentElement.scrollWidth>innerWidth+1};
+        });
+        check(m.support===1&&m.other===1&&m.benefits===4&&m.pragueSlim&&
+          m.actionCounts.every(v=>v===1)&&!m.overflow,
+          name+' DR-06 actionable value, compact four-benefit row, Prague strip and one destination CTA: '+JSON.stringify(m));
+      }
+      if(name==='budapest-he-mobile'){
+        const pills=await page.evaluate(()=>{
+          const all=[...document.querySelectorAll('body *')].filter(el=>{
+            const st=getComputedStyle(el),r=el.getBoundingClientRect();
+            if(st.display==='none'||st.visibility==='hidden'||r.width===0||r.height===0)return false;
+            const rad=parseFloat(st.borderTopLeftRadius);
+            return rad>=20&&rad>=Math.min(r.width,r.height)*.44;
+          });
+          const decorative=all.filter(el=>el.matches('.hero .facts>span,.tour-highlights>span,.tour-tag,.popular-pill'));
+          return {total:all.length,decorative:decorative.length};
+        });
+        check(pills.total<=40&&pills.decorative===0,
+          name+' DR-06 rounded-element count <=40 and zero decorative pills ('+JSON.stringify(pills)+')');
+      }
+      if(name.startsWith('dr02-')){
+        // Preserve the first-fold test's explicit reset after the generic root smoke.
+        await page.evaluate(()=>window.scrollTo(0,0));
+        await page.waitForFunction(()=>window.scrollY===0,null,{timeout:2500});
+        const measure=await page.evaluate(()=>{
+          const action=document.querySelector('main .hero .hero-actions a[href="#destinations"]');
+          const cards=document.querySelector('#destinations');
+          const guide=document.querySelector('.network-ez-after-destinations');
+          const r=action?.getBoundingClientRect();
+          return {first:!!r&&r.width>0&&r.height>=24&&r.top>=0&&r.bottom<=innerHeight,
+            order:!!cards&&!!guide&&Boolean(cards.compareDocumentPosition(guide)&Node.DOCUMENT_POSITION_FOLLOWING),
+            overflow:document.documentElement.scrollWidth>innerWidth+1};
+        });
+        check(measure.first&&measure.order&&!measure.overflow,
+          name+' destination action fully visible, guide follows destinations, no overflow');
+      }
       if(name.startsWith('budapest-firstscreen-')){
         const banner=page.locator('.consent-banner');
         const bannerBox=await banner.boundingBox();

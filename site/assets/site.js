@@ -19,6 +19,52 @@
   }
 })();
 
+/* DR-03: presentation-only tour hero facts. The already-existing quick-info
+   grid owns safety, preparation and eligibility notes. No server-derived
+   fact, price or booking flow is synthesized or rewritten. */
+(function simplifyTourHeroFacts(){
+  // DR-03 is scoped to the Budapest tour/intent family. Portugal's distinct
+  // request-only destination hero must retain its own facts and dimensions.
+  if(!/(?:^|\/)budapest(?:\/|$)/.test(document.body?.dataset?.page||location.pathname))return;
+  const hero=document.querySelector('main .hero');
+  const facts=hero?.querySelector('.facts:not(.budapest-hero-facts)');
+  const grid=document.querySelector('main .quickinfo .quickinfo-grid');
+  if(!hero||!facts||!grid||facts.children.length<=3)return;
+  const locale=(document.documentElement.lang||'en').split('-')[0];
+  const heading={en:'Tour details',he:'פרטי הסיור',hu:'Tudnivalók',es:'Detalles del tour',pt:'Detalhes do passeio'}[locale]||'Tour details';
+  const hiddenText=/unavailable|not available|temporarily unavailable|אינם זמינים|לא זמינים|לא זמין|nem érhetők el|nem elérhető|no disponible|não estão disponíveis/i;
+  const all=[...facts.children];
+  const price=all.find(el=>el.matches('[data-runtime-price]'));
+  const duration=all.find(el=>el.matches('[data-api-tour-duration]'))||
+    all.find(el=>/^\s*(?:\d+\s*(?:hours?|hrs?|óra|שעות|שעתיים|horas?|minutos?)|(?:שעה אחת))\b/i.test(el.textContent||''));
+  const keep=new Set([price,duration].filter(Boolean));
+  // Two or fewer verified commerce/time facts may be shown. The reputation
+  // section below the hero already owns its sourced star rating.
+  for(const node of all){
+    if(keep.has(node))continue;
+    const item=document.createElement('div');
+    item.className='quickinfo-item tour-extra-fact';
+    const label=document.createElement('small');label.textContent=heading;
+    const value=document.createElement('b');value.className='tour-extra-value';
+    value.appendChild(node);
+    item.append(label,value);
+    grid.appendChild(item);
+  }
+  const guard=(node)=>{
+    if(!node)return;
+    const update=()=>{
+      const unavailable=hiddenText.test(node.textContent||'')||!(node.textContent||'').trim();
+      node.hidden=unavailable;
+      if(node.parentElement?.classList.contains('tour-extra-value'))
+        node.parentElement.parentElement.hidden=unavailable;
+    };
+    update();
+    new MutationObserver(update).observe(node,{childList:true,characterData:true,subtree:true});
+  };
+  guard(price);
+  all.filter(el=>el.matches('[data-runtime-rider-policy]')).forEach(guard);
+})();
+
 (async function(){
   const cfg = window.VOY_CONFIG || window.VOY_RUNTIME_CONFIG || {};
   const apiRoot = (cfg.apiRoot || '').replace(/\/$/,'');

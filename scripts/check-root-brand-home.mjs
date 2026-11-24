@@ -41,8 +41,8 @@ for(const language of ['he','hu','es']){
   requireText(localized,'href="/'+language+'/" hreflang="'+language+'"','active homepage language link missing: '+language);
 }
 
-// The EZRaider product story is ONE early hero spotlight, never a
-// second content section after ratings. Check every localized homepage.
+// The EZRaider story is ONE dedicated section after destination choices.
+// Keep the first-screen photo and immediate destination CTA before it.
 for(const [locale,file,href] of [
   ['en','site/index.html','/ezraider/?from=home&amp;return_to=%2F'],
   ['he','site/he/index.html','/he/ezraider/?from=home&amp;return_to=%2Fhe%2F'],
@@ -51,12 +51,12 @@ for(const [locale,file,href] of [
 ]){
   const page=read(file);
   const hero=page.split('<section class="hero">')[1]?.split('</section>')[0]||'';
-  const spotlight=hero.match(/<div class="network-ez-spotlight"[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/)?.[0]||'';
-  if(!spotlight)failures.push(locale+': integrated EZRaider hero spotlight missing');
+  const spotlight=page.match(/<div class="network-ez-spotlight"[\s\S]*?<p class="network-ez-note">[^<]*<\/p><\/div>/)?.[0]||'';
+  if(!spotlight)failures.push(locale+': dedicated EZRaider spotlight missing');
   if((page.match(/class="network-ez-spotlight"/g)||[]).length!==1)failures.push(locale+': need exactly one EZRaider spotlight');
   if((page.match(/class="network-ez-feature-card"/g)||[]).length!==4)failures.push(locale+': four different benefits required');
   if(!spotlight.includes('class="btn alt network-ez-cta" href="'+href+'"'))
-    failures.push(locale+': localized guide CTA missing or moved outside the hero');
+    failures.push(locale+': localized guide CTA missing from dedicated section');
   if(!spotlight.includes('owner-photo-20261031.webp?v=20261120-hires')||
      !spotlight.includes('width="851" height="877"')||
      !spotlight.includes('network-ez-feature-grid')||
@@ -79,10 +79,11 @@ for(const [language,p] of [['en','site/index.html'],['he','site/he/index.html'],
  const posHero=content.indexOf('<section class="hero">');
  const posScores=content.indexOf('class="trust network-trust"');
  const posDest=content.indexOf('class="section tour-picker" id="destinations"');
+ const posSpotlight=content.indexOf('class="hero network-ez-after-destinations"');
  const posRibbon=content.indexOf('class="vp-reviews network-review-ribbon"');
  const posValue=content.indexOf('class="section network-value-section"');
- if(!(posHero>=0&&posScores>posHero&&posDest>posScores&&posRibbon>posDest&&posValue>posRibbon))
-   failures.push(language+': must display hero → three ratings → destination cards → guest stories → value');
+ if(!(posHero>=0&&posScores>posHero&&posDest>posScores&&posSpotlight>posDest&&posRibbon>posSpotlight&&posValue>posRibbon))
+   failures.push(language+': must display hero → ratings → destinations → EZRaider story → guest reviews → value');
  if(content.includes('parent-hero-mosaic')||content.includes('parent-hero-destination'))
    failures.push(language+': duplicate opening destination mosaic was not removed');
  if((content.match(/class="tour-choice-card destination-card destination-card--budapest"/g)||[]).length!==1||
@@ -134,7 +135,7 @@ requireText(siteJs,"if(!isPortugalPage&&!isBudapestPage)","mobile navigation mus
 requireText(siteJs,"document.querySelectorAll('a.brand').forEach(link=>{link.href='/';});","brand links must resolve to the parent homepage");
 
 requireText(html,'Find the experience that fits your trip','root benefit section must speak to visitors');
-requireText(html,'Know what to expect','root local route guidance missing');
+requireText(html,'class="tour-choice-actions"','network local destination actions missing');
 forbidText(html,'Operational details live inside the destination journey','root homepage must not expose internal operations wording');
 forbidText(html,'customer journey and current booking or request path','root homepage must use customer-facing language');
 
@@ -219,6 +220,33 @@ requireText(density,'.section:not(.booking){padding-block:20px}','Section spacin
 requireText(density,'.section.booking{padding-block:24px}','Booking section exterior spacing must remain readable');
 requireText(density,'.section .content-card{padding:16px}','Tour detail cards must be compact');
 requireText(density,'.section .proof{gap:12px;padding:18px}','Promo bridges must remain compact');
+
+
+for(const file of ['site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html']){
+ const html=read(file);
+ const valueSection=html.split('<section class="section network-value-section">')[1]?.split('</section>')[0]||'';
+ if((valueSection.match(/class="content-card network-support-card"/g)||[]).length!==1||
+    (valueSection.match(/<article class="content-card(?:\s|")/g)||[]).length!==1)
+  failures.push(file+': DR-06 must retain only the actionable support card');
+ const prague=html.match(/<article class="tour-choice-card destination-card destination-card--prague[\s\S]*?<\/article>/)?.[0]||'';
+ if(!prague||prague.includes('tour-choice-bottom')||prague.includes('tour-highlights'))
+  failures.push(file+': Prague must be a compact coming-soon strip');
+ for(const place of ['budapest','marvao']){
+  const card=html.match(new RegExp('<article class="tour-choice-card destination-card destination-card--'+place+'"[^>]*>[\\s\\S]*?<\\/article>'))?.[0]||'';
+  if((card.match(/class="tour-choice-actions"/g)||[]).length!==1||
+     card.includes('<small>Continue</small>')||card.includes('<small>המשך</small>'))
+    failures.push(file+': destination '+place+' must have one primary action');
+ }
+}
+
+const dr06Css=read('site/assets/site.css');
+for(const part of ['.hero .facts > span','.tour-highlights > span',':is(.tour-tag,.popular-pill)']){
+ if(!dr06Css.includes('body[data-page*="/budapest/"] '+part))
+  failures.push('DR-06: Budapest informational pill style missing: '+part);
+}
+if(!dr06Css.includes('border-radius:0;border:0;background:transparent'))
+ failures.push('DR-06: Budapest hero fact pills remain decorative controls');
+
 
 if(failures.length){
   console.error('VOY PRO root-brand guard failed.');

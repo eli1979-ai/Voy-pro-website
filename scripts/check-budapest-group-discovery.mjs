@@ -311,8 +311,8 @@ for(const {page,href,locale,positionMarker} of [
   const blocks=[...html.matchAll(isNetworkHome?homeSpotlightPattern:bridgePattern)];
   if(blocks.length!==1){failures.push(page+': expected one visible EZRaider guide referral block');continue;}
   const block=blocks[0][0];
-  if(blocks[0].index>=html.indexOf(positionMarker))
-    failures.push(page+': guide link should be visible before destination selection or Marvão booking');
+  if(isNetworkHome ? blocks[0].index<=html.indexOf(positionMarker) : blocks[0].index>=html.indexOf(positionMarker))
+    failures.push(page+': guide referral must follow network destination selection or precede Marvão booking');
   if(!block.includes('href="'+href+'"'))
     failures.push(page+': missing localized link to existing EZRaider guide: '+href);
   if(isNetworkHome){
@@ -321,7 +321,7 @@ for(const {page,href,locale,positionMarker} of [
        !block.includes('/assets/images/ezraider/owner-photo-20261031.webp')||
        (block.match(/class="network-ez-feature-card"/g)||[]).length!==4 ||
        html.includes('<section class="section ez-vehicle-bridge">'))
-      failures.push(page+': unified opening hero must have product image, four benefits and one styled guide CTA');
+      failures.push(page+': dedicated EZRaider section must have product image, four benefits and one styled guide CTA');
   }else if(!block.includes('class="btn alt"')||!block.includes('class="wrap proof"')||
        (!block.includes('<h2 ')&&!block.includes('<strong>')))
     failures.push(page+': guide referral must have clear copy and button');
