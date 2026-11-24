@@ -38,6 +38,27 @@ const gygForms=[gyg+' Buda Castle tour reviews',gyg+' ביקורות על סיו
 if(snapshot.getyourguide.scope!=='Buda Castle Tour listing (not all provider reviews)')
   failures.push('GetYourGuide count must be explicitly scoped to the photographed Buda Castle tour');
 
+/* All four parent-site locale trust strips must preserve Budapest-only source
+   scope and the same audited counts. Catch future stale translations here. */
+for(const [locale,folder] of [['en',''],['he','he/'],['hu','hu/'],['es','es/']]){
+  const file='site/'+folder+'index.html',html=fs.readFileSync(file,'utf8');
+  const expectedCount=n=>locale==='hu'?String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g,' ')
+    :locale==='es'?String(n):String(n).replace(/\\B(?=(\\d{3})+(?!\\d))/g,',');
+  for(const key of ['google','tripadvisor','getyourguide']){
+    const observed=[...html.matchAll(new RegExp('<span data-review-count="'+key+'">([^<]+)</span>','g'))];
+    if(observed.length!==1||observed[0][1]!==expectedCount(snapshot[key].review_count))
+      failures.push(file+': '+key+' parent trust strip must match the canonical Budapest snapshot');
+  }
+  const label=locale==='en'?'Buda Castle tour reviews':
+    locale==='he'?'ביקורות על סיור טירת בודה':
+    locale==='hu'?'értékelés a Buda Castle túráról':'opiniones del tour Buda Castle';
+  if(!html.includes('<span data-review-count="getyourguide">'+gyg+'</span> '+label))
+    failures.push(file+': GetYourGuide product-specific review scope not visible');
+}
+if(snapshot.tripadvisor.rank!==2||snapshot.tripadvisor.category_total!==304)
+  failures.push('Tripadvisor snapshot must retain owner screenshot rank #2 of 304');
+if(pages.length<56)failures.push('Budapest localized page coverage unexpectedly decreased');
+
 for(const file of pages){
   const raw=fs.readFileSync(file,'utf8');
   // Count-only spans on the Budapest landing page preserve a single snapshot;
