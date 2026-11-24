@@ -25,13 +25,14 @@ const snapshots={
   tripadvisor:'https://www.tripadvisor.co.uk/Attraction_Review-g274887-d24081931-Reviews-Ezraider_Budapest_By_Voy_Pro-Budapest_Central_Hungary.html',
   getyourguide:'https://www.getyourguide.com/ezraider-budapest-by-voy-pro-s269621/'
 };
-const format=(n,locale)=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'?' ':',');
+const format=(n,locale)=>locale==='es'?String(n):String(n).replace(/\B(?=(\d{3})+(?!\d))/g,locale==='hu'?' ':',');
 
 try{
   for(const relative of [
     'scripts/budapest-review-counts.mjs','site/assets/budapest-reputation.json',
     'site/assets/site.css','site/assets/budapest-review-sources-compact.css',
-    'site/index.html','site/budapest','site/he/budapest','site/hu/budapest'
+    'site/index.html','site/he/index.html','site/hu/index.html','site/es/index.html',
+    'site/budapest','site/he/budapest','site/hu/budapest','site/es/budapest'
   ])copy(relative);
   const original=JSON.parse(read('site/assets/budapest-reputation.json'));
   const sample='site/budapest/first-day/index.html';
@@ -60,7 +61,8 @@ try{
       'a real count change must preview specific page edits');
     assert.ok(plan.changedPages.includes('site/budapest/index.html')&&
       plan.changedPages.includes('site/he/budapest/index.html')&&
-      plan.changedPages.includes('site/hu/budapest/index.html'),
+      plan.changedPages.includes('site/hu/budapest/index.html')&&
+      plan.changedPages.includes('site/es/budapest/index.html'),
       'preview must list every localized Budapest landing page');
     assert.ok(plan.changedPages.includes('site/index.html'),
       'any verified Budapest count change must also update the parent home ratings');
@@ -110,6 +112,7 @@ try{
       ['en','site/budapest/index.html'],
       ['he','site/he/budapest/index.html'],
       ['hu','site/hu/budapest/index.html'],
+      ['es','site/es/budapest/index.html'],
       ['en','site/budapest/with-kids/index.html'],
       ['hu','site/hu/budapest/first-day/index.html']
     ]){
@@ -146,7 +149,7 @@ try{
       'invalid updates must not change the canonical snapshot');
     assert.ok(read(sample).includes(extra),'invalid updates must not change page text');
   }
-  console.log('Budapest weekly review update rehearsal OK: preview plans, cross-week no-op behavior, explicit metadata refresh, all 3 sources, three languages, source metadata, unrelated-number protection and fail-closed validation; repository checkout unchanged.');
+  console.log('Budapest weekly review update rehearsal OK: preview plans, cross-week no-op behavior, explicit metadata refresh, all 3 sources, four languages, source metadata, unrelated-number protection and fail-closed validation; repository checkout unchanged.');
 }finally{
   fs.rmSync(tmp,{recursive:true,force:true});
 }
